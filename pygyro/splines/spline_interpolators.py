@@ -1,6 +1,7 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
 
+import numpy as np
 from scipy.linalg import solve_banded
 from .splines     import BSplines, Spline1D
 
@@ -54,17 +55,17 @@ class SplineInterpolator1D():
         imat = np.zeros( (2*u+1,n) ) # interpolation matrix
 
         # TODO: clean the following two cycles
-        for i in range(ns-u):
+        for i in range(n-u):
             bspl_i = self._basis[i]
             for j in range(2*u+1):
-                imat[j,i] = bspl_i( xg[i+j-u] )
+                imat[j,i] = bspl_i.eval( xg[i+j-u] )
 
         iend = 0
-        for i in range(ns-u,ns):
+        for i in range(n-u,n):
             iend  += 1
             bspl_i = self._basis[i]
             for j in range(2*u+1-iend):
-                imat[j,i] = bspl_i( xg[i+j-u] )
+                imat[j,i] = bspl_i.eval( xg[i+j-u] )
 
         self.imat = imat
 
