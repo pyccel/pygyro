@@ -1,0 +1,11 @@
+stages:
+  - test
+
+job:
+  stage: test
+  before_script:
+    - module load anaconda/3
+  script:
+    - py.test pygyro
+  after_script:
+    - module unload anaconda/3
