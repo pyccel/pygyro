@@ -8,39 +8,6 @@ from ..splines              import make_knots, BSplines, Spline1D
 from ..spline_interpolators import SplineInterpolator1D
 
 #===============================================================================
-def random_grid( domain, ncells, random_fraction ):
-    """ Create random grid over 1D domain with given number of cells.
-    """
-    # Create uniform grid on [0,1]
-    x = np.linspace( 0.0, 1.0, ncells+1 )
-
-    # Apply random displacement to all points, then sort grid
-    x += (np.random.random_sample( ncells+1 )-0.5) * (random_fraction/ncells)
-    x.sort()
-
-    # Apply linear transformation y=m*x+q to match domain limits
-    xa, xb = x[0], x[-1]
-    ya, yb = domain
-    m = (   yb-ya   )/(xb-xa)
-    q = (xb*ya-xa*yb)/(xb-xa)
-    y = m*x + q
-
-    # Avoid possible round-off
-    y[0], y[-1] = domain
-
-    return y
-
-#===============================================================================
-def horner( x, *poly_coeffs ):
-    """ Use Horner's Scheme to evaluate a polynomial
-        of coefficients *poly_coeffs at location x.
-    """
-    r = 0
-    for a in poly_coeffs[::-1]:
-        r = r*x + a
-    return r
-
-#===============================================================================
 @pytest.mark.parametrize( "ncells", [1,5,10,23] )
 @pytest.mark.parametrize( "degree", range(1,11) )
 
