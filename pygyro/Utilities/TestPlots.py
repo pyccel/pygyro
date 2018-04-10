@@ -1,6 +1,10 @@
-from pygyro import BlockSetup, RadialSetup, SlicePlotter4d, SlicePlotter3d, Plotter2d, Constants
-import unittest
 from mpi4py import MPI
+
+from ..initialisation        import Constants
+from ..initialisation.Setups import BlockSetup, RadialSetup
+from .GridPlotter            import SlicePlotter4d, SlicePlotter3d, Plotter2d
+
+import unittest
 
 class TestPlot(unittest.TestCase):
     def test_RadialStitch(self):

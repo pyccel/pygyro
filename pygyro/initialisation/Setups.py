@@ -1,9 +1,10 @@
 from mpi4py import MPI
-from pygyro.initialisation.Initialiser import Initialiser
 from math import pi
-import pygyro.splines as spl
 import numpy as np
-from pygyro import Grid
+
+from ..           import splines as spl
+from ..model.Grid import Grid
+from .Initialiser import Initialiser
 
 def RadialSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
                 rMax: float, zMin: float, zMax: float, vMax: float, vMin: float = None,m=None,n=None):

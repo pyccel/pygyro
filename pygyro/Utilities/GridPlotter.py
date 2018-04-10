@@ -1,9 +1,10 @@
-from pygyro.Utilities.DiscreteSlider import DiscreteSlider
-from pygyro import Grid
+from mpi4py import MPI
 import matplotlib.pyplot as plt
 import numpy as np
-from mpi4py import MPI
 import warnings
+
+from  .DiscreteSlider import DiscreteSlider
+from ..model.Grid     import Grid
 
 class SlicePlotter4d(object):
     def __init__(self,grid: Grid):

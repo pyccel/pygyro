@@ -1,6 +1,5 @@
 from mpi4py import MPI
 import numpy as np
-import matplotlib.pyplot as plt
 from enum import Enum, IntEnum
 
 class Layout(Enum):

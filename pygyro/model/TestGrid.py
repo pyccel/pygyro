@@ -1,7 +1,8 @@
 from mpi4py import MPI
-from pygyro import Grid, Layout
 import numpy as np
 import unittest
+
+from .Grid import Layout, Grid
 
 class TestGrid(unittest.TestCase):
     

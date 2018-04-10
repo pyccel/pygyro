@@ -1,11 +1,12 @@
 from mpi4py import MPI
-from .Setups import RadialSetup, BlockSetup
-from pygyro.initialisation.Initialiser import Initialiser, getEquilibrium, getPerturbation
-import pygyro.initialisation.Constants as Constants
 import numpy as np
 import unittest
 from functools import reduce
-from pygyro import SlicePlotter4d, SlicePlotter3d, Plotter2d
+
+from   .                      import Constants
+from   .Setups                import RadialSetup, BlockSetup
+from   .Initialiser           import Initialiser, getEquilibrium, getPerturbation
+from  ..Utilities.GridPlotter import SlicePlotter4d, SlicePlotter3d, Plotter2d
 
 class TestSetup(unittest.TestCase):
     def test_RadialSetup(self):
