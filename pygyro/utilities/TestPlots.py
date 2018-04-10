@@ -1,15 +1,15 @@
 from mpi4py import MPI
 
-from ..initialisation        import Constants
-from ..initialisation.Setups import BlockSetup, RadialSetup
-from .GridPlotter            import SlicePlotter4d, SlicePlotter3d, Plotter2d
+from ..initialisation        import constants
+from ..initialisation.setups import BlockSetup, RadialSetup
+from .grid_plotter           import SlicePlotter4d, SlicePlotter3d, Plotter2d
 
 def test_RadialStitch():
     nr=10
     ntheta=10
     nz=20
     nv=20
-    grid=RadialSetup(nr,ntheta,nz,nv,Constants.rMin,Constants.rMax,0.0,10.0,5.0)
+    grid=RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0)
 
     grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
     p = SlicePlotter4d(grid)
@@ -20,7 +20,7 @@ def test_BlockStitch():
     ntheta=10
     nz=20
     nv=20
-    grid=BlockSetup(nr,ntheta,nz,nv,Constants.rMin,Constants.rMax,0.0,10.0,5.0)
+    grid=BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0)
     
     grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
     p = SlicePlotter4d(grid)
@@ -31,7 +31,7 @@ def test_3DPlot():
     ntheta=10
     nz=20
     nv=20
-    grid=BlockSetup(nr,ntheta,nz,nv,Constants.rMin,Constants.rMax,0.0,10.0,5.0)
+    grid=BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0)
     
     p = SlicePlotter3d(grid)
     p.show()

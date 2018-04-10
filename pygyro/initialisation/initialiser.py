@@ -1,30 +1,30 @@
 from math import sqrt, exp, pi, tanh, cos
 
-from . import Constants
+from . import constants
 
-def initF(r,theta,z,vPar,m = Constants.m,n = Constants.n):
-    return fEq(r,vPar)*(1+Constants.eps*perturbation(r,theta,z,m,n))
+def initF(r,theta,z,vPar,m = constants.m,n = constants.n):
+    return fEq(r,vPar)*(1+constants.eps*perturbation(r,theta,z,m,n))
 
-def perturbation(r,theta,z,m = Constants.m,n = Constants.n):
-    return exp(-(r-Constants.rp)**2/Constants.deltaR)*cos(Constants.m*theta+Constants.n*z/Constants.R0)
+def perturbation(r,theta,z,m = constants.m,n = constants.n):
+    return exp(-(r-constants.rp)**2/constants.deltaR)*cos(constants.m*theta+constants.n*z/constants.R0)
 
 def fEq(r,vPar):
     return n0(r)*exp(-0.5*vPar*vPar/Ti(r))/sqrt(2*pi*Ti(r))
 
 def n0(r):
-    return Constants.CN0*exp(-Constants.kN0*Constants.deltaRN0*tanh((r-Constants.rp)/Constants.deltaRN0))
+    return constants.CN0*exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
 
 def Ti(r):
-    return Constants.CTi*exp(-Constants.kTi*Constants.deltaRTi*tanh((r-Constants.rp)/Constants.deltaRTi))
+    return constants.CTi*exp(-constants.kTi*constants.deltaRTi*tanh((r-constants.rp)/constants.deltaRTi))
 
 def Te(r):
-    return Constants.CTe*exp(-Constants.kTe*Constants.deltaRTe*tanh((r-Constants.rp)/Constants.deltaRTe))
+    return constants.CTe*exp(-constants.kTe*constants.deltaRTe*tanh((r-constants.rp)/constants.deltaRTe))
 
 def Initialiser(f,rVals,qVals,zVals,vVals,m = None,n = None):
     if (m==None):
-        m=Constants.m
+        m=constants.m
     if (n==None):
-        n=Constants.n
+        n=constants.n
     for i in range(0,len(vVals)):
         for j in range(0,len(qVals)):
             for k in range(0,len(rVals)):
@@ -33,9 +33,9 @@ def Initialiser(f,rVals,qVals,zVals,vVals,m = None,n = None):
 
 def getPerturbation(f,rVals,qVals,zVals,vVals,m = None,n = None):
     if (m==None):
-        m=Constants.m
+        m=constants.m
     if (n==None):
-        n=Constants.n
+        n=constants.n
     for i in range(0,len(vVals)):
         for j in range(0,len(qVals)):
             for k in range(0,len(rVals)):
@@ -44,9 +44,9 @@ def getPerturbation(f,rVals,qVals,zVals,vVals,m = None,n = None):
 
 def getEquilibrium(f,rVals,qVals,zVals,vVals,m = None,n = None):
     if (m==None):
-        m=Constants.m
+        m=constants.m
     if (n==None):
-        n=Constants.n
+        n=constants.n
     for i in range(0,len(vVals)):
         for j in range(0,len(qVals)):
             for k in range(0,len(rVals)):

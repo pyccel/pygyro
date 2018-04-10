@@ -2,7 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 
-from .Grid import Layout, Grid
+from .grid import Layout, Grid
 
 def test_Grid():
     Grid([0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],Layout.RADIAL)

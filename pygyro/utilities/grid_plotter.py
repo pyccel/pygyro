@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 
-from  .DiscreteSlider import DiscreteSlider
-from ..model.Grid     import Grid
+from .discrete_slider import DiscreteSlider
+from ..model.grid     import Grid
 
 class SlicePlotter4d(object):
     def __init__(self,grid: Grid):

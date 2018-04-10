@@ -3,8 +3,8 @@ from math import pi
 import numpy as np
 
 from ..           import splines as spl
-from ..model.Grid import Grid
-from .Initialiser import Initialiser
+from ..model.grid import Grid
+from .initialiser import Initialiser
 
 def RadialSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
                 rMax: float, zMin: float, zMax: float, vMax: float, vMin: float = None,m=None,n=None):
