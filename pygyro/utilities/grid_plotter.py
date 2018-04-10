@@ -1,6 +1,7 @@
-from mpi4py import MPI
-import matplotlib.pyplot as plt
-import numpy as np
+from mpi4py                 import MPI
+from math                   import pi
+import matplotlib.pyplot    as plt
+import numpy                as np
 import warnings
 
 from .discrete_slider import DiscreteSlider
@@ -37,7 +38,7 @@ class SlicePlotter4d(object):
             self.Z.on_changed(self.updateZ)
             
             # get coordinate values
-            theta = np.repeat(np.append(self.grid.thetaVals,self.grid.thetaVals[0]),
+            theta = np.repeat(np.append(self.grid.thetaVals,2*pi),
                     len(self.grid.rVals)).reshape(len(self.grid.thetaVals)+1,len(self.grid.rVals))
             r = np.tile(self.grid.rVals,len(self.grid.thetaVals)+1).reshape(len(self.grid.thetaVals)+1,len(self.grid.rVals))
             
@@ -113,10 +114,10 @@ class SlicePlotter3d(object):
             self.xVals=Grid.Dimension.R
             self.x=grid.rVals
             self.yVals=Grid.Dimension.THETA
-            self.y=np.append(grid.thetaVals,grid.thetaVals[0])
+            self.y=np.append(grid.thetaVals,2*pi)
             self.zVals=Grid.Dimension.Z
             self.omit=Grid.Dimension.V
-            self.omitVal=grid.vVals[0]
+            self.omitVal=grid.vVals[len(grid.vVals)//2]
         else:
             assert(len(args)==3)
             # use arguments to get x values
@@ -125,7 +126,7 @@ class SlicePlotter3d(object):
                 self.x=grid.rVals
             elif (args[0]=='q' or args[0]=='theta'):
                 self.xVals=Grid.Dimension.THETA
-                self.x=np.append(grid.thetaVals,grid.thetaVals[0])
+                self.x=np.append(grid.thetaVals,2*pi)
             elif (args[0]=='z'):
                 self.xVals=Grid.Dimension.Z
                 self.x=grid.zVals
@@ -141,7 +142,7 @@ class SlicePlotter3d(object):
                 self.y=grid.rVals
             elif (args[1]=='q' or args[1]=='theta'):
                 self.yVals=Grid.Dimension.THETA
-                self.y=np.append(grid.thetaVals,grid.thetaVals[0])
+                self.y=np.append(grid.thetaVals,2*pi)
             elif (args[1]=='z'):
                 self.yVals=Grid.Dimension.Z
                 self.y=grid.zVals
@@ -168,13 +169,13 @@ class SlicePlotter3d(object):
             
             # fix unused dimension at an arbitrary (but measured) value
             if (self.omit==Grid.Dimension.R):
-                self.omitVal=grid.rVals[0]
+                self.omitVal=grid.rVals[len(grid.rVals)//2]
             elif (self.omit==Grid.Dimension.THETA):
-                self.omitVal=grid.thetaVals[0]
+                self.omitVal=grid.thetaVals[len(grid.thetaVals)//2]
             elif (self.omit==Grid.Dimension.Z):
-                self.omitVal=grid.zVals[0]
+                self.omitVal=grid.zVals[len(grid.zVals)//2]
             elif (self.omit==Grid.Dimension.V):
-                self.omitVal=grid.vVals[0]
+                self.omitVal=grid.vVals[len(grid.vVals)//2]
         
         # save x and y grid values
         nx=len(self.x)
@@ -323,7 +324,7 @@ class Plotter2d(object):
             self.x=grid.rVals
         elif (args[0]=='q' or args[0]=='theta'):
             self.xVals=Grid.Dimension.THETA
-            self.x=np.append(grid.thetaVals,grid.thetaVals[0])
+            self.x=np.append(grid.thetaVals,2*pi)
         elif (args[0]=='z'):
             self.xVals=Grid.Dimension.Z
             self.x=grid.zVals
@@ -339,7 +340,7 @@ class Plotter2d(object):
             self.y=grid.rVals
         elif (args[1]=='q' or args[0]=='theta'):
             self.yVals=Grid.Dimension.THETA
-            self.y=np.append(grid.thetaVals,grid.thetaVals[0])
+            self.y=np.append(grid.thetaVals,2*pi)
         elif (args[1]=='z'):
             self.yVals=Grid.Dimension.Z
             self.y=grid.zVals
@@ -357,23 +358,23 @@ class Plotter2d(object):
         
         # fix first unused dimension at an arbitrary (but measured) value
         if (self.omit1==Grid.Dimension.R):
-            self.omitVal1=grid.rVals[0]
+            self.omitVal1=grid.rVals[len(grid.rVals)//2]
         elif (self.omit1==Grid.Dimension.THETA):
-            self.omitVal1=grid.thetaVals[0]
+            self.omitVal1=grid.thetaVals[len(grid.thetaVals)//2]
         elif (self.omit1==Grid.Dimension.Z):
-            self.omitVal1=grid.zVals[0]
+            self.omitVal1=grid.zVals[len(grid.zVals)//2]
         elif (self.omit1==Grid.Dimension.V):
-            self.omitVal1=grid.vVals[0]
+            self.omitVal1=grid.vVals[len(grid.vVals)//2]
         
         # fix second unused dimension at an arbitrary (but measured) value
         if (self.omit2==Grid.Dimension.R):
-            self.omitVal2=grid.rVals[0]
+            self.omitVal2=grid.rVals[len(grid.rVals)//2]
         elif (self.omit2==Grid.Dimension.THETA):
-            self.omitVal2=grid.thetaVals[0]
+            self.omitVal2=grid.thetaVals[len(grid.thetaVals)//2]
         elif (self.omit2==Grid.Dimension.Z):
-            self.omitVal2=grid.zVals[0]
+            self.omitVal2=grid.zVals[len(grid.zVals)//2]
         elif (self.omit2==Grid.Dimension.V):
-            self.omitVal2=grid.vVals[0]
+            self.omitVal2=grid.vVals[len(grid.vVals)//2]
         
         # get MPI vals
         self.comm = MPI.COMM_WORLD
