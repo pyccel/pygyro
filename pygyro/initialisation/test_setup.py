@@ -4,25 +4,26 @@ from functools import reduce
 
 from  .                       import constants
 from  .setups                 import RadialSetup, BlockSetup
-from  .initialiser            import Initialiser, getEquilibrium, getPerturbation
-from ..utilities.grid_plotter import SlicePlotter4d, SlicePlotter3d, Plotter2d
 
-def test_RadialSetup():
-    nr=10
+def test_RadialToBlockSwap():
+    nr=50
     ntheta=10
-    nz=20
+    nz=90
     nv=20
-    grid = RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
-    #print(grid.f)
-    SlicePlotter4d(grid).show()
-    
-def test_BlockSetup():
-    nr=10
+    gridRad = RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
+    gridBlock = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
+    gridRad.swapLayout()
+    assert np.equal(gridBlock.f,gridRad.f).all()
+
+def test_RadialToBlockSwap():
+    nr=50
     ntheta=10
-    nz=20
+    nz=90
     nv=20
-    grid = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
-    SlicePlotter4d(grid).show()
+    gridRad = RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
+    gridBlock = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
+    gridBlock.swapLayout()
+    assert np.equal(gridBlock.f,gridRad.f).all()
 
 def test_compareSetups():
     nr=10
@@ -63,45 +64,3 @@ def test_compareSetups():
     else:
         comm.Gatherv(grid1.f.reshape(grid1.f.size),grid1.f,0)
         comm.Gatherv(grid2.f.reshape(grid2.f.size),grid2.f,0)
-
-def test_Equilibrium():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=20
-    grid = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
-    rank = MPI.COMM_WORLD.Get_rank()
-    getEquilibrium(grid.f,grid.rVals,grid.thetaVals,
-            grid.zVals[grid.zStarts[rank]:grid.zStarts[rank+1]],
-            grid.vVals,m=15,n=20)
-    Plotter2d(grid,'r','v').show()
-
-def test_Perturbation():
-    nr=20
-    ntheta=200
-    nz=10
-    nv=20
-    rank = MPI.COMM_WORLD.Get_rank()
-    grid = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,100.0,5.0,m=15,n=20)
-    getPerturbation(grid.f,grid.rVals,grid.thetaVals,
-            grid.zVals[grid.zStarts[rank]:grid.zStarts[rank+1]],
-            grid.vVals,m=15,n=20)
-    #grid = RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
-    #getPerturbation(grid.f,grid.rVals[grid.rStarts[rank]:grid.rStarts[rank+1]],grid.thetaVals,
-    #        grid.zVals,grid.vVals,m=15,n=20)
-    SlicePlotter3d(grid).show()
-
-def test_thetaZPlot():
-    nr=20
-    ntheta=200
-    nz=10
-    nv=20
-    rank = MPI.COMM_WORLD.Get_rank()
-    grid = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,100.0,5.0,m=15,n=20)
-    getPerturbation(grid.f,grid.rVals,grid.thetaVals,
-            grid.zVals[grid.zStarts[rank]:grid.zStarts[rank+1]],
-            grid.vVals,m=15,n=20)
-    #grid = RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
-    #getPerturbation(grid.f,grid.rVals[grid.rStarts[rank]:grid.rStarts[rank+1]],grid.thetaVals,
-    #        grid.zVals,grid.vVals,m=15,n=20)
-    Plotter2d(grid,'q','z').show()
