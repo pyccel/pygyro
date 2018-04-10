@@ -78,6 +78,10 @@ class SlicePlotter4d(object):
             self.colorbarax2.clear()
             self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
+            
+            self.ax.set_xlabel("x [m]")
+            self.ax.set_ylabel("y [m]")
+            
             self.fig.canvas.draw()
     
     def show(self):
@@ -245,6 +249,9 @@ class SlicePlotter3d(object):
                     self.ax.set_ylabel("z [m]")
                 elif (self.yVals==Grid.Dimension.V):
                     self.ax.set_ylabel(r'v [$ms^{-1}$]')
+            else:            
+                self.ax.set_xlabel("x [m]")
+                self.ax.set_ylabel("y [m]")
         else:
             # on other ranks save the initial value for the slider
             if (self.zVals==Grid.Dimension.R):
@@ -288,6 +295,7 @@ class SlicePlotter3d(object):
             else:
                 self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
+            
             self.fig.canvas.draw()
     
     def show(self):
