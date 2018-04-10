@@ -1,8 +1,12 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
 
-from scipy.linalg import solve_banded
-from .splines     import BSplines, Spline1D
+import numpy as np
+from scipy.linalg        import solve_banded
+from scipy.sparse        import lil_matrix, csr_matrix
+from scipy.sparse.linalg import splu
+
+from .splines import BSplines, Spline1D
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
@@ -36,11 +40,36 @@ class SplineInterpolator1D():
 
     # ...
     def _build_system_periodic( self ):
-        raise NotImplementedError( "Cannot interpolate periodic splines yet" )
+
+        self._offset = self._basis.degree // 2
+
+        n  = self._basis.nbasis
+        p  = self._basis.degree
+        u  = self._basis.degree-1
+        xg = self._basis.greville
+        off= self._offset
+
+        imat = lil_matrix( (n,n) )
+
+        for i in range(n):
+            xi = xg[i]
+            jmin = self._basis.find_cell( xi )
+            for s in range(p+1):
+                j = (jmin-off+s) % n
+                imat[i,j] = self._basis[jmin+s].eval( xi )
+
+        self._splu = splu( imat.tocsc() )
 
     # ...
     def _solve_system_periodic( self, ug, c ):
-        raise NotImplementedError( "Cannot interpolate periodic splines yet" )
+
+        n = self._basis.nbasis
+        p = self._basis.degree
+        o = self._offset
+
+        c[o:n+o]   = self._splu.solve( ug )
+        c[:o]      = c[n:n+o]
+        c[n+o:n+p] = c[o:p]
 
     # ...
     def _build_system_nonperiodic( self ):
@@ -54,25 +83,25 @@ class SplineInterpolator1D():
         imat = np.zeros( (2*u+1,n) ) # interpolation matrix
 
         # TODO: clean the following two cycles
-        for i in range(ns-u):
+        for i in range(n-u):
             bspl_i = self._basis[i]
             for j in range(2*u+1):
-                imat[j,i] = bspl_i( xg[i+j-u] )
+                imat[j,i] = bspl_i.eval( xg[i+j-u] )
 
         iend = 0
-        for i in range(ns-u,ns):
+        for i in range(n-u,n):
             iend  += 1
             bspl_i = self._basis[i]
             for j in range(2*u+1-iend):
-                imat[j,i] = bspl_i( xg[i+j-u] )
+                imat[j,i] = bspl_i.eval( xg[i+j-u] )
 
-        self.imat = imat
+        self._imat = imat
 
     # ...
     def _solve_system_nonperiodic( self, ug, c ):
         u = self._basis.degree-1
         l = u
-        c[:] = solve_banded( (l,u), self.imat, ug )
+        c[:] = solve_banded( (l,u), self._imat, ug )
 
 #===============================================================================
 class SplineInterpolator2D():

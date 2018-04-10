@@ -138,11 +138,12 @@ class BSplines():
         p = self._degree
         n = self._nbasis
         T = self._knots
-        s = p-1 if self._periodic else 1
+        s = 1+p//2 if self._periodic else 1
         x = np.array( [np.sum(T[i:i+p])/p for i in range(s,s+n)] )
 
         if self._periodic:
             a,b = self.domain
+            x = np.around( x, decimals=15 )
             x = (x-a) % (b-a) + a
 
         return np.around( x, decimals=15 )
@@ -167,6 +168,15 @@ class BSplines():
         spl = Spline1D( self )
         spl.coeffs[i] = 1.0
         return spl
+
+    # ...
+    def find_cell( self, x ):
+        """ Index i of cell $C_{i} := [x_{i},x_{i+1})$ that contains point x.
+            Last cell includes right endpoint.
+        """
+        a, b = self.domain
+        assert( a <= x <= b )
+        return int( np.searchsorted( self.breaks, x, side='right' ) - 1 )
 
 #===============================================================================
 class Spline1D():
