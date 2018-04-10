@@ -1,5 +1,5 @@
-from src.Utilities.DiscreteSlider import DiscreteSlider
-from src import Grid
+from pygyro.Utilities.DiscreteSlider import DiscreteSlider
+from pygyro import Grid
 import matplotlib.pyplot as plt
 import numpy as np
 from mpi4py import MPI

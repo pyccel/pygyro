@@ -1,13 +1,13 @@
 
-from .Core.Grid import *
+from .model.Grid import *
 from .initialisation.Setups import *
-import src.initialisation.Constants as Constants
+import pygyro.initialisation.Constants as Constants
 from .Utilities.GridPlotter import *
-from splines import *
+from .splines import *
 
 
 # tests
 from .initialisation.TestSetup import *
-from .Core.TestCore import *
+from .model.TestGrid import *
 from .Utilities.TestPlots import *
 

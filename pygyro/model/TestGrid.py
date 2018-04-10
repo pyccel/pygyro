@@ -1,5 +1,5 @@
 from mpi4py import MPI
-from src.Core.Grid import Grid, Layout
+from pygyro import Grid, Layout
 import numpy as np
 import unittest
 

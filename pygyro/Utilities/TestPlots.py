@@ -1,4 +1,4 @@
-from src import BlockSetup, RadialSetup, SlicePlotter4d, SlicePlotter3d, Plotter2d, Constants
+from pygyro import BlockSetup, RadialSetup, SlicePlotter4d, SlicePlotter3d, Plotter2d, Constants
 import unittest
 from mpi4py import MPI
 

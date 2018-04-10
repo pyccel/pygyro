@@ -1,5 +1,5 @@
 from math import sqrt, exp, pi, tanh, cos
-import src.initialisation.Constants as Constants
+import pygyro.initialisation.Constants as Constants
 
 def initF(r,theta,z,vPar,m = Constants.m,n = Constants.n):
     return fEq(r,vPar)*(1+Constants.eps*perturbation(r,theta,z,m,n))
