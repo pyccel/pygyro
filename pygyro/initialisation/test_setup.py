@@ -82,7 +82,7 @@ def test_Perturbation():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0,m=15,n=20)
+    grid = BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,100.0,5.0,m=15,n=20)
     getPerturbation(grid.f,grid.rVals,grid.thetaVals,
             grid.zVals[grid.zStarts[rank]:grid.zStarts[rank+1]],
             grid.vVals,m=15,n=20)
