@@ -35,3 +35,13 @@ def random_grid( domain, ncells, random_fraction ):
     y[0], y[-1] = domain
 
     return y
+
+#===============================================================================
+def falling_factorial( x, n ):
+  """ Calculate falling factorial of x.
+      [https://en.wikipedia.org/wiki/Falling_and_rising_factorials]
+  """
+  c = 1
+  for k in range(n):
+      c *= x-k
+  return c
