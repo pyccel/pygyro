@@ -20,33 +20,21 @@ def Ti(r):
 def Te(r):
     return constants.CTe*exp(-constants.kTe*constants.deltaRTe*tanh((r-constants.rp)/constants.deltaRTe))
 
-def Initialiser(f,rVals,qVals,zVals,vVals,m = None,n = None):
-    if (m==None):
-        m=constants.m
-    if (n==None):
-        n=constants.n
+def initialise(f,rVals,qVals,zVals,vVals,m = constants.m,n = constants.n):
     for i in range(0,len(vVals)):
         for j in range(0,len(qVals)):
             for k in range(0,len(rVals)):
                 for l in range(0,len(zVals)):
                     f[i,j,k,l]=initF(rVals[k],qVals[j],zVals[l],vVals[i])
 
-def getPerturbation(f,rVals,qVals,zVals,vVals,m = None,n = None):
-    if (m==None):
-        m=constants.m
-    if (n==None):
-        n=constants.n
+def getPerturbation(f,rVals,qVals,zVals,vVals,m = constants.m,n = constants.n):
     for i in range(0,len(vVals)):
         for j in range(0,len(qVals)):
             for k in range(0,len(rVals)):
                 for l in range(0,len(zVals)):
                     f[i,j,k,l]=perturbation(rVals[k],qVals[j],zVals[l])
 
-def getEquilibrium(f,rVals,qVals,zVals,vVals,m = None,n = None):
-    if (m==None):
-        m=constants.m
-    if (n==None):
-        n=constants.n
+def getEquilibrium(f,rVals,qVals,zVals,vVals,m = constants.m,n = constants.n):
     for i in range(0,len(vVals)):
         for j in range(0,len(qVals)):
             for k in range(0,len(rVals)):

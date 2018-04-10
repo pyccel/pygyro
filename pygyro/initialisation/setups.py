@@ -4,7 +4,7 @@ import numpy as np
 
 from ..           import splines as spl
 from ..model.grid import Grid
-from .initialiser import Initialiser
+from .initialiser import initialise
 
 def RadialSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
                 rMax: float, zMin: float, zMax: float, vMax: float, vMin: float = None,m=None,n=None):
@@ -70,7 +70,7 @@ def RadialSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
     # ordering chosen to increase step size to improve cache-coherency
     f = np.empty((nv,ntheta,rLen[rank],nz),float,order='F')
     
-    Initialiser(f,rVals[rStarts[rank]:rEnd],qVals,zVals,vVals,m,n)
+    initialise(f,rVals[rStarts[rank]:rEnd],qVals,zVals,vVals,m,n)
     return Grid(rVals,rSpline,qVals,qSpline,zVals,zSpline,vVals,vSpline,rStarts,zStarts,f,"radial")
 
 
@@ -138,5 +138,5 @@ def BlockSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
     # ordering chosen to increase step size to improve cache-coherency
     f = np.empty((nv,ntheta,nr,zLen[rank]),float,order='F')
     
-    Initialiser(f,rVals,qVals,zVals[zStarts[rank]:zEnd],vVals,m,n)
+    initialise(f,rVals,qVals,zVals[zStarts[rank]:zEnd],vVals,m,n)
     return Grid(rVals,rSpline,qVals,qSpline,zVals,zSpline,vVals,vSpline,rStarts,zStarts,f,"block")
