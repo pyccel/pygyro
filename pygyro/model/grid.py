@@ -78,20 +78,18 @@ class Grid(object):
                 raise NotImplementedError("%s is not an implemented layout" % self.layout)
         else:
             if (self.layout==Layout.BLOCK):
-                rVal = (np.abs(r-self.rVals)).argmin()
+                rVal = r
             elif (self.layout==Layout.RADIAL):
                 rVal=None
-                for i in range(self.rStarts[self.rank],self.rStarts[self.rank+1]):
-                    if (self.rVals[i] == r):
-                        rVal=i-self.rStarts[self.rank]
-                        break
+                if (r>=self.rStarts[self.rank] and r<self.rStarts[self.rank+1]):
+                    rVal=r-self.rStarts[self.rank]
             else:
                 raise NotImplementedError("%s is not an implemented layout" % self.layout)
         if (theta==None):
             finalSize=finalSize*len(self.thetaVals)
             thetaVal=slice(0,len(self.thetaVals))
         else:
-            thetaVal=(np.abs(theta-self.thetaVals)).argmin()
+            thetaVal=theta
         if (z==None):
             finalSize=finalSize*len(self.zVals)
             if (self.layout==Layout.RADIAL):
@@ -102,27 +100,25 @@ class Grid(object):
                 raise NotImplementedError("%s is not an implemented layout" % self.layout)
         else:
             if (self.layout==Layout.RADIAL):
-                zVal = (np.abs(z-self.zVals)).argmin()
+                zVal = z
             elif (self.layout==Layout.BLOCK):
                 zVal=None
-                for i in range(self.zStarts[self.rank],self.zStarts[self.rank+1]):
-                    if (self.zVals[i] == z):
-                        zVal=i-self.zStarts[self.rank]
-                        break
+                if (z>=self.zStarts[self.rank] and z<self.zStarts[self.rank+1]):
+                    zVal=z-self.zStarts[self.rank]
             else:
                 raise NotImplementedError("%s is not an implemented layout" % self.layout)
         if (v==None):
             finalSize=finalSize*len(self.vVals)
             vVal=slice(0,len(self.vVals))
         else:
-            vVal = (np.abs(v-self.vVals)).argmin()
+            vVal = v
         
         if (self.layout==Layout.BLOCK):
             if (zVal==None):
                 sendSize=0
                 toSend = np.ndarray(0)
             else:
-                toSend = self.f[thetaVal,rVal,zVal,vVal]
+                toSend = self.f[thetaVal,rVal,zVal,vVal].flatten()
                 sendSize=toSend.size
             
             sizes=MPI.COMM_WORLD.gather(sendSize,root=0)
@@ -132,7 +128,7 @@ class Grid(object):
                 starts[1:]=sizes[:self.mpi_size-1]
                 starts=starts.cumsum().astype(int)
                 mySlice = np.empty(finalSize, dtype=float)
-                MPI.COMM_WORLD.Gatherv(toSend.reshape(sendSize),(mySlice, sizes, starts, MPI.DOUBLE), 0)
+                MPI.COMM_WORLD.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
                 if (v==None and theta==None):
                     mySlice=mySlice.reshape(len(self.thetaVals),len(self.vVals))
                     return np.append(mySlice,mySlice[None,0,:],axis=0)
@@ -167,14 +163,14 @@ class Grid(object):
                     print("v = ",v)
                     raise NotImplementedError()
             else:
-                MPI.COMM_WORLD.Gatherv(toSend.reshape(sendSize),toSend,0)
+                MPI.COMM_WORLD.Gatherv(toSend,toSend,0)
                 return mySlice
         elif (self.layout ==Layout.RADIAL):
             if (rVal==None):
                 sendSize=0
                 toSend = np.ndarray(0)
             else:
-                toSend = self.f[thetaVal,rVal,zVal,vVal]
+                toSend = self.f[thetaVal,rVal,zVal,vVal].flatten()
                 sendSize = toSend.size
             
             mySlice = None
@@ -184,7 +180,7 @@ class Grid(object):
                 starts[1:]=sizes[:self.mpi_size-1]
                 starts=starts.cumsum().astype(int)
                 mySlice = np.empty(finalSize, dtype=float)
-                MPI.COMM_WORLD.Gatherv(toSend.reshape(sendSize),(mySlice, sizes, starts, MPI.DOUBLE), 0)
+                MPI.COMM_WORLD.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
                 if (v==None and theta==None):
                     mySlice=mySlice.reshape(len(self.thetaVals),len(self.vVals))
                     return np.append(mySlice,mySlice[:,0,None],axis=1)
@@ -219,7 +215,7 @@ class Grid(object):
                     print("v = ",v)
                     raise NotImplementedError()
             else:
-                MPI.COMM_WORLD.Gatherv(toSend.reshape(sendSize),toSend,0)
+                MPI.COMM_WORLD.Gatherv(toSend,toSend,0)
             return mySlice
         else:
             raise NotImplementedError("%s is not an implemented layout" % self.layout)

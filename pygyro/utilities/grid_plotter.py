@@ -16,8 +16,8 @@ class SlicePlotter4d(object):
         self.rank = self.comm.Get_rank()
         
         # get initial values for the sliders
-        self.vVal = grid.vVals[len(grid.vVals)//2]
-        self.zVal = grid.zVals[0]
+        self.vVal = len(grid.vVals)//2
+        self.zVal = 0
         
         # get max and min values of f to avoid colorbar jumps
         self.minimum=grid.getMin()
@@ -32,8 +32,8 @@ class SlicePlotter4d(object):
             self.colorbarax2 = self.fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
             # add sliders and remember their values
-            self.vPar = DiscreteSlider(self.sliderax1, r'$v_\parallel$', valinit=self.vVal,values=grid.vVals)
-            self.Z = DiscreteSlider(self.sliderax2, 'z', valinit=self.zVal, values=grid.zVals)
+            self.vPar = DiscreteSlider(self.sliderax1, r'$v_\parallel$', valinit=grid.vVals[self.vVal],values=grid.vVals)
+            self.Z = DiscreteSlider(self.sliderax2, 'z', valinit=grid.zVals[self.zVal], values=grid.zVals)
             self.vPar.on_changed(self.updateV)
             self.Z.on_changed(self.updateZ)
             
@@ -50,7 +50,7 @@ class SlicePlotter4d(object):
     def updateV(self, value):
         # alert non-0 ranks that v has been updated and the drawing must be updated
         MPI.COMM_WORLD.bcast(1,root=0)
-        self.vVal=value
+        self.vVal=(np.abs(value-self.grid.vVals)).argmin()
         # broadcast new value
         self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
         # update plot
@@ -59,7 +59,7 @@ class SlicePlotter4d(object):
     def updateZ(self, value):
         # alert non-0 ranks that z has been updated and the drawing must be updated
         MPI.COMM_WORLD.bcast(2,root=0)
-        self.zVal=value
+        self.zVal=(np.abs(value-self.grid.zVals)).argmin()
         # broadcast new value
         self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
         # update plot
@@ -117,7 +117,7 @@ class SlicePlotter3d(object):
             self.y=np.append(grid.thetaVals,2*pi)
             self.zVals=Grid.Dimension.Z
             self.omit=Grid.Dimension.V
-            self.omitVal=grid.vVals[len(grid.vVals)//2]
+            self.omitVal=len(grid.vVals)//2
         else:
             assert(len(args)==3)
             # use arguments to get x values
@@ -169,13 +169,13 @@ class SlicePlotter3d(object):
             
             # fix unused dimension at an arbitrary (but measured) value
             if (self.omit==Grid.Dimension.R):
-                self.omitVal=grid.rVals[len(grid.rVals)//2]
+                self.omitVal=len(grid.rVals)//2
             elif (self.omit==Grid.Dimension.THETA):
-                self.omitVal=grid.thetaVals[len(grid.thetaVals)//2]
+                self.omitVal=len(grid.thetaVals)//2
             elif (self.omit==Grid.Dimension.Z):
-                self.omitVal=grid.zVals[len(grid.zVals)//2]
+                self.omitVal=len(grid.zVals)//2
             elif (self.omit==Grid.Dimension.V):
-                self.omitVal=grid.vVals[len(grid.vVals)//2]
+                self.omitVal=len(grid.vVals)//2
         
         # save x and y grid values
         nx=len(self.x)
@@ -218,18 +218,17 @@ class SlicePlotter3d(object):
             self.colorbarax2 = self.fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
             # add slider and remember its value
+            self.initVal = 0
             if (self.zVals==Grid.Dimension.R):
-                self.initVal = grid.rVals[0]
-                self.slider = DiscreteSlider(self.sliderax1, "r", valinit=self.initVal,values=grid.rVals)
+                self.slider = DiscreteSlider(self.sliderax1, "r", valinit=grid.rVals[0],values=grid.rVals)
             elif (self.zVals==Grid.Dimension.THETA):
-                self.initVal = grid.thetaVals[0]
-                self.slider = DiscreteSlider(self.sliderax1, r'$\theta$', valinit=self.initVal,values=grid.thetaVals)
+                self.slider = DiscreteSlider(self.sliderax1, r'$\theta$', valinit=grid.thetaVals[0],values=grid.thetaVals)
             elif (self.zVals==Grid.Dimension.Z):
-                self.initVal = grid.zVals[0]
-                self.slider = DiscreteSlider(self.sliderax1, "z", valinit=self.initVal,values=grid.zVals)
+                self.slider = DiscreteSlider(self.sliderax1, "z", valinit=grid.zVals[0],values=grid.zVals)
             elif (self.zVals==Grid.Dimension.V):
-                self.initVal = grid.vVals[len(grid.vVals)//2]
-                self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$', valinit=self.initVal,values=grid.vVals)
+                self.initVal = len(grid.vVals)//2
+                self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$', 
+                        valinit=grid.vVals[len(grid.vVals)//2],values=grid.vVals)
             self.slider.on_changed(self.updateVal)
             if (not self.polar):
                 # add x-axis label
@@ -256,21 +255,24 @@ class SlicePlotter3d(object):
                 self.ax.set_ylabel("y [m]")
         else:
             # on other ranks save the initial value for the slider
-            if (self.zVals==Grid.Dimension.R):
-                self.initVal = grid.rVals[0]
-            elif (self.zVals==Grid.Dimension.THETA):
-                self.initVal = grid.thetaVals[0]
-            elif (self.zVals==Grid.Dimension.Z):
-                self.initVal = grid.zVals[0]
-            elif (self.zVals==Grid.Dimension.V):
-                self.initVal = grid.vVals[len(grid.vVals)//2]
+            if (self.zVals==Grid.Dimension.V):
+                self.initVal = len(grid.vVals)//2
+            else:
+                self.initVal = 0
             
         self.plotFigure()
     
     def updateVal(self, value):
         # alert non-0 ranks that they must receive the new value and update the drawing
         MPI.COMM_WORLD.bcast(1,root=0)
-        self.initVal=value
+        if (self.zVals==Grid.Dimension.R):
+            self.initVal=(np.abs(value-self.grid.rVals)).argmin()
+        elif (self.zVals==Grid.Dimension.THETA):
+            self.initVal=(np.abs(value-self.grid.thetaVals)).argmin()
+        elif (self.zVals==Grid.Dimension.Z):
+            self.initVal=(np.abs(value-self.grid.zVals)).argmin()
+        elif (self.zVals==Grid.Dimension.V):
+            self.initVal=(np.abs(value-self.grid.vVals)).argmin()
         # broadcast new value
         self.initVal=MPI.COMM_WORLD.bcast(self.initVal,root=0)
         # update plot
@@ -358,23 +360,23 @@ class Plotter2d(object):
         
         # fix first unused dimension at an arbitrary (but measured) value
         if (self.omit1==Grid.Dimension.R):
-            self.omitVal1=grid.rVals[len(grid.rVals)//2]
+            self.omitVal1=len(grid.rVals)//2
         elif (self.omit1==Grid.Dimension.THETA):
-            self.omitVal1=grid.thetaVals[len(grid.thetaVals)//2]
+            self.omitVal1=len(grid.thetaVals)//2
         elif (self.omit1==Grid.Dimension.Z):
-            self.omitVal1=grid.zVals[len(grid.zVals)//2]
+            self.omitVal1=len(grid.zVals)//2
         elif (self.omit1==Grid.Dimension.V):
-            self.omitVal1=grid.vVals[len(grid.vVals)//2]
+            self.omitVal1=len(grid.vVals)//2
         
         # fix second unused dimension at an arbitrary (but measured) value
         if (self.omit2==Grid.Dimension.R):
-            self.omitVal2=grid.rVals[len(grid.rVals)//2]
+            self.omitVal2=len(grid.rVals)//2
         elif (self.omit2==Grid.Dimension.THETA):
-            self.omitVal2=grid.thetaVals[len(grid.thetaVals)//2]
+            self.omitVal2=len(grid.thetaVals)//2
         elif (self.omit2==Grid.Dimension.Z):
-            self.omitVal2=grid.zVals[len(grid.zVals)//2]
+            self.omitVal2=len(grid.zVals)//2
         elif (self.omit2==Grid.Dimension.V):
-            self.omitVal2=grid.vVals[len(grid.vVals)//2]
+            self.omitVal2=len(grid.vVals)//2
         
         # get MPI vals
         self.comm = MPI.COMM_WORLD
