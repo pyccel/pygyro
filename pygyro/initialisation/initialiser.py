@@ -21,22 +21,22 @@ def Te(r):
     return constants.CTe*exp(-constants.kTe*constants.deltaRTe*tanh((r-constants.rp)/constants.deltaRTe))
 
 def initialise(f,rVals,qVals,zVals,vVals,m = constants.m,n = constants.n):
-    for i in range(0,len(vVals)):
-        for j in range(0,len(qVals)):
-            for k in range(0,len(rVals)):
-                for l in range(0,len(zVals)):
-                    f[i,j,k,l]=initF(rVals[k],qVals[j],zVals[l],vVals[i])
+    for i,theta in enumerate(qVals):
+        for j,r in enumerate(rVals):
+            for k,z in enumerate(zVals):
+                for l,v in enumerate(vVals):
+                    f[i,j,k,l]=initF(r,theta,z,v,m,n)
 
 def getPerturbation(f,rVals,qVals,zVals,vVals,m = constants.m,n = constants.n):
-    for i in range(0,len(vVals)):
-        for j in range(0,len(qVals)):
-            for k in range(0,len(rVals)):
-                for l in range(0,len(zVals)):
-                    f[i,j,k,l]=perturbation(rVals[k],qVals[j],zVals[l])
+    for i,theta in enumerate(qVals):
+        for j,r in enumerate(rVals):
+            for k,z in enumerate(zVals):
+                for l,v in enumerate(vVals):
+                    f[i,j,k,l]=perturbation(r,theta,z,m,n)
 
-def getEquilibrium(f,rVals,qVals,zVals,vVals,m = constants.m,n = constants.n):
-    for i in range(0,len(vVals)):
-        for j in range(0,len(qVals)):
-            for k in range(0,len(rVals)):
-                for l in range(0,len(zVals)):
-                    f[i,j,k,l]=fEq(rVals[k],vVals[i])
+def getEquilibrium(f,rVals,qVals,zVals,vVals):
+    for i,theta in enumerate(qVals):
+        for j,r in enumerate(rVals):
+            for k,z in enumerate(zVals):
+                for l,v in enumerate(vVals):
+                    f[i,j,k,l]=fEq(r,v)

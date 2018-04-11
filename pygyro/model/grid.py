@@ -8,10 +8,10 @@ class Layout(Enum):
 
 class Grid(object):
     class Dimension(IntEnum):
-        R = 2
-        THETA = 1
-        Z = 3
-        V = 0
+        R = 1
+        THETA = 0
+        Z = 2
+        V = 3
     
     def __init__(self,r,rSpline,theta,thetaSpline,z,zSpline,v,vSpline,rStarts,zStarts,f,layout):
         if (type(layout)==str):
@@ -42,10 +42,10 @@ class Grid(object):
     
     def swapLayout(self):
         if (self.layout==Layout.RADIAL):
-            self.f = np.concatenate(MPI.COMM_WORLD.alltoall(np.split(self.f,self.zStarts[1:self.mpi_size],axis=3)),axis=2)
+            self.f = np.concatenate(MPI.COMM_WORLD.alltoall(np.split(self.f,self.zStarts[1:self.mpi_size],axis=2)),axis=1)
             self.layout=Layout.BLOCK
         elif (self.layout==Layout.BLOCK):
-            self.f = np.concatenate(MPI.COMM_WORLD.alltoall(np.split(self.f,self.rStarts[1:self.mpi_size],axis=2)),axis=3)
+            self.f = np.concatenate(MPI.COMM_WORLD.alltoall(np.split(self.f,self.rStarts[1:self.mpi_size],axis=1)),axis=2)
             self.layout=Layout.RADIAL
         else:
             raise NotImplementedError("%s is not an implemented layout" % self.layout)
@@ -122,7 +122,7 @@ class Grid(object):
                 sendSize=0
                 toSend = np.ndarray(0)
             else:
-                toSend = self.f[vVal,thetaVal,rVal,zVal]
+                toSend = self.f[thetaVal,rVal,zVal,vVal]
                 sendSize=toSend.size
             
             sizes=MPI.COMM_WORLD.gather(sendSize,root=0)
@@ -134,16 +134,16 @@ class Grid(object):
                 mySlice = np.empty(finalSize, dtype=float)
                 MPI.COMM_WORLD.Gatherv(toSend.reshape(sendSize),(mySlice, sizes, starts, MPI.DOUBLE), 0)
                 if (v==None and theta==None):
-                    mySlice=mySlice.reshape(len(self.vVals),len(self.thetaVals))
-                    return np.append(mySlice,mySlice[:,0,None],axis=1)
+                    mySlice=mySlice.reshape(len(self.thetaVals),len(self.vVals))
+                    return np.append(mySlice,mySlice[None,0,:],axis=0)
                 elif (v==None and r==None):
-                    return mySlice.reshape(len(self.vVals),len(self.rVals))
+                    return mySlice.reshape(len(self.rVals),len(self.vVals))
                 elif (v==None and z==None):
                     mySlice=np.split(mySlice,starts[1:])
                     vLen=len(self.vVals)
                     for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(vLen,sizes[i]//vLen)
-                    return np.concatenate(mySlice,axis=1)
+                        mySlice[i]=mySlice[i].reshape(sizes[i]//vLen,vLen)
+                    return np.concatenate(mySlice,axis=0)
                 elif (theta==None and r==None):
                     mySlice=mySlice.reshape(len(self.thetaVals),len(self.rVals))
                     return np.append(mySlice,mySlice[None,0,:],axis=0)
@@ -174,7 +174,7 @@ class Grid(object):
                 sendSize=0
                 toSend = np.ndarray(0)
             else:
-                toSend = self.f[vVal,thetaVal,rVal,zVal]
+                toSend = self.f[thetaVal,rVal,zVal,vVal]
                 sendSize = toSend.size
             
             mySlice = None
@@ -186,16 +186,16 @@ class Grid(object):
                 mySlice = np.empty(finalSize, dtype=float)
                 MPI.COMM_WORLD.Gatherv(toSend.reshape(sendSize),(mySlice, sizes, starts, MPI.DOUBLE), 0)
                 if (v==None and theta==None):
-                    mySlice=mySlice.reshape(len(self.vVals),len(self.thetaVals))
+                    mySlice=mySlice.reshape(len(self.thetaVals),len(self.vVals))
                     return np.append(mySlice,mySlice[:,0,None],axis=1)
                 elif (v==None and r==None):
                     mySlice=np.split(mySlice,starts[1:])
                     vLen=len(self.vVals)
                     for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(vLen,sizes[i]//vLen)
-                    return np.concatenate(mySlice,axis=1)
+                        mySlice[i]=mySlice[i].reshape(sizes[i]//vLen,vLen)
+                    return np.concatenate(mySlice,axis=0)
                 elif (v==None and z==None):
-                    return mySlice.reshape(len(self.vVals),len(self.zVals))
+                    return mySlice.reshape(len(self.zVals),len(self.vVals))
                 elif (theta==None and r==None):
                     mySlice=np.split(mySlice,starts[1:])
                     qLen=len(self.thetaVals)

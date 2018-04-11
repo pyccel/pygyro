@@ -68,7 +68,7 @@ def RadialSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
     rEnd=rStarts[rank]+rLen[rank]
     
     # ordering chosen to increase step size to improve cache-coherency
-    f = np.empty((nv,ntheta,rLen[rank],nz),float,order='F')
+    f = np.empty((ntheta,rLen[rank],nz,nv),float,order='F')
     
     initialise(f,rVals[rStarts[rank]:rEnd],qVals,zVals,vVals,m,n)
     return Grid(rVals,rSpline,qVals,qSpline,zVals,zSpline,vVals,vSpline,rStarts,zStarts,f,"radial")
@@ -136,7 +136,7 @@ def BlockSetup(nr: int, ntheta: int, nz: int, nv: int, rMin: float,
     zEnd=zStarts[rank]+zLen[rank]
     
     # ordering chosen to increase step size to improve cache-coherency
-    f = np.empty((nv,ntheta,nr,zLen[rank]),float,order='F')
+    f = np.empty((ntheta,nr,zLen[rank],nv),float,order='F')
     
     initialise(f,rVals,qVals,zVals[zStarts[rank]:zEnd],vVals,m,n)
     return Grid(rVals,rSpline,qVals,qSpline,zVals,zSpline,vVals,vSpline,rStarts,zStarts,f,"block")

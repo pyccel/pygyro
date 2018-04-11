@@ -31,7 +31,7 @@ def test_Equilibrium():
     rank = MPI.COMM_WORLD.Get_rank()
     getEquilibrium(grid.f,grid.rVals,grid.thetaVals,
             grid.zVals[grid.zStarts[rank]:grid.zStarts[rank+1]],
-            grid.vVals,m=15,n=20)
+            grid.vVals)
     Plotter2d(grid,'r','v').show()
 
 def test_Perturbation():
