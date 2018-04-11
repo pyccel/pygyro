@@ -206,8 +206,8 @@ class SlicePlotter3d(object):
         self.rank = self.comm.Get_rank()
         
         # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin()
-        self.maximum=grid.getMax()
+        self.minimum=grid.getMin(self.omit,self.omitVal)
+        self.maximum=grid.getMax(self.omit,self.omitVal)
         
         # on rank 0 set-up the graph
         if (self.rank==0):
@@ -381,10 +381,6 @@ class Plotter2d(object):
         # get MPI vals
         self.comm = MPI.COMM_WORLD
         self.rank = self.comm.Get_rank()
-        
-        # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin()
-        self.maximum=grid.getMax()
         
         # save x and y grid values
         nx=len(self.x)

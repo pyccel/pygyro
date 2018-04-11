@@ -58,7 +58,6 @@ class Grid(object):
         else:
             raise NotImplementedError("%s is not an implemented layout" % self.layout)
     
-    
     def getSliceFromDict(self,d : dict):
         r = d.get(self.Dimension.R,None)
         q = d.get(self.Dimension.THETA,None)
@@ -219,9 +218,51 @@ class Grid(object):
             return mySlice
         else:
             raise NotImplementedError("%s is not an implemented layout" % self.layout)
-
-    def getMin(self):
-        return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
     
-    def getMax(self):
-        return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
+    def getMin(self,axis = None,fixValue = None):
+        if (axis==None and fixValue==None):
+            return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
+        if (self.layout==Layout.BLOCK):
+            if (axis==self.Dimension.Z):
+                if (fixValue>=self.zStarts[self.rank] and fixValue<self.zStarts[self.rank+1]):
+                    idx = (np.s_[:],) * axis + (fixValue-self.zStarts[self.rank],)
+                    return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+                else:
+                    return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
+            else:
+                idx = (np.s_[:],) * axis + (fixValue,)
+                return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        elif (self.layout==Layout.RADIAL):
+            if (axis==self.Dimension.R):
+                if (fixValue>=self.rStarts[self.rank] and fixValue<self.rStarts[self.rank+1]):
+                    idx = (np.s_[:],) * axis + (fixValue-self.rStarts[self.rank],)
+                    return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+                else:
+                    return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
+            else:
+                idx = (np.s_[:],) * axis + (fixValue,)
+                return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+    
+    def getMax(self,axis = None,fixValue = None):
+        if (axis==None and fixValue==None):
+            return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
+        if (self.layout==Layout.BLOCK):
+            if (axis==self.Dimension.Z):
+                if (fixValue>=self.zStarts[self.rank] and fixValue<self.zStarts[self.rank+1]):
+                    idx = (np.s_[:],) * axis + (fixValue-self.zStarts[self.rank],)
+                    return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+                else:
+                    return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
+            else:
+                idx = (np.s_[:],) * axis + (fixValue,)
+                return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        elif (self.layout==Layout.RADIAL):
+            if (axis==self.Dimension.R):
+                if (fixValue>=self.rStarts[self.rank] and fixValue<self.rStarts[self.rank+1]):
+                    idx = (np.s_[:],) * axis + (fixValue-self.rStarts[self.rank],)
+                    return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+                else:
+                    return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
+            else:
+                idx = (np.s_[:],) * axis + (fixValue,)
+                return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)

@@ -31,18 +31,22 @@ def test_3DPlot():
     ntheta=10
     nz=20
     nv=20
-    grid=BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0)
+    grid=BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,80.0,5.0)
     
     p = SlicePlotter3d(grid)
     p.show()
-
-    p = SlicePlotter3d(grid,'q','z','v')
-    p.show()
-
+    
     p = SlicePlotter3d(grid,'r','z','v')
     p.show()
-
+    
     p = SlicePlotter3d(grid,'q','z','r')
     p.show()
+    
+    p = SlicePlotter3d(grid,'r','q','v')
+    p.show()
+    
+    p = SlicePlotter3d(grid,'q','z','v')
+    p.show()
+    
 
     MPI.COMM_WORLD.Barrier()
