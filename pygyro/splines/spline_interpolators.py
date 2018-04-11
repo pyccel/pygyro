@@ -139,26 +139,28 @@ class SplineInterpolator2D():
         # Copy interpolation data onto w array
         w[:,:] = ug[:,:]
 
-        # Cycle over x2 position and interpolate f along x1 direction.
-        # Store coefficients in self._bwork
-        for i2 in range(n2):
-            self._interp1.interpolate( w[:,i2], self._spline1 )
-            w[:,i2] = self._spline1.coeffs
+        # Cycle over x1 position and interpolate f along x2 direction.
+        # Work on spl.coeffs
+        for i1 in range(n1):
+            self._interp2.interpolate( w[i1,:], self._spline2 )
+            w[i1,:] = self._spline2.coeffs
 
+        # Transpose coefficients to self._bwork
         wt = w.transpose()
 
-        # Cycle over x1 position and interpolate w along x2 direction.
-        # Store coefficients in spl.coeffs
-        for i1 in range(n1):
-            self._interp2.interpolate( wt[:,i1], self._spline2 )
-            wt[:,i1] = self._spline2.coeffs
-
-        # x1-periodic only: "wrap around" coefficients onto extended array
-        if (self._basis1.periodic):
-          wt[:,n1:n1+p1] = wt[:,:p1]
-
-        w = wt.transpose()
+        # Cycle over x2 position and interpolate w along x1 direction.
+        # Work on self._bwork
+        for i2 in range(n2):
+            self._interp1.interpolate( wt[i2,:], self._spline1 )
+            wt[i2,:] = self._spline1.coeffs
 
         # x2-periodic only: "wrap around" coefficients onto extended array
         if (self._basis2.periodic):
-          w[:,n2:n2+p2] = w[:,:p2]
+            wt[n2:n2+p2,:] = wt[:p2,:]
+
+        # Transpose coefficients to spl.coeffs
+        w = wt.transpose()
+
+        # x1-periodic only: "wrap around" coefficients onto extended array
+        if (self._basis1.periodic):
+            w[n1:n1+p1,:] = w[:p1,:]
