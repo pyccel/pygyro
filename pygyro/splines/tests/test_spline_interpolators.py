@@ -32,7 +32,7 @@ def test_SplineInterpolator1D_exact( ncells, degree ):
     xg = basis.greville
     ug = f( xg )
 
-    interp.interpolate( ug, spline )
+    interp.compute_interpolant( ug, spline )
 
     xt  = np.linspace( *domain, num=100 )
     err = spline.eval( xt ) - f( xt )
@@ -64,7 +64,7 @@ def test_SplineInterpolator1D_cosine( ncells, degree, periodic ):
     xg = basis.greville
     ug = f.eval( xg )
 
-    interp.interpolate( ug, spline )
+    interp.compute_interpolant( ug, spline )
 
     xt  = np.linspace( *f.domain, num=100 )
     err = spline.eval( xt ) - f.eval( xt )
@@ -112,7 +112,7 @@ def test_SplineInterpolator2D_exact( nc1, nc2, deg1, deg2 ):
     x2g = basis2.greville
     ug  = f( *np.meshgrid( x1g, x2g, indexing='ij' ) )
 
-    interp.interpolate( ug, spline )
+    interp.compute_interpolant( ug, spline )
 
     x1t = np.linspace( *domain1, num=100 )
     x2t = np.linspace( *domain2, num=100 )

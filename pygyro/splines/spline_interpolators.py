@@ -27,7 +27,7 @@ class SplineInterpolator1D():
         return self._basis
 
     # ...
-    def interpolate( self, ug, spl ):
+    def compute_interpolant( self, ug, spl ):
 
         assert isinstance( spl, Spline1D )
         assert spl.basis is self._basis
@@ -122,7 +122,7 @@ class SplineInterpolator2D():
         p1,p2 = basis1.degree, basis2.degree
         self._bwork = np.zeros( (n2+p2,n1+p1) )
 
-    def interpolate( self, ug, spl ):
+    def compute_interpolant( self, ug, spl ):
 
         assert isinstance( spl, Spline2D )
         basis1, basis2 = spl.basis
@@ -142,7 +142,7 @@ class SplineInterpolator2D():
         # Cycle over x1 position and interpolate f along x2 direction.
         # Work on spl.coeffs
         for i1 in range(n1):
-            self._interp2.interpolate( w[i1,:], self._spline2 )
+            self._interp2.compute_interpolant( w[i1,:], self._spline2 )
             w[i1,:] = self._spline2.coeffs
 
         # Transpose coefficients to self._bwork
@@ -151,7 +151,7 @@ class SplineInterpolator2D():
         # Cycle over x2 position and interpolate w along x1 direction.
         # Work on self._bwork
         for i2 in range(n2):
-            self._interp1.interpolate( wt[i2,:], self._spline1 )
+            self._interp1.compute_interpolant( wt[i2,:], self._spline1 )
             wt[i2,:] = self._spline1.coeffs
 
         # x2-periodic only: "wrap around" coefficients onto extended array
