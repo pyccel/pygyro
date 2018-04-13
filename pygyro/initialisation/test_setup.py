@@ -1,10 +1,42 @@
 from mpi4py import MPI
 import numpy as np
 from functools import reduce
+import pytest
 
-from  .                       import constants
-from  .setups                 import RadialSetup, BlockSetup
+from  .setups                 import setupGrid
+from  ..model.grid            import Layout
 
+def define_f(rVals,qVals,zVals,vVals,grid):
+    nr=len(rVals)
+    nq=len(qVals)
+    nz=len(zVals)
+    nv=len(vVals)
+    for i,theta in grid.getThetaCoords():
+        I=qVals.index(theta)
+        for j,r in grid.getRCoords():
+            J=rVals.index(r)
+            for k,z in grid.getZCoords():
+                K=zVals.index(z)
+                for l,v in grid.getVCoords():
+                    L=vVals.index(v)
+                    grid.f[i,j,k,l]=I*nv*nz*nr+J*nv*nz+K*nv+L
+
+def compare_f(rVals,qVals,zVals,vVals,grid):
+    nr=len(rVals)
+    nq=len(qVals)
+    nz=len(zVals)
+    nv=len(vVals)
+    for i,theta in grid.getThetaCoords():
+        I=qVals.index(theta)
+        for j,r in grid.getRCoords():
+            J=rVals.index(r)
+            for k,z in grid.getZCoords():
+                K=zVals.index(z)
+                for l,v in grid.getVCoords():
+                    L=vVals.index(v)
+                    assert(grid.f[i,j,k,l]==I*nv*nz*nr+J*nv*nz+K*nv+L)
+
+"""
 def test_RadialToBlockSwap():
     nr=50
     ntheta=10
@@ -64,3 +96,55 @@ def test_compareSetups():
     else:
         comm.Gatherv(grid1.f.reshape(grid1.f.size),grid1.f,0)
         comm.Gatherv(grid2.f.reshape(grid2.f.size),grid2.f,0)
+"""
+
+@pytest.mark.serial
+def test_FieldAligned_setup():
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
+
+@pytest.mark.serial
+def test_Poloidal_setup():
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
+
+@pytest.mark.serial
+def test_vParallel_setup():
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
+
+@pytest.mark.parallel
+def test_FieldAligned_setup_parallel():
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcR=size/2,nProcV=2)
+
+@pytest.mark.parallel
+def test_Poloidal_setup_parallel():
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=2,nProcV=size/2)
+
+@pytest.mark.parallel
+def test_vParallel_setup_parallel():
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcR=size/2,nProcV=2)
