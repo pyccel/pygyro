@@ -16,7 +16,7 @@ class SlicePlotter4d(object):
         self.rank = self.comm.Get_rank()
         
         # get initial values for the sliders
-        self.vVal = len(grid.vVals)//2
+        self.vVal = len(grid.Vals[grid.Dimension.V])//2
         self.zVal = 0
         
         # get max and min values of f to avoid colorbar jumps
@@ -32,15 +32,17 @@ class SlicePlotter4d(object):
             self.colorbarax2 = self.fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
             # add sliders and remember their values
-            self.vPar = DiscreteSlider(self.sliderax1, r'$v_\parallel$', valinit=grid.vVals[self.vVal],values=grid.vVals)
-            self.Z = DiscreteSlider(self.sliderax2, 'z', valinit=grid.zVals[self.zVal], values=grid.zVals)
+            self.vPar = DiscreteSlider(self.sliderax1, r'$v_\parallel$',
+                    valinit=grid.Vals[grid.Dimension.V][self.vVal],values=grid.Vals[Grid.Dimension.V])
+            self.Z = DiscreteSlider(self.sliderax2, 'z', valinit=grid.Vals[Grid.Dimension.Z][self.zVal],
+                    values=grid.Vals[Grid.Dimension.Z])
             self.vPar.on_changed(self.updateV)
             self.Z.on_changed(self.updateZ)
             
             # get coordinate values
-            theta = np.repeat(np.append(self.grid.thetaVals,2*pi),
-                    len(self.grid.rVals)).reshape(len(self.grid.thetaVals)+1,len(self.grid.rVals))
-            r = np.tile(self.grid.rVals,len(self.grid.thetaVals)+1).reshape(len(self.grid.thetaVals)+1,len(self.grid.rVals))
+            theta = np.repeat(np.append(self.grid.Vals[Grid.Dimension.THETA],2*pi),
+                    self.grid.nr).reshape(self.grid.nq+1,self.grid.nr)
+            r = np.tile(self.grid.Vals[Grid.Dimension.R],self.grid.nq+1).reshape(self.grid.nq+1,self.grid.nr)
             
             self.x=r*np.cos(theta)
             self.y=r*np.sin(theta)
@@ -50,7 +52,7 @@ class SlicePlotter4d(object):
     def updateV(self, value):
         # alert non-0 ranks that v has been updated and the drawing must be updated
         MPI.COMM_WORLD.bcast(1,root=0)
-        self.vVal=(np.abs(value-self.grid.vVals)).argmin()
+        self.vVal=(np.abs(value-self.grid.Vals[Grid.Dimension.V])).argmin()
         # broadcast new value
         self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
         # update plot
@@ -59,7 +61,7 @@ class SlicePlotter4d(object):
     def updateZ(self, value):
         # alert non-0 ranks that z has been updated and the drawing must be updated
         MPI.COMM_WORLD.bcast(2,root=0)
-        self.zVal=(np.abs(value-self.grid.zVals)).argmin()
+        self.zVal=(np.abs(value-self.grid.Vals[Grid.Dimension.Z])).argmin()
         # broadcast new value
         self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
         # update plot
@@ -70,7 +72,7 @@ class SlicePlotter4d(object):
     
     def plotFigure(self):
         # get the slice with v and z values as indicated by the sliders
-        theSlice = self.grid.getSlice(v=self.vVal,z=self.zVal)
+        theSlice = self.grid.getSliceForFig(v=self.vVal,z=self.zVal)
         
         if (self.rank==0):
             self.fig.canvas.draw()
@@ -112,43 +114,43 @@ class SlicePlotter3d(object):
         if (len(args)==0):
             # if no arguments are provided then assume (r,θ,z)
             self.xVals=Grid.Dimension.R
-            self.x=grid.rVals
+            self.x=grid.Vals[Grid.Dimension.R]
             self.yVals=Grid.Dimension.THETA
-            self.y=np.append(grid.thetaVals,2*pi)
+            self.y=np.append(grid.Vals[Grid.Dimension.THETA],2*pi)
             self.zVals=Grid.Dimension.Z
             self.omit=Grid.Dimension.V
-            self.omitVal=len(grid.vVals)//2
+            self.omitVal=grid.nv//2
         else:
             assert(len(args)==3)
             # use arguments to get x values
             if (args[0]=='r'):
                 self.xVals=Grid.Dimension.R
-                self.x=grid.rVals
+                self.x=grid.Vals[Grid.Dimension.R]
             elif (args[0]=='q' or args[0]=='theta'):
                 self.xVals=Grid.Dimension.THETA
-                self.x=np.append(grid.thetaVals,2*pi)
+                self.x=np.append(grid.Vals[Grid.Dimension.THETA],2*pi)
             elif (args[0]=='z'):
                 self.xVals=Grid.Dimension.Z
-                self.x=grid.zVals
+                self.x=grid.Vals[Grid.Dimension.Z]
             elif (args[0]=='v'):
                 self.xVals=Grid.Dimension.V
-                self.x=grid.vVals
+                self.x=grid.Vals[Grid.Dimension.V]
             else:
                 raise TypeError("%s is not a valid dimension" % self.xVals)
             
             # use arguments to get y values
             if (args[1]=='r'):
                 self.yVals=Grid.Dimension.R
-                self.y=grid.rVals
+                self.y=grid.Vals[Grid.Dimension.R]
             elif (args[1]=='q' or args[1]=='theta'):
                 self.yVals=Grid.Dimension.THETA
-                self.y=np.append(grid.thetaVals,2*pi)
+                self.y=np.append(grid.Vals[Grid.Dimension.THETA],2*pi)
             elif (args[1]=='z'):
                 self.yVals=Grid.Dimension.Z
-                self.y=grid.zVals
+                self.y=grid.Vals[Grid.Dimension.Z]
             elif (args[1]=='v'):
                 self.yVals=Grid.Dimension.V
-                self.y=grid.vVals
+                self.y=grid.Vals[Grid.Dimension.V]
             else:
                 raise TypeError("%s is not a valid dimension" % self.yVals)
             
@@ -169,13 +171,13 @@ class SlicePlotter3d(object):
             
             # fix unused dimension at an arbitrary (but measured) value
             if (self.omit==Grid.Dimension.R):
-                self.omitVal=len(grid.rVals)//2
+                self.omitVal=grid.nr//2
             elif (self.omit==Grid.Dimension.THETA):
-                self.omitVal=len(grid.thetaVals)//2
+                self.omitVal=grid.nq//2
             elif (self.omit==Grid.Dimension.Z):
-                self.omitVal=len(grid.zVals)//2
+                self.omitVal=grid.nz//2
             elif (self.omit==Grid.Dimension.V):
-                self.omitVal=len(grid.vVals)//2
+                self.omitVal=grid.nv//2
         
         # save x and y grid values
         nx=len(self.x)
@@ -220,15 +222,18 @@ class SlicePlotter3d(object):
             # add slider and remember its value
             self.initVal = 0
             if (self.zVals==Grid.Dimension.R):
-                self.slider = DiscreteSlider(self.sliderax1, "r", valinit=grid.rVals[0],values=grid.rVals)
+                self.slider = DiscreteSlider(self.sliderax1, "r",
+                        valinit=grid.Vals[Grid.Dimension.R][0],values=grid.Vals[Grid.Dimension.R])
             elif (self.zVals==Grid.Dimension.THETA):
-                self.slider = DiscreteSlider(self.sliderax1, r'$\theta$', valinit=grid.thetaVals[0],values=grid.thetaVals)
+                self.slider = DiscreteSlider(self.sliderax1, r'$\theta$',
+                        valinit=grid.Vals[Grid.Dimension.THETA][0],values=grid.Vals[Grid.Dimension.THETA])
             elif (self.zVals==Grid.Dimension.Z):
-                self.slider = DiscreteSlider(self.sliderax1, "z", valinit=grid.zVals[0],values=grid.zVals)
+                self.slider = DiscreteSlider(self.sliderax1, "z", valinit=grid.Vals[Grid.Dimension.Z][0],
+                        values=grid.Vals[Grid.Dimension.Z])
             elif (self.zVals==Grid.Dimension.V):
-                self.initVal = len(grid.vVals)//2
+                self.initVal = grid.nv//2
                 self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$', 
-                        valinit=grid.vVals[len(grid.vVals)//2],values=grid.vVals)
+                        valinit=grid.vVals[grid.nv//2],values=grid.vVals)
             self.slider.on_changed(self.updateVal)
             if (not self.polar):
                 # add x-axis label
@@ -256,7 +261,7 @@ class SlicePlotter3d(object):
         else:
             # on other ranks save the initial value for the slider
             if (self.zVals==Grid.Dimension.V):
-                self.initVal = len(grid.vVals)//2
+                self.initVal = grid.nv//2
             else:
                 self.initVal = 0
             
@@ -266,13 +271,13 @@ class SlicePlotter3d(object):
         # alert non-0 ranks that they must receive the new value and update the drawing
         MPI.COMM_WORLD.bcast(1,root=0)
         if (self.zVals==Grid.Dimension.R):
-            self.initVal=(np.abs(value-self.grid.rVals)).argmin()
+            self.initVal=(np.abs(value-self.grid.Vals[Grid.Dimension.R])).argmin()
         elif (self.zVals==Grid.Dimension.THETA):
-            self.initVal=(np.abs(value-self.grid.thetaVals)).argmin()
+            self.initVal=(np.abs(value-self.grid.Vals[Grid.Dimension.THETA])).argmin()
         elif (self.zVals==Grid.Dimension.Z):
-            self.initVal=(np.abs(value-self.grid.zVals)).argmin()
+            self.initVal=(np.abs(value-self.grid.Vals[Grid.Dimension.Z])).argmin()
         elif (self.zVals==Grid.Dimension.V):
-            self.initVal=(np.abs(value-self.grid.vVals)).argmin()
+            self.initVal=(np.abs(value-self.grid.Vals[Grid.Dimension.V])).argmin()
         # broadcast new value
         self.initVal=MPI.COMM_WORLD.bcast(self.initVal,root=0)
         # update plot
@@ -323,32 +328,32 @@ class Plotter2d(object):
         assert(len(args)==2)
         if (args[0]=='r'):
             self.xVals=Grid.Dimension.R
-            self.x=grid.rVals
+            self.x=grid.Vals[Grid.Dimension.R]
         elif (args[0]=='q' or args[0]=='theta'):
             self.xVals=Grid.Dimension.THETA
-            self.x=np.append(grid.thetaVals,2*pi)
+            self.x=np.append(grid.Vals[Grid.Dimension.THETA],2*pi)
         elif (args[0]=='z'):
             self.xVals=Grid.Dimension.Z
-            self.x=grid.zVals
+            self.x=grid.Vals[Grid.Dimension.Z]
         elif (args[0]=='v'):
             self.xVals=Grid.Dimension.V
-            self.x=grid.vVals
+            self.x=grid.Vals[Grid.Dimension.V]
         else:
             raise TypeError("%s is not a valid dimension" % self.xVals)
         
         # use arguments to get y values
         if (args[1]=='r'):
             self.yVals=Grid.Dimension.R
-            self.y=grid.rVals
+            self.y=grid.Vals[Grid.Dimension.R]
         elif (args[1]=='q' or args[0]=='theta'):
             self.yVals=Grid.Dimension.THETA
-            self.y=np.append(grid.thetaVals,2*pi)
+            self.y=np.append(grid.Vals[Grid.Dimension.THETA],2*pi)
         elif (args[1]=='z'):
             self.yVals=Grid.Dimension.Z
-            self.y=grid.zVals
+            self.y=grid.Vals[Grid.Dimension.Z]
         elif (args[1]=='v'):
             self.yVals=Grid.Dimension.V
-            self.y=grid.vVals
+            self.y=grid.Vals[Grid.Dimension.V]
         else:
             raise TypeError("%s is not a valid dimension" % self.yVals)
         self.grid = grid
@@ -360,23 +365,23 @@ class Plotter2d(object):
         
         # fix first unused dimension at an arbitrary (but measured) value
         if (self.omit1==Grid.Dimension.R):
-            self.omitVal1=len(grid.rVals)//2
+            self.omitVal1=grid.nr//2
         elif (self.omit1==Grid.Dimension.THETA):
-            self.omitVal1=len(grid.thetaVals)//2
+            self.omitVal1=grid.nq//2
         elif (self.omit1==Grid.Dimension.Z):
-            self.omitVal1=len(grid.zVals)//2
+            self.omitVal1=grid.nz//2
         elif (self.omit1==Grid.Dimension.V):
-            self.omitVal1=len(grid.vVals)//2
+            self.omitVal1=grid.nv//2
         
         # fix second unused dimension at an arbitrary (but measured) value
         if (self.omit2==Grid.Dimension.R):
-            self.omitVal2=len(grid.rVals)//2
+            self.omitVal2=grid.nr//2
         elif (self.omit2==Grid.Dimension.THETA):
-            self.omitVal2=len(grid.thetaVals)//2
+            self.omitVal2=grid.nq//2
         elif (self.omit2==Grid.Dimension.Z):
-            self.omitVal2=len(grid.zVals)//2
+            self.omitVal2=grid.nz//2
         elif (self.omit2==Grid.Dimension.V):
-            self.omitVal2=len(grid.vVals)//2
+            self.omitVal2=grid.nv//2
         
         # get MPI vals
         self.comm = MPI.COMM_WORLD
