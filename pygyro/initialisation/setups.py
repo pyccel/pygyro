@@ -24,6 +24,7 @@ def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     zMax   -- maximum value in the z direction, a float. (default constants.zMax)
     vMax   -- maximum velocity, a float. (default constants.vMax)
     vMin   -- minimum velocity, a float. (default -vMax)
+    degree -- degree of splines. (default 3)
     
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
@@ -39,8 +40,6 @@ def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     nProcR=kwargs.pop('nProcR',1)
     nProcZ=kwargs.pop('nProcZ',1)
     nProcV=kwargs.pop('nProcV',1)
-    
-    degree=3
     
     # get spline knots
     rKnots = spl.make_knots(np.linspace(rMin,rMax,nr-degree+1),degree,False)
@@ -61,5 +60,5 @@ def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     vVals = vSpline.greville
     
     grid=Grid(rVals,rSpline,qVals,qSpline,zVals,zSpline,vVals,vSpline,layout,nProcR=nProcR,nProcZ=nProcZ,nProcV=nProcV)
-    initialise(grid.f,grid.getRCoords(),grid.getThetaCoords(),grid.getZCoords(),grid.getVCoords(),m,n)
+    initialise(grid,m,n)
     return grid
