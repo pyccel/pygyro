@@ -299,7 +299,7 @@ class Tester( object ):
 
     #---------------------------------------------------------------------------
     def _end_capture_and_exit(self, code):
-        if code != 0:
+        if code not in [0,5]:
             # if any rank has a failure, print the error and abort the world.
             self._sleep()
             if self.comm.rank != 0:
