@@ -11,6 +11,7 @@ from ..splines                import make_knots, BSplines, Spline1D, Spline2D
 from ..spline_interpolators   import SplineInterpolator1D, SplineInterpolator2D
 
 #===============================================================================
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells", [1,5,10,23] )
 @pytest.mark.parametrize( "degree", range(1,11) )
 
@@ -48,6 +49,7 @@ def args_SplineInterpolator1D_cosine():
             for degree in range(1,pmax+1):
                 yield (ncells, degree, periodic)
 
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells,degree,periodic",
     args_SplineInterpolator1D_cosine() )
 
