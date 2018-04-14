@@ -123,28 +123,46 @@ def test_vParallel_setup():
     setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
 
 @pytest.mark.parallel
-def test_FieldAligned_setup_parallel():
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_FieldAligned_setup_parallel(splitN):
     nr=10
     ntheta=20
     nz=10
     nv=10
     size=MPI.COMM_WORLD.Get_size()
-    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcR=size/2,nProcV=2)
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
+    
+    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcR=n1,nProcV=n2)
 
 @pytest.mark.parallel
-def test_Poloidal_setup_parallel():
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_Poloidal_setup_parallel(splitN):
     nr=10
     ntheta=20
     nz=10
     nv=10
     size=MPI.COMM_WORLD.Get_size()
-    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=2,nProcV=size/2)
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
+    
+    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=n1,nProcV=n2)
 
 @pytest.mark.parallel
-def test_vParallel_setup_parallel():
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_vParallel_setup_parallel(splitN):
     nr=10
     ntheta=20
     nz=10
     nv=10
     size=MPI.COMM_WORLD.Get_size()
-    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcR=size/2,nProcV=2)
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
+    
+    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcR=n1,nProcZ=n2)
