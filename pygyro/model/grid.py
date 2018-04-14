@@ -29,12 +29,18 @@ class Grid(object):
         if (self.layout==Layout.FIELD_ALIGNED):
             self.sizeRV=nProcR
             self.sizeVZ=nProcV
+            if(nProcZ!=1):
+                raise ValueError("The data should not be distributed in z for a field-aligned layout")
         elif (self.layout==Layout.V_PARALLEL):
             self.sizeRV=nProcR
             self.sizeVZ=nProcZ
+            if(nProcV!=1):
+                raise ValueError("The data should not be distributed in v for a v parallel layout")
         elif (self.layout==Layout.POLOIDAL):
             self.sizeRV=nProcV
             self.sizeVZ=nProcZ
+            if(nProcR!=1):
+                raise ValueError("The data should not be distributed in r for a poloidal layout")
         else:
             raise NotImplementedError("Layout not implemented")
         
