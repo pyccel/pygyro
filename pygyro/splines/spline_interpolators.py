@@ -6,7 +6,7 @@ from scipy.linalg        import solve_banded
 from scipy.sparse        import lil_matrix, csr_matrix
 from scipy.sparse.linalg import splu
 
-from .splines import BSplines, Spline1D
+from .splines import BSplines, Spline1D, Spline2D
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
@@ -27,7 +27,7 @@ class SplineInterpolator1D():
         return self._basis
 
     # ...
-    def interpolate( self, ug, spl ):
+    def compute_interpolant( self, ug, spl ):
 
         assert isinstance( spl, Spline1D )
         assert spl.basis is self._basis
@@ -105,4 +105,62 @@ class SplineInterpolator1D():
 
 #===============================================================================
 class SplineInterpolator2D():
-    pass
+
+    def __init__( self, basis1, basis2 ):
+
+        assert isinstance( basis1, BSplines )
+        assert isinstance( basis2, BSplines )
+
+        self._basis1  = basis1
+        self._basis2  = basis2
+        self._spline1 = Spline1D( basis1 )
+        self._spline2 = Spline1D( basis2 )
+        self._interp1 = SplineInterpolator1D( basis1 )
+        self._interp2 = SplineInterpolator1D( basis2 )
+
+        n1,n2 = basis1.ncells, basis2.ncells
+        p1,p2 = basis1.degree, basis2.degree
+        self._bwork = np.zeros( (n2+p2,n1+p1) )
+
+    def compute_interpolant( self, ug, spl ):
+
+        assert isinstance( spl, Spline2D )
+        basis1, basis2 = spl.basis
+        assert basis1 is self._basis1
+        assert basis2 is self._basis2
+
+        n1,n2 = basis1.nbasis, basis2.nbasis
+        p1,p2 = basis1.degree, basis2.degree
+        assert ug.shape == (n1,n2)
+
+        w  = spl.coeffs
+        wt = self._bwork
+
+        # Copy interpolation data onto w array
+        w[:,:] = ug[:,:]
+
+        # Cycle over x1 position and interpolate f along x2 direction.
+        # Work on spl.coeffs
+        for i1 in range(n1):
+            self._interp2.compute_interpolant( w[i1,:], self._spline2 )
+            w[i1,:] = self._spline2.coeffs
+
+        # Transpose coefficients to self._bwork
+        wt = w.transpose()
+
+        # Cycle over x2 position and interpolate w along x1 direction.
+        # Work on self._bwork
+        for i2 in range(n2):
+            self._interp1.compute_interpolant( wt[i2,:], self._spline1 )
+            wt[i2,:] = self._spline1.coeffs
+
+        # x2-periodic only: "wrap around" coefficients onto extended array
+        if (self._basis2.periodic):
+            wt[n2:n2+p2,:] = wt[:p2,:]
+
+        # Transpose coefficients to spl.coeffs
+        w = wt.transpose()
+
+        # x1-periodic only: "wrap around" coefficients onto extended array
+        if (self._basis1.periodic):
+            w[n1:n1+p1,:] = w[:p1,:]

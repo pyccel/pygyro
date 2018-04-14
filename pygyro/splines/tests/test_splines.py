@@ -12,6 +12,7 @@ def args_make_knots_periodic():
         for degree in range( 1, ncells+1 ):
             yield (ncells, degree)
 
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells,degree", args_make_knots_periodic() )
 def test_make_knots_periodic( ncells, degree ):
     breaks = np.arange( ncells+1, dtype=float )
@@ -19,6 +20,7 @@ def test_make_knots_periodic( ncells, degree ):
     assert all( np.diff(knots)==1 )
 
 #===============================================================================
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells", [1,5,10,23] )
 def test_make_knots_periodic_should_fail( ncells ):
     breaks = np.arange( ncells+1, dtype=float )
@@ -26,6 +28,7 @@ def test_make_knots_periodic_should_fail( ncells ):
         knots = make_knots( breaks, degree=ncells+1, periodic=True )
 
 #===============================================================================
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells", [1,5,10,23] )
 @pytest.mark.parametrize( "degree", range(1,11) )
 def test_make_knots_clamped( ncells, degree ):
@@ -44,6 +47,7 @@ def args_BSplines():
             for degree in range(1,pmax+1):
                 yield (ncells, degree, periodic)
 
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells,degree,periodic", args_BSplines() )
 def test_BSplines( ncells, degree, periodic, npts=50, tol=1e-15 ):
 
@@ -61,6 +65,7 @@ def test_BSplines( ncells, degree, periodic, npts=50, tol=1e-15 ):
     assert all( abs(1.0-f)<tol ) # Check partition of unity
 
 # ...
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells,degree,periodic", args_BSplines() )
 def test_Spline1D_unit( ncells, degree, periodic, npts=50, tol=1e-15 ):
 
@@ -89,6 +94,7 @@ def args_Spline2D():
     for args1, args2 in product( args1_values, args2_values ):
         yield tuple( zip( args1, args2 ) )
 
+@pytest.mark.serial
 @pytest.mark.parametrize( "ncells,degree,periodic", args_Spline2D() )
 def test_Spline2D_unit( ncells, degree, periodic, npts=10, tol=1e-15 ):
 

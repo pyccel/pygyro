@@ -7,7 +7,10 @@ testimony:
     - vm_linux
   before_script:
     - module load anaconda/3
+    - module load impi
   script:
-    - py.test pygyro
+    - py.test pygyro -m serial
+    - python3 mpi_tester.py pygyro -m parallel
   after_script:
     - module unload anaconda/3
+    - module unload impi
