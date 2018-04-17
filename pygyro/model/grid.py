@@ -368,31 +368,31 @@ class Grid(object):
     def getMin(self,axis = None,fixValue = None):
         if (axis==None and fixValue==None):
             return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
-        if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zStart):
+        if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zEnd):
             idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rStart):
+        elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rEnd):
             idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vStart):
+        elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vEnd):
             idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         elif (axis==self.Dimension.THETA):
             idx = (np.s_[:],) * axis + (fixValue,)
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         else:
-            return MPI.COMM_WORLD.reduce(0,op=MPI.MIN,root=0)
+            return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
     
     def getMax(self,axis = None,fixValue = None):
         if (axis==None and fixValue==None):
             return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
-        if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zStart):
+        if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zEnd):
             idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rStart):
+        elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rEnd):
             idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vStart):
+        elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vEnd):
             idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         elif (axis==self.Dimension.THETA):
