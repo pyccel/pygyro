@@ -2,7 +2,6 @@ from mpi4py                 import MPI
 from math                   import pi
 import matplotlib.pyplot    as plt
 import numpy                as np
-import warnings
 
 from .discrete_slider import DiscreteSlider
 from ..model.grid     import Grid
@@ -102,7 +101,7 @@ class SlicePlotter4d(object):
                     self.updateDraw()
         plt.show()
     
-    def handle_close(self,evt):
+    def handle_close(self,_evt):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)
 
@@ -318,7 +317,7 @@ class SlicePlotter3d(object):
                     self.updateDraw()
         plt.show()
     
-    def handle_close(self,evt):
+    def handle_close(self,_evt):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)
 
