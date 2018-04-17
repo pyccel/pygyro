@@ -1,37 +1,82 @@
 from mpi4py import MPI
+import pytest
 
+from ..model.grid            import Layout
 from ..initialisation        import constants
-from ..initialisation.setups import BlockSetup, RadialSetup
+from ..initialisation.setups import setupGrid
 from .grid_plotter           import SlicePlotter4d, SlicePlotter3d, Plotter2d
 
-def test_RadialStitch():
+@pytest.mark.parallel
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_FieldAligned_Stitch(splitN):
     nr=10
-    ntheta=10
-    nz=20
-    nv=20
-    grid=RadialSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0)
-
-    grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
-    p = SlicePlotter4d(grid)
-    p.show()
-
-def test_BlockStitch():
-    nr=10
-    ntheta=10
-    nz=20
-    nv=20
-    grid=BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,10.0,5.0)
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
     
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcR=n1,nProcV=n2)
+
     grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
     p = SlicePlotter4d(grid)
     p.show()
 
-def test_3DPlot():
+@pytest.mark.parallel
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_Poloidal_Stitch(splitN):
     nr=10
-    ntheta=10
-    nz=20
-    nv=20
-    grid=BlockSetup(nr,ntheta,nz,nv,constants.rMin,constants.rMax,0.0,80.0,5.0)
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
+    
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=n1,nProcV=n2)
+
+    grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
+    p = SlicePlotter4d(grid)
+    p.show()
+
+@pytest.mark.parallel
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_V_Parallel_Stitch(splitN):
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
+    
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcR=n1,nProcZ=n2)
+
+    grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
+    p = SlicePlotter4d(grid)
+    p.show()
+
+@pytest.mark.parallel
+@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
+def test_3DPlot(splitN):
+    nr=10
+    ntheta=20
+    nz=10
+    nv=10
+    size=MPI.COMM_WORLD.Get_size()
+    n1=max(size//splitN,1)
+    n2=size//n1
+    if (n1*n2!=size):
+        return
+    
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=n1,nProcV=n2)
     
     p = SlicePlotter3d(grid)
     p.show()
@@ -50,3 +95,4 @@ def test_3DPlot():
     
 
     MPI.COMM_WORLD.Barrier()
+
