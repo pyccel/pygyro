@@ -21,8 +21,8 @@ class Grid(object):
     def __init__(self,r,rSpline,theta,thetaSpline,z,zSpline,v,vSpline,layout: Layout,
                     *,nProcR : int = 1,nProcZ : int = 1,nProcV = 1):
         comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
+        self.rank = comm.Get_rank()
+        self.mpi_size = comm.Get_size()
         
         self.layout=layout
         
@@ -44,8 +44,8 @@ class Grid(object):
         else:
             raise NotImplementedError("Layout not implemented")
         
-        if (size>1):
-            assert(self.sizeRV*self.sizeVZ==size)
+        if (self.mpi_size>1):
+            assert(self.sizeRV*self.sizeVZ==self.mpi_size)
             topology = comm.Create_cart([self.sizeRV,self.sizeVZ], periods=[False, False])
             self.commRV = topology.Sub([True, False])
             self.commVZ = topology.Sub([False, True])
@@ -56,6 +56,10 @@ class Grid(object):
         self.rankRV=self.commRV.Get_rank()
         self.rankVZ=self.commVZ.Get_rank()
         
+        if (self.rank==0):
+            assert(self.rankRV==0)
+            assert(self.rankVZ==0)
+        
         self.ranksRV=np.arange(0,self.sizeRV)
         self.ranksVZ=np.arange(0,self.sizeVZ)
         
@@ -65,22 +69,14 @@ class Grid(object):
         self.nz=len(z)
         self.nv=len(v)
         
-        self.redefineShape()
+        self.defineShape()
         
         # ordering chosen to increase step size to improve cache-coherency
         self.f = np.empty((self.nq,len(self.Vals[self.Dimension.R][self.rStart:self.rEnd]),
                 len(self.Vals[self.Dimension.Z][self.zStart:self.zEnd]),
                 len(self.Vals[self.Dimension.V][self.vStart:self.vEnd])),float,order='F')
-        
-        #self.rank = MPI.COMM_WORLD.Get_rank()
-        #self.mpi_size = MPI.COMM_WORLD.Get_size()
-        
-        
-        
     
-        #initialise(f,rVals[rStarts[rank]:rEnd],qVals,zVals,vVals,m,n)
-    
-    def redefineShape(self):
+    def defineShape(self):
         if (self.layout==Layout.FIELD_ALIGNED):
             nrOverflow=self.nr%self.sizeRV
             nvOverflow=self.nv%self.sizeVZ
@@ -229,25 +225,30 @@ class Grid(object):
                 self.rStart=0
                 self.vEnd=vStarts[self.rankRV+1]
                 self.rEnd=len(self.Vals[self.Dimension.R])
-        
     
-    def swapLayout(self):
-        if (self.layout==Layout.RADIAL):
-            self.f = np.concatenate(MPI.COMM_WORLD.alltoall(np.split(self.f,self.zStarts[1:self.mpi_size],axis=2)),axis=1)
-            self.layout=Layout.BLOCK
-        elif (self.layout==Layout.BLOCK):
-            self.f = np.concatenate(MPI.COMM_WORLD.alltoall(np.split(self.f,self.rStarts[1:self.mpi_size],axis=1)),axis=2)
-            self.layout=Layout.RADIAL
-        else:
-            raise NotImplementedError("%s is not an implemented layout" % self.layout)
+    def getVParSlice(self, theta: int, r: int, z: int):
+        assert(self.layout==Layout.V_PARALLEL)
+        return self.f[theta,r,z,:]
     
-    def printGrid(self):
-        if (self.layout==Layout.RADIAL):
-            print("to do")
-        elif (self.layout==Layout.BLOCK):
-            print("to do")
-        else:
-            raise NotImplementedError("%s is not an implemented layout" % self.layout)
+    def setVParSlice(self, theta: int, r: int, z: int, f):
+        assert(self.layout==Layout.V_PARALLEL)
+        self.f[theta,r,z,:]=f
+    
+    def getFieldAlignedSlice(self, r: int, vPar: int):
+        assert(self.layout==Layout.FIELD_ALIGNED)
+        return self.f[:,r,:,vPar]
+    
+    def setFieldAlignedSlice(self, r: int, vPar: int,f):
+        assert(self.layout==Layout.FIELD_ALIGNED)
+        self.f[:,r,:,vPar]=f
+    
+    def getPoloidalSlice(self, z: int, vPar: int):
+        assert(self.layout==Layout.POLOIDAL)
+        return self.f[:,:,z,vPar]
+    
+    def setPoloidalSlice(self, z: int, vPar: int,f):
+        assert(self.layout==Layout.POLOIDAL)
+        self.f[:,:,z,vPar]=f
     
     def getSliceFromDict(self,d : dict):
         r = d.get(self.Dimension.R,None)
@@ -258,202 +259,144 @@ class Grid(object):
     
     def getSliceForFig(self,r = None,theta = None,z = None,v = None):
         finalSize=1
-        if (r==None):
-            finalSize=finalSize*len(self.Vals[self.Dimension.R])
-            if (self.layout==Layout.BLOCK):
-                rVal=slice(0,len(self.Vals[self.Dimension.R]))
-            elif (self.layout==Layout.RADIAL):
-                rVal=slice(0,self.rStarts[self.rank+1]-self.rStarts[self.rank])
-            else:
-                raise NotImplementedError("%s is not an implemented layout" % self.layout)
-        else:
-            if (self.layout==Layout.BLOCK):
-                rVal = r
-            elif (self.layout==Layout.RADIAL):
-                rVal=None
-                if (r>=self.rStarts[self.rank] and r<self.rStarts[self.rank+1]):
-                    rVal=r-self.rStarts[self.rank]
-            else:
-                raise NotImplementedError("%s is not an implemented layout" % self.layout)
+        dims=[]
+        dimIdx=[]
+        # get slices for each dimension
+        # if value is none then all values along that dimension should be returned
+        # if not then only values at that index should be returned
         if (theta==None):
-            finalSize=finalSize*len(self.Vals[self.Dimension.THETA])
-            thetaVal=slice(0,len(self.Vals[self.Dimension.THETA]))
+            finalSize=finalSize*self.nq
+            thetaVal=slice(0,self.nq)
+            dims.append(self.nq)
+            dimIdx.append(self.Dimension.THETA)
         else:
             thetaVal=theta
+        if (r==None):
+            finalSize=finalSize*self.nr
+            rVal=slice(0,self.rEnd-self.rStart)
+            dims.append(self.nr)
+            dimIdx.append(self.Dimension.R)
+        else:
+            rVal=None
+            if (r>=self.rStart and r<self.rEnd):
+                rVal=r-self.rStart
         if (z==None):
-            finalSize=finalSize*len(self.Vals[self.Dimension.Z])
-            if (self.layout==Layout.RADIAL):
-                zVal=slice(0,len(self.Vals[self.Dimension.Z]))
-            elif(self.layout==Layout.BLOCK):
-                zVal=slice(0,self.zStarts[self.rank+1]-self.zStarts[self.rank])
-            else:
-                raise NotImplementedError("%s is not an implemented layout" % self.layout)
+            finalSize=finalSize*self.nz
+            zVal=slice(0,self.zEnd-self.zStart)
+            dims.append(self.nz)
+            dimIdx.append(self.Dimension.Z)
         else:
-            if (self.layout==Layout.RADIAL):
-                zVal = z
-            elif (self.layout==Layout.BLOCK):
-                zVal=None
-                if (z>=self.zStarts[self.rank] and z<self.zStarts[self.rank+1]):
-                    zVal=z-self.zStarts[self.rank]
-            else:
-                raise NotImplementedError("%s is not an implemented layout" % self.layout)
+            zVal=None
+            if (z>=self.zStart and z<self.zEnd):
+                zVal=z-self.zStart
         if (v==None):
-            finalSize=finalSize*len(self.Vals[self.Dimension.V])
-            vVal=slice(0,len(self.Vals[self.Dimension.V]))
+            finalSize=finalSize*self.nv
+            vVal=slice(0,self.vEnd-self.vStart)
+            dims.append(self.nv)
+            dimIdx.append(self.Dimension.V)
         else:
-            vVal = v
+            vVal=None
+            if (v>=self.vStart and v<self.vEnd):
+                vVal=v-self.vStart
         
-        if (self.layout==Layout.BLOCK):
-            if (zVal==None):
-                sendSize=0
-                toSend = np.ndarray(0)
-            else:
-                toSend = self.f[thetaVal,rVal,zVal,vVal].flatten()
-                sendSize=toSend.size
+        # set sendSize and data to be sent
+        # if the data is not on this processor then at least one of the slices is equal to None
+        # in this case send something of size 0
+        if (None in [thetaVal,rVal,zVal,vVal]):
+            sendSize=0
+            toSend = np.ndarray(0,order='F')
+        else:
+            toSend = self.f[thetaVal,rVal,zVal,vVal].flatten()
+            sendSize=toSend.size
+        # the dimensions must be concatenated one at a time to properly shape the output.
+        # collect the send sizes to properly formulate the gatherv
+        sizes=self.commRV.gather(sendSize,root=0)
+        mySlice = None
+        if (self.rankRV==0):
+            starts=np.zeros(len(sizes))
+            starts[1:]=sizes[:self.sizeRV-1]
+            starts=starts.cumsum().astype(int)
+            mySlice = np.empty(np.sum(sizes), dtype=float)
+            self.commRV.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
             
-            sizes=MPI.COMM_WORLD.gather(sendSize,root=0)
-            mySlice = None
-            if (self.rank==0):
+            if (self.layout==Layout.FIELD_ALIGNED):
+                splitDims=[self.Dimension.R, self.Dimension.V]
+            elif (self.layout==Layout.POLOIDAL):
+                splitDims=[self.Dimension.V, self.Dimension.Z]
+            elif (self.layout==Layout.V_PARALLEL):
+                splitDims=[self.Dimension.R, self.Dimension.Z]
+            
+            if (splitDims[0]==dimIdx[0]):
+                mySlice=np.split(mySlice,starts[1:])
+                for i in range(0,self.sizeRV):
+                    mySlice[i]=mySlice[i].reshape(sizes[i]//dims[1],dims[1])
+                mySlice=np.concatenate(mySlice,axis=0)
+            elif(splitDims[0]==dimIdx[1]):
+                mySlice=np.split(mySlice,starts[1:])
+                for i in range(0,self.sizeRV):
+                    mySlice[i]=mySlice[i].reshape(dims[0],sizes[i]//dims[0])
+                mySlice=np.concatenate(mySlice,axis=1)
+            
+            sizes=self.commVZ.gather(mySlice.size,root=0)
+            if (self.rankVZ==0):
                 starts=np.zeros(len(sizes))
-                starts[1:]=sizes[:self.mpi_size-1]
+                starts[1:]=sizes[:self.sizeVZ-1]
                 starts=starts.cumsum().astype(int)
-                mySlice = np.empty(finalSize, dtype=float)
-                MPI.COMM_WORLD.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
-                if (v==None and theta==None):
-                    mySlice=mySlice.reshape(len(self.Vals[self.Dimension.THETA]),len(self.Vals[self.Dimension.V]))
-                    return np.append(mySlice,mySlice[None,0,:],axis=0)
-                elif (v==None and r==None):
-                    return mySlice.reshape(len(self.Vals[self.Dimension.R]),len(self.Vals[self.Dimension.V]))
-                elif (v==None and z==None):
-                    mySlice=np.split(mySlice,starts[1:])
-                    vLen=len(self.Vals[self.Dimension.V])
-                    for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(sizes[i]//vLen,vLen)
+                toSend = np.empty(np.sum(sizes), dtype=float)
+                self.commVZ.Gatherv(mySlice,(toSend, sizes, starts, MPI.DOUBLE), 0)
+                
+                if (splitDims[1]==dimIdx[0]):
+                    mySlice=np.split(toSend,starts[1:])
+                    for i in range(0,self.sizeVZ):
+                        mySlice[i]=mySlice[i].reshape(sizes[i]//dims[1],dims[1])
                     return np.concatenate(mySlice,axis=0)
-                elif (theta==None and r==None):
-                    mySlice=mySlice.reshape(len(self.Vals[self.Dimension.THETA]),len(self.Vals[self.Dimension.R]))
-                    return np.append(mySlice,mySlice[None,0,:],axis=0)
-                elif (theta==None and z==None):
-                    mySlice=np.split(mySlice,starts[1:])
-                    qLen=len(self.Vals[self.Dimension.THETA])
-                    for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(qLen,sizes[i]//qLen)
-                    mySlice=np.concatenate(mySlice,axis=1)
-                    return np.append(mySlice,mySlice[None,0,:],axis=0)
-                elif (r==None and z==None):
-                    mySlice=np.split(mySlice,starts[1:])
-                    rLen=len(self.Vals[self.Dimension.R])
-                    for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(rLen,sizes[i]//rLen)
+                elif(splitDims[1]==dimIdx[1]):
+                    mySlice=np.split(toSend,starts[1:])
+                    for i in range(0,self.sizeVZ):
+                        mySlice[i]=mySlice[i].reshape(dims[0],sizes[i]//dims[0])
                     return np.concatenate(mySlice,axis=1)
                 else:
-                    print("r = ",r)
-                    print("theta = ",theta)
-                    print("z = ",z)
-                    print("v = ",v)
-                    raise NotImplementedError()
-            else:
-                MPI.COMM_WORLD.Gatherv(toSend,toSend,0)
+                    mySlice=toSend.reshape(dims[0],dims[1])
                 return mySlice
-        elif (self.layout ==Layout.RADIAL):
-            if (rVal==None):
-                sendSize=0
-                toSend = np.ndarray(0)
             else:
-                toSend = self.f[thetaVal,rVal,zVal,vVal].flatten()
-                sendSize = toSend.size
-            
-            mySlice = None
-            sizes=MPI.COMM_WORLD.gather(sendSize,root=0)
-            if (self.rank==0):
-                starts=np.zeros(len(sizes))
-                starts[1:]=sizes[:self.mpi_size-1]
-                starts=starts.cumsum().astype(int)
-                mySlice = np.empty(finalSize, dtype=float)
-                MPI.COMM_WORLD.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
-                if (v==None and theta==None):
-                    mySlice=mySlice.reshape(len(self.Vals[self.Dimension.THETA]),len(self.Vals[self.Dimension.V]))
-                    return np.append(mySlice,mySlice[:,0,None],axis=1)
-                elif (v==None and r==None):
-                    mySlice=np.split(mySlice,starts[1:])
-                    vLen=len(self.Vals[self.Dimension.V])
-                    for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(sizes[i]//vLen,vLen)
-                    return np.concatenate(mySlice,axis=0)
-                elif (v==None and z==None):
-                    return mySlice.reshape(len(self.Vals[self.Dimension.Z]),len(self.Vals[self.Dimension.V]))
-                elif (theta==None and r==None):
-                    mySlice=np.split(mySlice,starts[1:])
-                    qLen=len(self.Vals[self.Dimension.THETA])
-                    for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(qLen,sizes[i]//qLen)
-                    mySlice=np.concatenate(mySlice,axis=1)
-                    return np.append(mySlice,mySlice[None,0,:],axis=0)
-                elif (theta==None and z==None):
-                    mySlice=mySlice.reshape(len(self.Vals[self.Dimension.THETA]),len(self.Vals[self.Dimension.Z]))
-                    return np.append(mySlice,mySlice[None,0,:],axis=0)
-                elif (r==None and z==None):
-                    mySlice=np.split(mySlice,starts[1:])
-                    zLen=len(self.Vals[self.Dimension.Z])
-                    for i in range(0,self.mpi_size):
-                        mySlice[i]=mySlice[i].reshape(sizes[i]//zLen,zLen)
-                    return np.concatenate(mySlice,axis=0)
-                else:
-                    print("r = ",r)
-                    print("theta = ",theta)
-                    print("z = ",z)
-                    print("v = ",v)
-                    raise NotImplementedError()
-            else:
-                MPI.COMM_WORLD.Gatherv(toSend,toSend,0)
-            return mySlice
+                self.commVZ.Gatherv(mySlice,mySlice, 0)
+                return
         else:
-            raise NotImplementedError("%s is not an implemented layout" % self.layout)
+            self.commRV.Gatherv(toSend,toSend, 0)
+            return
     
     def getMin(self,axis = None,fixValue = None):
         if (axis==None and fixValue==None):
             return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
-        if (self.layout==Layout.BLOCK):
-            if (axis==self.Dimension.Z):
-                if (fixValue>=self.zStarts[self.rank] and fixValue<self.zStarts[self.rank+1]):
-                    idx = (np.s_[:],) * axis + (fixValue-self.zStarts[self.rank],)
-                    return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-                else:
-                    return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
-            else:
-                idx = (np.s_[:],) * axis + (fixValue,)
-                return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        elif (self.layout==Layout.RADIAL):
-            if (axis==self.Dimension.R):
-                if (fixValue>=self.rStarts[self.rank] and fixValue<self.rStarts[self.rank+1]):
-                    idx = (np.s_[:],) * axis + (fixValue-self.rStarts[self.rank],)
-                    return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-                else:
-                    return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
-            else:
-                idx = (np.s_[:],) * axis + (fixValue,)
-                return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zStart):
+            idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
+            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rStart):
+            idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
+            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vStart):
+            idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
+            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        elif (axis==self.Dimension.THETA):
+            idx = (np.s_[:],) * axis + (fixValue,)
+            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        else:
+            return MPI.COMM_WORLD.reduce(0,op=MPI.MIN,root=0)
     
     def getMax(self,axis = None,fixValue = None):
         if (axis==None and fixValue==None):
             return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
-        if (self.layout==Layout.BLOCK):
-            if (axis==self.Dimension.Z):
-                if (fixValue>=self.zStarts[self.rank] and fixValue<self.zStarts[self.rank+1]):
-                    idx = (np.s_[:],) * axis + (fixValue-self.zStarts[self.rank],)
-                    return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-                else:
-                    return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
-            else:
-                idx = (np.s_[:],) * axis + (fixValue,)
-                return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        elif (self.layout==Layout.RADIAL):
-            if (axis==self.Dimension.R):
-                if (fixValue>=self.rStarts[self.rank] and fixValue<self.rStarts[self.rank+1]):
-                    idx = (np.s_[:],) * axis + (fixValue-self.rStarts[self.rank],)
-                    return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-                else:
-                    return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
-            else:
-                idx = (np.s_[:],) * axis + (fixValue,)
-                return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zStart):
+            idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
+            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rStart):
+            idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
+            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vStart):
+            idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
+            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        elif (axis==self.Dimension.THETA):
+            idx = (np.s_[:],) * axis + (fixValue,)
+            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        else:
+            return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
