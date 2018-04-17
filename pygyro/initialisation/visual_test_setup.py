@@ -1,4 +1,5 @@
 from mpi4py import MPI
+import pytest
 
 from  .                       import constants
 from  .setups                 import setupGrid
@@ -69,7 +70,7 @@ def test_Poloidal():
 
 @pytest.mark.serial
 def test_Perturbation_FieldAligned():
-    nr=20
+    nr=50
     ntheta=200
     nz=10
     nv=20
@@ -80,7 +81,7 @@ def test_Perturbation_FieldAligned():
 
 @pytest.mark.serial
 def test_Perturbation_vParallel():
-    nr=20
+    nr=50
     ntheta=200
     nz=10
     nv=20
@@ -91,7 +92,7 @@ def test_Perturbation_vParallel():
 
 @pytest.mark.serial
 def test_Perturbation_Poloidal():
-    nr=20
+    nr=50
     ntheta=200
     nz=10
     nv=20
