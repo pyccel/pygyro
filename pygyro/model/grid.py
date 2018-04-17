@@ -53,7 +53,8 @@ class Grid(object):
             # ensure that we are not distributing more than makes sense within MPI
             assert(self.sizeRV*self.sizeVZ==self.mpi_size)
             # create the communicators
-            topology = comm.Create_cart([self.sizeRV,self.sizeVZ], periods=[False, False])
+            # reorder = false to help with the figures (then 0,0 == 0 a.k.a the return node)
+            topology = comm.Create_cart([self.sizeRV,self.sizeVZ], periods=[False, False], reorder=False)
             self.commRV = topology.Sub([True, False])
             self.commVZ = topology.Sub([False, True])
         else:
@@ -62,22 +63,19 @@ class Grid(object):
             self.commRV = MPI.COMM_WORLD
             self.commVZ = MPI.COMM_WORLD
         
+        # get ranks for the different communicators
         self.rankRV=self.commRV.Get_rank()
         self.rankVZ=self.commVZ.Get_rank()
         
-        if (self.rank==0):
-            assert(self.rankRV==0)
-            assert(self.rankVZ==0)
-        
-        self.ranksRV=np.arange(0,self.sizeRV)
-        self.ranksVZ=np.arange(0,self.sizeVZ)
-        
+        # save coordinate information
+        # saving in list allows simpler reordering of coordinates
         self.Vals = [theta, r, z, v]
         self.nr=len(r)
         self.nq=len(theta)
         self.nz=len(z)
         self.nv=len(v)
         
+        #get start and end points for each processor
         self.defineShape()
         
         # ordering chosen to increase step size to improve cache-coherency
@@ -86,12 +84,14 @@ class Grid(object):
                 len(self.Vals[self.Dimension.V][self.vStart:self.vEnd])),float,order='F')
     
     def defineShape(self):
+        ranksRV=np.arange(0,self.sizeRV)
+        ranksVZ=np.arange(0,self.sizeVZ)
         if (self.layout==Layout.FIELD_ALIGNED):
             nrOverflow=self.nr%self.sizeRV
             nvOverflow=self.nv%self.sizeVZ
             
-            rStarts=self.nr//self.sizeRV*self.ranksRV + np.minimum(self.ranksRV,nrOverflow)
-            vStarts=self.nv//self.sizeVZ*self.ranksVZ + np.minimum(self.ranksVZ,nvOverflow)
+            rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
+            vStarts=self.nv//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nvOverflow)
             rStarts=np.append(rStarts,self.nr)
             vStarts=np.append(vStarts,self.nv)
             self.rStart=rStarts[self.rankRV]
@@ -104,8 +104,8 @@ class Grid(object):
             nrOverflow=self.nr%self.sizeRV
             nzOverflow=self.nz%self.sizeVZ
             
-            rStarts=self.nr//self.sizeRV*self.ranksRV + np.minimum(self.ranksRV,nrOverflow)
-            zStarts=self.nz//self.sizeVZ*self.ranksVZ + np.minimum(self.ranksVZ,nzOverflow)
+            rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
+            zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
             rStarts=np.append(rStarts,self.nr)
             zStarts=np.append(zStarts,self.nz)
             self.rStart=rStarts[self.rankRV]
@@ -118,8 +118,8 @@ class Grid(object):
             nvOverflow=self.nv%self.sizeRV
             nzOverflow=self.nz%self.sizeVZ
             
-            vStarts=self.nv//self.sizeRV*self.ranksRV + np.minimum(self.ranksRV,nvOverflow)
-            zStarts=self.nz//self.sizeVZ*self.ranksVZ + np.minimum(self.ranksVZ,nzOverflow)
+            vStarts=self.nv//self.sizeRV*ranksRV + np.minimum(ranksRV,nvOverflow)
+            zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
             vStarts=np.append(vStarts,self.nv)
             zStarts=np.append(zStarts,self.nz)
             self.vStart=vStarts[self.rankRV]
@@ -167,7 +167,8 @@ class Grid(object):
         if (self.layout==Layout.FIELD_ALIGNED):
             if (new_layout==Layout.V_PARALLEL):
                 nzOverflow=self.nz%self.sizeVZ
-                zStarts=self.nz//self.sizeVZ*self.ranksVZ + np.minimum(self.ranksVZ,nzOverflow)
+                ranksVZ=np.arange(0,self.sizeVZ)
+                zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
                 
                 self.f = np.concatenate(
                             self.commVZ.alltoall(
@@ -187,7 +188,8 @@ class Grid(object):
         elif (self.layout==Layout.POLOIDAL):
             if (new_layout==Layout.V_PARALLEL):
                 nrOverflow=self.nr%self.sizeRV
-                rStarts=self.nr//self.sizeRV*self.ranksRV + np.minimum(self.ranksRV,nrOverflow)
+                ranksRV=np.arange(0,self.sizeRV)
+                rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
                 
                 self.f = np.concatenate(
                             self.commRV.alltoall(
@@ -207,7 +209,8 @@ class Grid(object):
         elif (self.layout==Layout.V_PARALLEL):
             if (new_layout==Layout.FIELD_ALIGNED):
                 nvOverflow=self.nv%self.sizeVZ
-                vStarts=self.nv//self.sizeVZ*self.ranksVZ + np.minimum(self.ranksVZ,nvOverflow)
+                ranksVZ=np.arange(0,self.sizeVZ)
+                vStarts=self.nv//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nvOverflow)
                 
                 self.f = np.concatenate(
                             self.commVZ.alltoall(
@@ -222,7 +225,8 @@ class Grid(object):
                 self.vEnd=vStarts[self.rankVZ+1]
             elif (new_layout==Layout.POLOIDAL):
                 nvOverflow=self.nv%self.sizeRV
-                vStarts=self.nv//self.sizeRV*self.ranksRV + np.minimum(self.ranksRV,nvOverflow)
+                ranksRV=np.arange(0,self.sizeRV)
+                vStarts=self.nv//self.sizeRV*ranksRV + np.minimum(ranksRV,nvOverflow)
                 
                 self.f = np.concatenate(
                             self.commRV.alltoall(
@@ -467,7 +471,7 @@ class Grid(object):
             return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
     
     
-    def getMin(self,axis = None,fixValue = None):
+    def getMax(self,axis = None,fixValue = None):
         
         # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
