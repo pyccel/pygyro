@@ -84,50 +84,83 @@ class Grid(object):
                 len(self.Vals[self.Dimension.V][self.vStart:self.vEnd])),float,order='F')
     
     def defineShape(self):
+        # get common variables
         ranksRV=np.arange(0,self.sizeRV)
         ranksVZ=np.arange(0,self.sizeVZ)
+        
+        # variables depend on setup
         if (self.layout==Layout.FIELD_ALIGNED):
+            # get overflows to better distribute data that is not divisible by
+            # the number of processors
             nrOverflow=self.nr%self.sizeRV
             nvOverflow=self.nv%self.sizeVZ
             
+            # get start indices for all processors
             rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
             vStarts=self.nv//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nvOverflow)
+            # append end index
             rStarts=np.append(rStarts,self.nr)
             vStarts=np.append(vStarts,self.nv)
+            
+            # save start indices from list using cartesian ranks
             self.rStart=rStarts[self.rankRV]
-            self.zStart=0
             self.vStart=vStarts[self.rankVZ]
+            # z is not distributed so the start index is 0
+            self.zStart=0
+            
+            # save end points from list using cartesian ranks
             self.rEnd=rStarts[self.rankRV+1]
-            self.zEnd=len(self.Vals[self.Dimension.Z])
             self.vEnd=vStarts[self.rankVZ+1]
+            # z is not distributed so the end index is its length
+            self.zEnd=self.nz
         elif (self.layout==Layout.V_PARALLEL):
+            # get overflows to better distribute data that is not divisible by
+            # the number of processors
             nrOverflow=self.nr%self.sizeRV
             nzOverflow=self.nz%self.sizeVZ
             
+            # get start indices for all processors
             rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
             zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
+            # append end index
             rStarts=np.append(rStarts,self.nr)
             zStarts=np.append(zStarts,self.nz)
+            
+            # save start indices from list using cartesian ranks
             self.rStart=rStarts[self.rankRV]
             self.zStart=zStarts[self.rankVZ]
+            # v is not distributed so the start index is 0
             self.vStart=0
+            
+            # save end points from list using cartesian ranks
             self.rEnd=rStarts[self.rankRV+1]
             self.zEnd=zStarts[self.rankVZ+1]
-            self.vEnd=len(self.Vals[self.Dimension.V])
+            # v is not distributed so the end index is its length
+            self.vEnd=self.nv
         elif (self.layout==Layout.POLOIDAL):
+            # get overflows to better distribute data that is not divisible by
+            # the number of processors
             nvOverflow=self.nv%self.sizeRV
             nzOverflow=self.nz%self.sizeVZ
             
+            # get start indices for all processors
             vStarts=self.nv//self.sizeRV*ranksRV + np.minimum(ranksRV,nvOverflow)
             zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
+            # append end index
             vStarts=np.append(vStarts,self.nv)
             zStarts=np.append(zStarts,self.nz)
+            
+            # save start indices from list using cartesian ranks
             self.vStart=vStarts[self.rankRV]
             self.zStart=zStarts[self.rankVZ]
+            # r is not distributed so the start index is 0
             self.rStart=0
+            
+            # save end points from list using cartesian ranks
             self.vEnd=vStarts[self.rankRV+1]
             self.zEnd=zStarts[self.rankVZ+1]
-            self.rEnd=len(self.Vals[self.Dimension.R])
+            # r is not distributed so the end index is its length
+            self.rEnd=self.nr
     
     @property
     def size(self):
@@ -161,85 +194,6 @@ class Grid(object):
     def vVals(self):
         return self.Vals[self.Dimension.V][self.vStart:self.vEnd]
     
-    def setLayout(self,new_layout: Layout):
-        if (new_layout==self.layout):
-            return
-        if (self.layout==Layout.FIELD_ALIGNED):
-            if (new_layout==Layout.V_PARALLEL):
-                nzOverflow=self.nz%self.sizeVZ
-                ranksVZ=np.arange(0,self.sizeVZ)
-                zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
-                
-                self.f = np.concatenate(
-                            self.commVZ.alltoall(
-                                np.split(self.f,zStarts[1:],axis=self.Dimension.Z)
-                            )
-                        ,axis=self.Dimension.V)
-                self.layout = Layout.V_PARALLEL
-                zStarts=np.append(zStarts,self.nz)
-                self.zStart=zStarts[self.rankVZ]
-                self.vStart=0
-                self.zEnd=zStarts[self.rankVZ+1]
-                self.vEnd=len(self.Vals[self.Dimension.V])
-            elif (new_layout==Layout.POLOIDAL):
-                self.setLayout(Layout.V_PARALLEL)
-                self.setLayout(Layout.POLOIDAL)
-                raise RuntimeWarning("Changing from Field Aligned layout to Poloidal layout requires two steps")
-        elif (self.layout==Layout.POLOIDAL):
-            if (new_layout==Layout.V_PARALLEL):
-                nrOverflow=self.nr%self.sizeRV
-                ranksRV=np.arange(0,self.sizeRV)
-                rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
-                
-                self.f = np.concatenate(
-                            self.commRV.alltoall(
-                                np.split(self.f,rStarts[1:],axis=self.Dimension.R)
-                            )
-                        ,axis=self.Dimension.V)
-                self.layout = Layout.V_PARALLEL
-                rStarts=np.append(rStarts,self.nr)
-                self.rStart=rStarts[self.rankRV]
-                self.vStart=0
-                self.rEnd=rStarts[self.rankRV+1]
-                self.vEnd=len(self.Vals[self.Dimension.V])
-            elif (new_layout==Layout.FIELD_ALIGNED):
-                self.setLayout(Layout.V_PARALLEL)
-                self.setLayout(Layout.FIELD_ALIGNED)
-                raise RuntimeWarning("Changing from Poloidal layout to Field Aligned layout requires two steps")
-        elif (self.layout==Layout.V_PARALLEL):
-            if (new_layout==Layout.FIELD_ALIGNED):
-                nvOverflow=self.nv%self.sizeVZ
-                ranksVZ=np.arange(0,self.sizeVZ)
-                vStarts=self.nv//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nvOverflow)
-                
-                self.f = np.concatenate(
-                            self.commVZ.alltoall(
-                                np.split(self.f,vStarts[1:],axis=self.Dimension.V)
-                            )
-                        ,axis=self.Dimension.Z)
-                self.layout = Layout.FIELD_ALIGNED
-                vStarts=np.append(vStarts,self.nv)
-                self.zStart=0
-                self.vStart=vStarts[self.rankVZ]
-                self.zEnd=len(self.Vals[self.Dimension.Z])
-                self.vEnd=vStarts[self.rankVZ+1]
-            elif (new_layout==Layout.POLOIDAL):
-                nvOverflow=self.nv%self.sizeRV
-                ranksRV=np.arange(0,self.sizeRV)
-                vStarts=self.nv//self.sizeRV*ranksRV + np.minimum(ranksRV,nvOverflow)
-                
-                self.f = np.concatenate(
-                            self.commRV.alltoall(
-                                np.split(self.f,vStarts[1:],axis=self.Dimension.V)
-                            )
-                        ,axis=self.Dimension.R)
-                self.layout = Layout.POLOIDAL
-                vStarts=np.append(vStarts,self.nv)
-                self.vStart=vStarts[self.rankRV]
-                self.rStart=0
-                self.vEnd=vStarts[self.rankRV+1]
-                self.rEnd=len(self.Vals[self.Dimension.R])
-    
     def getVParSlice(self, theta: int, r: int, z: int):
         assert(self.layout==Layout.V_PARALLEL)
         return self.f[theta,r,z,:]
@@ -264,6 +218,120 @@ class Grid(object):
         assert(self.layout==Layout.POLOIDAL)
         self.f[:,:,z,vPar]=f
     
+    def setLayout(self,new_layout: Layout):
+        # if layout has not changed then do nothing
+        if (new_layout==self.layout):
+            return
+        if (self.layout==Layout.FIELD_ALIGNED):
+            if (new_layout==Layout.V_PARALLEL):
+                # if Field_aligned -> v_parallel
+                # recalculate start indices
+                nzOverflow=self.nz%self.sizeVZ
+                ranksVZ=np.arange(0,self.sizeVZ)
+                zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
+                
+                # redistribute data
+                self.f = np.concatenate(
+                            self.commVZ.alltoall(
+                                # break data on this processor into chunks using start indices
+                                np.split(self.f,zStarts[1:],axis=self.Dimension.Z)
+                            ) # use all to all to pass chunks to correct processors
+                        ,axis=self.Dimension.V) # use concatenate to join the data back together in the right shape
+                
+                # save new layout
+                self.layout = Layout.V_PARALLEL
+                # add end index
+                zStarts=np.append(zStarts,self.nz)
+                # save new start and end indices
+                self.zStart=zStarts[self.rankVZ]
+                self.vStart=0
+                self.zEnd=zStarts[self.rankVZ+1]
+                self.vEnd=self.nv
+            elif (new_layout==Layout.POLOIDAL):
+                # if Field_aligned -> poloidal
+                # 2 steps are required
+                self.setLayout(Layout.V_PARALLEL)
+                self.setLayout(Layout.POLOIDAL)
+                raise RuntimeWarning("Changing from Field Aligned layout to Poloidal layout requires two steps")
+        elif (self.layout==Layout.POLOIDAL):
+            if (new_layout==Layout.V_PARALLEL):
+                # if poloidal -> v_parallel
+                # recalculate start indices
+                nrOverflow=self.nr%self.sizeRV
+                ranksRV=np.arange(0,self.sizeRV)
+                rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
+                
+                # redistribute data
+                self.f = np.concatenate(
+                            self.commRV.alltoall(
+                                # break data on this processor into chunks using start indices
+                                np.split(self.f,rStarts[1:],axis=self.Dimension.R)
+                            ) # use all to all to pass chunks to correct processors
+                        ,axis=self.Dimension.V) # use concatenate to join the data back together in the right shape
+                
+                # save new layout
+                self.layout = Layout.V_PARALLEL
+                rStarts=np.append(rStarts,self.nr)
+                # save new start and end indices
+                self.rStart=rStarts[self.rankRV]
+                self.vStart=0
+                self.rEnd=rStarts[self.rankRV+1]
+                self.vEnd=len(self.Vals[self.Dimension.V])
+            elif (new_layout==Layout.FIELD_ALIGNED):
+                # if poloidal -> Field_aligned
+                # 2 steps are required
+                self.setLayout(Layout.V_PARALLEL)
+                self.setLayout(Layout.FIELD_ALIGNED)
+                raise RuntimeWarning("Changing from Poloidal layout to Field Aligned layout requires two steps")
+        elif (self.layout==Layout.V_PARALLEL):
+            if (new_layout==Layout.FIELD_ALIGNED):
+                # if v_parallel -> Field_aligned
+                # recalculate start indices
+                nvOverflow=self.nv%self.sizeVZ
+                ranksVZ=np.arange(0,self.sizeVZ)
+                vStarts=self.nv//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nvOverflow)
+                
+                # redistribute data
+                self.f = np.concatenate(
+                            self.commVZ.alltoall(
+                                # break data on this processor into chunks using start indices
+                                np.split(self.f,vStarts[1:],axis=self.Dimension.V)
+                            ) # use all to all to pass chunks to correct processors
+                        ,axis=self.Dimension.Z) # use concatenate to join the data back together in the right shape
+                
+                # save new layout
+                self.layout = Layout.FIELD_ALIGNED
+                # add end index
+                vStarts=np.append(vStarts,self.nv)
+                # save new start and end indices
+                self.zStart=0
+                self.vStart=vStarts[self.rankVZ]
+                self.zEnd=len(self.Vals[self.Dimension.Z])
+                self.vEnd=vStarts[self.rankVZ+1]
+            elif (new_layout==Layout.POLOIDAL):
+                # if v_parallel -> poloidal
+                # recalculate start indices
+                nvOverflow=self.nv%self.sizeRV
+                ranksRV=np.arange(0,self.sizeRV)
+                vStarts=self.nv//self.sizeRV*ranksRV + np.minimum(ranksRV,nvOverflow)
+                
+                # redistribute data
+                self.f = np.concatenate(
+                            self.commRV.alltoall(
+                                # break data on this processor into chunks using start indices
+                                np.split(self.f,vStarts[1:],axis=self.Dimension.V)
+                            ) # use all to all to pass chunks to correct processors
+                        ,axis=self.Dimension.R) # use concatenate to join the data back together in the right shape
+                
+                # save new layout
+                self.layout = Layout.POLOIDAL
+                # add end index
+                vStarts=np.append(vStarts,self.nv)
+                # save new start and end indices
+                self.vStart=vStarts[self.rankRV]
+                self.rStart=0
+                self.vEnd=vStarts[self.rankRV+1]
+                self.rEnd=len(self.Vals[self.Dimension.R])
     
     ####################################################################
     ####                   Functions for figures                    ####
