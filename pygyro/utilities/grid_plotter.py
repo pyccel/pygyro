@@ -448,9 +448,9 @@ class Plotter2d(object):
             
             self.colorbarax2.clear()
             if (self.reverse):
-                self.plot = self.ax.pcolormesh(self.x,self.y,np.transpose(theSlice),vmin=self.minimum,vmax=self.maximum)
+                self.plot = self.ax.pcolormesh(self.x,self.y,np.transpose(theSlice))
             else:
-                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
+                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             self.fig.canvas.draw()
     
