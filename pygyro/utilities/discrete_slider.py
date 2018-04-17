@@ -29,7 +29,7 @@ class DiscreteSlider(Slider):
         self.val = val
         if not self.eventson: 
             return
-        for cid, func in self.observers.items():
+        for _cid, func in self.observers.items():
             func(discrete_val)
     
     def _update(self, event):
