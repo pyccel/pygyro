@@ -233,7 +233,7 @@ class SlicePlotter3d(object):
             elif (self.zVals==Grid.Dimension.V):
                 self.initVal = grid.nv//2
                 self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$', 
-                        valinit=grid.vVals[grid.nv//2],values=grid.vVals)
+                        valinit=grid.Vals[Grid.Dimension.V][grid.nv//2],values=grid.Vals[Grid.Dimension.V])
             self.slider.on_changed(self.updateVal)
             if (not self.polar):
                 # add x-axis label
