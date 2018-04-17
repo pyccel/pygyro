@@ -18,7 +18,7 @@ class Grid(object):
         Z = 2
         V = 3
     
-    def __init__(self,r,rSpline,theta,thetaSpline,z,zSpline,v,vSpline,layout: Layout,
+    def __init__(self,r,theta,z,v,layout: Layout,
                     *,nProcR : int = 1,nProcZ : int = 1,nProcV = 1):
         comm = MPI.COMM_WORLD
         self.rank = comm.Get_rank()
@@ -120,6 +120,7 @@ class Grid(object):
             self.zEnd=zStarts[self.rankVZ+1]
             self.rEnd=len(self.Vals[self.Dimension.R])
     
+    @property
     def size(self):
         return self.f.size
     
