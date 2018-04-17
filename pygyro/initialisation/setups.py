@@ -59,6 +59,6 @@ def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     zVals = zSpline.greville
     vVals = vSpline.greville
     
-    grid=Grid(rVals,rSpline,qVals,qSpline,zVals,zSpline,vVals,vSpline,layout,nProcR=nProcR,nProcZ=nProcZ,nProcV=nProcV)
+    grid=Grid(rVals,qVals,zVals,vVals,layout,nProcR=nProcR,nProcZ=nProcZ,nProcV=nProcV)
     initialise(grid,m,n)
     return grid
