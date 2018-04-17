@@ -20,12 +20,17 @@ class Grid(object):
     
     def __init__(self,r,theta,z,v,layout: Layout,
                     *,nProcR : int = 1,nProcZ : int = 1,nProcV = 1):
+        # get MPI values
         comm = MPI.COMM_WORLD
         self.rank = comm.Get_rank()
         self.mpi_size = comm.Get_size()
         
+        # remember layout
         self.layout=layout
         
+        # ensure that the combination of processors agrees with the layout
+        # (i.e. there is only 1 processor along the non-distributed direction
+        # save the grid shape
         if (self.layout==Layout.FIELD_ALIGNED):
             self.sizeRV=nProcR
             self.sizeVZ=nProcV
@@ -45,11 +50,15 @@ class Grid(object):
             raise NotImplementedError("Layout not implemented")
         
         if (self.mpi_size>1):
+            # ensure that we are not distributing more than makes sense within MPI
             assert(self.sizeRV*self.sizeVZ==self.mpi_size)
+            # create the communicators
             topology = comm.Create_cart([self.sizeRV,self.sizeVZ], periods=[False, False])
             self.commRV = topology.Sub([True, False])
             self.commVZ = topology.Sub([False, True])
         else:
+            # if the code is run in serial then the values should be assigned
+            # but all directions contain all processors
             self.commRV = MPI.COMM_WORLD
             self.commVZ = MPI.COMM_WORLD
         
@@ -251,7 +260,20 @@ class Grid(object):
         assert(self.layout==Layout.POLOIDAL)
         self.f[:,:,z,vPar]=f
     
+    
+    ####################################################################
+    ####                   Functions for figures                    ####
+    ####################################################################
+    
+    
     def getSliceFromDict(self,d : dict):
+        """
+        Utility function to access getSliceForFig without using 6 if statements
+        The function takes a dictionary which plots the fixed dimensions to the
+        index at which they are fixed
+        
+        >>> getSliceFromDict({self.Dimension.Z: 5, self.Dimension.V : 2})
+        """
         r = d.get(self.Dimension.R,None)
         q = d.get(self.Dimension.THETA,None)
         v = d.get(self.Dimension.V,None)
@@ -259,67 +281,78 @@ class Grid(object):
         return self.getSliceForFig(r,q,z,v)
     
     def getSliceForFig(self,r = None,theta = None,z = None,v = None):
-        finalSize=1
-        dims=[]
+        """
+        Class to retrieve a 2D slice. Any values set to None will vary.
+        Any dimensions not set to None will be fixed at the global index provided
+        """
+        
+        # helper variables to correctly reshape the slice after gathering
+        dimSize=[]
         dimIdx=[]
-        # get slices for each dimension
-        # if value is none then all values along that dimension should be returned
-        # if not then only values at that index should be returned
+        
+        # Get slices for each dimension (thetaVal, rVal, zVal, vVal)
+        # If value is None then all values along that dimension should be returned
+        # this means that the size and dimension index will be stored
+        # If value is not None then only values at that index should be returned
+        # if that index cannot be found on the current processor then None will
+        # be stored
         if (theta==None):
-            finalSize=finalSize*self.nq
             thetaVal=slice(0,self.nq)
-            dims.append(self.nq)
+            dimSize.append(self.nq)
             dimIdx.append(self.Dimension.THETA)
         else:
             thetaVal=theta
         if (r==None):
-            finalSize=finalSize*self.nr
             rVal=slice(0,self.rEnd-self.rStart)
-            dims.append(self.nr)
+            dimSize.append(self.nr)
             dimIdx.append(self.Dimension.R)
         else:
             rVal=None
             if (r>=self.rStart and r<self.rEnd):
                 rVal=r-self.rStart
         if (z==None):
-            finalSize=finalSize*self.nz
             zVal=slice(0,self.zEnd-self.zStart)
-            dims.append(self.nz)
+            dimSize.append(self.nz)
             dimIdx.append(self.Dimension.Z)
         else:
             zVal=None
             if (z>=self.zStart and z<self.zEnd):
                 zVal=z-self.zStart
         if (v==None):
-            finalSize=finalSize*self.nv
             vVal=slice(0,self.vEnd-self.vStart)
-            dims.append(self.nv)
+            dimSize.append(self.nv)
             dimIdx.append(self.Dimension.V)
         else:
             vVal=None
             if (v>=self.vStart and v<self.vEnd):
                 vVal=v-self.vStart
         
-        # set sendSize and data to be sent
         # if the data is not on this processor then at least one of the slices is equal to None
         # in this case send something of size 0
         if (None in [thetaVal,rVal,zVal,vVal]):
             sendSize=0
             toSend = np.ndarray(0,order='F')
         else:
+            # set sendSize and data to be sent
             toSend = self.f[thetaVal,rVal,zVal,vVal].flatten()
             sendSize=toSend.size
-        # the dimensions must be concatenated one at a time to properly shape the output.
+        
         # collect the send sizes to properly formulate the gatherv
         sizes=self.commRV.gather(sendSize,root=0)
-        mySlice = None
+        
+        # the dimensions must be concatenated one at a time to properly shape the output.
         if (self.rankRV==0):
-            starts=np.zeros(len(sizes))
-            starts[1:]=sizes[:self.sizeRV-1]
-            starts=starts.cumsum().astype(int)
+            # use sizes to get start points
+            starts=np.zeros(len(sizes),int)
+            starts[1:]=np.cumsum(sizes[:self.sizeRV-1])
+            
+            # save memory for gatherv to fill
             mySlice = np.empty(np.sum(sizes), dtype=float)
+            
+            # Gather information from all ranks to rank 0 in direction R or V (dependant upon layout)
             self.commRV.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
             
+            # get dimensions along which split occurs
             if (self.layout==Layout.FIELD_ALIGNED):
                 splitDims=[self.Dimension.R, self.Dimension.V]
             elif (self.layout==Layout.POLOIDAL):
@@ -327,77 +360,153 @@ class Grid(object):
             elif (self.layout==Layout.V_PARALLEL):
                 splitDims=[self.Dimension.R, self.Dimension.Z]
             
+            # if the first dimension of the slice is distributed
             if (splitDims[0]==dimIdx[0]):
+                # break received data into constituent parts
                 mySlice=np.split(mySlice,starts[1:])
                 for i in range(0,self.sizeRV):
-                    mySlice[i]=mySlice[i].reshape(sizes[i]//dims[1],dims[1])
+                    # return them to original shape
+                    mySlice[i]=mySlice[i].reshape(sizes[i]//dimSize[1],dimSize[1])
+                # stitch back together along broken axis
                 mySlice=np.concatenate(mySlice,axis=0)
+            # if the second dimension of the slice is distributed
             elif(splitDims[0]==dimIdx[1]):
+                # break received data into constituent parts
                 mySlice=np.split(mySlice,starts[1:])
                 for i in range(0,self.sizeRV):
-                    mySlice[i]=mySlice[i].reshape(dims[0],sizes[i]//dims[0])
+                    # return them to original shape
+                    mySlice[i]=mySlice[i].reshape(dimSize[0],sizes[i]//dimSize[0])
+                # stitch back together along broken axis
                 mySlice=np.concatenate(mySlice,axis=1)
+            # else the data will be sent flattened anyway
             
             sizes=self.commVZ.gather(mySlice.size,root=0)
             if (self.rankVZ==0):
-                starts=np.zeros(len(sizes))
-                starts[1:]=sizes[:self.sizeVZ-1]
-                starts=starts.cumsum().astype(int)
+                # use sizes to get new start points
+                starts=np.zeros(len(sizes),int)
+                starts[1:]=np.cumsum(sizes[:self.sizeVZ-1])
+                
+                # ensure toSend has correct size in memory for gatherv to fill
                 toSend = np.empty(np.sum(sizes), dtype=float)
+                
+                # collect data sent up first column on first cell
                 self.commVZ.Gatherv(mySlice,(toSend, sizes, starts, MPI.DOUBLE), 0)
                 
+                # if the first dimension of the slice is distributed
                 if (splitDims[1]==dimIdx[0]):
+                    # break received data into constituent parts
                     mySlice=np.split(toSend,starts[1:])
                     for i in range(0,self.sizeVZ):
-                        mySlice[i]=mySlice[i].reshape(sizes[i]//dims[1],dims[1])
+                        # return them to original shape
+                        mySlice[i]=mySlice[i].reshape(sizes[i]//dimSize[1],dimSize[1])
+                    # stitch back together along broken axis
                     return np.concatenate(mySlice,axis=0)
+                # if the second dimension of the slice is distributed
                 elif(splitDims[1]==dimIdx[1]):
+                    # break received data into constituent parts
                     mySlice=np.split(toSend,starts[1:])
                     for i in range(0,self.sizeVZ):
-                        mySlice[i]=mySlice[i].reshape(dims[0],sizes[i]//dims[0])
+                        # return them to original shape
+                        mySlice[i]=mySlice[i].reshape(dimSize[0],sizes[i]//dimSize[0])
+                    # stitch back together along broken axis
                     return np.concatenate(mySlice,axis=1)
+                # if neither dimension is distributed
                 else:
-                    mySlice=toSend.reshape(dims[0],dims[1])
+                    # ensure that the data has the right return shape
+                    mySlice=toSend.reshape(dimSize[0],dimSize[1])
                 return mySlice
             else:
+                # send data collected to first column up to first cell
                 self.commVZ.Gatherv(mySlice,mySlice, 0)
-                return
         else:
+            # Gather information from all ranks
             self.commRV.Gatherv(toSend,toSend, 0)
-            return
     
     def getMin(self,axis = None,fixValue = None):
+        
+        # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
+            # return the min of the min found on each processor
             return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of z is fixed
+        # ensure that the required index is covered by this processor
         if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zEnd):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
+            # return the min of the min found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of r is fixed
+        # ensure that the required index is covered by this processor
         elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rEnd):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
+            # return the min of the min found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of v is fixed
+        # ensure that the required index is covered by this processor
         elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vEnd):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
+            # return the min of the min found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of theta is fixed
+        # ensure that the required index is covered by this processor
         elif (axis==self.Dimension.THETA):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue,)
+            # return the min of the min found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+        
+        # if the data is not on this processor then send the largest possible value of f
+        # this way min will always choose an alternative
         else:
             return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
     
-    def getMax(self,axis = None,fixValue = None):
+    
+    def getMin(self,axis = None,fixValue = None):
+        
+        # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
+            # return the max of the max found on each processor
             return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of z is fixed
+        # ensure that the required index is covered by this processor
         if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zEnd):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
+            # return the max of the max found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of r is fixed
+        # ensure that the required index is covered by this processor
         elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rEnd):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
+            # return the max of the max found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of v is fixed
+        # ensure that the required index is covered by this processor
         elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vEnd):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
+            # return the max of the max found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        
+        # if we want the total of all points on a 3D slice where the value of theta is fixed
+        # ensure that the required index is covered by this processor
         elif (axis==self.Dimension.THETA):
+            # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue,)
+            # return the max of the max found on each processor's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+        
+        # if the data is not on this processor then send the smallest possible value of f
+        # this way max will always choose an alternative
         else:
             return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
