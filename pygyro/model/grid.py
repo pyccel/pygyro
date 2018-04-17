@@ -4,7 +4,6 @@ from enum import Enum, IntEnum
 from math import pi
 
 from ..                 import splines as spl
-from ..initialisation   import constants
 
 class Layout(Enum):
     FIELD_ALIGNED = 1
