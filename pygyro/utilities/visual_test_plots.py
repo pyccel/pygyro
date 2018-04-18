@@ -3,7 +3,7 @@ import pytest
 
 from ..model.grid            import Layout
 from ..initialisation        import constants
-from ..initialisation.setups import setupGrid
+from ..initialisation.setups import setupCylindricalGrid
 from .grid_plotter           import SlicePlotter4d, SlicePlotter3d, Plotter2d
 
 @pytest.mark.parallel
@@ -19,7 +19,7 @@ def test_FieldAligned_Stitch(splitN):
     if (n1*n2!=size):
         return
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcR=n1,nProcV=n2)
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta4=n2)
 
     grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
     p = SlicePlotter4d(grid)
@@ -38,7 +38,7 @@ def test_Poloidal_Stitch(splitN):
     if (n1*n2!=size):
         return
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=n1,nProcV=n2)
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcEta3=n1,nProcEta4=n2)
 
     grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
     p = SlicePlotter4d(grid)
@@ -57,7 +57,7 @@ def test_V_Parallel_Stitch(splitN):
     if (n1*n2!=size):
         return
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcR=n1,nProcZ=n2)
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcEta1=n1,nProcEta3=n2)
 
     grid.f[:,:,:,:]=MPI.COMM_WORLD.Get_rank()
     p = SlicePlotter4d(grid)
@@ -76,7 +76,7 @@ def test_3DPlot(splitN):
     if (n1*n2!=size):
         return
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=n1,nProcV=n2)
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcEta3=n1,nProcEta4=n2)
     
     p = SlicePlotter3d(grid)
     p.show()

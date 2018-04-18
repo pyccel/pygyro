@@ -6,7 +6,7 @@ from ..model.grid import Grid, Layout
 from .initialiser import initialise
 from .            import constants
 
-def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
+def setupCylindricalGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     """
     Setup using radial topology can be initialised using the following arguments:
     
@@ -37,9 +37,9 @@ def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     m=kwargs.pop('m',constants.m)
     n=kwargs.pop('n',constants.n)
     degree=kwargs.pop('degree',3)
-    nProcR=kwargs.pop('nProcR',1)
-    nProcZ=kwargs.pop('nProcZ',1)
-    nProcV=kwargs.pop('nProcV',1)
+    nProcEta1=kwargs.pop('nProcEta1',1)
+    nProcEta3=kwargs.pop('nProcEta3',1)
+    nProcEta4=kwargs.pop('nProcEta4',1)
     
     # get spline knots
     rKnots = spl.make_knots(np.linspace(rMin,rMax,nr-degree+1),degree,False)
@@ -59,6 +59,6 @@ def setupGrid(nr: int, ntheta: int, nz: int, nv: int, layout: Layout, **kwargs):
     zVals = zSpline.greville
     vVals = vSpline.greville
     
-    grid=Grid(rVals,qVals,zVals,vVals,layout,nProcR=nProcR,nProcZ=nProcZ,nProcV=nProcV)
+    grid=Grid(rVals,qVals,zVals,vVals,layout,nProcEta1=nProcEta1,nProcEta3=nProcEta3,nProcEta4=nProcEta4)
     initialise(grid,m,n)
     return grid
