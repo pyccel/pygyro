@@ -372,7 +372,7 @@ class Grid(object):
             dimSize.append(self.nEta2)
             dimIdx.append(self.Dimension.ETA2)
         else:
-            eta2_slice=theta
+            eta2_slice=eta2
         if (eta1==None):
             eta1_slice=slice(0,self.eta1_end-self.eta1_start)
             dimSize.append(self.nEta1)
@@ -380,7 +380,7 @@ class Grid(object):
         else:
             eta1_slice=None
             if (eta1>=self.eta1_start and eta1<self.eta1_end):
-                eta1_slice=r-self.eta1_start
+                eta1_slice=eta1-self.eta1_start
         if (eta3==None):
             eta3_slice=slice(0,self.eta3_end-self.eta3_start)
             dimSize.append(self.nEta3)
@@ -388,7 +388,7 @@ class Grid(object):
         else:
             eta3_slice=None
             if (eta3>=self.eta3_start and eta3<self.eta3_end):
-                eta3_slice=z-self.eta3_start
+                eta3_slice=eta3-self.eta3_start
         if (eta4==None):
             eta4_slice=slice(0,self.eta4_end-self.eta4_start)
             dimSize.append(self.nEta4)
@@ -396,7 +396,7 @@ class Grid(object):
         else:
             eta4_slice=None
             if (eta4>=self.eta4_start and eta4<self.eta4_end):
-                eta4_slice=v-self.eta4_start
+                eta4_slice=eta4-self.eta4_start
         
         # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0
