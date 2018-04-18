@@ -27,8 +27,8 @@ class Grid(object):
         # remember layout
         self.layout=layout
         
-        # ensure that the combination of processors agrees with the layout
-        # (i.e. there is only 1 processor along the non-distributed direction
+        # ensure that the combination of processes agrees with the layout
+        # (i.e. there is only 1 process along the non-distributed direction
         # save the grid shape
         if (self.layout==Layout.FIELD_ALIGNED):
             self.sizeRV=nProcR
@@ -58,7 +58,7 @@ class Grid(object):
             self.commVZ = topology.Sub([False, True])
         else:
             # if the code is run in serial then the values should be assigned
-            # but all directions contain all processors
+            # but all directions contain all processes
             self.commRV = MPI.COMM_WORLD
             self.commVZ = MPI.COMM_WORLD
         
@@ -74,7 +74,7 @@ class Grid(object):
         self.nz=len(z)
         self.nv=len(v)
         
-        #get start and end points for each processor
+        #get start and end points for each process
         self.defineShape()
         
         # ordering chosen to increase step size to improve cache-coherency
@@ -90,11 +90,11 @@ class Grid(object):
         # variables depend on setup
         if (self.layout==Layout.FIELD_ALIGNED):
             # get overflows to better distribute data that is not divisible by
-            # the number of processors
+            # the number of processes
             nrOverflow=self.nr%self.sizeRV
             nvOverflow=self.nv%self.sizeVZ
             
-            # get start indices for all processors
+            # get start indices for all processes
             rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
             vStarts=self.nv//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nvOverflow)
             # append end index
@@ -114,11 +114,11 @@ class Grid(object):
             self.zEnd=self.nz
         elif (self.layout==Layout.V_PARALLEL):
             # get overflows to better distribute data that is not divisible by
-            # the number of processors
+            # the number of processes
             nrOverflow=self.nr%self.sizeRV
             nzOverflow=self.nz%self.sizeVZ
             
-            # get start indices for all processors
+            # get start indices for all processes
             rStarts=self.nr//self.sizeRV*ranksRV + np.minimum(ranksRV,nrOverflow)
             zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
             # append end index
@@ -138,11 +138,11 @@ class Grid(object):
             self.vEnd=self.nv
         elif (self.layout==Layout.POLOIDAL):
             # get overflows to better distribute data that is not divisible by
-            # the number of processors
+            # the number of processes
             nvOverflow=self.nv%self.sizeRV
             nzOverflow=self.nz%self.sizeVZ
             
-            # get start indices for all processors
+            # get start indices for all processes
             vStarts=self.nv//self.sizeRV*ranksRV + np.minimum(ranksRV,nvOverflow)
             zStarts=self.nz//self.sizeVZ*ranksVZ + np.minimum(ranksVZ,nzOverflow)
             # append end index
@@ -232,9 +232,9 @@ class Grid(object):
                 # redistribute data
                 self.f = np.concatenate(
                             self.commVZ.alltoall(
-                                # break data on this processor into chunks using start indices
+                                # break data on this process into chunks using start indices
                                 np.split(self.f,zStarts[1:],axis=self.Dimension.Z)
-                            ) # use all to all to pass chunks to correct processors
+                            ) # use all to all to pass chunks to correct processes
                         ,axis=self.Dimension.V) # use concatenate to join the data back together in the right shape
                 
                 # save new layout
@@ -263,9 +263,9 @@ class Grid(object):
                 # redistribute data
                 self.f = np.concatenate(
                             self.commRV.alltoall(
-                                # break data on this processor into chunks using start indices
+                                # break data on this process into chunks using start indices
                                 np.split(self.f,rStarts[1:],axis=self.Dimension.R)
-                            ) # use all to all to pass chunks to correct processors
+                            ) # use all to all to pass chunks to correct processes
                         ,axis=self.Dimension.V) # use concatenate to join the data back together in the right shape
                 
                 # save new layout
@@ -293,9 +293,9 @@ class Grid(object):
                 # redistribute data
                 self.f = np.concatenate(
                             self.commVZ.alltoall(
-                                # break data on this processor into chunks using start indices
+                                # break data on this process into chunks using start indices
                                 np.split(self.f,vStarts[1:],axis=self.Dimension.V)
-                            ) # use all to all to pass chunks to correct processors
+                            ) # use all to all to pass chunks to correct processes
                         ,axis=self.Dimension.Z) # use concatenate to join the data back together in the right shape
                 
                 # save new layout
@@ -317,9 +317,9 @@ class Grid(object):
                 # redistribute data
                 self.f = np.concatenate(
                             self.commRV.alltoall(
-                                # break data on this processor into chunks using start indices
+                                # break data on this process into chunks using start indices
                                 np.split(self.f,vStarts[1:],axis=self.Dimension.V)
-                            ) # use all to all to pass chunks to correct processors
+                            ) # use all to all to pass chunks to correct processes
                         ,axis=self.Dimension.R) # use concatenate to join the data back together in the right shape
                 
                 # save new layout
@@ -365,7 +365,7 @@ class Grid(object):
         # If value is None then all values along that dimension should be returned
         # this means that the size and dimension index will be stored
         # If value is not None then only values at that index should be returned
-        # if that index cannot be found on the current processor then None will
+        # if that index cannot be found on the current process then None will
         # be stored
         if (theta==None):
             thetaVal=slice(0,self.nq)
@@ -398,7 +398,7 @@ class Grid(object):
             if (v>=self.vStart and v<self.vEnd):
                 vVal=v-self.vStart
         
-        # if the data is not on this processor then at least one of the slices is equal to None
+        # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0
         if (None in [thetaVal,rVal,zVal,vVal]):
             sendSize=0
@@ -497,42 +497,42 @@ class Grid(object):
         
         # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
-            # return the min of the min found on each processor
+            # return the min of the min found on each process
             return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of z is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zEnd):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
-            # return the min of the min found on each processor's slice
+            # return the min of the min found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of r is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rEnd):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
-            # return the min of the min found on each processor's slice
+            # return the min of the min found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of v is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vEnd):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
-            # return the min of the min found on each processor's slice
+            # return the min of the min found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of theta is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         elif (axis==self.Dimension.THETA):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue,)
-            # return the min of the min found on each processor's slice
+            # return the min of the min found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
-        # if the data is not on this processor then send the largest possible value of f
+        # if the data is not on this process then send the largest possible value of f
         # this way min will always choose an alternative
         else:
             return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
@@ -542,42 +542,42 @@ class Grid(object):
         
         # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
-            # return the max of the max found on each processor
+            # return the max of the max found on each process
             return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of z is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         if (axis==self.Dimension.Z and fixValue>=self.zStart and fixValue<self.zEnd):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.zStart,)
-            # return the max of the max found on each processor's slice
+            # return the max of the max found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of r is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         elif (axis==self.Dimension.R and fixValue>=self.rStart and fixValue<self.rEnd):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.rStart,)
-            # return the max of the max found on each processor's slice
+            # return the max of the max found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of v is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         elif (axis==self.Dimension.V and fixValue>=self.vStart and fixValue<self.vEnd):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.vStart,)
-            # return the max of the max found on each processor's slice
+            # return the max of the max found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of theta is fixed
-        # ensure that the required index is covered by this processor
+        # ensure that the required index is covered by this process
         elif (axis==self.Dimension.THETA):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue,)
-            # return the max of the max found on each processor's slice
+            # return the max of the max found on each process's slice
             return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
-        # if the data is not on this processor then send the smallest possible value of f
+        # if the data is not on this process then send the smallest possible value of f
         # this way max will always choose an alternative
         else:
             return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
