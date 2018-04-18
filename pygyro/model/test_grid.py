@@ -5,54 +5,54 @@ from math import pi
 
 from .grid import Layout, Grid
 
-def define_f(rVals,qVals,zVals,vVals,grid):
-    nr=len(rVals)
-    nq=len(qVals)
-    nz=len(zVals)
-    nv=len(vVals)
-    for i,theta in grid.getThetaCoords():
+def define_f(eta1Vals,eta2Vals,eta3Vals,eta4Vals,grid):
+    nEta1=len(eta1Vals)
+    nEta2=len(eta2Vals)
+    nEta3=len(eta3Vals)
+    nEta4=len(eta4Vals)
+    for i,eta2 in grid.getEta2Coords():
         # get nearest global index
-        I=(np.abs(qVals-theta)).argmin()
-        for j,r in grid.getRCoords():
+        I=(np.abs(eta2Vals-eta2)).argmin()
+        for j,eta1 in grid.getEta1Coords():
             # get nearest global index
-            J=(np.abs(rVals-r)).argmin()
-            for k,z in grid.getZCoords():
+            J=(np.abs(eta1Vals-eta1)).argmin()
+            for k,eta3 in grid.getEta3Coords():
                 # get nearest global index
-                K=(np.abs(zVals-z)).argmin()
-                for l,v in grid.getVCoords():
+                K=(np.abs(eta3Vals-eta3)).argmin()
+                for l,eta4 in grid.getEta4Coords():
                     # get nearest global index
-                    L=(np.abs(vVals-v)).argmin()
+                    L=(np.abs(eta4Vals-eta4)).argmin()
                     
                     # set value using global indices
-                    grid.f[i,j,k,l]=I*nv*nz*nr+J*nv*nz+K*nv+L
+                    grid.f[i,j,k,l]=I*nEta4*nEta3*nEta1+J*nEta4*nEta3+K*nEta4+L
 
-def compare_f(rVals,qVals,zVals,vVals,grid):
-    nr=len(rVals)
-    nq=len(qVals)
-    nz=len(zVals)
-    nv=len(vVals)
-    for i,theta in grid.getThetaCoords():
+def compare_f(eta1Vals,eta2Vals,eta3Vals,eta4Vals,grid):
+    nEta1=len(eta1Vals)
+    nEta2=len(eta2Vals)
+    nEta3=len(eta3Vals)
+    nEta4=len(eta4Vals)
+    for i,eta2 in grid.getEta2Coords():
         # get nearest global index
-        I=(np.abs(qVals-theta)).argmin()
-        for j,r in grid.getRCoords():
+        I=(np.abs(eta2Vals-eta2)).argmin()
+        for j,eta1 in grid.getEta1Coords():
             # get nearest global index
-            J=(np.abs(rVals-r)).argmin()
-            for k,z in grid.getZCoords():
+            J=(np.abs(eta1Vals-eta1)).argmin()
+            for k,eta3 in grid.getEta3Coords():
                 # get nearest global index
-                K=(np.abs(zVals-z)).argmin()
-                for l,v in grid.getVCoords():
+                K=(np.abs(eta3Vals-eta3)).argmin()
+                for l,eta4 in grid.getEta4Coords():
                     # get nearest global index
-                    L=(np.abs(vVals-v)).argmin()
+                    L=(np.abs(eta4Vals-eta4)).argmin()
                     
                     # ensure value is as expected from function define_f()
-                    assert(grid.f[i,j,k,l]==I*nv*nz*nr+J*nv*nz+K*nv+L)
+                    assert(grid.f[i,j,k,l]==I*nEta4*nEta3*nEta1+J*nEta4*nEta3+K*nEta4+L)
 
 @pytest.mark.serial
 def test_Grid():
     # ensure that MPI setup is ok
-    Grid([0,1],[0,1],[0,1],[0,1],Layout.FIELD_ALIGNED,nProcR=2,nProcV=2)
-    Grid([0,1],[0,1],[0,1],[0,1],Layout.POLOIDAL,nProcV=2,nProcZ=2)
-    Grid([0,1],[0,1],[0,1],[0,1],Layout.V_PARALLEL,nProcR=2,nProcZ=2)
+    Grid([0,1],[0,1],[0,1],[0,1],Layout.FIELD_ALIGNED,nProcEta1=2,nProcEta4=2)
+    Grid([0,1],[0,1],[0,1],[0,1],Layout.POLOIDAL,nProcEta4=2,nProcEta3=2)
+    Grid([0,1],[0,1],[0,1],[0,1],Layout.V_PARALLEL,nProcEta1=2,nProcEta3=2)
     # ensure that a non-specified layout throws an error
     with pytest.raises(NotImplementedError):
         Grid([0,1],[0,1],[0,1],[0,1],"madeup")
@@ -79,11 +79,11 @@ def test_ErrorsRaised():
         return
     else:
         with pytest.raises(ValueError):
-            Grid([0,1],[0,1],[0,1],[0,1],Layout.FIELD_ALIGNED,nProcR=n1,nProcZ=n2)
+            Grid([0,1],[0,1],[0,1],[0,1],Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta3=n2)
         with pytest.raises(ValueError):
-            Grid([0,1],[0,1],[0,1],[0,1],Layout.POLOIDAL,nProcR=n1,nProcZ=n2)
+            Grid([0,1],[0,1],[0,1],[0,1],Layout.POLOIDAL,nProcEta1=n1,nProcEta3=n2)
         with pytest.raises(ValueError):
-            Grid([0,1],[0,1],[0,1],[0,1],Layout.V_PARALLEL,nProcR=n1,nProcV=n2)
+            Grid([0,1],[0,1],[0,1],[0,1],Layout.V_PARALLEL,nProcEta1=n1,nProcEta4=n2)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
@@ -105,19 +105,19 @@ def test_layoutSwap(splitN):
     
     # create equally spaced grid
     grid = Grid(np.linspace(0.5,14.5,nr),np.linspace(0,2*pi,ntheta,endpoint=False),
-                np.linspace(0,50,nz),np.linspace(-5,5,nv),Layout.FIELD_ALIGNED,nProcR=n1,nProcV=n2)
+                np.linspace(0,50,nz),np.linspace(-5,5,nv),Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta4=n2)
     # save shape
     oldShape = grid.f.shape
     # fill f based on global indices
-    define_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    define_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
     
     # change layout
     grid.setLayout(Layout.V_PARALLEL)
     
     # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
     
     if (n2>1):
         # if shape should have changed ensure that this has happened
@@ -127,8 +127,8 @@ def test_layoutSwap(splitN):
     grid.setLayout(Layout.POLOIDAL)
     
     # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
     
     if (n1>1):
         # if shape should have changed ensure that this has happened
@@ -138,15 +138,15 @@ def test_layoutSwap(splitN):
     grid.setLayout(Layout.V_PARALLEL)
     
     # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
     
     # change layout
     grid.setLayout(Layout.FIELD_ALIGNED)
     
     # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
     
     # All expected layout changes have been run.
     # The following two are possible but should raise errors as they require 2 steps
@@ -155,12 +155,12 @@ def test_layoutSwap(splitN):
         grid.setLayout(Layout.POLOIDAL)
     
     # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
     with pytest.raises(RuntimeWarning):
         # change layout
         grid.setLayout(Layout.FIELD_ALIGNED)
     
     # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.R],grid.Vals[Grid.Dimension.THETA],
-            grid.Vals[Grid.Dimension.Z],grid.Vals[Grid.Dimension.V],grid)
+    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
+            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
