@@ -1,10 +1,10 @@
 
 
 def fluxSurfaceAdv(f):
-    print("todo")
+    pass
 
 def vParallelAdv(f):
-    print("todo")
+    pass
 
 def poloidalAdv(f):
-    print("todo")
+    pass
