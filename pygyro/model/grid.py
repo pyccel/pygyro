@@ -193,11 +193,11 @@ class Grid(object):
     def eta4_Vals(self):
         return self.Vals[self.Dimension.ETA4][self.eta4_start:self.eta4_end]
     
-    def getEta4_Slice(self, eta2: int, eta1: int, eta3: int):
+    def getEta4_Slice(self, eta1: int, eta3: int, eta2: int):
         assert(self.layout==Layout.V_PARALLEL)
         return self.f[eta1,eta3,:,eta2]
     
-    def setEta4_Slice(self, eta2: int, eta1: int, eta3: int, f):
+    def setEta4_Slice(self, eta1: int, eta3: int, eta2: int, f):
         assert(self.layout==Layout.V_PARALLEL)
         self.f[eta1,eta3,:,eta2]=f
     
