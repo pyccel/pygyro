@@ -1,7 +1,8 @@
 import pytest
 
 from ..model.grid               import Layout
-from ..initialisation.setups    import setupGrid
+from ..initialisation.setups    import setupCylindricalGrid
+from .advection                 import *
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
@@ -22,9 +23,9 @@ def test_fluxSurfaceAdvection_gridIntegration():
     nz=10
     nv=10
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
-    for j,r in grid.getRCoords():
-        for k,v in grid.getVCoords():
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
+    for j,r in grid.getEta1Coords():
+        for k,v in grid.getEta4Coords():
             fluxSurfaceAdv(grid.getFieldAlignedSlice(j,k))
 
 @pytest.mark.serial
@@ -34,11 +35,11 @@ def test_vParallelAdvection_gridIntegration():
     nz=10
     nv=10
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
-    for i,q in grid.getThetaCoords():
-        for j,r in grid.getRCoords():
-            for k,z in grid.getZCoords():
-                vParallelAdv(grid.getVParSlice(i,j,k))
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
+    for i,r in grid.getEta1Coords():
+        for j,z in grid.getEta3Coords():
+            for k,q in grid.getEta2Coords():
+                vParallelAdv(grid.getEta4_Slice(i,j,k))
 
 @pytest.mark.serial
 def test_poloidalAdvection_gridIntegration():
@@ -47,7 +48,7 @@ def test_poloidalAdvection_gridIntegration():
     nz=10
     nv=10
     
-    grid=setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
-    for j,z in grid.getZCoords():
-        for k,v in grid.getVCoords():
+    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
+    for j,z in grid.getEta3Coords():
+        for k,v in grid.getEta4Coords():
             fluxSurfaceAdv(grid.getPoloidalSlice(j,k))
