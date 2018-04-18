@@ -22,7 +22,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
     nz=10
     nv=10
     
-    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
     for j,r in grid.getRCoords():
         for k,v in grid.getVCoords():
             fluxSurfaceAdv(grid.getFieldAlignedSlice(j,k))
@@ -34,7 +34,7 @@ def test_vParallelAdvection_gridIntegration():
     nz=10
     nv=10
     
-    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
     for i,q in grid.getThetaCoords():
         for j,r in grid.getRCoords():
             for k,z in grid.getZCoords():
@@ -47,7 +47,7 @@ def test_poloidalAdvection_gridIntegration():
     nz=10
     nv=10
     
-    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
+    grid=setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
     for j,z in grid.getZCoords():
         for k,v in grid.getVCoords():
             fluxSurfaceAdv(grid.getPoloidalSlice(j,k))
