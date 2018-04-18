@@ -3,7 +3,7 @@ import numpy as np
 from functools import reduce
 import pytest
 
-from  .setups                 import setupGrid
+from  .setups                 import setupCylindricalGrid
 from  ..model.grid            import Layout
 
 @pytest.mark.serial
@@ -12,7 +12,7 @@ def test_FieldAligned_setup():
     ntheta=20
     nz=10
     nv=10
-    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
+    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
 
 @pytest.mark.serial
 def test_Poloidal_setup():
@@ -20,7 +20,7 @@ def test_Poloidal_setup():
     ntheta=20
     nz=10
     nv=10
-    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
+    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
 
 @pytest.mark.serial
 def test_vParallel_setup():
@@ -28,7 +28,7 @@ def test_vParallel_setup():
     ntheta=20
     nz=10
     nv=10
-    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
+    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
@@ -43,7 +43,7 @@ def test_FieldAligned_setup_parallel(splitN):
     if (n1*n2!=size):
         return
     
-    setupGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcR=n1,nProcV=n2)
+    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta4=n2)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
@@ -58,7 +58,7 @@ def test_Poloidal_setup_parallel(splitN):
     if (n1*n2!=size):
         return
     
-    setupGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcZ=n1,nProcV=n2)
+    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcEta3=n1,nProcEta4=n2)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
@@ -73,4 +73,4 @@ def test_vParallel_setup_parallel(splitN):
     if (n1*n2!=size):
         return
     
-    setupGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcR=n1,nProcZ=n2)
+    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcEta1=n1,nProcEta3=n2)

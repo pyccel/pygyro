@@ -2,7 +2,7 @@ from mpi4py import MPI
 import pytest
 
 from  .                       import constants
-from  .setups                 import setupGrid
+from  .setups                 import setupCylindricalGrid
 from  .initialiser            import getEquilibrium, getPerturbation
 from ..utilities.grid_plotter import SlicePlotter4d, SlicePlotter3d, Plotter2d
 from ..model.grid             import Layout
@@ -13,7 +13,7 @@ def test_Equilibrium_FieldAligned():
     ntheta=20
     nz=10
     nv=20
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
     rank = MPI.COMM_WORLD.Get_rank()
     getEquilibrium(grid)
     Plotter2d(grid,'r','v').show()
@@ -24,7 +24,7 @@ def test_Equilibrium_vPar():
     ntheta=20
     nz=10
     nv=20
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
     rank = MPI.COMM_WORLD.Get_rank()
     getEquilibrium(grid)
     Plotter2d(grid,'r','v').show()
@@ -35,7 +35,7 @@ def test_Equilibrium_Poloidal():
     ntheta=20
     nz=10
     nv=20
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
     rank = MPI.COMM_WORLD.Get_rank()
     getEquilibrium(grid)
     Plotter2d(grid,'r','v').show()
@@ -46,7 +46,7 @@ def test_FieldAligned():
     ntheta=10
     nz=20
     nv=20
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
     #print(grid.f)
     SlicePlotter4d(grid).show()
 
@@ -56,7 +56,7 @@ def test_vParallel():
     ntheta=10
     nz=20
     nv=20
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
     SlicePlotter4d(grid).show()
 
 @pytest.mark.serial
@@ -65,7 +65,7 @@ def test_Poloidal():
     ntheta=10
     nz=20
     nv=20
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
     SlicePlotter4d(grid).show()
 
 @pytest.mark.serial
@@ -75,7 +75,7 @@ def test_Perturbation_FieldAligned():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
     getPerturbation(grid,m=15,n=20)
     SlicePlotter3d(grid).show()
 
@@ -86,7 +86,7 @@ def test_Perturbation_vParallel():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
     getPerturbation(grid,m=15,n=20)
     SlicePlotter3d(grid).show()
 
@@ -97,7 +97,7 @@ def test_Perturbation_Poloidal():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
     getPerturbation(grid,m=15,n=20)
     SlicePlotter3d(grid).show()
 
@@ -108,7 +108,7 @@ def test_FieldPlot_FieldAligned():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.FIELD_ALIGNED,m=15,n=20)
     getPerturbation(grid,m=15,n=20)
     Plotter2d(grid,'q','z').show()
 
@@ -119,7 +119,7 @@ def test_FieldPlot_vPar():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.V_PARALLEL,m=15,n=20)
     getPerturbation(grid,m=15,n=20)
     Plotter2d(grid,'q','z').show()
 
@@ -130,7 +130,7 @@ def test_FieldPlot_Poloidal():
     nz=10
     nv=20
     rank = MPI.COMM_WORLD.Get_rank()
-    grid = setupGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
+    grid = setupCylindricalGrid(nr,ntheta,nz,nv,Layout.POLOIDAL,m=15,n=20)
     getPerturbation(grid,m=15,n=20)
     Plotter2d(grid,'q','z').show()
 

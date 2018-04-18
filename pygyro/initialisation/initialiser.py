@@ -21,22 +21,22 @@ def Te(r):
     return constants.CTe*exp(-constants.kTe*constants.deltaRTe*tanh((r-constants.rp)/constants.deltaRTe))
 
 def initialise(grid,m = constants.m,n = constants.n):
-    for i,theta in grid.getThetaCoords():
-        for j,r in grid.getRCoords():
-            for k,z in grid.getZCoords():
-                for l,v in grid.getVCoords():
+    for i,theta in grid.getEta2Coords():
+        for j,r in grid.getEta1Coords():
+            for k,z in grid.getEta3Coords():
+                for l,v in grid.getEta4Coords():
                     grid.f[i,j,k,l]=initF(r,theta,z,v,m,n)
 
 def getPerturbation(grid,m = constants.m,n = constants.n):
-    for i,theta in grid.getThetaCoords():
-        for j,r in grid.getRCoords():
-            for k,z in grid.getZCoords():
-                for l,v in grid.getVCoords():
+    for i,theta in grid.getEta2Coords():
+        for j,r in grid.getEta1Coords():
+            for k,z in grid.getEta3Coords():
+                for l,v in grid.getEta4Coords():
                     grid.f[i,j,k,l]=perturbation(r,theta,z,m,n)
 
 def getEquilibrium(grid):
-    for i,theta in grid.getThetaCoords():
-        for j,r in grid.getRCoords():
-            for k,z in grid.getZCoords():
-                for l,v in grid.getVCoords():
+    for i,theta in grid.getEta2Coords():
+        for j,r in grid.getEta1Coords():
+            for k,z in grid.getEta3Coords():
+                for l,v in grid.getEta4Coords():
                     grid.f[i,j,k,l]=fEq(r,v)
