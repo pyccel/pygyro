@@ -74,12 +74,14 @@ class SlicePlotter4d(object):
         theSlice = self.grid.getSliceForFig(eta3=self.zVal,eta4=self.vVal)
         
         if (self.rank==0):
+            theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+            
             self.fig.canvas.draw()
             
             # remove the old plot
             self.ax.clear()
             self.colorbarax2.clear()
-            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
+            self.plot = self.ax.pcolormesh(self.x,self.y,np.transpose(theSlice),vmin=self.minimum,vmax=self.maximum)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             self.ax.set_xlabel("x [m]")
@@ -291,6 +293,8 @@ class SlicePlotter3d(object):
         theSlice = self.grid.getSliceFromDict(d)
         
         if (self.rank==0):
+            if (Grid.Dimension.ETA2 in [self.xVals, self.yVals]):
+                theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
             self.fig.canvas.draw()
             
             if (hasattr(self,'plot')):
@@ -443,6 +447,8 @@ class Plotter2d(object):
         theSlice = self.grid.getSliceFromDict(d)
         
         if (self.rank==0):
+            if (Grid.Dimension.ETA2 in [self.xVals, self.yVals]):
+                theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
             self.fig.canvas.draw()
             
             self.colorbarax2.clear()

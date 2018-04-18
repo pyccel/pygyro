@@ -367,12 +367,6 @@ class Grid(object):
         # If value is not None then only values at that index should be returned
         # if that index cannot be found on the current process then None will
         # be stored
-        if (eta2==None):
-            eta2_slice=slice(0,self.nEta2)
-            dimSize.append(self.nEta2)
-            dimIdx.append(self.Dimension.ETA2)
-        else:
-            eta2_slice=eta2
         if (eta1==None):
             eta1_slice=slice(0,self.eta1_end-self.eta1_start)
             dimSize.append(self.nEta1)
@@ -397,10 +391,16 @@ class Grid(object):
             eta4_slice=None
             if (eta4>=self.eta4_start and eta4<self.eta4_end):
                 eta4_slice=eta4-self.eta4_start
+        if (eta2==None):
+            eta2_slice=slice(0,self.nEta2)
+            dimSize.append(self.nEta2)
+            dimIdx.append(self.Dimension.ETA2)
+        else:
+            eta2_slice=eta2
         
         # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0
-        if (None in [eta2_slice,eta1_slice,eta3_slice,eta4_slice]):
+        if (None in [eta1_slice,eta3_slice,eta4_slice,eta2_slice]):
             sendSize=0
             toSend = np.ndarray(0)
         else:
