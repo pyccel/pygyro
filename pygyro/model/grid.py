@@ -12,15 +12,15 @@ class Layout(Enum):
 
 class Grid(object):
     class Dimension(IntEnum):
-        ETA1 = 1
-        ETA2 = 0
-        ETA3 = 2
-        ETA4 = 3
+        ETA1 = 0
+        ETA2 = 3
+        ETA3 = 1
+        ETA4 = 2
     
     def __init__(self,eta1,eta2,eta3,eta4,layout: Layout,
-                    *,nProcEta1 : int = 1,nProcEta3 : int = 1,nProcEta4 = 1):
+                    *,nProcEta1 : int = 1,nProcEta3 : int = 1,nProcEta4 = 1, comm : MPI.Comm = MPI.COMM_WORLD):
         # get MPI values
-        comm = MPI.COMM_WORLD
+        self.global_comm = comm
         self.rank = comm.Get_rank()
         self.mpi_size = comm.Get_size()
         
@@ -59,8 +59,8 @@ class Grid(object):
         else:
             # if the code is run in serial then the values should be assigned
             # but all directions contain all processes
-            self.commEta14 = MPI.COMM_WORLD
-            self.commEta34 = MPI.COMM_WORLD
+            self.commEta14 = self.global_comm
+            self.commEta34 = self.global_comm
         
         # get ranks for the different communicators
         self.rankEta14=self.commEta14.Get_rank()
@@ -68,7 +68,7 @@ class Grid(object):
         
         # save coordinate information
         # saving in list allows simpler reordering of coordinates
-        self.Vals = [eta2, eta1, eta3, eta4]
+        self.Vals = [eta1, eta3, eta4, eta2]
         self.nEta1=len(eta1)
         self.nEta2=len(eta2)
         self.nEta3=len(eta3)
@@ -77,10 +77,10 @@ class Grid(object):
         #get start and end points for each process
         self.defineShape()
         
-        # ordering chosen to increase step size to improve cache-coherency
-        self.f = np.empty((self.nEta2,len(self.Vals[self.Dimension.ETA1][self.eta1_start:self.eta1_end]),
+        # ordering chosen to improve cache-coherency
+        self.f = np.empty((len(self.Vals[self.Dimension.ETA1][self.eta1_start:self.eta1_end]),
                 len(self.Vals[self.Dimension.ETA3][self.eta3_start:self.eta3_end]),
-                len(self.Vals[self.Dimension.ETA4][self.eta4_start:self.eta4_end])),float,order='F')
+                len(self.Vals[self.Dimension.ETA4][self.eta4_start:self.eta4_end]),self.nEta2),float)
     
     def defineShape(self):
         # get common variables
@@ -195,27 +195,27 @@ class Grid(object):
     
     def getEta4_Slice(self, eta2: int, eta1: int, eta3: int):
         assert(self.layout==Layout.V_PARALLEL)
-        return self.f[eta2,eta1,eta3,:]
+        return self.f[eta1,eta3,:,eta2]
     
     def setEta4_Slice(self, eta2: int, eta1: int, eta3: int, f):
         assert(self.layout==Layout.V_PARALLEL)
-        self.f[eta2,eta1,eta3,:]=f
+        self.f[eta1,eta3,:,eta2]=f
     
     def getFieldAlignedSlice(self, eta1: int, eta4: int):
         assert(self.layout==Layout.FIELD_ALIGNED)
-        return self.f[:,eta1,:,eta4]
+        return self.f[eta1,:,eta4,:]
     
     def setFieldAlignedSlice(self, eta1: int, eta4: int,f):
         assert(self.layout==Layout.FIELD_ALIGNED)
-        self.f[:,eta1,:,eta4]=f
+        self.f[eta1,:,eta4,:]=f
     
     def getPoloidalSlice(self, eta3: int, eta4: int):
         assert(self.layout==Layout.POLOIDAL)
-        return self.f[:,:,eta3,eta4]
+        return self.f[:,eta3,eta4,:]
     
     def setPoloidalSlice(self, eta3: int, eta4: int,f):
         assert(self.layout==Layout.POLOIDAL)
-        self.f[:,:,eta3,eta4]=f
+        self.f[:,eta3,eta4,:]=f
     
     def setLayout(self,new_layout: Layout):
         # if layout has not changed then do nothing
@@ -402,10 +402,10 @@ class Grid(object):
         # in this case send something of size 0
         if (None in [eta2_slice,eta1_slice,eta3_slice,eta4_slice]):
             sendSize=0
-            toSend = np.ndarray(0,order='F')
+            toSend = np.ndarray(0)
         else:
             # set sendSize and data to be sent
-            toSend = self.f[eta2_slice,eta1_slice,eta3_slice,eta4_slice].flatten()
+            toSend = self.f[eta1_slice,eta3_slice,eta4_slice,eta2_slice].flatten()
             sendSize=toSend.size
         
         # collect the send sizes to properly formulate the gatherv
@@ -498,7 +498,7 @@ class Grid(object):
         # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
             # return the min of the min found on each process
-            return MPI.COMM_WORLD.reduce(np.amin(self.f),op=MPI.MIN,root=0)
+            return self.global_comm.reduce(np.amin(self.f),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta3 is fixed
         # ensure that the required index is covered by this process
@@ -506,7 +506,7 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.eta3_start,)
             # return the min of the min found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta1 is fixed
         # ensure that the required index is covered by this process
@@ -514,7 +514,7 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.eta1_start,)
             # return the min of the min found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta4 is fixed
         # ensure that the required index is covered by this process
@@ -522,7 +522,7 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.eta4_start,)
             # return the min of the min found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta2 is fixed
         # ensure that the required index is covered by this process
@@ -530,12 +530,12 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue,)
             # return the min of the min found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
+            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
         
         # if the data is not on this process then send the largest possible value of f
         # this way min will always choose an alternative
         else:
-            return MPI.COMM_WORLD.reduce(1,op=MPI.MIN,root=0)
+            return self.global_comm.reduce(1,op=MPI.MIN,root=0)
     
     
     def getMax(self,axis = None,fixValue = None):
@@ -543,7 +543,7 @@ class Grid(object):
         # if we want the total of all points on the grid
         if (axis==None and fixValue==None):
             # return the max of the max found on each process
-            return MPI.COMM_WORLD.reduce(np.amax(self.f),op=MPI.MAX,root=0)
+            return self.global_comm.reduce(np.amax(self.f),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta3 is fixed
         # ensure that the required index is covered by this process
@@ -551,7 +551,7 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.eta3_start,)
             # return the max of the max found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta1 is fixed
         # ensure that the required index is covered by this process
@@ -559,7 +559,7 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.eta1_start,)
             # return the max of the max found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta4 is fixed
         # ensure that the required index is covered by this process
@@ -567,7 +567,7 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue-self.eta4_start,)
             # return the max of the max found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if we want the total of all points on a 3D slice where the value of eta2 is fixed
         # ensure that the required index is covered by this process
@@ -575,9 +575,9 @@ class Grid(object):
             # get the indices of the required slice
             idx = (np.s_[:],) * axis + (fixValue,)
             # return the max of the max found on each process's slice
-            return MPI.COMM_WORLD.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
+            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
         
         # if the data is not on this process then send the smallest possible value of f
         # this way max will always choose an alternative
         else:
-            return MPI.COMM_WORLD.reduce(0,op=MPI.MAX,root=0)
+            return self.global_comm.reduce(0,op=MPI.MAX,root=0)
