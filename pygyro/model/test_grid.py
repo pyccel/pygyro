@@ -11,17 +11,17 @@ def define_f(eta1Vals,eta2Vals,eta3Vals,eta4Vals,grid):
     nEta3=len(eta3Vals)
     nEta4=len(eta4Vals)
     for i,eta1 in grid.getEta1Coords():
-        # get nearest global index
-        I=(np.abs(eta1Vals-eta1)).argmin()
+        # get global index
+        I=i+grid.eta1_start
         for j,eta3 in grid.getEta3Coords():
-            # get nearest global index
-            J=(np.abs(eta3Vals-eta3)).argmin()
+            # get global index
+            J=j+grid.eta3_start
             for k,eta4 in grid.getEta4Coords():
-                # get nearest global index
-                K=(np.abs(eta4Vals-eta4)).argmin()
+                # get global index
+                K=k+grid.eta4_start
                 for l,eta2 in grid.getEta2Coords():
-                    # get nearest global index
-                    L=(np.abs(eta2Vals-eta2)).argmin()
+                    # get global index
+                    L=l
                     
                     # set value using global indices
                     grid.f[i,j,k,l]=I*nEta4*nEta3*nEta2+J*nEta4*nEta2+K*nEta2+L
@@ -32,17 +32,17 @@ def compare_f(eta1Vals,eta2Vals,eta3Vals,eta4Vals,grid):
     nEta3=len(eta3Vals)
     nEta4=len(eta4Vals)
     for i,eta1 in grid.getEta1Coords():
-        # get nearest global index
-        I=(np.abs(eta1Vals-eta1)).argmin()
+        # get global index
+        I=i+grid.eta1_start
         for j,eta3 in grid.getEta3Coords():
-            # get nearest global index
-            J=(np.abs(eta3Vals-eta3)).argmin()
+            # get global index
+            J=j+grid.eta3_start
             for k,eta4 in grid.getEta4Coords():
-                # get nearest global index
-                K=(np.abs(eta4Vals-eta4)).argmin()
+                # get global index
+                K=k+grid.eta4_start
                 for l,eta2 in grid.getEta2Coords():
-                    # get nearest global index
-                    L=(np.abs(eta2Vals-eta2)).argmin()
+                    # get global index
+                    L=l
                     
                     # ensure value is as expected from function define_f()
                     assert(grid.f[i,j,k,l]==I*nEta4*nEta3*nEta2+J*nEta4*nEta2+K*nEta2+L)
