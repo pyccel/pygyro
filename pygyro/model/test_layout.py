@@ -96,7 +96,7 @@ def test_LayoutSwap():
     
     remapper.transpose(source=f_fs,
                        dest=f_v,
-                       layout_source=fsLayout,
+                       source_name='flux_surface',
                        dest_name='v_parallel')
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v)
@@ -149,5 +149,5 @@ def test_BadStepWarning():
     with pytest.warns(UserWarning):
         remapper.transpose(source=np.empty(myLayout.shape),
                            dest=np.empty(endLayout.shape),
-                           layout_source=myLayout,
+                           source_name='flux_surface',
                            dest_name='poloidal')

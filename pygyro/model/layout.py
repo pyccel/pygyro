@@ -117,104 +117,111 @@ class LayoutManager:
         
         mpi_coords = topology.Get_coords(comm.Get_rank())
         
-        self._layouts = []
-        self._layout_names = []
+        # Create the layouts and save them in a dictionary
+        layoutObjects = []
         for name,dim_order in layouts.items():
-            self._layouts.append(Layout(name,nprocs,dim_order,eta_grids,mpi_coords))
-            self._layout_names.append(name)
+            layoutObjects.append((name,Layout(name,nprocs,dim_order,eta_grids,mpi_coords)))
+        self._layouts = dict(layoutObjects)
         self.nLayouts=len(self._layouts)
         
         # Calculate layout connections
-        self._map = []
-        for l in self._layouts:
-            n=len(self._map)
-            self._map.append([])
-            for i in range(0,n):
-                if (self.compatible(l,self._layouts[i])):
-                    self._map[i].append(n)
-                    self._map[n].append(i)
+        myMap = []
+        for n,(name1,l1) in enumerate(layoutObjects):
+            myMap.append((name1,[]))
+            for i,(name2,l2) in enumerate(layoutObjects[:n]):
+                if (self.compatible(l1,l2)):
+                    myMap[i][1].append(name1)
+                    myMap[n][1].append(name2)
+        # Save the connections in a dictionary
+        self._map=dict(myMap)
         
         # Verify compatibility of layouts
-        found = [False]*self.nLayouts
-        i=0
-        found[0]=True
-        toCheck=self._map[0]
+        unvisited = set(self._layouts.keys())
+        toCheck=[layoutObjects[0][0]]
         while (len(toCheck)>0):
             toCheckNext=[]
-            for i in toCheck:
-                if (found[i]==False):
-                    toCheckNext.extend(self._map[i])
-                    found[i]=True
+            for a_layout in toCheck:
+                if (a_layout in unvisited):
+                    toCheckNext.extend(self._map[a_layout])
+                    unvisited.remove(a_layout)
             toCheck=toCheckNext
         
-        if (not all(found)):
+        # all keys should have been found
+        if (unvisited!=set()):
             s=str()
-            for i,b in enumerate(found):
-                if (not b):
-                    s+=(" '"+self._layouts[i].name+"'")
+            for name in unvisited:
+                s+=(" '"+name+"'")
             raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
-        
-        # TODO
-        # - store data in object
     
     def getLayout( self, name):
-        return self._layouts[self._layout_names.index(name)]
+        return self._layouts[name]
     
-    def transpose( self, source, dest, layout_source, dest_name ):
+    def transpose( self, source, dest, source_name, dest_name ):
+        """ Function for changing layout
+        """
         
-        # verify that the input makes sense
-        assert all(source.shape == layout_source.shape)
-        assert layout_source in self._layouts
-        assert dest_name     in self._layout_names
+        # Verify that the input makes sense
+        assert source_name in self._layouts
+        assert dest_name   in self._layouts
+        assert all(source.shape == self._layouts[source_name].shape)
         
-        sourceIdx = self._layouts.index(layout_source)
-        destIdx = self._layout_names.index(dest_name)
-        
-        # Check that path is available
-        if (destIdx in self._map[sourceIdx]):
-            self._transpose(source,dest,layout_source,self._layouts[destIdx])
+        # Check that a direct path is available
+        if (dest_name in self._map[source_name]):
+            # if so then carry out the transpose
+            self._transpose(source,dest,self._layouts[source_name],self._layouts[dest_name])
         else:
-            self.transposeRedirect(source,dest,sourceIdx,destIdx)
+            # if not reroute the transpose via intermediate steps
+            self.transposeRedirect(source,dest,source_name,dest_name)
     
-    def transposeRedirect(self,source,dest,sourceIdx,destIdx):
+    def transposeRedirect(self,source,dest,source_name,dest_name):
+        """
+        Function for changing layout via multiple steps.
+        
+        This function is not optimal.
+        It allocates memory as it does not have access to the data grids
+        allocated in Grid.
+        
+        This function will ideally never be used. If operations are
+        carried out in the correct order, it will not be.
+        """
         
         steps = []
-        unvisited = [True]*self.nLayouts
-        unvisited[destIdx]=False
+        unvisited = set(self._layouts.keys())
+        unvisited.remove(dest_name)
         
         toAppend=[]
-        for k in self._map[destIdx]:
-            if (unvisited[k]):
-                unvisited[k]=False
-                toAppend.append((k,destIdx))
+        for nextStep in self._map[dest_name]:
+            if (nextStep in unvisited):
+                unvisited.remove(nextStep)
+                toAppend.append((nextStep,dest_name))
         steps.append(dict(toAppend))
         
-        while (unvisited[sourceIdx]):
+        while (source_name in unvisited):
             toAppend=[]
-            for mapIdx in steps[-1]:
-                for k in self._map[mapIdx]:
-                    if (unvisited[k]):
-                        unvisited[k]=False
-                        toAppend.append((k,mapIdx))
+            for mapKey in steps[-1]:
+                for nextStep in self._map[mapKey]:
+                    if (nextStep in unvisited):
+                        unvisited.remove(nextStep)
+                        toAppend.append((nextStep,mapKey))
             steps.append(dict(toAppend))
         
-        nowLayoutIdx=sourceIdx
-        nowLayout=self._layouts[sourceIdx]
+        nowLayoutKey=source_name
+        nowLayout=self._layouts[source_name]
         nSteps=0
         f_intermediate1=source
-        while(nowLayoutIdx!=destIdx):
-            nextLayoutIdx=steps.pop()[nowLayoutIdx]
-            nextLayout=self._layouts[nextLayoutIdx]
+        while(nowLayoutKey!=dest_name):
+            nextLayoutKey=steps.pop()[nowLayoutKey]
+            nextLayout=self._layouts[nextLayoutKey]
             f_intermediate2=np.empty(nextLayout.shape)
             self._transpose(f_intermediate1,f_intermediate2,nowLayout,nextLayout)
             f_intermediate1=f_intermediate2
             nowLayout=nextLayout
-            nowLayoutIdx=nextLayoutIdx
+            nowLayoutKey=nextLayoutKey
             nSteps+=1
         dest[:]=f_intermediate2
         
         warnings.warn("Changing from %s layout to %s layout required %i steps" %
-                (self._layouts[sourceIdx].name,self._layouts[destIdx].name,nSteps))
+                (source_name,dest_name,nSteps))
     
     def _transpose(self, source, dest, layout_source, layout_dest):
         assert all(  dest.shape == layout_dest.shape)
@@ -271,17 +278,26 @@ class LayoutManager:
             arr=np.reshape(arr,np.flip(shape,0))
             newData[i]=np.swapaxes(arr.transpose(),axis[0],axis[1])
         
+        # Stitch the pieces together in the correct order
+        # This will result in a new array being mallocked,
+        # however this is necessary to ensure contiguous memory
         dest[:]=np.concatenate(newData,axis=axis[1])
     
+    
+    
     def compatible(self, l1: Layout, l2: Layout):
-        if (l1.nprocs!=l2.nprocs):
-            return False
-        else:
-            dims = []
-            for i,o in enumerate(l1.dims_order):
-                if (o!=l2.dims_order[i]):
-                    dims.append(o)
-                    dims.append(l2.dims_order[i])
-                    if (l1.nprocs[o]>1 and l1.nprocs[l2.dims_order[i]]>1):
-                        return False
-            return (len(dims)==4 and dims[0]==dims[3] and dims[1]==dims[2])
+        dims = []
+        # check the ordering of the dimensions
+        for i,o in enumerate(l1.dims_order):
+            if (o!=l2.dims_order[i]):
+                # Save dimensions where the ordering differs
+                dims.append(o)
+                dims.append(l2.dims_order[i])
+                # if these dimensions are both distributed then they cannot be swapped
+                if (l1.nprocs[o]>1 and l1.nprocs[l2.dims_order[i]]>1):
+                    return False
+        # There should only be 1 difference between compatible layouts
+        # e.g. if l1.dims_order=[a,b,c,d] l2.dims_order can be
+        # [a,b,d,c], [a,c,b,d], [c,b,a,d], [b,a,c,d] etc.
+        # This means if a,b are the swapped values that dim should contain [a,b,b,a]
+        return (len(dims)==4 and dims[0]==dims[3] and dims[1]==dims[2])
