@@ -118,12 +118,10 @@ class LayoutManager:
         
         # Create the layouts and save them in a dictionary
         layoutObjects = []
-        self.names = []
         self._shapes = []
         for name,dim_order in layouts.items():
             layoutObjects.append((name,Layout(name,nprocs,dim_order,eta_grids,mpi_coords)))
-            self.names.append(name)
-            self._shapes.append(layoutObjects[-1][1].shape)
+            self._shapes.append((name,layoutObjects[-1][1].shape))
         self._layouts = dict(layoutObjects)
         self.nLayouts=len(self._layouts)
         
@@ -161,7 +159,7 @@ class LayoutManager:
     
     @property
     def availableLayouts( self):
-        return [self.names, self._shapes]
+        return self._shapes
     
     def transpose( self, source, dest, source_name, dest_name ):
         """ Function for changing layout
