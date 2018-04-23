@@ -20,7 +20,6 @@ class Layout:
             self._nprocs[j]=n
             myRanks[j]=myRank[j]
         
-        #TODO: ORDERING!!
         # initialise values used for accessing data (sorted [eta1,eta2,eta3,eta4])
         self._mpi_starts = []
         self._mpi_lengths = []
@@ -226,17 +225,29 @@ class LayoutManager:
     def _transpose(self, source, dest, layout_source, layout_dest):
         assert all(  dest.shape == layout_dest.shape)
         
+        # Find the axes which will be swapped
         axis = []
         for i,n in enumerate(layout_source.dims_order):
             if (n!=layout_dest.dims_order[i]):
                 axis.append(i)
+        # axis[0] is the distributed axis in the source layout
+        # axis[1] is the distributed axis in the destination layout
         
+        # get the number of processes that the data is split across
         nSplits=layout_source.nprocs[axis[0]]
         
         comm = self._subcomms[axis[0]]
         size = comm.Get_size()
         rank = comm.Get_rank()
         
+        # Get the sizes of the sent and received blocks.
+        # This is equal to the product of the number of points in each
+        # dimension except the dimension that was/will be distributed
+        # multiplied by the number of points in the distributed direction
+        # (e.g. when going from n_eta1=10, n_eta2=10, n_eta3=20, n_eta4=10
+        # to n_eta1=20, n_eta2=10, n_eta3=10, n_eta4=10
+        # the sent sizes are (10*10*[10 10]*10) and the received sizes
+        # are ([10 10]*10*10*10)
         sourceSizes = np.prod( layout_source.shape ) *          \
                       layout_dest  .mpi_lengths( axis[0] ) //   \
                       layout_source.shape[axis[1]]
@@ -245,20 +256,22 @@ class LayoutManager:
                       layout_source.mpi_lengths( axis[0] ) //   \
                       layout_dest  .shape[axis[1]]
         
+        # get the start points in the array
         sourceStarts     = np.zeros(size,int)
         destStarts       = np.zeros(size,int)
         sourceStarts[1:] = np.cumsum(sourceSizes)[:-1]
         destStarts  [1:] = np.cumsum(  destSizes)[:-1]
         
+        # check the sizes have been computed correctly
         assert(sum(sourceSizes)==source.size)
         assert(sum(destSizes)==dest.size)
         
+        # find a non-shaped place to store the received data
         newData = dest.reshape(dest.size,1)
         
-        MPI.COMM_WORLD.Barrier()
+        # Data is split and sent to the appropriate processes
         # Spitting using Alltoallv and a transpose only works when the dimension to split
         # is the last dimension
-        
         # reshape is used instead of flatten as flatten creates a copy but reshape doesn't
         comm.Alltoallv( ( source.transpose().reshape(source.size,1) ,
                           ( sourceSizes, sourceStarts )             ,
@@ -268,17 +281,33 @@ class LayoutManager:
                           ( destSizes  , destStarts   )             ,
                           MPI.DOUBLE                                ) )
         
+        # For the data to be correctly reconstructed it is first split
+        # back into its constituent parts
         newData=np.split(newData,destStarts[1:])
         lastDim=len(layout_source.shape)-1
+        
         for i,arr in enumerate(newData):
+            # The data must be reshaped into the transmitted shape
+            # (with source ordering)
             shape=layout_source.shape.copy()
+            # The size of the data in the previously distributed direction
+            # depends on which processo provided the data. Due to the
+            # splitting method this is equal to the array index
             shape[axis[0]]=layout_source.mpi_lengths(axis[0])[i]
+            # The size of the data in the newly distributed direction is
+            # the same for all blocks on this process
             shape[axis[1]]=layout_dest.mpi_lengths(axis[0])[rank]
             assert(np.prod(shape)==destSizes[i])
+            # The data is reshaped to the trasmitted shape
             arr=np.reshape(arr,np.flip(shape,0))
+            # The array is then rearranged to the used ordering by
+            # once more transposing to return the ordering to its original
+            # state then swapping the axes that were/are distributed
             newData[i]=np.swapaxes(arr.transpose(),axis[0],axis[1])
         
-        # Stitch the pieces together in the correct order
+        # Stitch the pieces together in the correct order.
+        # This is done along the non-distributed axis which, after the
+        # axes swap is the second axis
         # This will result in a new array being mallocked,
         # however this is necessary to ensure contiguous memory
         dest[:]=np.concatenate(newData,axis=axis[1])
