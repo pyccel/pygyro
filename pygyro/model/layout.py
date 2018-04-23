@@ -118,8 +118,12 @@ class LayoutManager:
         
         # Create the layouts and save them in a dictionary
         layoutObjects = []
+        self.names = []
+        self._sizes = []
         for name,dim_order in layouts.items():
             layoutObjects.append((name,Layout(name,nprocs,dim_order,eta_grids,mpi_coords)))
+            self.names.append(name)
+            self._sizes.append(layoutObjects[-1][1].shape)
         self._layouts = dict(layoutObjects)
         self.nLayouts=len(self._layouts)
         
@@ -154,6 +158,10 @@ class LayoutManager:
     
     def getLayout( self, name):
         return self._layouts[name]
+    
+    @property
+    def availableLayouts( self):
+        return [self.names, self._sizes]
     
     def transpose( self, source, dest, source_name, dest_name ):
         """ Function for changing layout
@@ -308,11 +316,7 @@ class LayoutManager:
         # Stitch the pieces together in the correct order.
         # This is done along the non-distributed axis which, after the
         # axes swap is the second axis
-        # This will result in a new array being mallocked,
-        # however this is necessary to ensure contiguous memory
-        dest[:]=np.concatenate(newData,axis=axis[1])
-    
-    
+        np.concatenate(newData,axis=axis[1], out = dest)
     
     def compatible(self, l1: Layout, l2: Layout):
         dims = []
