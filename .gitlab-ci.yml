@@ -11,7 +11,7 @@ testimony:
     - pip install --upgrade --user numpy
     - pip freeze | grep numpy
   script:
-    - py.test pygyro -m serial
+    - py.test pygyro -m serial -vs
     - python3 mpi_tester.py pygyro -m parallel
   after_script:
     - module unload anaconda/3
