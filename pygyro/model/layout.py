@@ -299,7 +299,7 @@ class LayoutManager:
             shape[axis[1]]=layout_dest.mpi_lengths(axis[0])[rank]
             assert(np.prod(shape)==destSizes[i])
             # The data is reshaped to the trasmitted shape
-            arr=np.reshape(arr,np.flip(shape,0))
+            arr=np.reshape(arr,shape[::-1])
             # The array is then rearranged to the used ordering by
             # once more transposing to return the ordering to its original
             # state then swapping the axes that were/are distributed
