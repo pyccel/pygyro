@@ -9,6 +9,7 @@ testimony:
     - module load anaconda/3
     - module load impi
     - pip install --upgrade --user numpy
+    - pip freeze | grep numpy
   script:
     - py.test pygyro -m serial
     - python3 mpi_tester.py pygyro -m parallel
