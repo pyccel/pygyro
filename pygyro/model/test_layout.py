@@ -2,7 +2,8 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 
-from .layout import LayoutManager
+from .layout        import LayoutManager
+from .process_grid  import compute_2d_process_grid
 
 def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
     nEta1=len(Eta1)
@@ -72,17 +73,17 @@ def compare_f(Eta1,Eta2,Eta3,Eta4,layout,f):
 
 @pytest.mark.parallel
 def test_LayoutSwap():
-    if (MPI.COMM_WORLD.Get_size()!=6): return
+    nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,3),
-               np.linspace(0,6.28318531,4),
-               np.linspace(0,10,4),
-               np.linspace(0,10,5)]
+    eta_grids=[np.linspace(0,1,40),
+               np.linspace(0,6.28318531,20),
+               np.linspace(0,10,10),
+               np.linspace(0,10,30)]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    remapper = LayoutManager( MPI.COMM_WORLD, layouts, [2, 3], eta_grids )
+    remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
@@ -103,7 +104,8 @@ def test_LayoutSwap():
 
 @pytest.mark.parallel
 def test_IncompatibleLayoutError():
-    if (MPI.COMM_WORLD.Get_size()!=6): return
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    if (nprocs[0]==nprocs[1]): return
     
     eta_grids=[np.linspace(0,1,10),
                np.linspace(0,6.28318531,10),
@@ -114,24 +116,26 @@ def test_IncompatibleLayoutError():
                    'v_parallel'  : [0,2,1,3],
                    'poloidal'    : [3,2,1,0],
                    'broken'      : [1,0,2,3]}
-        LayoutManager( MPI.COMM_WORLD, layouts, [2, 3], eta_grids )
+        LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
 @pytest.mark.parallel
 def test_CompatibleLayouts():
-    if (MPI.COMM_WORLD.Get_size()!=6): return
-    
     eta_grids=[np.linspace(0,1,10),
                np.linspace(0,6.28318531,10),
                np.linspace(0,10,10),
                np.linspace(0,10,10)]
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    LayoutManager( MPI.COMM_WORLD, layouts, [2, 3], eta_grids )
+    LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
 @pytest.mark.parallel
 def test_BadStepWarning():
-    if (MPI.COMM_WORLD.Get_size()!=6): return
+    nprocs = compute_2d_process_grid( [10,10,20,15], MPI.COMM_WORLD.Get_size() )
+    if (nprocs[0]==nprocs[1]): return
     
     eta_grids=[np.linspace(0,1,10),
                np.linspace(0,6.28318531,10),
@@ -141,7 +145,7 @@ def test_BadStepWarning():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    remapper = LayoutManager( MPI.COMM_WORLD, layouts, [2, 3], eta_grids )
+    remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
     myLayout = remapper.getLayout('flux_surface')
     endLayout = remapper.getLayout('poloidal')
