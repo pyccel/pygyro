@@ -55,7 +55,12 @@ class Grid(object):
         return self._Vals
     
     def getCoords( self, i : int ):
-        """ get local coordinates along axis i
+        """ get enumerate of local coordinates along axis i
+        """
+        return enumerate(self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]])
+    
+    def getCoordVals( self, i : int ):
+        """ get values of local coordinates along axis i
         """
         return enumerate(self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]])
     
@@ -71,8 +76,8 @@ class Grid(object):
         """ get the 2D slice at the provided list of coordinates
         """
         assert(len(slices)==self._nDims-2)
-        slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
-                      slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
+        slices.extend([slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
+                      slice(self._nGlobalCoords[self._layout.dims_order[-1]])])
         return self._f[slices]
     
     def get1DSlice(self, slices: list):
@@ -89,6 +94,7 @@ class Grid(object):
                                         new_layout)
         self._f=self._my_data[new_layout]
         self._layout=self._layout_manager.getLayout(new_layout)
+        self._current_layout_name=new_layout
         
     
     ####################################################################
@@ -104,13 +110,13 @@ class Grid(object):
         
         >>> getSliceFromDict({self.Dimension.ETA3: 5, self.Dimension.ETA4 : 2})
         """
-        eta1 = d.get(self.Dimension.ETA1,None)
-        eta2 = d.get(self.Dimension.ETA2,None)
-        eta3 = d.get(self.Dimension.ETA3,None)
-        eta4 = d.get(self.Dimension.ETA4,None)
+        dim1 = d.get(self._layout.dims_order[0],None)
+        dim2 = d.get(self.Dimension.ETA2,None)
+        dim3 = d.get(self.Dimension.ETA3,None)
+        dim4 = d.get(self.Dimension.ETA4,None)
         return self.getSliceForFig(eta1,eta2,eta3,eta4)
     
-    def getSliceForFig(self,eta1 = None,eta2 = None,eta3 = None,eta4 = None):
+    def getSliceForFig(self,dim1 = None,dim2 = None,dim3 = None,dim4 = None):
         """
         Class to retrieve a 2D slice. Any values set to None will vary.
         Any dimensions not set to None will be fixed at the global index provided
@@ -126,36 +132,36 @@ class Grid(object):
         # If value is not None then only values at that index should be returned
         # if that index cannot be found on the current process then None will
         # be stored
-        if (eta1==None):
-            eta1_slice=slice(0,self.eta1_end-self.eta1_start)
+        if (dim1==None):
+            dim1_slice=slice(0,self.dim1_end-self.dim1_start)
             dimSize.append(self.nEta1)
             dimIdx.append(self.Dimension.ETA1)
         else:
-            eta1_slice=None
-            if (eta1>=self.eta1_start and eta1<self.eta1_end):
-                eta1_slice=eta1-self.eta1_start
-        if (eta3==None):
-            eta3_slice=slice(0,self.eta3_end-self.eta3_start)
+            dim1_slice=None
+            if (dim1>=self.dim1_start and dim1<self.dim1_end):
+                dim1_slice=dim1-self.dim1_start
+        if (dim3==None):
+            dim3_slice=slice(0,self.dim3_end-self.dim3_start)
             dimSize.append(self.nEta3)
             dimIdx.append(self.Dimension.ETA3)
         else:
-            eta3_slice=None
-            if (eta3>=self.eta3_start and eta3<self.eta3_end):
-                eta3_slice=eta3-self.eta3_start
-        if (eta4==None):
-            eta4_slice=slice(0,self.eta4_end-self.eta4_start)
+            dim3_slice=None
+            if (dim3>=self.dim3_start and dim3<self.dim3_end):
+                dim3_slice=dim3-self.dim3_start
+        if (dim4==None):
+            dim4_slice=slice(0,self.dim4_end-self.dim4_start)
             dimSize.append(self.nEta4)
             dimIdx.append(self.Dimension.ETA4)
         else:
-            eta4_slice=None
-            if (eta4>=self.eta4_start and eta4<self.eta4_end):
-                eta4_slice=eta4-self.eta4_start
-        if (eta2==None):
-            eta2_slice=slice(0,self.nEta2)
+            dim4_slice=None
+            if (dim4>=self.dim4_start and dim4<self.dim4_end):
+                dim4_slice=dim4-self.dim4_start
+        if (dim2==None):
+            dim2_slice=slice(0,self.nEta2)
             dimSize.append(self.nEta2)
             dimIdx.append(self.Dimension.ETA2)
         else:
-            eta2_slice=eta2
+            dim2_slice=dim2
         
         # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0
