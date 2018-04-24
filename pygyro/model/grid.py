@@ -6,11 +6,6 @@ from math import pi
 from ..                 import splines as spl
 from .layout            import LayoutManager
 
-class Layout(Enum):
-    FIELD_ALIGNED = 1
-    V_PARALLEL = 2
-    POLOIDAL = 3
-
 class Grid(object):
     class Dimension(IntEnum):
         ETA1 = 0
@@ -30,11 +25,8 @@ class Grid(object):
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
         shapes = layouts.availableLayouts
-        data = []
-        for (name,shape) in shapes:
-            data.append((name,np.empty(shape,float)))
-        self._my_data = dict(data)
-        self._f = self._my_data[chosenLayout]
+        self._my_data = np.empty(self._layout_manager.bufferSize)
+        self._f = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
         
         # save coordinate information
         # saving in list allows simpler reordering of coordinates
@@ -88,13 +80,12 @@ class Grid(object):
         return self._f[slices]
     
     def setLayout(self,new_layout: str):
-        self._layout_manager.transpose( self._f,
-                                        self._my_data[new_layout],
-                                        self._current_layout_name,
-                                        new_layout)
-        self._f=self._my_data[new_layout]
-        self._layout=self._layout_manager.getLayout(new_layout)
-        self._current_layout_name=new_layout
+        self._f = self._layout_manager.in_place_transpose(
+                        self._f,
+                        self._current_layout_name,
+                        new_layout)
+        self._layout = self._layout_manager.getLayout(new_layout)
+        self._current_layout_name = new_layout
         
     
     ####################################################################
