@@ -128,9 +128,9 @@ class Layout:
 #===============================================================================
 
 class LayoutManager:
-"""
-    Layout: Class containing information about how to access data
-    in a given layout
+    """
+    LayoutManager: Class containing information about the different layouts
+    available. It handles conversion from one layout to another
 
     Parameters
     ----------
