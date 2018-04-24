@@ -3,7 +3,36 @@ import numpy as np
 import warnings
 
 class Layout:
+    """
+    Layout: Class containing information about how to access data
+    in a given layout
 
+    Parameters
+    ----------
+    name : str
+        A name which is used to identify the layout.
+
+    nprocs : list of int
+        The number of processes in each distribution direction.
+
+    dims_order : list of int
+        The order of the dimensions in this layout.
+        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
+        
+        This should contain at least as many elements as nprocs.
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+
+    myRank : list of int
+        The rank of the current process in each distribution direction.
+    
+    Notes
+    -----
+    We assume that the first dimension in the layout is distributed
+    along the number of processes indicated by nprocs[0] etc.
+
+    """
     def __init__( self, name:str, nprocs:list, dims_order:list, eta_grids:list, myRank: list ):
         self._name = name
         self._ndims      = len( dims_order )
@@ -99,7 +128,31 @@ class Layout:
 #===============================================================================
 
 class LayoutManager:
+"""
+    Layout: Class containing information about how to access data
+    in a given layout
 
+    Parameters
+    ----------
+    comm : MPI.Comm
+        The communicator on which the data will be distributed
+
+    layouts : dict
+        The keys should be strings which will be used to identify layouts.
+        
+        The values should be an array_like containing the ordering of
+        the dimensions in this layout.
+        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
+        The length of the values should be at least as long as the
+        length of nprocs.
+
+    nprocs : list of int
+        The number of processes in each distribution direction.
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+
+    """
     def __init__( self, comm : MPI.Comm, layouts : dict, nprocs: list, eta_grids: list ):
         self.rank=comm.Get_rank()
         
