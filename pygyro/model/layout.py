@@ -103,16 +103,16 @@ class LayoutManager:
     def __init__( self, comm : MPI.Comm, layouts : dict, nprocs: list, eta_grids: list ):
         self.rank=comm.Get_rank()
         
-        nDims=len(nprocs)
+        self._nDims=len(nprocs)
         self._nprocs = nprocs
         
-        topology = comm.Create_cart( nprocs, periods=[False]*nDims,
+        topology = comm.Create_cart( nprocs, periods=[False]*self._nDims,
                 reorder=False )
         
         # Get communicator for each dimension
         self._subcomms = []
-        for i in range(nDims):
-            self._subcomms.append(topology.Sub( [i==j for j in range(nDims)] ))
+        for i in range(self._nDims):
+            self._subcomms.append(topology.Sub( [i==j for j in range(self._nDims)] ))
         
         mpi_coords = topology.Get_coords(comm.Get_rank())
         
@@ -239,6 +239,11 @@ class LayoutManager:
         # axis[0] is the distributed axis in the source layout
         # axis[1] is the distributed axis in the destination layout
         
+        assert(axis[1]==layout_source.ndims-1)
+        if (axis[0]>=self._nDims):
+            dest[:]=np.swapaxes(source,axis[0],axis[1])
+            return
+        
         # get the number of processes that the data is split across
         nSplits=layout_source.nprocs[axis[0]]
         
@@ -318,6 +323,8 @@ class LayoutManager:
     
     def compatible(self, l1: Layout, l2: Layout):
         dims = []
+        nDims = len(l1.dims_order)
+        lastDimDistributed = False
         # check the ordering of the dimensions
         for i,o in enumerate(l1.dims_order):
             if (o!=l2.dims_order[i]):
@@ -327,8 +334,12 @@ class LayoutManager:
                 # if these dimensions are both distributed then they cannot be swapped
                 if (l1.nprocs[o]>1 and l1.nprocs[l2.dims_order[i]]>1):
                     return False
-        # There should only be 1 difference between compatible layouts
+                if (i==nDims-1):
+                    lastDimDistributed=True
+        # The dimension ordering of compatible layouts should be identical
+        # except in the last dimension and one other dimension.
+        # The values in these dimensions should be swapped
         # e.g. if l1.dims_order=[a,b,c,d] l2.dims_order can be
-        # [a,b,d,c], [a,c,b,d], [c,b,a,d], [b,a,c,d] etc.
+        # [d,b,c,a], [a,d,c,b], or [a,b,d,c]
         # This means if a,b are the swapped values that dim should contain [a,b,b,a]
-        return (len(dims)==4 and dims[0]==dims[3] and dims[1]==dims[2])
+        return (len(dims)==4 and lastDimDistributed and dims[0]==dims[3] and dims[1]==dims[2])
