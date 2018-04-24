@@ -62,7 +62,7 @@ class Grid(object):
     def getCoordVals( self, i : int ):
         """ get values of local coordinates along axis i
         """
-        return enumerate(self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]])
+        return self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]]
     
     def getGlobalIndices( self, indices: list):
         """ convert local indices to global indices
