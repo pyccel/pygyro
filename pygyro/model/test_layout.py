@@ -15,7 +15,6 @@ def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
         inv_dims[j]=i
     
     # The loop ordering for the tests is not optimal but allows all layouts to use the same function
-    
     for i,eta1 in enumerate(Eta1[layout.starts[inv_dims[0]]:layout.ends[inv_dims[0]]]):
         # get global index
         I=i+layout.starts[inv_dims[0]]
@@ -101,6 +100,27 @@ def test_LayoutSwap():
                        dest_name='v_parallel')
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v)
+    
+    remapper.transpose(source=f_v,
+                       dest=f_p,
+                       source_name='v_parallel',
+                       dest_name='poloidal')
+    
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p)
+    
+    remapper.transpose(source=f_p,
+                       dest=f_v,
+                       source_name='poloidal',
+                       dest_name='v_parallel')
+    
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v)
+    
+    remapper.transpose(source=f_v,
+                       dest=f_fs,
+                       source_name='v_parallel',
+                       dest_name='flux_surface')
+    
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs)
 
 @pytest.mark.parallel
 def test_IncompatibleLayoutError():
