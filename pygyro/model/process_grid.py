@@ -1,8 +1,32 @@
 
 
 def compute_2d_process_grid( npts : list, mpi_size : int ):
-    """ Compute 2D grid of processes for the two distributed dimensions
-        in each layout.
+    """
+    Compute 2D grid of processes where the data is distributed in an optimal
+    manner across the data
+
+    Parameters
+    ----------
+    npts : list of int
+        The number of data points in each dimension.
+
+    mpi_size : int
+        The total number of available processes
+
+    Result
+    ------
+    nprocs1,nprocs2 : int, int
+        Number of processes to be allocated in each dimension.
+        nprocs1*nprocs2 = mpi_size
+    
+    Notes
+    -----
+    This function supposes that the data will be distributed in the
+    following ways:
+    (eta1,eta4,eta2,eta3)
+    (eta1,eta3,eta2,eta4)
+    (eta4,eta3,eta2,eta1)
+
     """
     
     # Get maximum values for number of processes in each distributed dimension
@@ -12,6 +36,30 @@ def compute_2d_process_grid( npts : list, mpi_size : int ):
     return compute_2d_process_grid_from_max(max_proc1,max_proc2,mpi_size)
 
 def compute_2d_process_grid_from_max( max_proc1 : int, max_proc2: int, mpi_size : int ):
+    """
+    Compute 2D grid of processes where the data is distributed in an optimal
+    manner across the data
+
+    Parameters
+    ----------
+    max_proc1 : int
+        The smallest number of data points to be distributed in the first
+        direction
+
+    max_proc2 : int
+        The smallest number of data points to be distributed in the second
+        direction
+
+    mpi_size : int
+        The total number of available processes
+
+    Result
+    ------
+    nprocs1,nprocs2 : int, int
+        Number of processes to be allocated in each dimension.
+        nprocs1*nprocs2 = mpi_size
+
+    """
     # initialise the number of processes in each distributed dimension
     nprocs1 = 1
     nprocs2 = mpi_size
