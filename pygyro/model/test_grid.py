@@ -111,3 +111,42 @@ def test_LayoutSwap():
     grid.setLayout('v_parallel')
     
     compare_f(grid)
+
+@pytest.mark.parallel
+def test_Contiguous():
+    eta_grids=[np.linspace(0,1,10),
+               np.linspace(0,6.28318531,10),
+               np.linspace(0,10,10),
+               np.linspace(0,10,10)]
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,manager,'flux_surface')
+    
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
+    
+    grid.setLayout('v_parallel')
+    
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
+    
+    grid.setLayout('poloidal')
+    
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
+    
+    grid.setLayout('v_parallel')
+    
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
+    
+    grid.setLayout('flux_surface')
+    
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
