@@ -13,5 +13,6 @@ testimony:
     - py.test pygyro -m serial
     - python3 mpi_tester.py pygyro -m parallel
   after_script:
+    - echo $?
     - module unload anaconda
     - module unload impi
