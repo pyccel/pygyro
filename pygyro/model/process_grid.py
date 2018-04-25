@@ -68,11 +68,11 @@ def compute_2d_process_grid_from_max( max_proc1 : int, max_proc2: int, mpi_size 
     while (nprocs2>max_proc2):
         # increase number of processes in the first dimension until a divisor is found
         nprocs1+=1
-        while(nprocs1<=mpi_size and mpi_size%nprocs1!=0):
+        while(nprocs1<=min(mpi_size,max_proc1) and mpi_size%nprocs1!=0):
             nprocs1+=1
         
         # if an acceptable value is not found then throw an error
-        if (nprocs1==mpi_size+1):
+        if (nprocs1>min(mpi_size,max_proc1)):
             raise RuntimeError("There is no valid combination of processors for this grid")
         
         # save the corresponding second dimension
@@ -91,13 +91,13 @@ def compute_2d_process_grid_from_max( max_proc1 : int, max_proc2: int, mpi_size 
         # the number of processes in the first dimension until a
         # divisor is found
         new_n1=nprocs1+1
-        while(new_n1<mpi_size and mpi_size%new_n1!=0):
+        while(new_n1<max_proc1 and mpi_size%new_n1!=0):
             new_n1+=1
         new_n2=mpi_size//new_n1
         
         # if there are no more valid divisions
         # then the current setup is optimal
-        if (new_n1>mpi_size):
+        if (new_n1>min(mpi_size,max_proc1)):
             break
         
         if (new_n2<=max_proc2):
