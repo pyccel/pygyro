@@ -240,6 +240,7 @@ def test_in_place_LayoutSwap():
 def test_IncompatibleLayoutError():
     nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     if (nprocs[0]==nprocs[1]):
+        return
         pytest.skip("This test requires different numbers of processes in the 2 dimensions")
     
     eta_grids=[np.linspace(0,1,10),
@@ -271,6 +272,7 @@ def test_CompatibleLayouts():
 def test_in_place_BadStepWarning():
     nprocs = compute_2d_process_grid( [10,10,20,15], MPI.COMM_WORLD.Get_size() )
     if (nprocs[0]==nprocs[1]):
+        return
         pytest.skip("This test requires different numbers of processes in the 2 dimensions")
     
     eta_grids=[np.linspace(0,1,10),
@@ -303,6 +305,7 @@ def test_in_place_BadStepWarning():
 def test_BadStepWarning():
     nprocs = compute_2d_process_grid( [10,10,20,15], MPI.COMM_WORLD.Get_size() )
     if (nprocs[0]==nprocs[1]):
+        return
         pytest.skip("This test requires different numbers of processes in the 2 dimensions")
     
     eta_grids=[np.linspace(0,1,10),
