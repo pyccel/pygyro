@@ -4,11 +4,7 @@ from enum import Enum, IntEnum
 from math import pi
 
 from ..                 import splines as spl
-
-class Layout(Enum):
-    FIELD_ALIGNED = 1
-    V_PARALLEL = 2
-    POLOIDAL = 3
+from .layout            import LayoutManager
 
 class Grid(object):
     class Dimension(IntEnum):
@@ -17,320 +13,79 @@ class Grid(object):
         ETA3 = 1
         ETA4 = 2
     
-    def __init__(self,eta1,eta2,eta3,eta4,layout: Layout,
-                    *,nProcEta1 : int = 1,nProcEta3 : int = 1,nProcEta4 = 1, comm : MPI.Comm = MPI.COMM_WORLD):
+    def __init__( self, eta_grid: list, layouts: LayoutManager,
+                    chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD):
         # get MPI values
         self.global_comm = comm
         self.rank = comm.Get_rank()
         self.mpi_size = comm.Get_size()
         
         # remember layout
-        self.layout=layout
-        
-        # ensure that the combination of processes agrees with the layout
-        # (i.e. there is only 1 process along the non-distributed direction
-        # save the grid shape
-        if (self.layout==Layout.FIELD_ALIGNED):
-            self.sizeEta14=nProcEta1
-            self.sizeEta34=nProcEta4
-            if(nProcEta3!=1):
-                raise ValueError("The data should not be distributed in z for a field-aligned layout")
-        elif (self.layout==Layout.V_PARALLEL):
-            self.sizeEta14=nProcEta1
-            self.sizeEta34=nProcEta3
-            if(nProcEta4!=1):
-                raise ValueError("The data should not be distributed in v for a v parallel layout")
-        elif (self.layout==Layout.POLOIDAL):
-            self.sizeEta14=nProcEta4
-            self.sizeEta34=nProcEta3
-            if(nProcEta1!=1):
-                raise ValueError("The data should not be distributed in r for a poloidal layout")
-        else:
-            raise NotImplementedError("Layout not implemented")
-        
-        if (self.mpi_size>1):
-            # ensure that we are not distributing more than makes sense within MPI
-            assert(self.sizeEta14*self.sizeEta34==self.mpi_size)
-            # create the communicators
-            # reorder = false to help with the figures (then 0,0 == 0 a.k.a the return node)
-            topology = comm.Create_cart([self.sizeEta14,self.sizeEta34], periods=[False, False], reorder=False)
-            self.commEta14 = topology.Sub([True, False])
-            self.commEta34 = topology.Sub([False, True])
-        else:
-            # if the code is run in serial then the values should be assigned
-            # but all directions contain all processes
-            self.commEta14 = self.global_comm
-            self.commEta34 = self.global_comm
-        
-        # get ranks for the different communicators
-        self.rankEta14=self.commEta14.Get_rank()
-        self.rankEta34=self.commEta34.Get_rank()
+        self._layout_manager=layouts
+        self._current_layout_name=chosenLayout
+        self._layout = layouts.getLayout(chosenLayout)
+        shapes = layouts.availableLayouts
+        self._my_data = np.empty(self._layout_manager.bufferSize)
+        self._f = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
         
         # save coordinate information
         # saving in list allows simpler reordering of coordinates
-        self.Vals = [eta1, eta3, eta4, eta2]
-        self.nEta1=len(eta1)
-        self.nEta2=len(eta2)
-        self.nEta3=len(eta3)
-        self.nEta4=len(eta4)
-        
-        #get start and end points for each process
-        self.defineShape()
-        
-        # ordering chosen to improve cache-coherency
-        self.f = np.empty((len(self.Vals[self.Dimension.ETA1][self.eta1_start:self.eta1_end]),
-                len(self.Vals[self.Dimension.ETA3][self.eta3_start:self.eta3_end]),
-                len(self.Vals[self.Dimension.ETA4][self.eta4_start:self.eta4_end]),self.nEta2),float)
-    
-    def defineShape(self):
-        # get common variables
-        ranksEta14=np.arange(0,self.sizeEta14)
-        ranksEta34=np.arange(0,self.sizeEta34)
-        
-        # variables depend on setup
-        if (self.layout==Layout.FIELD_ALIGNED):
-            # get overflows to better distribute data that is not divisible by
-            # the number of processes
-            nEta1_Overflow=self.nEta1%self.sizeEta14
-            nEta4_Overflow=self.nEta4%self.sizeEta34
-            
-            # get start indices for all processes
-            eta1_Starts=self.nEta1//self.sizeEta14*ranksEta14 + np.minimum(ranksEta14,nEta1_Overflow)
-            eta4_Starts=self.nEta4//self.sizeEta34*ranksEta34 + np.minimum(ranksEta34,nEta4_Overflow)
-            # append end index
-            eta1_Starts=np.append(eta1_Starts,self.nEta1)
-            eta4_Starts=np.append(eta4_Starts,self.nEta4)
-            
-            # save start indices from list using cartesian ranks
-            self.eta1_start=eta1_Starts[self.rankEta14]
-            self.eta4_start=eta4_Starts[self.rankEta34]
-            # eta3 is not distributed so the start index is 0
-            self.eta3_start=0
-            
-            # save end points from list using cartesian ranks
-            self.eta1_end=eta1_Starts[self.rankEta14+1]
-            self.eta4_end=eta4_Starts[self.rankEta34+1]
-            # eta3 is not distributed so the end index is its length
-            self.eta3_end=self.nEta3
-        elif (self.layout==Layout.V_PARALLEL):
-            # get overflows to better distribute data that is not divisible by
-            # the number of processes
-            nEta1_Overflow=self.nEta1%self.sizeEta14
-            nEta3_Overflow=self.nEta3%self.sizeEta34
-            
-            # get start indices for all processes
-            eta1_Starts=self.nEta1//self.sizeEta14*ranksEta14 + np.minimum(ranksEta14,nEta1_Overflow)
-            self.eta3_starts=self.nEta3//self.sizeEta34*ranksEta34 + np.minimum(ranksEta34,nEta3_Overflow)
-            # append end index
-            eta1_Starts=np.append(eta1_Starts,self.nEta1)
-            self.eta3_starts=np.append(self.eta3_starts,self.nEta3)
-            
-            # save start indices from list using cartesian ranks
-            self.eta1_start=eta1_Starts[self.rankEta14]
-            self.eta3_start=self.eta3_starts[self.rankEta34]
-            # eta4 is not distributed so the start index is 0
-            self.eta4_start=0
-            
-            # save end points from list using cartesian ranks
-            self.eta1_end=eta1_Starts[self.rankEta14+1]
-            self.eta3_end=self.eta3_starts[self.rankEta34+1]
-            # eta4 is not distributed so the end index is its length
-            self.eta4_end=self.nEta4
-        elif (self.layout==Layout.POLOIDAL):
-            # get overflows to better distribute data that is not divisible by
-            # the number of processes
-            nEta4_Overflow=self.nEta4%self.sizeEta14
-            nEta3_Overflow=self.nEta3%self.sizeEta34
-            
-            # get start indices for all processes
-            eta4_Starts=self.nEta4//self.sizeEta14*ranksEta14 + np.minimum(ranksEta14,nEta4_Overflow)
-            self.eta3_starts=self.nEta3//self.sizeEta34*ranksEta34 + np.minimum(ranksEta34,nEta3_Overflow)
-            # append end index
-            eta4_Starts=np.append(eta4_Starts,self.nEta4)
-            self.eta3_starts=np.append(self.eta3_starts,self.nEta3)
-            
-            # save start indices from list using cartesian ranks
-            self.eta4_start=eta4_Starts[self.rankEta14]
-            self.eta3_start=self.eta3_starts[self.rankEta34]
-            # eta1 is not distributed so the start index is 0
-            self.eta1_start=0
-            
-            # save end points from list using cartesian ranks
-            self.eta4_end=eta4_Starts[self.rankEta14+1]
-            self.eta3_end=self.eta3_starts[self.rankEta34+1]
-            # eta1 is not distributed so the end index is its length
-            self.eta1_end=self.nEta1
+        self._Vals = eta_grid
+        self._nDims = len(eta_grid)
+        self._nGlobalCoords = [len(x) for x in eta_grid]
     
     @property
-    def size(self):
-        return self.f.size
-    
-    def getEta1Coords(self):
-        return enumerate(self.Vals[self.Dimension.ETA1][self.eta1_start:self.eta1_end])
-    
-    @property
-    def eta1_Vals(self):
-        return self.Vals[self.Dimension.ETA1][self.eta1_start:self.eta1_end]
-    
-    def getEta2Coords(self):
-        return enumerate(self.Vals[self.Dimension.ETA2])
+    def nGlobalCoords( self ):
+        """ Number of points in each dimension.
+        """
+        return self._nGlobalCoords
     
     @property
-    def eta2_Vals(self):
-        return self.Vals[self.Dimension.ETA2]
+    def eta_grid( self ):
+        """ get grid of global coordinates
+        """
+        return self._Vals
     
-    def getEta3Coords(self):
-        return enumerate(self.Vals[self.Dimension.ETA3][self.eta3_start:self.eta3_end])
+    def getCoords( self, i : int ):
+        """ get enumerate of local coordinates along axis i
+        """
+        return enumerate(self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]])
     
-    @property
-    def eta3_Vals(self):
-        return self.Vals[self.Dimension.ETA3][self.eta3_start:self.eta3_end]
+    def getCoordVals( self, i : int ):
+        """ get values of local coordinates along axis i
+        """
+        return self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]]
     
-    def getEta4Coords(self):
-        return enumerate(self.Vals[self.Dimension.ETA4][self.eta4_start:self.eta4_end])
+    def getGlobalIndices( self, indices: list):
+        """ convert local indices to global indices
+        """
+        result = indices.copy()
+        for i,toAdd in enumerate(self._layout.starts):
+            result[self._layout.dims_order[i]]=indices[i]+toAdd
+        return result
     
-    @property
-    def eta4_Vals(self):
-        return self.Vals[self.Dimension.ETA4][self.eta4_start:self.eta4_end]
+    def get2DSlice( self, slices: list ):
+        """ get the 2D slice at the provided list of coordinates
+        """
+        assert(len(slices)==self._nDims-2)
+        slices.extend([slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
+                      slice(self._nGlobalCoords[self._layout.dims_order[-1]])])
+        return self._f[slices]
     
-    def getEta4_Slice(self, eta1: int, eta3: int, eta2: int):
-        assert(self.layout==Layout.V_PARALLEL)
-        return self.f[eta1,eta3,:,eta2]
+    def get1DSlice(self, slices: list):
+        """ get the 1D slice at the provided list of coordinates
+        """
+        assert(len(slices)==self._nDims-1)
+        slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
+        return self._f[slices]
     
-    def setEta4_Slice(self, eta1: int, eta3: int, eta2: int, f):
-        assert(self.layout==Layout.V_PARALLEL)
-        self.f[eta1,eta3,:,eta2]=f
-    
-    def getFieldAlignedSlice(self, eta1: int, eta4: int):
-        assert(self.layout==Layout.FIELD_ALIGNED)
-        return self.f[eta1,:,eta4,:]
-    
-    def setFieldAlignedSlice(self, eta1: int, eta4: int,f):
-        assert(self.layout==Layout.FIELD_ALIGNED)
-        self.f[eta1,:,eta4,:]=f
-    
-    def getPoloidalSlice(self, eta3: int, eta4: int):
-        assert(self.layout==Layout.POLOIDAL)
-        return self.f[:,eta3,eta4,:]
-    
-    def setPoloidalSlice(self, eta3: int, eta4: int,f):
-        assert(self.layout==Layout.POLOIDAL)
-        self.f[:,eta3,eta4,:]=f
-    
-    def setLayout(self,new_layout: Layout):
-        # if layout has not changed then do nothing
-        if (new_layout==self.layout):
-            return
-        if (self.layout==Layout.FIELD_ALIGNED):
-            if (new_layout==Layout.V_PARALLEL):
-                # if Field_aligned -> v_parallel
-                # recalculate start indices
-                nEta3_Overflow=self.nEta3%self.sizeEta34
-                ranksEta34=np.arange(0,self.sizeEta34)
-                self.eta3_starts=self.nEta3//self.sizeEta34*ranksEta34 + np.minimum(ranksEta34,nEta3_Overflow)
-                
-                # redistribute data
-                self.f = np.concatenate(
-                            self.commEta34.alltoall(
-                                # break data on this process into chunks using start indices
-                                np.split(self.f,self.eta3_starts[1:],axis=self.Dimension.ETA3)
-                            ) # use all to all to pass chunks to correct processes
-                        ,axis=self.Dimension.ETA4) # use concatenate to join the data back together in the right shape
-                
-                # save new layout
-                self.layout = Layout.V_PARALLEL
-                # add end index
-                self.eta3_starts=np.append(self.eta3_starts,self.nEta3)
-                # save new start and end indices
-                self.eta3_start=self.eta3_starts[self.rankEta34]
-                self.eta4_start=0
-                self.eta3_end=self.eta3_starts[self.rankEta34+1]
-                self.eta4_end=self.nEta4
-            elif (new_layout==Layout.POLOIDAL):
-                # if Field_aligned -> poloidal
-                # 2 steps are required
-                self.setLayout(Layout.V_PARALLEL)
-                self.setLayout(Layout.POLOIDAL)
-                raise RuntimeWarning("Changing from Field Aligned layout to Poloidal layout requires two steps")
-        elif (self.layout==Layout.POLOIDAL):
-            if (new_layout==Layout.V_PARALLEL):
-                # if poloidal -> v_parallel
-                # recalculate start indices
-                nEta1_Overflow=self.nEta1%self.sizeEta14
-                ranksEta14=np.arange(0,self.sizeEta14)
-                eta1_Starts=self.nEta1//self.sizeEta14*ranksEta14 + np.minimum(ranksEta14,nEta1_Overflow)
-                
-                # redistribute data
-                self.f = np.concatenate(
-                            self.commEta14.alltoall(
-                                # break data on this process into chunks using start indices
-                                np.split(self.f,eta1_Starts[1:],axis=self.Dimension.ETA1)
-                            ) # use all to all to pass chunks to correct processes
-                        ,axis=self.Dimension.ETA4) # use concatenate to join the data back together in the right shape
-                
-                # save new layout
-                self.layout = Layout.V_PARALLEL
-                eta1_Starts=np.append(eta1_Starts,self.nEta1)
-                # save new start and end indices
-                self.eta1_start=eta1_Starts[self.rankEta14]
-                self.eta4_start=0
-                self.eta1_end=eta1_Starts[self.rankEta14+1]
-                self.eta4_end=len(self.Vals[self.Dimension.ETA4])
-            elif (new_layout==Layout.FIELD_ALIGNED):
-                # if poloidal -> Field_aligned
-                # 2 steps are required
-                self.setLayout(Layout.V_PARALLEL)
-                self.setLayout(Layout.FIELD_ALIGNED)
-                raise RuntimeWarning("Changing from Poloidal layout to Field Aligned layout requires two steps")
-        elif (self.layout==Layout.V_PARALLEL):
-            if (new_layout==Layout.FIELD_ALIGNED):
-                # if v_parallel -> Field_aligned
-                # recalculate start indices
-                nEta4_Overflow=self.nEta4%self.sizeEta34
-                ranksEta34=np.arange(0,self.sizeEta34)
-                eta4_Starts=self.nEta4//self.sizeEta34*ranksEta34 + np.minimum(ranksEta34,nEta4_Overflow)
-                
-                # redistribute data
-                self.f = np.concatenate(
-                            self.commEta34.alltoall(
-                                # break data on this process into chunks using start indices
-                                np.split(self.f,eta4_Starts[1:],axis=self.Dimension.ETA4)
-                            ) # use all to all to pass chunks to correct processes
-                        ,axis=self.Dimension.ETA3) # use concatenate to join the data back together in the right shape
-                
-                # save new layout
-                self.layout = Layout.FIELD_ALIGNED
-                # add end index
-                eta4_Starts=np.append(eta4_Starts,self.nEta4)
-                # save new start and end indices
-                self.eta3_start=0
-                self.eta4_start=eta4_Starts[self.rankEta34]
-                self.eta3_end=len(self.Vals[self.Dimension.ETA3])
-                self.eta4_end=eta4_Starts[self.rankEta34+1]
-            elif (new_layout==Layout.POLOIDAL):
-                # if v_parallel -> poloidal
-                # recalculate start indices
-                nEta4_Overflow=self.nEta4%self.sizeEta14
-                ranksEta14=np.arange(0,self.sizeEta14)
-                eta4_Starts=self.nEta4//self.sizeEta14*ranksEta14 + np.minimum(ranksEta14,nEta4_Overflow)
-                
-                # redistribute data
-                self.f = np.concatenate(
-                            self.commEta14.alltoall(
-                                # break data on this process into chunks using start indices
-                                np.split(self.f,eta4_Starts[1:],axis=self.Dimension.ETA4)
-                            ) # use all to all to pass chunks to correct processes
-                        ,axis=self.Dimension.ETA1) # use concatenate to join the data back together in the right shape
-                
-                # save new layout
-                self.layout = Layout.POLOIDAL
-                # add end index
-                eta4_Starts=np.append(eta4_Starts,self.nEta4)
-                # save new start and end indices
-                self.eta4_start=eta4_Starts[self.rankEta14]
-                self.eta1_start=0
-                self.eta4_end=eta4_Starts[self.rankEta14+1]
-                self.eta1_end=len(self.Vals[self.Dimension.ETA1])
+    def setLayout(self,new_layout: str):
+        self._f = self._layout_manager.in_place_transpose(
+                        self._f,
+                        self._current_layout_name,
+                        new_layout)
+        self._layout = self._layout_manager.getLayout(new_layout)
+        self._current_layout_name = new_layout
     
     ####################################################################
     ####                   Functions for figures                    ####
@@ -345,13 +100,13 @@ class Grid(object):
         
         >>> getSliceFromDict({self.Dimension.ETA3: 5, self.Dimension.ETA4 : 2})
         """
-        eta1 = d.get(self.Dimension.ETA1,None)
-        eta2 = d.get(self.Dimension.ETA2,None)
-        eta3 = d.get(self.Dimension.ETA3,None)
-        eta4 = d.get(self.Dimension.ETA4,None)
+        dim1 = d.get(self._layout.dims_order[0],None)
+        dim2 = d.get(self.Dimension.ETA2,None)
+        dim3 = d.get(self.Dimension.ETA3,None)
+        dim4 = d.get(self.Dimension.ETA4,None)
         return self.getSliceForFig(eta1,eta2,eta3,eta4)
     
-    def getSliceForFig(self,eta1 = None,eta2 = None,eta3 = None,eta4 = None):
+    def getSliceForFig(self,dim1 = None,dim2 = None,dim3 = None,dim4 = None):
         """
         Class to retrieve a 2D slice. Any values set to None will vary.
         Any dimensions not set to None will be fixed at the global index provided
@@ -367,36 +122,37 @@ class Grid(object):
         # If value is not None then only values at that index should be returned
         # if that index cannot be found on the current process then None will
         # be stored
-        if (eta1==None):
-            eta1_slice=slice(0,self.eta1_end-self.eta1_start)
+        
+        if (dim1==None):
+            dim1_slice=slice(0,self.dim1_end-self.dim1_start)
             dimSize.append(self.nEta1)
             dimIdx.append(self.Dimension.ETA1)
         else:
-            eta1_slice=None
-            if (eta1>=self.eta1_start and eta1<self.eta1_end):
-                eta1_slice=eta1-self.eta1_start
-        if (eta3==None):
-            eta3_slice=slice(0,self.eta3_end-self.eta3_start)
+            dim1_slice=None
+            if (dim1>=self.dim1_start and dim1<self.dim1_end):
+                dim1_slice=dim1-self.dim1_start
+        if (dim3==None):
+            dim3_slice=slice(0,self.dim3_end-self.dim3_start)
             dimSize.append(self.nEta3)
             dimIdx.append(self.Dimension.ETA3)
         else:
-            eta3_slice=None
-            if (eta3>=self.eta3_start and eta3<self.eta3_end):
-                eta3_slice=eta3-self.eta3_start
-        if (eta4==None):
-            eta4_slice=slice(0,self.eta4_end-self.eta4_start)
+            dim3_slice=None
+            if (dim3>=self.dim3_start and dim3<self.dim3_end):
+                dim3_slice=dim3-self.dim3_start
+        if (dim4==None):
+            dim4_slice=slice(0,self.dim4_end-self.dim4_start)
             dimSize.append(self.nEta4)
             dimIdx.append(self.Dimension.ETA4)
         else:
-            eta4_slice=None
-            if (eta4>=self.eta4_start and eta4<self.eta4_end):
-                eta4_slice=eta4-self.eta4_start
-        if (eta2==None):
-            eta2_slice=slice(0,self.nEta2)
+            dim4_slice=None
+            if (dim4>=self.dim4_start and dim4<self.dim4_end):
+                dim4_slice=dim4-self.dim4_start
+        if (dim2==None):
+            dim2_slice=slice(0,self.nEta2)
             dimSize.append(self.nEta2)
             dimIdx.append(self.Dimension.ETA2)
         else:
-            eta2_slice=eta2
+            dim2_slice=dim2
         
         # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0

@@ -3,59 +3,63 @@ import numpy as np
 import pytest
 from math import pi
 
-from .grid import Layout, Grid
+from .grid          import Grid
+from .layout        import LayoutManager
+from .process_grid  import compute_2d_process_grid
 
-def define_f(eta1Vals,eta2Vals,eta3Vals,eta4Vals,grid):
-    nEta1=len(eta1Vals)
-    nEta2=len(eta2Vals)
-    nEta3=len(eta3Vals)
-    nEta4=len(eta4Vals)
-    for i,eta1 in grid.getEta1Coords():
-        # get global index
-        I=i+grid.eta1_start
-        for j,eta3 in grid.getEta3Coords():
-            # get global index
-            J=j+grid.eta3_start
-            for k,eta4 in grid.getEta4Coords():
-                # get global index
-                K=k+grid.eta4_start
-                for l,eta2 in grid.getEta2Coords():
-                    # get global index
-                    L=l
-                    
-                    # set value using global indices
-                    grid.f[i,j,k,l]=I*nEta4*nEta3*nEta2+J*nEta4*nEta2+K*nEta2+L
+def define_f(grid):
+    [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
+    
+    for i,x in grid.getCoords(0):
+        for j,y in grid.getCoords(1):
+            for k,z in grid.getCoords(2):
+                Slice = grid.get1DSlice([i,j,k])
+                for l,a in enumerate(Slice):
+                    [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
+                    Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
 
-def compare_f(eta1Vals,eta2Vals,eta3Vals,eta4Vals,grid):
-    nEta1=len(eta1Vals)
-    nEta2=len(eta2Vals)
-    nEta3=len(eta3Vals)
-    nEta4=len(eta4Vals)
-    for i,eta1 in grid.getEta1Coords():
-        # get global index
-        I=i+grid.eta1_start
-        for j,eta3 in grid.getEta3Coords():
-            # get global index
-            J=j+grid.eta3_start
-            for k,eta4 in grid.getEta4Coords():
-                # get global index
-                K=k+grid.eta4_start
-                for l,eta2 in grid.getEta2Coords():
-                    # get global index
-                    L=l
-                    
-                    # ensure value is as expected from function define_f()
-                    assert(grid.f[i,j,k,l]==I*nEta4*nEta3*nEta2+J*nEta4*nEta2+K*nEta2+L)
+def compare_f(grid):
+    [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
+    
+    for i,x in grid.getCoords(0):
+        for j,y in grid.getCoords(1):
+            for k,z in grid.getCoords(2):
+                Slice = grid.get1DSlice([i,j,k])
+                for l,a in enumerate(Slice):
+                    [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
+                    assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L)
 
 @pytest.mark.serial
-def test_Grid():
-    # ensure that MPI setup is ok
-    Grid([0,1],[0,1],[0,1],[0,1],Layout.FIELD_ALIGNED,nProcEta1=2,nProcEta4=2)
-    Grid([0,1],[0,1],[0,1],[0,1],Layout.POLOIDAL,nProcEta4=2,nProcEta3=2)
-    Grid([0,1],[0,1],[0,1],[0,1],Layout.V_PARALLEL,nProcEta1=2,nProcEta3=2)
-    # ensure that a non-specified layout throws an error
-    with pytest.raises(NotImplementedError):
-        Grid([0,1],[0,1],[0,1],[0,1],"madeup")
+def test_Grid_serial():
+    eta_grids=[np.linspace(0,1,10),
+               np.linspace(0,6.28318531,10),
+               np.linspace(0,10,10),
+               np.linspace(0,10,10)]
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    
+    Grid(eta_grids,manager,'flux_surface')
+
+@pytest.mark.parallel
+def test_Grid_parallel():
+    eta_grids=[np.linspace(0,1,10),
+               np.linspace(0,6.28318531,10),
+               np.linspace(0,10,10),
+               np.linspace(0,10,10)]
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    
+    Grid(eta_grids,manager,'flux_surface')
 
 @pytest.mark.serial
 def test_CoordinateSave():
@@ -64,127 +68,85 @@ def test_CoordinateSave():
     nr=30
     nz=15
     
-    r = np.linspace(0.5,14.5,nr)
-    theta = np.linspace(0,2*pi,ntheta,endpoint=False)
-    z = np.linspace(0,50,nz)
-    v = np.linspace(-5,5,nv)
+    eta_grid = [np.linspace(0.5,14.5,nr),
+                np.linspace(0,2*pi,ntheta,endpoint=False),
+                np.linspace(0,50,nz),
+                np.linspace(-5,5,nv)]
     
-    # create equally spaced grid
-    grid = Grid(r,theta,z,v,Layout.FIELD_ALIGNED)
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     
-    assert(grid.nEta1==nr)
-    assert(grid.nEta2==ntheta)
-    assert(grid.nEta3==nz)
-    assert(grid.nEta4==nv)
-    assert(all(grid.eta1_Vals==r))
-    assert(all(grid.eta2_Vals==theta))
-    assert(all(grid.eta3_Vals==z))
-    assert(all(grid.eta4_Vals==v))
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grid )
+    
+    grid = Grid(eta_grid,manager,'flux_surface')
+    
+    dim_order = [0,3,1,2]
+    for j in range(4):
+        for i, x in grid.getCoords(j):
+            assert(x==eta_grid[dim_order[j]][i])
 
 @pytest.mark.parallel
-def test_ErrorsRaised():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-    if (size==1):
-        return
+def test_LayoutSwap():
+    nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
     
-    # get a logical combination of processors
-    i=2
-    while (i<size):
-        n1=i
-        n2=size//i
-        if (n1*n2==size):
-            i=size
-        else:
-            i=i+1
+    eta_grids=[np.linspace(0,1,4),
+               np.linspace(0,6.28318531,4),
+               np.linspace(0,10,4),
+               np.linspace(0,10,10)]
     
-    if (n1*n2!=size):
-        return
-    else:
-        with pytest.raises(ValueError):
-            Grid([0,1],[0,1],[0,1],[0,1],Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta3=n2)
-        with pytest.raises(ValueError):
-            Grid([0,1],[0,1],[0,1],[0,1],Layout.POLOIDAL,nProcEta1=n1,nProcEta3=n2)
-        with pytest.raises(ValueError):
-            Grid([0,1],[0,1],[0,1],[0,1],Layout.V_PARALLEL,nProcEta1=n1,nProcEta4=n2)
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    
+    fsLayout = remapper.getLayout('flux_surface')
+    vLayout = remapper.getLayout('v_parallel')
+    
+    grid = Grid(eta_grids,remapper,'flux_surface')
+    
+    define_f(grid)
+    
+    grid.setLayout('v_parallel')
+    
+    compare_f(grid)
 
 @pytest.mark.parallel
-@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
-def test_layoutSwap(splitN):
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
+def test_Contiguous():
+    eta_grids=[np.linspace(0,1,10),
+               np.linspace(0,6.28318531,10),
+               np.linspace(0,10,10),
+               np.linspace(0,10,10)]
     
-    # get a logical combination of processors
-    n1=max(size//splitN,1)
-    n2=size//n1
-    if (n1*n2!=size):
-        return
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     
-    nv=10
-    ntheta=20
-    nr=10
-    nz=15
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
-    # create equally spaced grid
-    grid = Grid(np.linspace(0.5,14.5,nr),np.linspace(0,2*pi,ntheta,endpoint=False),
-                np.linspace(0,50,nz),np.linspace(-5,5,nv),Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta4=n2)
-    # save shape
-    oldShape = grid.f.shape
-    # fill f based on global indices
-    define_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
+    grid = Grid(eta_grids,manager,'flux_surface')
     
-    # change layout
-    grid.setLayout(Layout.V_PARALLEL)
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
-    # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
+    grid.setLayout('v_parallel')
     
-    if (n2>1):
-        # if shape should have changed ensure that this has happened
-        assert not np.equal(oldShape,grid.f.shape).all()
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
-    # change layout
-    grid.setLayout(Layout.POLOIDAL)
+    grid.setLayout('poloidal')
     
-    # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
-    if (n1>1):
-        # if shape should have changed ensure that this has happened
-        assert not np.equal(oldShape,grid.f.shape).all()
+    grid.setLayout('v_parallel')
     
-    # change layout
-    grid.setLayout(Layout.V_PARALLEL)
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
-    # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
+    grid.setLayout('flux_surface')
     
-    # change layout
-    grid.setLayout(Layout.FIELD_ALIGNED)
-    
-    # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
-    
-    # All expected layout changes have been run.
-    # The following two are possible but should raise errors as they require 2 steps
-    with pytest.raises(RuntimeWarning):
-        # change layout
-        grid.setLayout(Layout.POLOIDAL)
-    
-    # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
-    with pytest.raises(RuntimeWarning):
-        # change layout
-        grid.setLayout(Layout.FIELD_ALIGNED)
-    
-    # ensure that f still looks as expected
-    compare_f(grid.Vals[Grid.Dimension.ETA1],grid.Vals[Grid.Dimension.ETA2],
-            grid.Vals[Grid.Dimension.ETA3],grid.Vals[Grid.Dimension.ETA4],grid)
+    assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
