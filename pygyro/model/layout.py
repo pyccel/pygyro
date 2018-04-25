@@ -50,7 +50,6 @@ class Layout:
             myRanks[j]=myRank[j]
         
         # initialise values used for accessing data (sorted [eta1,eta2,eta3,eta4])
-        self._mpi_starts = []
         self._mpi_lengths = []
         self._starts = np.zeros(self._ndims,int)
         self._ends = np.empty(self._ndims,int)
@@ -63,7 +62,6 @@ class Layout:
             
             # get start indices for all processes
             starts=n//nRanks*ranks + np.minimum(ranks,Overflow)
-            self._mpi_starts.append(starts)
             # append end index
             starts=np.append(starts,n)
             self._mpi_lengths.append(starts[1:]-starts[:-1])
@@ -72,6 +70,8 @@ class Layout:
             self._starts[i] = starts[myRanks[i]]
             self._ends[i]   = starts[myRanks[i]+1]
             self._shape[i]  = self._ends[i]-self._starts[i]
+        
+        self._size = np.prod(self._shape)
     
     @property
     def name( self ):
@@ -110,15 +110,16 @@ class Layout:
         return self._shape
     
     @property
+    def size( self ):
+        """ Get size of data chunk in memory.
+        """
+        return self._size
+    
+    @property
     def nprocs( self ):
         """ Number of processes along each dimension.
         """
         return self._nprocs
-    
-    def mpi_starts( self , i: int ):
-        """ Get global starting points for dimension i on all processes
-        """
-        return self._mpi_starts[i]
     
     def mpi_lengths( self , i: int ):
         """ Get length of dimension i on all processes
@@ -170,15 +171,23 @@ class LayoutManager:
         mpi_coords = topology.Get_coords(comm.Get_rank())
         
         # Create the layouts and save them in a dictionary
+        # Find the largest layout
         layoutObjects = []
+        self._buffer_size = 0
         self._shapes = []
         for name,dim_order in layouts.items():
-            layoutObjects.append((name,Layout(name,nprocs,dim_order,eta_grids,mpi_coords)))
-            self._shapes.append((name,layoutObjects[-1][1].shape))
+            new_layout = Layout(name,nprocs,dim_order,eta_grids,mpi_coords)
+            layoutObjects.append((name,new_layout))
+            self._shapes.append((name,new_layout.shape))
+            if (new_layout.size>self._buffer_size):
+                self._buffer_size=new_layout.size
         self._layouts = dict(layoutObjects)
         self.nLayouts=len(self._layouts)
         
-        # Calculate layout connections
+        # Allocate the buffer
+        self._buffer = np.empty(self._buffer_size)
+        
+        # Calculate direct layout connections
         myMap = []
         for n,(name1,l1) in enumerate(layoutObjects):
             myMap.append((name1,[]))
@@ -187,103 +196,211 @@ class LayoutManager:
                     myMap[i][1].append(name1)
                     myMap[n][1].append(name2)
         # Save the connections in a dictionary
-        self._map=dict(myMap)
+        DirectConnections=dict(myMap)
         
-        # Verify compatibility of layouts
-        unvisited = set(self._layouts.keys())
-        toCheck=[layoutObjects[0][0]]
-        while (len(toCheck)>0):
-            toCheckNext=[]
-            for a_layout in toCheck:
-                if (a_layout in unvisited):
-                    toCheckNext.extend(self._map[a_layout])
-                    unvisited.remove(a_layout)
-            toCheck=toCheckNext
+        # Save all layout paths in a map and save any remaining unconnected layouts
+        unvisited = self._makeConnectionMap(DirectConnections)
         
-        # all keys should have been found
+        # all layouts should have been found
         if (unvisited!=set()):
             s=str()
             for name in unvisited:
                 s+=(" '"+name+"'")
             raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
+        
     
     def getLayout( self, name):
         return self._layouts[name]
     
     @property
-    def availableLayouts( self):
+    def availableLayouts( self ):
         return self._shapes
     
+    @property
+    def bufferSize( self ):
+        return self._buffer_size
+    
     def transpose( self, source, dest, source_name, dest_name ):
-        """ Function for changing layout
+        """
+        Change from one layout to another leaving the source layout intact.
+
+        Parameters
+        ----------
+        source : View of array_like
+            A view of the data to be transposed
+
+        dest : array_like
+            The entire memory block where the data will be stored
+            (including cells which will not be used)
+
+        source_name : str
+            The name of the source layout
+
+        dest_name : str
+            The name of the destination layout
+
+        Notes
+        -----
+        source and dest are assumed to not overlap in memory
+
         """
         
         # Verify that the input makes sense
         assert source_name in self._layouts
         assert dest_name   in self._layouts
         assert all(source.shape == self._layouts[source_name].shape)
+        assert dest  .size == self._buffer.size
+        
+        # If the source and destination are the same then copy the data
+        if (source_name==dest_name):
+            layout_dest   = self._layouts[  dest_name]
+            destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
+            destView[:]=source
+            return
         
         # Check that a direct path is available
-        if (dest_name in self._map[source_name]):
+        if (len(self._route_map[source_name][dest_name])==1):
             # if so then carry out the transpose
-            self._transpose(source,dest,self._layouts[source_name],self._layouts[dest_name])
+            layout_source = self._layouts[source_name]
+            layout_dest   = self._layouts[  dest_name]
+            destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
+            assert(not destView.flags['OWNDATA'])
+            self._transpose(source,destView,layout_source,layout_dest)
         else:
             # if not reroute the transpose via intermediate steps
-            self.transposeRedirect(source,dest,source_name,dest_name)
+            self._transposeRedirect(source,dest,source_name,dest_name)
     
-    def transposeRedirect(self,source,dest,source_name,dest_name):
+    def in_place_transpose( self, data, source_name, dest_name ):
         """
-        Function for changing layout via multiple steps.
-        
-        This function is not optimal.
-        It allocates memory as it does not have access to the data grids
-        allocated in Grid.
-        
-        This function will ideally never be used. If operations are
-        carried out in the correct order, it will not be.
+        Change from one layout to another in the same memory space.
+
+        Parameters
+        ----------
+        data : array_like
+            The entire memory block where the data is currently stored.
+            This is also the block where the result will be stored
+
+        source_name : str
+            The name of the source layout
+
+        dest_name : str
+            The name of the destination layout
+
         """
         
-        steps = []
-        unvisited = set(self._layouts.keys())
-        unvisited.remove(dest_name)
+        # Verify that the input makes sense
+        assert source_name in self._layouts
+        assert dest_name   in self._layouts
         
-        toAppend=[]
-        for nextStep in self._map[dest_name]:
-            if (nextStep in unvisited):
-                unvisited.remove(nextStep)
-                toAppend.append((nextStep,dest_name))
-        steps.append(dict(toAppend))
+        # If the source and destination are the same then there is nothing
+        # to be done
+        if (source_name==dest_name):
+            return
         
-        while (source_name in unvisited):
-            toAppend=[]
-            for mapKey in steps[-1]:
-                for nextStep in self._map[mapKey]:
-                    if (nextStep in unvisited):
-                        unvisited.remove(nextStep)
-                        toAppend.append((nextStep,mapKey))
-            steps.append(dict(toAppend))
+        # Check that a direct path is available
+        if (len(self._route_map[source_name][dest_name])==1):
+            layout_source = self._layouts[source_name]
+            layout_dest   = self._layouts[  dest_name]
+            assert data.size>=layout_source.size
+            assert data.size>=layout_dest.size
+            # if so then carry out the transpose
+            return self._in_place_transpose(data,layout_source,layout_dest)
+        else:
+            # if not reroute the transpose via intermediate steps
+            self._in_place_transposeRedirect(data,source_name,dest_name)
+    
+    def _transposeRedirect(self,source,dest,source_name,dest_name):
+        """
+        Function for changing layout via multiple steps leaving the
+        source layout intact.
+        """
         
-        nowLayoutKey=source_name
-        nowLayout=self._layouts[source_name]
-        nSteps=0
-        f_intermediate1=source
-        while(nowLayoutKey!=dest_name):
-            nextLayoutKey=steps.pop()[nowLayoutKey]
+        # Get route from one layout to another
+        steps = self._route_map[source_name][dest_name]
+        nSteps = len(steps)
+        
+        # warn about multiple steps
+        warnings.warn("Changing from %s layout to %s layout requires %i steps" %
+                (source_name,dest_name,nSteps))
+        
+        # take the first step to move the data
+        nowLayoutKey=steps[0]
+        nowLayout=self._layouts[nowLayoutKey]
+        
+        assert dest.size>=nowLayout.size
+        
+        destView = np.split(dest,[nowLayout.size])[0].reshape(nowLayout.shape)
+        
+        self._transpose(source,destView,self._layouts[source_name],nowLayout)
+        
+        # carry out subsequent steps in place
+        for i in range(1,nSteps):
+            nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
-            f_intermediate2=np.empty(nextLayout.shape)
-            self._transpose(f_intermediate1,f_intermediate2,nowLayout,nextLayout)
-            f_intermediate1=f_intermediate2
+            assert dest.size>=nextLayout.size
+            self._in_place_transpose(dest,nowLayout,nextLayout)
             nowLayout=nextLayout
             nowLayoutKey=nextLayoutKey
-            nSteps+=1
-        dest[:]=f_intermediate2
+    
+    def _in_place_transposeRedirect(self,data,source_name,dest_name):
+        """
+        Function for changing layout via multiple steps.
+        """
+        # Get route from one layout to another
+        steps = self._route_map[source_name][dest_name]
+        nSteps = len(steps)
         
-        warnings.warn("Changing from %s layout to %s layout required %i steps" %
+        # warn about multiple steps
+        warnings.warn("Changing from %s layout to %s layout requires %i steps" %
                 (source_name,dest_name,nSteps))
+        
+        # carry out the steps one by one
+        nowLayoutKey=source_name
+        nowLayout=self._layouts[source_name]
+        for i in range(nSteps):
+            nextLayoutKey=steps[i]
+            nextLayout=self._layouts[nextLayoutKey]
+            
+            assert data.size>=nextLayout.size
+            
+            self._in_place_transpose(data,nowLayout,nextLayout)
+            
+            nowLayout=nextLayout
+            nowLayoutKey=nextLayoutKey
     
     def _transpose(self, source, dest, layout_source, layout_dest):
+        # check that the data has the right shape
         assert all(  dest.shape == layout_dest.shape)
         
+        # get axis information
+        axis = self._get_swap_axes(layout_source,layout_dest)
+        if (axis[0]>=self._nDims):
+            dest[:]=np.swapaxes(source,axis[0],axis[1])
+            return
+        
+        # carry out transpose
+        comm = self._subcomms[axis[0]]
+        self._rearrange_to_buffer(source,layout_source,layout_dest,axis,comm)
+        self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
+    
+    def _in_place_transpose(self, data, layout_source, layout_dest):
+        # get views of the important parts of the data
+        source = np.split(data,[layout_source.size])[0].reshape(layout_source.shape)
+        dest   = np.split(data,[layout_dest  .size])[0].reshape(layout_dest  .shape)
+        
+        # get axis information
+        axis = self._get_swap_axes(layout_source,layout_dest)
+        if (axis[0]>=self._nDims):
+            dest[:]=np.swapaxes(source,axis[0],axis[1])
+            return
+        
+        # carry out transpose
+        comm = self._subcomms[axis[0]]
+        self._rearrange_to_buffer(source,layout_source,layout_dest,axis,comm)
+        self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
+        return dest
+    
+    def _get_swap_axes(self,layout_source,layout_dest):
         # Find the axes which will be swapped
         axis = []
         for i,n in enumerate(layout_source.dims_order):
@@ -293,16 +410,14 @@ class LayoutManager:
         # axis[1] is the distributed axis in the destination layout
         
         assert(axis[1]==layout_source.ndims-1)
-        if (axis[0]>=self._nDims):
-            dest[:]=np.swapaxes(source,axis[0],axis[1])
-            return
+        return axis
+    
+    def _rearrange_to_buffer(self, source, layout_source : Layout, layout_dest : Layout, axis : list, comm : MPI.Comm):
         
         # get the number of processes that the data is split across
         nSplits=layout_source.nprocs[axis[0]]
         
-        comm = self._subcomms[axis[0]]
         size = comm.Get_size()
-        rank = comm.Get_rank()
         
         # Get the sizes of the sent and received blocks.
         # This is equal to the product of the number of points in each
@@ -312,42 +427,45 @@ class LayoutManager:
         # to n_eta1=20, n_eta2=10, n_eta3=10, n_eta4=10
         # the sent sizes are (10*10*[10 10]*10) and the received sizes
         # are ([10 10]*10*10*10)
-        sourceSizes = np.prod( layout_source.shape ) *          \
+        sourceSizes = layout_source.size *                      \
                       layout_dest  .mpi_lengths( axis[0] ) //   \
                       layout_source.shape[axis[1]]
         
-        destSizes   = np.prod( layout_dest  .shape ) *          \
+        destSizes   = layout_dest  .size *                      \
                       layout_source.mpi_lengths( axis[0] ) //   \
                       layout_dest  .shape[axis[1]]
         
         # get the start points in the array
-        sourceStarts     = np.zeros(size,int)
-        destStarts       = np.zeros(size,int)
-        sourceStarts[1:] = np.cumsum(sourceSizes)[:-1]
-        destStarts  [1:] = np.cumsum(  destSizes)[:-1]
+        sourceStarts              = np.zeros(size,int)
+        self._buffer_splits       = np.zeros(size+1,int)
+        sourceStarts[1:]          = np.cumsum(sourceSizes)[:-1]
+        self._buffer_splits  [1:] = np.cumsum(  destSizes)
         
         # check the sizes have been computed correctly
-        assert(sum(sourceSizes)==source.size)
-        assert(sum(destSizes)==dest.size)
-        
-        # find a non-shaped place to store the received data
-        newData = dest.reshape(dest.size,1)
+        assert(sum(sourceSizes)==layout_source.size)
+        assert(sum(destSizes)==layout_dest.size)
         
         # Data is split and sent to the appropriate processes
         # Spitting using Alltoallv and a transpose only works when the dimension to split
         # is the last dimension
         # reshape is used instead of flatten as flatten creates a copy but reshape doesn't
-        comm.Alltoallv( ( source.transpose().reshape(source.size,1) ,
+        comm.Alltoallv( ( source.transpose().reshape(source.size)   ,
                           ( sourceSizes, sourceStarts )             ,
                           MPI.DOUBLE                                ) ,
                         
-                        ( newData                                   , 
-                          ( destSizes  , destStarts   )             ,
+                        ( self._buffer                              , 
+                          ( destSizes  , self._buffer_splits[:-1]   ) ,
                           MPI.DOUBLE                                ) )
+    
+    def _rearrange_from_buffer(self, dest, layout_source : Layout, 
+                                layout_dest : Layout, axis : list , comm: MPI.Comm):
+        rank = comm.Get_rank()
         
         # For the data to be correctly reconstructed it is first split
         # back into its constituent parts
-        newData=np.split(newData,destStarts[1:])
+        # newData is a view on self._buffer
+        newData=np.split(self._buffer,self._buffer_splits[1:])
+        newData.pop()
         lastDim=len(layout_source.shape)-1
         
         for i,arr in enumerate(newData):
@@ -361,7 +479,6 @@ class LayoutManager:
             # The size of the data in the newly distributed direction is
             # the same for all blocks on this process
             shape[axis[1]]=layout_dest.mpi_lengths(axis[0])[rank]
-            assert(np.prod(shape)==destSizes[i])
             # The data is reshaped to the trasmitted shape
             arr=np.reshape(arr,shape[::-1])
             # The array is then rearranged to the used ordering by
@@ -375,6 +492,19 @@ class LayoutManager:
         np.concatenate(newData,axis=axis[1], out = dest)
     
     def compatible(self, l1: Layout, l2: Layout):
+        """
+        Check if the data can be passed from one layout to the other in
+        one step
+
+        Parameters
+        ----------
+        l1 : Layout
+            The first layout
+
+        l2 : Layout
+            The second layout
+
+        """
         dims = []
         nDims = len(l1.dims_order)
         lastDimDistributed = False
@@ -384,9 +514,6 @@ class LayoutManager:
                 # Save dimensions where the ordering differs
                 dims.append(o)
                 dims.append(l2.dims_order[i])
-                # if these dimensions are both distributed then they cannot be swapped
-                if (l1.nprocs[o]>1 and l1.nprocs[l2.dims_order[i]]>1):
-                    return False
                 if (i==nDims-1):
                     lastDimDistributed=True
         # The dimension ordering of compatible layouts should be identical
@@ -396,3 +523,69 @@ class LayoutManager:
         # [d,b,c,a], [a,d,c,b], or [a,b,d,c]
         # This means if a,b are the swapped values that dim should contain [a,b,b,a]
         return (len(dims)==4 and lastDimDistributed and dims[0]==dims[3] and dims[1]==dims[2])
+
+    def _makeConnectionMap(self, DirectConnections: dict):
+        """
+        Find the shortest path connected each pair of layouts.
+        Return any unconnected layouts
+        """
+        # Make a map to be used for reference when transposing
+        # The keys are the source layout name
+        # The keys of the resulting dictionary are the destination layout name
+        # The values are lists containing the steps that must be taken
+        # to travel from the source to the destination
+        MyMap = []
+        for name1 in DirectConnections.keys():
+            Routing = []
+            for name2 in DirectConnections.keys():
+                # Make a map of layout names to lists
+                Routing.append((name2,[]))
+            MyMap.append((name1,dict(Routing)))
+        self._route_map = dict(MyMap)
+        
+        # Create helpful arrays
+        visitedNodes   = []
+        remainingNodes = set(DirectConnections.keys())
+        nodesToVisit   = [list(DirectConnections.keys())[0]]
+        remainingNodes.remove(nodesToVisit[0])
+        
+        # While there are still nodes connected to the nodes visited so far
+        while (len(nodesToVisit)>0):
+            # get node
+            currentNode = nodesToVisit.pop(0)
+            
+            # Add connected nodes that have not yet been considered to list of nodes to check
+            for name in DirectConnections[currentNode]:
+                if (name in remainingNodes):
+                    nodesToVisit.append(name)
+                    remainingNodes.remove(name)
+            
+            # Find a path to each node that has already been considered
+            for aim in visitedNodes:
+                if (aim in DirectConnections[currentNode]):
+                    # If the node is directly connected then save the path
+                    self._route_map[currentNode][aim].append(aim)
+                    self._route_map[aim][currentNode].append(currentNode)
+                else:
+                    # If the node is not directly connected, find the connected
+                    # node which has the shortest path to the node for which we
+                    # are aiming
+                    viaList = []
+                    winningVia = None
+                    shortestLength = len(DirectConnections)
+                    for via in DirectConnections[currentNode]:
+                        if (not via in visitedNodes):
+                            continue
+                        elif(len(self._route_map[via][aim])<shortestLength):
+                            viaList = self._route_map[via][aim]
+                            winningVia = via
+                    # Save the path via this node
+                    self._route_map[currentNode][aim].append(winningVia)
+                    self._route_map[currentNode][aim].extend(viaList)
+                    self._route_map[aim][currentNode].extend(self._route_map[aim][winningVia])
+                    self._route_map[aim][currentNode].append(currentNode)
+            # Remember that this node has now been visited
+            visitedNodes.append(currentNode)
+        
+        # Return unconnected nodes
+        return remainingNodes
