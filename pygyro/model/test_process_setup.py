@@ -3,6 +3,9 @@ import pytest
 
 @pytest.mark.serial
 def test_compute_2d_process_grid():
+    with pytest.raises(RuntimeError):
+        print(compute_2d_process_grid_from_max(2,3,5))
+    
     assert(compute_2d_process_grid_from_max(1,6,6)==(1,6))
     assert(compute_2d_process_grid_from_max(6,6,6)==(2,3))
     assert(compute_2d_process_grid_from_max(2,3,6)==(2,3))
@@ -20,3 +23,4 @@ def test_compute_2d_process_grid():
     assert(compute_2d_process_grid([256,512,32,128],9)==(9,1))
     assert(compute_2d_process_grid([256,512,32,128],18)==(9,2))
     assert(compute_2d_process_grid([256,512,32,128],100)==(20,5))
+    
