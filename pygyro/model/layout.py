@@ -42,6 +42,10 @@ class Layout:
         assert len( dims_order ) == len( eta_grids )
         assert len( nprocs ) == len( myRank )
         
+        self._inv_dims_order = [0]*self._ndims
+        for i,j in enumerate(self._dims_order):
+            self._inv_dims_order[j]=i
+        
         # get number of processes in each dimension (sorted [eta1,eta2,eta3,eta4])
         self._nprocs = [1]*self._ndims
         myRanks = [0]*self._ndims
@@ -90,6 +94,12 @@ class Layout:
         """ Get order of dimensions eta1, eta2, etc... in layout.
         """
         return self._dims_order
+    
+    @property
+    def inv_dims_order( self ):
+        """ Get order of dimensions eta1, eta2, etc... in layout.
+        """
+        return self._inv_dims_order
     
     @property
     def starts( self ):
