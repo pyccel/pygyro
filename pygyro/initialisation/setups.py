@@ -58,9 +58,6 @@ def setupCylindricalGrid(nr: int, ntheta: int, nz: int, nv: int, layout: str, **
     knots     = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
     bsplines  = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grids = [bspl.greville                 for bspl       in bsplines]
-    
-    for (coord,npt) in zip(eta_grids,npts):
-        assert(len(coord)==npt)
 
     # Compute 2D grid of processes for the two distributed dimensions in each layout
     nprocs = compute_2d_process_grid( npts, mpi_size )
