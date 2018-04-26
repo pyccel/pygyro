@@ -111,6 +111,10 @@ def test_LayoutSwap():
     grid.setLayout('v_parallel')
     
     compare_f(grid)
+    
+    grid.setLayout('poloidal')
+    
+    compare_f(grid)
 
 @pytest.mark.parallel
 def test_Contiguous():
