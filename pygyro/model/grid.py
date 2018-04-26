@@ -89,7 +89,7 @@ class Grid(object):
     
     def setLayout(self,new_layout: str):
         self._layout_manager.in_place_transpose(
-                        self._f,
+                        self._my_data,
                         self._current_layout_name,
                         new_layout)
         self._layout = self._layout_manager.getLayout(new_layout)
