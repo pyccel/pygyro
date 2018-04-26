@@ -94,6 +94,7 @@ def test_CoordinateSave():
 def test_LayoutSwap():
     comm = MPI.COMM_WORLD
     nprocs = compute_2d_process_grid( [40,20,10,30], comm.Get_size() )
+    print( "nprocs = {}".format( nprocs ) )
     
     eta_grids=[np.linspace(0,1,40),
                np.linspace(0,6.28318531,20),
@@ -137,6 +138,7 @@ def test_Contiguous():
                np.linspace(0,10,10)]
     
     nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    print( "nprocs = {}".format( nprocs ) )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
