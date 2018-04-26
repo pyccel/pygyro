@@ -13,7 +13,7 @@ testimony:
     - py.test pygyro -m serial
     - py.test pygyro -m parallel
     - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
-    - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 4"
+    #- python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 4"
     - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
     - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
   after_script:
