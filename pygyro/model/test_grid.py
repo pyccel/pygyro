@@ -93,13 +93,15 @@ def test_CoordinateSave():
 @pytest.mark.parallel
 def test_LayoutSwap():
     comm = MPI.COMM_WORLD
-    nprocs = compute_2d_process_grid( [40,20,10,30], comm.Get_size() )
+    npts = [40,20,10,30]
+
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     print( "nprocs = {}".format( nprocs ), flush=True )
-    
-    eta_grids=[np.linspace(0,1,40),
-               np.linspace(0,6.28318531,20),
-               np.linspace(0,10,10),
-               np.linspace(0,10,30)]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -132,12 +134,14 @@ def test_LayoutSwap():
 @pytest.mark.parallel
 def test_Contiguous():
     comm = MPI.COMM_WORLD
-    eta_grids=[np.linspace(0,1,10),
-               np.linspace(0,6.28318531,10),
-               np.linspace(0,10,10),
-               np.linspace(0,10,10)]
+    npts = [40,20,10,30]
+
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     print( "nprocs = {}".format( nprocs ), flush=True )
     
     layouts = {'flux_surface': [0,3,1,2],
