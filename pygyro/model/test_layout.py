@@ -2,7 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 
-from .layout        import LayoutManager
+from .layout        import LayoutManager, Layout
 from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from_max
 
 def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
@@ -69,6 +69,25 @@ def compare_f(Eta1,Eta2,Eta3,Eta4,layout,f):
                     # ensure value is as expected from function define_f()
                     assert(f[indices[0],indices[1],indices[2],indices[3]]== \
                         float(I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L))
+
+@pytest.mark.serial
+def test_Layout_DimsOrder():
+    eta_grids=[np.linspace(0,1,40),
+               np.linspace(0,6.28318531,20),
+               np.linspace(0,10,10),
+               np.linspace(0,10,30)]
+    
+    l = Layout('test', [2,3], [0,3,2,1], eta_grids, [0,0] )
+    assert(l.dims_order==[0,3,2,1])
+    assert(l.inv_dims_order==[0,3,2,1])
+    
+    l = Layout('test', [2,3], [0,2,3,1], eta_grids, [0,0] )
+    assert(l.dims_order==[0,2,3,1])
+    assert(l.inv_dims_order==[0,3,1,2])
+    
+    l = Layout('test', [2,3], [2,1,0,3], eta_grids, [0,0] )
+    assert(l.dims_order==[2,1,0,3])
+    assert(l.inv_dims_order==[2,1,0,3])
 
 @pytest.mark.parallel
 def test_OddLayoutPaths():
