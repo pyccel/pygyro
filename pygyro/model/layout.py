@@ -478,7 +478,7 @@ class LayoutManager:
         newData.pop()
         lastDim=len(layout_source.shape)-1
         
-        print("Buffer : ",self._buffer.flags)
+#        print("Buffer : ",self._buffer.flags)
         
         for i,arr in enumerate(newData):
             # The data must be reshaped into the transmitted shape

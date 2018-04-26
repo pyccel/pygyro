@@ -92,7 +92,7 @@ class Grid(object):
                         self._my_data,
                         self._current_layout_name,
                         new_layout)
-        print(self._my_data.flags)
+#        print(self._my_data.flags)
         self._layout = self._layout_manager.getLayout(new_layout)
         self._f      = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
         self._current_layout_name = new_layout

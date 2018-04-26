@@ -131,9 +131,19 @@ def test_LayoutSwap():
     
     compare_f(grid)
 
+##############################################
+def my_print( comm, master, *args, **kwargs ):
+    if comm.Get_rank() == master:
+        kwargs['flush'] = True
+        print( *args, **kwargs )
+    comm.Barrier()
+##############################################
+
 @pytest.mark.parallel
 def test_Contiguous():
     comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
     npts = [40,20,10,30]
 
     eta_grids=[np.linspace(0,1,npts[0]),
@@ -149,27 +159,52 @@ def test_Contiguous():
                'poloidal'    : [3,2,1,0]}
     manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
+    my_print( comm, 0,
+        ">>> Creating Grid in 'flux_surface' layout", end='... ' )
+
     grid = Grid(eta_grids,manager,'flux_surface')
+
+    my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
+    my_print( comm, 0,
+        ">>> Transposing data into 'v_parallel' layout", end='... ' )
+
     grid.setLayout('v_parallel')
+
+    my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
+    my_print( comm, 0,
+        ">>> Transposing data into 'poloidal' layout", end='... ' )
+
     grid.setLayout('poloidal')
+
+    my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
+    my_print( comm, 0,
+        ">>> Transposing data into 'v_parallel' layout", end='... ' )
+
     grid.setLayout('v_parallel')
+
+    my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
+    my_print( comm, 0,
+        ">>> Transposing data into 'flux_surface' layout", end='... ' )
+
     grid.setLayout('flux_surface')
+
+    my_print( comm, 0, "DONE", flush=True )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
