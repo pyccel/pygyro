@@ -161,9 +161,11 @@ def test_Contiguous( npts ):
     
     my_print( comm, 0,
         ">>> Creating Grid in 'flux_surface' layout", end='... ' )
+    if (npts[0]%nprocs[0]!=0 or npts[3]%nprocs[1]!=0):
+        my_print( comm, 0, "Distribution is not equal" )
 
     grid = Grid(eta_grids,manager,'flux_surface')
-
+    
     my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
@@ -171,9 +173,11 @@ def test_Contiguous( npts ):
     
     my_print( comm, 0,
         ">>> Transposing data into 'v_parallel' layout", end='... ' )
-
+    if (npts[0]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
+        my_print( comm, 0, "Distribution is not equal" )
+    
     grid.setLayout('v_parallel')
-
+    
     my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
@@ -181,9 +185,12 @@ def test_Contiguous( npts ):
     
     my_print( comm, 0,
         ">>> Transposing data into 'poloidal' layout", end='... ' )
-
+    
+    if (npts[3]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
+        my_print( comm, 0, "Distribution is not equal" )
+    
     grid.setLayout('poloidal')
-
+    
     my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
@@ -191,9 +198,12 @@ def test_Contiguous( npts ):
     
     my_print( comm, 0,
         ">>> Transposing data into 'v_parallel' layout", end='... ' )
-
+    
+    if (npts[0]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
+        my_print( comm, 0, "Distribution is not equal" )
+    
     grid.setLayout('v_parallel')
-
+    
     my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
@@ -201,9 +211,12 @@ def test_Contiguous( npts ):
     
     my_print( comm, 0,
         ">>> Transposing data into 'flux_surface' layout", end='... ' )
-
+    
+    if (npts[3]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
+        my_print( comm, 0, "Distribution is not equal" )
+    
     grid.setLayout('flux_surface')
-
+    
     my_print( comm, 0, "DONE", flush=True )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
