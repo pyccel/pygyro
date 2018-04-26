@@ -459,6 +459,7 @@ class LayoutManager:
         # Spitting using Alltoallv and a transpose only works when the dimension to split
         # is the last dimension
         # reshape is used instead of flatten as flatten creates a copy but reshape doesn't
+        source.transpose().reshape(source.size).flags
         comm.Alltoallv( ( source.transpose().reshape(source.size)   ,
                           ( sourceSizes, sourceStarts )             ,
                           MPI.DOUBLE                                ) ,

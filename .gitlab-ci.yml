@@ -11,7 +11,7 @@ testimony:
     - pip show numpy
   script:
     - py.test pygyro -m serial
-    - python3 mpi_tester.py pygyro -m parallel
+    - python3 mpi_tester.py pygyro -sxvm parallel
   after_script:
     - module unload anaconda
     - module unload impi
