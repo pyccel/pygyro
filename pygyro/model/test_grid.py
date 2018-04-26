@@ -91,28 +91,36 @@ def test_CoordinateSave():
 def test_LayoutSwap():
     nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,4),
-               np.linspace(0,6.28318531,4),
-               np.linspace(0,10,4),
-               np.linspace(0,10,10)]
+    eta_grids=[np.linspace(0,1,40),
+               np.linspace(0,6.28318531,20),
+               np.linspace(0,10,10),
+               np.linspace(0,10,30)]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
     remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
+    size = remapper.bufferSize
+    
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     
     grid = Grid(eta_grids,remapper,'flux_surface')
     
+    assert(grid._my_data.size==size)
+    
     define_f(grid)
     
     grid.setLayout('v_parallel')
     
+    assert(grid._my_data.size==size)
+    
     compare_f(grid)
     
     grid.setLayout('poloidal')
+    
+    assert(grid._my_data.size==size)
     
     compare_f(grid)
 
