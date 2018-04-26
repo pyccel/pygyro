@@ -88,11 +88,12 @@ class Grid(object):
         return self._f[slices]
     
     def setLayout(self,new_layout: str):
-        self._f = self._layout_manager.in_place_transpose(
+        self._layout_manager.in_place_transpose(
                         self._f,
                         self._current_layout_name,
                         new_layout)
         self._layout = self._layout_manager.getLayout(new_layout)
+        self._f      = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
         self._current_layout_name = new_layout
     
     ####################################################################

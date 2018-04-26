@@ -314,7 +314,7 @@ class LayoutManager:
             assert data.size>=layout_source.size
             assert data.size>=layout_dest.size
             # if so then carry out the transpose
-            return self._in_place_transpose(data,layout_source,layout_dest)
+            self._in_place_transpose(data,layout_source,layout_dest)
         else:
             # if not reroute the transpose via intermediate steps
             self._in_place_transposeRedirect(data,source_name,dest_name)
@@ -408,7 +408,6 @@ class LayoutManager:
         comm = self._subcomms[axis[0]]
         self._rearrange_to_buffer(source,layout_source,layout_dest,axis,comm)
         self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
-        return dest
     
     def _get_swap_axes(self,layout_source,layout_dest):
         # Find the axes which will be swapped
