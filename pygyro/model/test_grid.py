@@ -139,12 +139,12 @@ def my_print( comm, master, *args, **kwargs ):
     comm.Barrier()
 ##############################################
 
+@pytest.mark.parametrize( 'npts', ([10,10,10,10],[40,20,10,30]) )
 @pytest.mark.parallel
-def test_Contiguous():
+
+def test_Contiguous( npts ):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-
-    npts = [40,20,10,30]
 
     eta_grids=[np.linspace(0,1,npts[0]),
                np.linspace(0,6.28318531,npts[1]),
