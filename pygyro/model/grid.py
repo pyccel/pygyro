@@ -24,8 +24,13 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        shapes = layouts.availableLayouts
         self._my_data = np.empty(self._layout_manager.bufferSize)
+        # Remember views on the data
+        shapes = layouts.availableLayouts
+        views = []
+        for (name,shape) in shapes:
+            views.append((name,np.split(self._my_data,[np.prod(shape)])[0].reshape(shape)))
+        self._views = dict(views)
         self._f = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
         
         # save coordinate information
@@ -92,9 +97,8 @@ class Grid(object):
                         self._my_data,
                         self._current_layout_name,
                         new_layout)
-#        print(self._my_data.flags)
         self._layout = self._layout_manager.getLayout(new_layout)
-        self._f      = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
+        self._f      = self._views[new_layout]
         self._current_layout_name = new_layout
     
     ####################################################################
