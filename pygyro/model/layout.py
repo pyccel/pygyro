@@ -42,6 +42,10 @@ class Layout:
         assert len( dims_order ) == len( eta_grids )
         assert len( nprocs ) == len( myRank )
         
+        self._inv_dims_order = [0]*self._ndims
+        for i,j in enumerate(self._dims_order):
+            self._inv_dims_order[j]=i
+        
         # get number of processes in each dimension (sorted [eta1,eta2,eta3,eta4])
         self._nprocs = [1]*self._ndims
         myRanks = [0]*self._ndims
@@ -51,6 +55,7 @@ class Layout:
         
         # initialise values used for accessing data (sorted [eta1,eta2,eta3,eta4])
         self._mpi_lengths = []
+        self._mpi_starts = []
         self._starts = np.zeros(self._ndims,int)
         self._ends = np.empty(self._ndims,int)
         self._shape = np.empty(self._ndims,int)
@@ -62,6 +67,7 @@ class Layout:
             
             # get start indices for all processes
             starts=n//nRanks*ranks + np.minimum(ranks,Overflow)
+            self._mpi_starts.append(starts)
             # append end index
             starts=np.append(starts,n)
             self._mpi_lengths.append(starts[1:]-starts[:-1])
@@ -92,6 +98,12 @@ class Layout:
         return self._dims_order
     
     @property
+    def inv_dims_order( self ):
+        """ Get order of dimensions eta1, eta2, etc... in layout.
+        """
+        return self._inv_dims_order
+    
+    @property
     def starts( self ):
         """ Get global starting points for all indices.
         """
@@ -120,6 +132,11 @@ class Layout:
         """ Number of processes along each dimension.
         """
         return self._nprocs
+    
+    def mpi_starts( self , i: int ):
+        """ Get global starting points for dimension i on all processes
+        """
+        return self._mpi_starts[i]
     
     def mpi_lengths( self , i: int ):
         """ Get length of dimension i on all processes
@@ -263,9 +280,7 @@ class LayoutManager:
             # if so then carry out the transpose
             layout_source = self._layouts[source_name]
             layout_dest   = self._layouts[  dest_name]
-            destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
-            assert(not destView.flags['OWNDATA'])
-            self._transpose(source,destView,layout_source,layout_dest)
+            self._transpose(source,dest,layout_source,layout_dest)
         else:
             # if not reroute the transpose via intermediate steps
             self._transposeRedirect(source,dest,source_name,dest_name)
@@ -304,7 +319,7 @@ class LayoutManager:
             assert data.size>=layout_source.size
             assert data.size>=layout_dest.size
             # if so then carry out the transpose
-            return self._in_place_transpose(data,layout_source,layout_dest)
+            self._in_place_transpose(data,layout_source,layout_dest)
         else:
             # if not reroute the transpose via intermediate steps
             self._in_place_transposeRedirect(data,source_name,dest_name)
@@ -320,8 +335,8 @@ class LayoutManager:
         nSteps = len(steps)
         
         # warn about multiple steps
-        warnings.warn("Changing from %s layout to %s layout requires %i steps" %
-                (source_name,dest_name,nSteps))
+        warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
+                .format(source_name,dest_name,nSteps))
         
         # take the first step to move the data
         nowLayoutKey=steps[0]
@@ -331,7 +346,7 @@ class LayoutManager:
         
         destView = np.split(dest,[nowLayout.size])[0].reshape(nowLayout.shape)
         
-        self._transpose(source,destView,self._layouts[source_name],nowLayout)
+        self._transpose(source,dest,self._layouts[source_name],nowLayout)
         
         # carry out subsequent steps in place
         for i in range(1,nSteps):
@@ -351,8 +366,8 @@ class LayoutManager:
         nSteps = len(steps)
         
         # warn about multiple steps
-        warnings.warn("Changing from %s layout to %s layout requires %i steps" %
-                (source_name,dest_name,nSteps))
+        warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
+                .format(source_name,dest_name,nSteps))
         
         # carry out the steps one by one
         nowLayoutKey=source_name
@@ -369,36 +384,38 @@ class LayoutManager:
             nowLayoutKey=nextLayoutKey
     
     def _transpose(self, source, dest, layout_source, layout_dest):
-        # check that the data has the right shape
-        assert all(  dest.shape == layout_dest.shape)
-        
         # get axis information
         axis = self._get_swap_axes(layout_source,layout_dest)
+        
+        # If both axes being swapped are not distributed
         if (axis[0]>=self._nDims):
-            dest[:]=np.swapaxes(source,axis[0],axis[1])
+            destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
+            assert(destView.base is dest)
+            destView[:]=np.swapaxes(source,axis[0],axis[1])
             return
         
         # carry out transpose
         comm = self._subcomms[axis[0]]
-        self._rearrange_to_buffer(source,layout_source,layout_dest,axis,comm)
+        self._extract_from_source(source,layout_source,layout_dest,axis,comm)
         self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
     
     def _in_place_transpose(self, data, layout_source, layout_dest):
         # get views of the important parts of the data
         source = np.split(data,[layout_source.size])[0].reshape(layout_source.shape)
-        dest   = np.split(data,[layout_dest  .size])[0].reshape(layout_dest  .shape)
         
         # get axis information
         axis = self._get_swap_axes(layout_source,layout_dest)
+        
+        # If both axes being swapped are not distributed
         if (axis[0]>=self._nDims):
+            dest   = np.split(data,[layout_dest  .size])[0].reshape(layout_dest  .shape)
             dest[:]=np.swapaxes(source,axis[0],axis[1])
             return
         
         # carry out transpose
         comm = self._subcomms[axis[0]]
-        self._rearrange_to_buffer(source,layout_source,layout_dest,axis,comm)
-        self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
-        return dest
+        self._extract_from_source(source,layout_source,layout_dest,axis,comm)
+        self._rearrange_from_buffer(data,layout_source,layout_dest,axis,comm)
     
     def _get_swap_axes(self,layout_source,layout_dest):
         # Find the axes which will be swapped
@@ -412,11 +429,51 @@ class LayoutManager:
         assert(axis[1]==layout_source.ndims-1)
         return axis
     
-    def _rearrange_to_buffer(self, source, layout_source : Layout, layout_dest : Layout, axis : list, comm : MPI.Comm):
-        
+    def _extract_from_source(self, source, layout_source : Layout, layout_dest : Layout, axis : list, comm : MPI.Comm):
+        """
+        Take the information from the source and save it blockwise into
+        the buffer. The saved blocks are also transposed
+        """
         # get the number of processes that the data is split across
         nSplits=layout_source.nprocs[axis[0]]
         
+        assert(source.base is source.T.base)
+        
+        start = 0
+        
+        self._shapes = []
+        
+        for (split_length,mpi_start) in zip(layout_dest.mpi_lengths(axis[0]),layout_dest.mpi_starts(axis[0])):
+            # Get the shape of the block
+            shape=layout_source.shape.copy()
+            shape[axis[1]]=split_length
+            
+            # Transpose the shape
+            shape=shape[::-1]
+            # Remember the shape and size for later
+            size = np.prod(shape)
+            self._shapes.append((shape,size))
+            
+            # Get a view on the buffer which is the same size as the block
+            arr = self._buffer[start:start+size].reshape(shape)
+            assert(arr.base is self._buffer)
+            
+            # Save the block into the buffer via the source
+            # This may result in a copy, however this copy would only be
+            # the size of the block
+            # The data should however be written directly in the buffer
+            # as the shapes agree
+            arr[:] = source[...,mpi_start:mpi_start+split_length].T
+            
+            start+=size
+    
+    def _rearrange_from_buffer(self, dest, layout_source : Layout, 
+                                layout_dest : Layout, axis : list , comm: MPI.Comm):
+        """
+        Swap the axes of the blocks
+        Pass the blocks to the correct processes, concatenating in the process
+        Transpose the result to get the final layout in the destination
+        """
         size = comm.Get_size()
         
         # Get the sizes of the sent and received blocks.
@@ -436,60 +493,65 @@ class LayoutManager:
                       layout_dest  .shape[axis[1]]
         
         # get the start points in the array
-        sourceStarts              = np.zeros(size,int)
-        self._buffer_splits       = np.zeros(size+1,int)
-        sourceStarts[1:]          = np.cumsum(sourceSizes)[:-1]
-        self._buffer_splits  [1:] = np.cumsum(  destSizes)
+        sourceStarts     = np.zeros(size,int)
+        destStarts       = np.zeros(size,int)
+        sourceStarts[1:] = np.cumsum(sourceSizes)[:-1]
+        destStarts  [1:] = np.cumsum(  destSizes)[:-1]
         
         # check the sizes have been computed correctly
         assert(sum(sourceSizes)==layout_source.size)
         assert(sum(destSizes)==layout_dest.size)
         
-        # Data is split and sent to the appropriate processes
-        # Spitting using Alltoallv and a transpose only works when the dimension to split
-        # is the last dimension
-        # reshape is used instead of flatten as flatten creates a copy but reshape doesn't
-        comm.Alltoallv( ( source.transpose().reshape(source.size)   ,
-                          ( sourceSizes, sourceStarts )             ,
-                          MPI.DOUBLE                                ) ,
+        
+        # Modify the values in axis so they are accurate for the transpose
+        axis[0] = layout_source.ndims-1-axis[0]
+        axis[1] = layout_source.ndims-1-axis[1]
+        
+        start = 0
+        
+        for (shape,size) in self._shapes:
+            # Collect the block saved in the buffer and reshape it to the
+            # correct shape
+            arr = self._buffer[start:start+size].reshape(shape)
+            assert(arr.base is self._buffer)
+            
+            # Swap the sizes of the axes to be swapped
+            shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
+            
+            # Create a view on the destination buffer which is shaped like
+            # the data after the axes have been swapped
+            saveArr = dest[start:start+size].reshape(shape)
+            assert(saveArr.base is dest)
+            start+=size
+            
+            # Save the array into the destination buffer
+            # This may result in a copy, however this copy would only be
+            # the size of the block
+            # The data should however be written directly in the buffer
+            # as the shapes agree
+            saveArr[:] = np.swapaxes(arr,axis[0],axis[1])
+        
+        # Get a view on the data to be sent
+        sendBuf=np.split(dest,[layout_source.size],axis=0)[0]
+        assert(sendBuf.base is dest)
+        
+        comm.Alltoallv( ( sendBuf                      ,
+                          ( sourceSizes, sourceStarts ),
+                          MPI.DOUBLE                   ) ,
                         
-                        ( self._buffer                              , 
-                          ( destSizes  , self._buffer_splits[:-1]   ) ,
-                          MPI.DOUBLE                                ) )
-    
-    def _rearrange_from_buffer(self, dest, layout_source : Layout, 
-                                layout_dest : Layout, axis : list , comm: MPI.Comm):
-        rank = comm.Get_rank()
+                        ( self._buffer                 , 
+                          ( destSizes  , destStarts   ),
+                          MPI.DOUBLE                   ) )
         
-        # For the data to be correctly reconstructed it is first split
-        # back into its constituent parts
-        # newData is a view on self._buffer
-        newData=np.split(self._buffer,self._buffer_splits[1:])
-        newData.pop()
-        lastDim=len(layout_source.shape)-1
-        
-        for i,arr in enumerate(newData):
-            # The data must be reshaped into the transmitted shape
-            # (with source ordering)
-            shape=layout_source.shape.copy()
-            # The size of the data in the previously distributed direction
-            # depends on which processo provided the data. Due to the
-            # splitting method this is equal to the array index
-            shape[axis[0]]=layout_source.mpi_lengths(axis[0])[i]
-            # The size of the data in the newly distributed direction is
-            # the same for all blocks on this process
-            shape[axis[1]]=layout_dest.mpi_lengths(axis[0])[rank]
-            # The data is reshaped to the trasmitted shape
-            arr=np.reshape(arr,shape[::-1])
-            # The array is then rearranged to the used ordering by
-            # once more transposing to return the ordering to its original
-            # state then swapping the axes that were/are distributed
-            newData[i]=np.swapaxes(arr.transpose(),axis[0],axis[1])
-        
-        # Stitch the pieces together in the correct order.
-        # This is done along the non-distributed axis which, after the
-        # axes swap is the second axis
-        np.concatenate(newData,axis=axis[1], out = dest)
+        # Get a view on the destination
+        destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
+        assert(destView.base is dest)
+        # Get a view on the actual data received
+        bufView = np.split(self._buffer,[layout_dest.size])[0].reshape(layout_dest.shape[::-1])
+        assert(bufView.base is self._buffer)
+        # Transpose the data. As the axes to be concatenated are the first dimension
+        # the concatenation is done automatically by the alltoall
+        destView[:] = bufView.T
     
     def compatible(self, l1: Layout, l2: Layout):
         """
