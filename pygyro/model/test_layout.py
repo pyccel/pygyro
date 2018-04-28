@@ -2,7 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 
-from .layout        import LayoutManager
+from .layout        import LayoutManager, Layout
 from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from_max
 
 def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
@@ -70,15 +70,35 @@ def compare_f(Eta1,Eta2,Eta3,Eta4,layout,f):
                     assert(f[indices[0],indices[1],indices[2],indices[3]]== \
                         float(I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L))
 
-@pytest.mark.parallel
-def test_OddLayoutPaths():
-    comm = MPI.COMM_WORLD
-    nprocs = compute_2d_process_grid_from_max( 10 , 20 , comm.Get_size() )
-    
+@pytest.mark.serial
+def test_Layout_DimsOrder():
     eta_grids=[np.linspace(0,1,40),
                np.linspace(0,6.28318531,20),
                np.linspace(0,10,10),
                np.linspace(0,10,30)]
+    
+    l = Layout('test', [2,3], [0,3,2,1], eta_grids, [0,0] )
+    assert(l.dims_order==[0,3,2,1])
+    assert(l.inv_dims_order==[0,3,2,1])
+    
+    l = Layout('test', [2,3], [0,2,3,1], eta_grids, [0,0] )
+    assert(l.dims_order==[0,2,3,1])
+    assert(l.inv_dims_order==[0,3,1,2])
+    
+    l = Layout('test', [2,3], [2,1,0,3], eta_grids, [0,0] )
+    assert(l.dims_order==[2,1,0,3])
+    assert(l.inv_dims_order==[2,1,0,3])
+
+@pytest.mark.parallel
+def test_OddLayoutPaths():
+    npts = [40,20,10,30]
+    comm = MPI.COMM_WORLD
+    nprocs = compute_2d_process_grid( npts , comm.Get_size() )
+    
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'0123': [0,1,2,3],
                '0321': [0,3,2,1],
@@ -115,12 +135,14 @@ def test_OddLayoutPaths():
 
 @pytest.mark.parallel
 def test_LayoutSwap():
-    nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
+    npts = [40,20,10,30]
+    comm = MPI.COMM_WORLD
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     
-    eta_grids=[np.linspace(0,1,40),
-               np.linspace(0,6.28318531,20),
-               np.linspace(0,10,10),
-               np.linspace(0,10,30)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -182,12 +204,13 @@ def test_LayoutSwap():
 
 @pytest.mark.parallel
 def test_in_place_LayoutSwap():
-    nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
+    npts = [40,20,10,30]
+    nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,40),
-               np.linspace(0,6.28318531,20),
-               np.linspace(0,10,10),
-               np.linspace(0,10,30)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -238,12 +261,13 @@ def test_in_place_LayoutSwap():
 
 @pytest.mark.parallel
 def test_IncompatibleLayoutError():
-    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    npts = [10,10,10,10]
+    nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,10),
-               np.linspace(0,6.28318531,10),
-               np.linspace(0,10,10),
-               np.linspace(0,10,10)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     with pytest.raises(RuntimeError):
         layouts = {'flux_surface': [0,3,1,2],
                    'v_parallel'  : [0,2,1,3],
@@ -267,12 +291,13 @@ def test_CompatibleLayouts():
 
 @pytest.mark.parallel
 def test_in_place_BadStepWarning():
-    nprocs = compute_2d_process_grid( [10,10,20,15], MPI.COMM_WORLD.Get_size() )
+    npts = [10,10,20,15]
+    nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,10),
-               np.linspace(0,6.28318531,10),
-               np.linspace(0,10,20),
-               np.linspace(0,10,15)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -297,12 +322,13 @@ def test_in_place_BadStepWarning():
 
 @pytest.mark.parallel
 def test_BadStepWarning():
-    nprocs = compute_2d_process_grid( [10,10,20,15], MPI.COMM_WORLD.Get_size() )
+    npts = [10,10,20,15]
+    nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,10),
-               np.linspace(0,6.28318531,10),
-               np.linspace(0,10,20),
-               np.linspace(0,10,15)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -338,12 +364,13 @@ def test_BadStepWarning():
 
 @pytest.mark.parallel
 def test_copy():
-    nprocs = compute_2d_process_grid( [10,10,20,15], MPI.COMM_WORLD.Get_size() )
+    npts = [10,10,20,15]
+    nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
-    eta_grids=[np.linspace(0,1,10),
-               np.linspace(0,6.28318531,10),
-               np.linspace(0,10,20),
-               np.linspace(0,10,15)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
