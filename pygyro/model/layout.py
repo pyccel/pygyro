@@ -335,8 +335,8 @@ class LayoutManager:
         nSteps = len(steps)
         
         # warn about multiple steps
-        warnings.warn("Changing from %s layout to %s layout requires %i steps" %
-                (source_name,dest_name,nSteps))
+        warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
+                .format(source_name,dest_name,nSteps))
         
         # take the first step to move the data
         nowLayoutKey=steps[0]
@@ -366,8 +366,8 @@ class LayoutManager:
         nSteps = len(steps)
         
         # warn about multiple steps
-        warnings.warn("Changing from %s layout to %s layout requires %i steps" %
-                (source_name,dest_name,nSteps))
+        warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
+                .format(source_name,dest_name,nSteps))
         
         # carry out the steps one by one
         nowLayoutKey=source_name
