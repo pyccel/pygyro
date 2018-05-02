@@ -448,8 +448,14 @@ class LayoutManager:
             shape=layout_source.shape.copy()
             shape[axis[1]]=split_length
             
-            # Transpose the shape
-            shape=shape[::-1]
+            # Find the order to which the axes will be transposed for sending
+            # This is the same as before but the axis to be concatenated 
+            # must be the 0-th axis
+            order = list(range(layout_source.ndims))
+            if (axis[0]!=0):
+                order[0], order[axis[0]] = order[axis[0]], order[0]
+                shape[0], shape[axis[0]] = shape[axis[0]], shape[0]
+            
             # Remember the shape and size for later
             size = np.prod(shape)
             self._shapes.append((shape,size))
@@ -463,7 +469,7 @@ class LayoutManager:
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            arr[:] = source[...,mpi_start:mpi_start+split_length].T
+            arr[:] = source[...,mpi_start:mpi_start+split_length].transpose(order)
             
             start+=size
     
@@ -502,38 +508,12 @@ class LayoutManager:
         assert(sum(sourceSizes)==layout_source.size)
         assert(sum(destSizes)==layout_dest.size)
         
-        
-        # Modify the values in axis so they are accurate for the transpose
-        axis[0] = layout_source.ndims-1-axis[0]
-        axis[1] = layout_source.ndims-1-axis[1]
-        
-        start = 0
-        
-        for (shape,size) in self._shapes:
-            # Collect the block saved in the buffer and reshape it to the
-            # correct shape
-            arr = self._buffer[start:start+size].reshape(shape)
-            assert(arr.base is self._buffer)
-            
-            # Swap the sizes of the axes to be swapped
-            shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
-            
-            # Create a view on the destination buffer which is shaped like
-            # the data after the axes have been swapped
-            saveArr = dest[start:start+size].reshape(shape)
-            assert(saveArr.base is dest)
-            start+=size
-            
-            # Save the array into the destination buffer
-            # This may result in a copy, however this copy would only be
-            # the size of the block
-            # The data should however be written directly in the buffer
-            # as the shapes agree
-            saveArr[:] = np.swapaxes(arr,axis[0],axis[1])
-        
         # Get a view on the data to be sent
         sendBuf=np.split(dest,[layout_source.size],axis=0)[0]
         assert(sendBuf.base is dest)
+        
+        # It would be nice to avoid this unnecessary copy but it would require additional memory
+        sendBuf[:] = np.split(self._buffer,[layout_source.size],axis=0)[0]
         
         comm.Alltoallv( ( sendBuf                      ,
                           ( sourceSizes, sourceStarts ),
@@ -543,15 +523,31 @@ class LayoutManager:
                           ( destSizes  , destStarts   ),
                           MPI.DOUBLE                   ) )
         
+        # Find the order to which the axes will be transposed.
+        # This equates to simply swapping the axes, however as the axis
+        # to be concatenated must be in the 0-th position it may include
+        # an additional rearrangement.
+        # Find the received shape. This is equal to the shape with the 
+        # axes which will be swapped not yet swapped. In addition the 
+        # axis to be concatenated is the 0-th axis (it is now already concatenated)
+        order = list(range(layout_source.ndims))
+        shape = layout_dest.shape.copy()
+        if (axis[0]!=0):
+            order[0], order[axis[0]], order[axis[1]] = order[axis[0]], order[axis[1]], order[0]
+            shape[0], shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[0], shape[axis[0]]
+        else:
+            order[axis[0]], order[axis[1]] = order[axis[1]], order[axis[0]]
+            shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
+        
         # Get a view on the destination
         destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
         assert(destView.base is dest)
         # Get a view on the actual data received
-        bufView = np.split(self._buffer,[layout_dest.size])[0].reshape(layout_dest.shape[::-1])
+        bufView = np.split(self._buffer,[layout_dest.size])[0].reshape(shape)
         assert(bufView.base is self._buffer)
         # Transpose the data. As the axes to be concatenated are the first dimension
         # the concatenation is done automatically by the alltoall
-        destView[:] = bufView.T
+        destView[:] = bufView.transpose(order)
     
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -568,23 +564,19 @@ class LayoutManager:
 
         """
         dims = []
-        nDims = len(l1.dims_order)
-        lastDimDistributed = False
         # check the ordering of the dimensions
         for i,o in enumerate(l1.dims_order):
             if (o!=l2.dims_order[i]):
                 # Save dimensions where the ordering differs
                 dims.append(o)
                 dims.append(l2.dims_order[i])
-                if (i==nDims-1):
-                    lastDimDistributed=True
         # The dimension ordering of compatible layouts should be identical
         # except in the last dimension and one other dimension.
         # The values in these dimensions should be swapped
         # e.g. if l1.dims_order=[a,b,c,d] l2.dims_order can be
         # [d,b,c,a], [a,d,c,b], or [a,b,d,c]
         # This means if a,b are the swapped values that dim should contain [a,b,b,a]
-        return (len(dims)==4 and lastDimDistributed and dims[0]==dims[3] and dims[1]==dims[2])
+        return (len(dims)==4 and dims[0]==dims[3] and dims[1]==dims[2])
 
     def _makeConnectionMap(self, DirectConnections: dict):
         """
