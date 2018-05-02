@@ -316,7 +316,6 @@ class LayoutManager:
         nowLayoutKey=source_name
         nowLayout=self._layouts[source_name]
         
-        # carry out subsequent steps in place
         for i in range(nSteps):
             nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
@@ -345,6 +344,8 @@ class LayoutManager:
         nowLayoutKey=steps[0]
         nowLayout=self._layouts[nowLayoutKey]
         
+        # The first step needs to place the data in such a way that the
+        # final result will be stored in the destination
         if (nSteps%2==0):
             self._transpose_source_intact(source,buf,dest,self._layouts[source_name],nowLayout)
             fromBuf = buf
@@ -354,6 +355,7 @@ class LayoutManager:
             fromBuf = dest
             toBuf   = buf
         
+        # take the remaining steps
         for i in range(1,nSteps):
             nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
