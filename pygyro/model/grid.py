@@ -17,14 +17,14 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        self._my_data = np.empty(self._layout_manager.bufferSize)
+        self._my_data = [np.empty(self._layout_manager.bufferSize),
+                         np.empty(self._layout_manager.bufferSize)]
+        self._dataIdx = 0
+        self._buffIdx = 1
+        
         # Remember views on the data
         shapes = layouts.availableLayouts
-        views = []
-        for (name,shape) in shapes:
-            views.append((name,np.split(self._my_data,[np.prod(shape)])[0].reshape(shape)))
-        self._views = dict(views)
-        self._f = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
+        self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
         
         # save coordinate information
         # saving in list allows simpler reordering of coordinates
@@ -86,11 +86,13 @@ class Grid(object):
         return self._f[slices]
     
     def setLayout(self,new_layout: str):
-        self._layout_manager.in_place_transpose(
-                        self._my_data,
+        self._layout_manager.transpose(
+                        self._my_data[self._dataIdx],
+                        self._my_data[self._buffIdx],
                         self._current_layout_name,
                         new_layout)
+        self._dataIdx, self._buffIdx = self._buffIdx, self._dataIdx
         self._layout = self._layout_manager.getLayout(new_layout)
-        self._f      = self._views[new_layout]
+        self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
         self._current_layout_name = new_layout
     
