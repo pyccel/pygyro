@@ -396,7 +396,7 @@ class LayoutManager:
         
         # carry out transpose
         comm = self._subcomms[axis[0]]
-        self._extract_from_source(source,layout_source,layout_dest,axis,comm)
+        self._extract_from_source(source,dest,layout_source,layout_dest,axis,comm)
         self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
     
     def _in_place_transpose(self, data, layout_source, layout_dest):
@@ -414,7 +414,11 @@ class LayoutManager:
         
         # carry out transpose
         comm = self._subcomms[axis[0]]
-        self._extract_from_source(source,layout_source,layout_dest,axis,comm)
+        self._extract_from_source(source,self._buffer,layout_source,layout_dest,axis,comm)
+        
+        # It would be nice to avoid this unnecessary copy but it would require additional memory
+        data[:]=self._buffer
+        
         self._rearrange_from_buffer(data,layout_source,layout_dest,axis,comm)
     
     def _get_swap_axes(self,layout_source,layout_dest):
@@ -429,7 +433,8 @@ class LayoutManager:
         assert(axis[1]==layout_source.ndims-1)
         return axis
     
-    def _extract_from_source(self, source, layout_source : Layout, layout_dest : Layout, axis : list, comm : MPI.Comm):
+    def _extract_from_source(self, source, tobuffer, layout_source : Layout,
+                            layout_dest : Layout, axis : list, comm : MPI.Comm):
         """
         Take the information from the source and save it blockwise into
         the buffer. The saved blocks are also transposed
@@ -461,8 +466,8 @@ class LayoutManager:
             self._shapes.append((shape,size))
             
             # Get a view on the buffer which is the same size as the block
-            arr = self._buffer[start:start+size].reshape(shape)
-            assert(arr.base is self._buffer)
+            arr = tobuffer[start:start+size].reshape(shape)
+            assert(arr.base is tobuffer)
             
             # Save the block into the buffer via the source
             # This may result in a copy, however this copy would only be
@@ -511,9 +516,6 @@ class LayoutManager:
         # Get a view on the data to be sent
         sendBuf=np.split(dest,[layout_source.size],axis=0)[0]
         assert(sendBuf.base is dest)
-        
-        # It would be nice to avoid this unnecessary copy but it would require additional memory
-        sendBuf[:] = np.split(self._buffer,[layout_source.size],axis=0)[0]
         
         comm.Alltoallv( ( sendBuf                      ,
                           ( sourceSizes, sourceStarts ),
