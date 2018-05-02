@@ -1,18 +1,11 @@
 from mpi4py import MPI
 import numpy as np
-from enum import Enum, IntEnum
 from math import pi
 
 from ..                 import splines as spl
 from .layout            import LayoutManager
 
 class Grid(object):
-    class Dimension(IntEnum):
-        ETA1 = 0
-        ETA2 = 3
-        ETA3 = 1
-        ETA4 = 2
-    
     def __init__( self, eta_grid: list, layouts: LayoutManager,
                     chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD):
         # get MPI values
