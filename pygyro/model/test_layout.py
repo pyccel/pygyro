@@ -120,21 +120,22 @@ def test_OddLayoutPaths():
     
     define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
     
-    remapper.in_place_transpose(data=fStart,
+    remapper.transpose(source=fStart,
+                       dest  =fEnd,
                        source_name='1320',
                        dest_name='1302')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_s)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
-    remapper.transpose(source=f2_s,
-                       dest  =fEnd,
+    remapper.transpose(source=fEnd,
+                       dest  =fStart,
                        source_name='1302',
                        dest_name='1320')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_e)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
 
 @pytest.mark.parallel
-def test_LayoutSwap():
+def test_LayoutSwap_IntactSource():
     npts = [40,20,10,30]
     comm = MPI.COMM_WORLD
     nprocs = compute_2d_process_grid( npts, comm.Get_size() )
@@ -148,62 +149,78 @@ def test_LayoutSwap():
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
     remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
-
+    
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    fStart = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    fEnd = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    f_fs_s = np.split(fStart,[fsLayout.size])[0].reshape(fsLayout.shape)
-    assert(not f_fs_s.flags['OWNDATA'])
-    f_v_s  = np.split(fStart,[ vLayout.size])[0].reshape( vLayout.shape)
-    assert(not f_v_s.flags['OWNDATA'])
-    f_p_s  = np.split(fStart,[ pLayout.size])[0].reshape( pLayout.shape)
-    assert(not f_p_s.flags['OWNDATA'])
-    f_fs_e = np.split(fEnd  ,[fsLayout.size])[0].reshape(fsLayout.shape)
-    assert(not f_fs_e.flags['OWNDATA'])
-    f_v_e  = np.split(fEnd  ,[ vLayout.size])[0].reshape( vLayout.shape)
-    assert(not f_v_e.flags['OWNDATA'])
-    f_p_e  = np.split(fEnd  ,[ pLayout.size])[0].reshape( pLayout.shape)
-    assert(not f_p_e.flags['OWNDATA'])
+    assert(remapper.bufferSize==max(fsLayout.size,vLayout.size,pLayout.size))
     
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_s)
+    f1 = np.empty(remapper.bufferSize)
+    f2 = np.empty(remapper.bufferSize)
+    f3 = np.empty(remapper.bufferSize)
     
-    remapper.transpose(source=f_fs_s,
-                       dest=fEnd,
+    f_fs_1 = np.split( f1, [fsLayout.size] )[0].reshape(fsLayout.shape)
+    f_fs_2 = np.split( f2, [fsLayout.size] )[0].reshape(fsLayout.shape)
+    f_fs_3 = np.split( f3, [fsLayout.size] )[0].reshape(fsLayout.shape)
+    assert(not f_fs_1.flags['OWNDATA'])
+    assert(not f_fs_2.flags['OWNDATA'])
+    assert(not f_fs_3.flags['OWNDATA'])
+    
+    f_v_1  = np.split( f1, [ vLayout.size] )[0].reshape( vLayout.shape)
+    f_v_2  = np.split( f2, [ vLayout.size] )[0].reshape( vLayout.shape)
+    f_v_3  = np.split( f3, [ vLayout.size] )[0].reshape( vLayout.shape)
+    assert(not f_v_1.flags['OWNDATA'])
+    assert(not f_v_2.flags['OWNDATA'])
+    assert(not f_v_3.flags['OWNDATA'])
+    
+    f_p_1  = np.split( f1, [ pLayout.size] )[0].reshape( pLayout.shape)
+    f_p_2  = np.split( f2, [ pLayout.size] )[0].reshape( pLayout.shape)
+    f_p_3  = np.split( f3, [ pLayout.size] )[0].reshape( pLayout.shape)
+    assert(not f_p_1.flags['OWNDATA'])
+    assert(not f_p_2.flags['OWNDATA'])
+    assert(not f_p_3.flags['OWNDATA'])
+    
+    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
+    
+    remapper.transpose(source=f1,
+                       dest=f2,
+                       buf=f3,
                        source_name='flux_surface',
                        dest_name='v_parallel')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_s)
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_e)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
     
-    remapper.transpose(source = f_v_e,
-                       dest=fStart,
+    remapper.transpose(source = f2,
+                       dest   = f1,
+                       buf    = f3,
                        source_name='v_parallel',
                        dest_name='poloidal')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_e)
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p_s)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p_1)
     
-    remapper.transpose(source = f_p_s,
-                       dest=fEnd,
+    remapper.transpose(source = f1,
+                       dest   = f2,
+                       buf    = f3,
                        source_name='poloidal',
                        dest_name='v_parallel')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p_s)
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_e)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p_1)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
     
-    remapper.transpose(source = f_v_e,
-                       dest = fStart,
+    remapper.transpose(source = f2,
+                       dest   = f1,
+                       buf    = f3,
                        source_name='v_parallel',
                        dest_name='flux_surface')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_e)
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_s)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
 
 @pytest.mark.parallel
-def test_in_place_LayoutSwap():
+def test_LayoutSwap():
     npts = [40,20,10,30]
     nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
@@ -216,48 +233,67 @@ def test_in_place_LayoutSwap():
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
     remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
-
+    
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    f = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    f_fs = np.split(f,[fsLayout.size])[0].reshape(fsLayout.shape)
-    assert(not f_fs.flags['OWNDATA'])
-    f_v  = np.split(f,[ vLayout.size])[0].reshape( vLayout.shape)
-    assert(not f_v.flags['OWNDATA'])
-    f_p  = np.split(f,[ pLayout.size])[0].reshape( pLayout.shape)
-    assert(not f_p.flags['OWNDATA'])
+    assert(remapper.bufferSize==max(fsLayout.size,vLayout.size,pLayout.size))
+
+    f1 = np.empty(remapper.bufferSize)
+    f2 = np.empty(remapper.bufferSize)
     
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs)
+    f_fs_1 = np.split( f1, [fsLayout.size] )[0].reshape(fsLayout.shape)
+    f_fs_2 = np.split( f2, [fsLayout.size] )[0].reshape(fsLayout.shape)
+    assert(not f_fs_1.flags['OWNDATA'])
+    assert(not f_fs_2.flags['OWNDATA'])
     
-    remapper.in_place_transpose(data=f,
+    f_v_1  = np.split( f1, [ vLayout.size] )[0].reshape( vLayout.shape)
+    f_v_2  = np.split( f2, [ vLayout.size] )[0].reshape( vLayout.shape)
+    assert(not f_v_1.flags['OWNDATA'])
+    assert(not f_v_2.flags['OWNDATA'])
+    
+    f_p_1  = np.split( f1, [ pLayout.size] )[0].reshape( pLayout.shape)
+    f_p_2  = np.split( f2, [ pLayout.size] )[0].reshape( pLayout.shape)
+    assert(not f_p_1.flags['OWNDATA'])
+    assert(not f_p_2.flags['OWNDATA'])
+    
+    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
+    
+    remapper.transpose(source=f1,
+                       dest=f2,
                        source_name='flux_surface',
                        dest_name='v_parallel')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
     
-    remapper.in_place_transpose(data = f,
+    remapper.transpose(source = f2,
+                       dest   = f1,
                        source_name='v_parallel',
                        dest_name='poloidal')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],pLayout,f_p_1)
     
-    remapper.in_place_transpose(data = f,
+    remapper.transpose(source = f1,
+                       dest   = f2,
                        source_name='poloidal',
                        dest_name='v_parallel')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
     
-    remapper.in_place_transpose(data = f,
+    remapper.transpose(source = f2,
+                       dest   = f1,
                        source_name='v_parallel',
                        dest_name='flux_surface')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
     
-    assert(not f_fs.flags['OWNDATA'])
-    assert(not f_v.flags['OWNDATA'])
-    assert(not f_p.flags['OWNDATA'])
+    assert(not f_fs_1.flags['OWNDATA'])
+    assert(not f_v_1.flags['OWNDATA'])
+    assert(not f_p_1.flags['OWNDATA'])
+    assert(not f_fs_2.flags['OWNDATA'])
+    assert(not f_v_2.flags['OWNDATA'])
+    assert(not f_p_2.flags['OWNDATA'])
 
 @pytest.mark.parallel
 def test_IncompatibleLayoutError():
@@ -290,7 +326,7 @@ def test_CompatibleLayouts():
     LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
 @pytest.mark.parallel
-def test_in_place_BadStepWarning():
+def test_BadStepWarning():
     npts = [10,10,20,15]
     nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
@@ -308,20 +344,19 @@ def test_in_place_BadStepWarning():
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    f = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    f_fs = np.split(f,[fsLayout.size])[0].reshape(fsLayout.shape)
-    f_v  = np.split(f,[ vLayout.size])[0].reshape( vLayout.shape)
-    f_p  = np.split(f,[ pLayout.size])[0].reshape( pLayout.shape)
+    assert(remapper.bufferSize==max(fsLayout.size,vLayout.size,pLayout.size))
     
-    
+    f1 = np.empty(remapper.bufferSize)
+    f2 = np.empty(remapper.bufferSize)
     
     with pytest.warns(UserWarning):
-        remapper.in_place_transpose(data = f,
+        remapper.transpose(source = f1,
+                           dest   = f2,
                            source_name='flux_surface',
                            dest_name='poloidal')
 
 @pytest.mark.parallel
-def test_BadStepWarning():
+def test_BadStepWarning_IntactSource():
     npts = [10,10,20,15]
     nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
     
@@ -341,6 +376,7 @@ def test_BadStepWarning():
     
     fStart = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
     fEnd = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
+    fBuf = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
     f_fs_s = np.split(fStart,[fsLayout.size])[0].reshape(fsLayout.shape)
     assert(not f_fs_s.flags['OWNDATA'])
     f_v_s  = np.split(fStart,[ vLayout.size])[0].reshape( vLayout.shape)
@@ -357,8 +393,9 @@ def test_BadStepWarning():
     
     
     with pytest.warns(UserWarning):
-        remapper.transpose(source = f_fs_s,
+        remapper.transpose(source = fStart,
                            dest = fEnd,
+                           buf  = fBuf,
                            source_name='flux_surface',
                            dest_name='poloidal')
 
@@ -381,31 +418,43 @@ def test_copy():
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    fStart = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    fEnd = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
+    fStart = np.empty(remapper.bufferSize)
+    fEnd = np.empty(remapper.bufferSize)
+    fBuf = np.empty(remapper.bufferSize)
+    
     f_fs_s = np.split(fStart,[fsLayout.size])[0].reshape(fsLayout.shape)
-    assert(not f_fs_s.flags['OWNDATA'])
-    f_v_s  = np.split(fStart,[ vLayout.size])[0].reshape( vLayout.shape)
-    assert(not f_v_s.flags['OWNDATA'])
-    f_p_s  = np.split(fStart,[ pLayout.size])[0].reshape( pLayout.shape)
-    assert(not f_p_s.flags['OWNDATA'])
     f_fs_e = np.split(fEnd  ,[fsLayout.size])[0].reshape(fsLayout.shape)
+    f_fs_b = np.split(fBuf  ,[fsLayout.size])[0].reshape(fsLayout.shape)
+    assert(not f_fs_s.flags['OWNDATA'])
     assert(not f_fs_e.flags['OWNDATA'])
+    assert(not f_fs_b.flags['OWNDATA'])
+    
+    f_v_s  = np.split(fStart,[ vLayout.size])[0].reshape( vLayout.shape)
     f_v_e  = np.split(fEnd  ,[ vLayout.size])[0].reshape( vLayout.shape)
+    f_v_b  = np.split(fBuf  ,[ vLayout.size])[0].reshape( vLayout.shape)
+    assert(not f_v_s.flags['OWNDATA'])
     assert(not f_v_e.flags['OWNDATA'])
+    assert(not f_v_b.flags['OWNDATA'])
+    
+    f_p_s  = np.split(fStart,[ pLayout.size])[0].reshape( pLayout.shape)
     f_p_e  = np.split(fEnd  ,[ pLayout.size])[0].reshape( pLayout.shape)
+    f_p_b  = np.split(fEnd  ,[ pLayout.size])[0].reshape( pLayout.shape)
+    assert(not f_p_s.flags['OWNDATA'])
     assert(not f_p_e.flags['OWNDATA'])
+    assert(not f_p_b.flags['OWNDATA'])
     
     define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_s)
     
-    remapper.transpose(source=f_fs_s,
+    remapper.transpose(source=fStart,
                        dest=fEnd,
+                       buf =fBuf,
                        source_name='flux_surface',
                        dest_name='flux_surface')
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_s)
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_e)
     
-    remapper.in_place_transpose(data=fEnd,
+    remapper.transpose(source=fEnd,
+                       dest=fBuf,
                        source_name='flux_surface',
                        dest_name='flux_surface')
