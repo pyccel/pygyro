@@ -103,8 +103,7 @@ def test_OddLayoutPaths():
     layouts = {'0123': [0,1,2,3],
                '0321': [0,3,2,1],
                '1320': [1,3,2,0],
-               '1302': [1,3,0,2],
-               '2301': [2,3,0,1]}
+               '1302': [1,3,0,2]}
     remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
     
     layout1=remapper.getLayout('1320')
@@ -127,12 +126,111 @@ def test_OddLayoutPaths():
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
-    remapper.transpose(source=fEnd,
-                       dest  =fStart,
-                       source_name='1302',
-                       dest_name='1320')
+    # Even number of steps
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fEnd,
+                           dest  =fStart,
+                           source_name='1302',
+                           dest_name='0321')
     
-    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
+    layout = remapper.getLayout('0321')
+    f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
+    
+    
+    remapper.transpose(source=fStart,
+                       dest  =fEnd,
+                       source_name='0321',
+                       dest_name='0123')
+    
+    layout = remapper.getLayout('0123')
+    f = np.split(fEnd  ,[layout.size])[0].reshape(layout.shape)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
+    
+    # Odd number of steps
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fEnd,
+                           dest  =fStart,
+                           source_name='0123',
+                           dest_name='1302')
+    
+    layout = remapper.getLayout('1302')
+    f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
+
+@pytest.mark.parallel
+def test_OddLayoutPaths_IntactSource():
+    npts = [40,20,10,30]
+    comm = MPI.COMM_WORLD
+    nprocs = compute_2d_process_grid( npts , comm.Get_size() )
+    
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    
+    layouts = {'0123': [0,1,2,3],
+               '0321': [0,3,2,1],
+               '1320': [1,3,2,0],
+               '1302': [1,3,0,2]}
+    remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
+    
+    layout1=remapper.getLayout('1320')
+    assert(layout1.name=='1320')
+    layout2=remapper.getLayout('1302')
+    
+    fStart = np.empty(remapper.bufferSize)
+    fEnd = np.empty(remapper.bufferSize)
+    fBuf = np.empty(remapper.bufferSize)
+    f1_s = np.split(fStart,[layout1.size])[0].reshape(layout1.shape)
+    f1_e = np.split(fEnd  ,[layout1.size])[0].reshape(layout1.shape)
+    f2_s = np.split(fStart,[layout2.size])[0].reshape(layout2.shape)
+    f2_e = np.split(fEnd  ,[layout2.size])[0].reshape(layout2.shape)
+    
+    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
+    
+    remapper.transpose(source=fStart,
+                       dest  =fEnd,
+                       buf   =fBuf,
+                       source_name='1320',
+                       dest_name='1302')
+    
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
+    
+    # Even number of steps
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fEnd,
+                           dest  =fStart,
+                           buf   =fBuf,
+                           source_name='1302',
+                           dest_name='0321')
+    
+    layout = remapper.getLayout('0321')
+    f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
+    
+    
+    remapper.transpose(source=fStart,
+                       dest  =fEnd,
+                       buf   =fBuf,
+                       source_name='0321',
+                       dest_name='0123')
+    
+    layout = remapper.getLayout('0123')
+    f = np.split(fEnd  ,[layout.size])[0].reshape(layout.shape)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
+    
+    # Odd number of steps
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fEnd,
+                           dest  =fStart,
+                           buf   =fBuf,
+                           source_name='0123',
+                           dest_name='1302')
+    
+    layout = remapper.getLayout('1302')
+    f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
 
 @pytest.mark.parallel
 def test_LayoutSwap_IntactSource():
