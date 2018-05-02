@@ -297,20 +297,6 @@ class LayoutManager:
                 self._transposeRedirect(source,dest,source_name,dest_name)
             else:
                 self._transposeRedirect_source_intact(source,dest,buf,source_name,dest_name)
-    """
-        
-        # Check that a direct path is available
-        if (len(self._route_map[source_name][dest_name])==1):
-            layout_source = self._layouts[source_name]
-            layout_dest   = self._layouts[  dest_name]
-            assert data.size>=layout_source.size
-            assert data.size>=layout_dest.size
-            # if so then carry out the transpose
-            self._in_place_transpose(data,layout_source,layout_dest)
-        else:
-            # if not reroute the transpose via intermediate steps
-            self._in_place_transposeRedirect(data,source_name,dest_name)
-    """
     
     def _transposeRedirect(self,source,dest,source_name,dest_name):
         """
@@ -407,7 +393,7 @@ class LayoutManager:
         # If both axes being swapped are not distributed
         if (axis[0]>=self._nDims):
             dest   = np.split(dest,[layout_dest  .size])[0].reshape(layout_dest  .shape)
-            dest[:]=np.swapaxes(source,axis[0],axis[1])
+            dest[:]=np.swapaxes(sourceView,axis[0],axis[1])
             return
         
         # carry out transpose
