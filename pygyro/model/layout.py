@@ -99,7 +99,7 @@ class Layout:
     
     @property
     def inv_dims_order( self ):
-        """ Get order of dimensions eta1, eta2, etc... in layout.
+        """ Get global order of dimensions eta1, eta2, etc... from layout ordering.
         """
         return self._inv_dims_order
     
