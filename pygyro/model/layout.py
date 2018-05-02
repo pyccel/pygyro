@@ -316,13 +316,16 @@ class LayoutManager:
         nowLayoutKey=source_name
         nowLayout=self._layouts[source_name]
         
+        fromBuf = source
+        toBuf = dest
+        
         for i in range(nSteps):
             nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
-            assert dest.size>=nextLayout.size
-            self._transpose(source,dest,nowLayout,nextLayout)
+            self._transpose(fromBuf,toBuf,nowLayout,nextLayout)
             nowLayout=nextLayout
             nowLayoutKey=nextLayoutKey
+            fromBuf, toBuf = toBuf, fromBuf
         
         # Ensure the result is found in the expected place
         if  (nSteps%2==0):
@@ -413,7 +416,6 @@ class LayoutManager:
         # axis[0] is the distributed axis in the source layout
         # axis[1] is the distributed axis in the destination layout
         
-        assert(axis[1]==layout_source.ndims-1)
         return axis
     
     def _extract_from_source(self, source, tobuffer, layout_source : Layout,
