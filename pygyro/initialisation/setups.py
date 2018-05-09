@@ -15,7 +15,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     
     Compulsory arguments:
     npts   -- number of points in each direction 
-              (radial, tangential, axial, v perpendicular)
+              (radial, tangential, axial, v parallel)
     layout -- parallel distribution start configuration
     
     Optional arguments:
@@ -25,7 +25,16 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     zMax   -- maximum value in the z direction, a float. (default constants.zMax)
     vMax   -- maximum velocity, a float. (default constants.vMax)
     vMin   -- minimum velocity, a float. (default -vMax)
-    degree -- degree of splines. (default 3)
+    
+    m  -- (default constants.m)
+    n  -- (default constants.n)
+    
+    rDegree     -- degree of splines in the radial direction. (default 3)
+    thetaDegree -- degree of splines in the tangential direction. (default 3)
+    zDegree     -- degree of splines in the axial direction. (default 3)
+    vDegree     -- degree of splines in the v parallel direction. (default 3)
+    
+    comm  -- MPI communicator. (default MPI.COMM_WORLD)
     
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
