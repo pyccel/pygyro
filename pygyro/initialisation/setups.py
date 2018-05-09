@@ -54,7 +54,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     
     mpi_size = comm.Get_size()
     
-    domain = [ [rMin,rMax], [zMin,zMax], [0,2*pi], [vMin, vMax]]
+    domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
     degree = [rDegree, qDegree, zDegree, vDegree]
     period = [False, True, True, False]
     
@@ -75,7 +75,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
 
     # Create layout manager
     remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
-
+    
     # Create grid
     grid = Grid(eta_grids,remapper,layout)
     
