@@ -35,13 +35,14 @@ def test_Grid_serial():
                np.linspace(0,6.28318531,10),
                np.linspace(0,10,10),
                np.linspace(0,10,10)]
+    comm = MPI.COMM_WORLD
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,manager,'flux_surface')
 
@@ -51,34 +52,33 @@ def test_Grid_parallel():
                np.linspace(0,6.28318531,10),
                np.linspace(0,10,10),
                np.linspace(0,10,10)]
+    comm = MPI.COMM_WORLD
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,manager,'flux_surface')
 
 @pytest.mark.serial
 def test_CoordinateSave():
-    nv=10
-    ntheta=20
-    nr=30
-    nz=15
+    comm = MPI.COMM_WORLD
+    npts = [30,20,15,10]
     
-    eta_grid = [np.linspace(0.5,14.5,nr),
-                np.linspace(0,2*pi,ntheta,endpoint=False),
-                np.linspace(0,50,nz),
-                np.linspace(-5,5,nv)]
+    eta_grid = [np.linspace(0.5,14.5,npts[0]),
+                np.linspace(0,2*pi,npts[1],endpoint=False),
+                np.linspace(0,50,npts[2]),
+                np.linspace(-5,5,npts[3])]
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grid )
+    manager = LayoutManager( comm, layouts, nprocs, eta_grid )
     
     grid = Grid(eta_grid,manager,'flux_surface')
     
@@ -89,17 +89,19 @@ def test_CoordinateSave():
 
 @pytest.mark.parallel
 def test_LayoutSwap():
-    nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
+    comm = MPI.COMM_WORLD
+    npts = [40,20,10,30]
+    nprocs = compute_2d_process_grid( npts , comm.Get_size() )
     
-    eta_grids=[np.linspace(0,1,4),
-               np.linspace(0,6.28318531,4),
-               np.linspace(0,10,4),
-               np.linspace(0,10,10)]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
     
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
@@ -114,17 +116,19 @@ def test_LayoutSwap():
 
 @pytest.mark.parallel
 def test_Contiguous():
-    eta_grids=[np.linspace(0,1,10),
-               np.linspace(0,6.28318531,10),
-               np.linspace(0,10,10),
-               np.linspace(0,10,10)]
+    comm = MPI.COMM_WORLD
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
     grid = Grid(eta_grids,manager,'flux_surface')
     
