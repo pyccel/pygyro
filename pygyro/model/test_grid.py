@@ -31,35 +31,33 @@ def compare_f(grid):
 
 @pytest.mark.serial
 def test_Grid_serial():
-    comm = MPI.COMM_WORLD
     eta_grids=[np.linspace(0,1,10),
                np.linspace(0,6.28318531,10),
                np.linspace(0,10,10),
                np.linspace(0,10,10)]
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,manager,'flux_surface')
 
 @pytest.mark.parallel
 def test_Grid_parallel():
-    comm = MPI.COMM_WORLD
     eta_grids=[np.linspace(0,1,10),
                np.linspace(0,6.28318531,10),
                np.linspace(0,10,10),
                np.linspace(0,10,10)]
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,manager,'flux_surface')
 
@@ -69,19 +67,18 @@ def test_CoordinateSave():
     ntheta=20
     nr=30
     nz=15
-    comm = MPI.COMM_WORLD
     
     eta_grid = [np.linspace(0.5,14.5,nr),
                 np.linspace(0,2*pi,ntheta,endpoint=False),
                 np.linspace(0,50,nz),
                 np.linspace(-5,5,nv)]
     
-    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grid )
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grid )
     
     grid = Grid(eta_grid,manager,'flux_surface')
     
@@ -92,132 +89,64 @@ def test_CoordinateSave():
 
 @pytest.mark.parallel
 def test_LayoutSwap():
-    comm = MPI.COMM_WORLD
-    npts = [40,20,10,30]
-
-    eta_grids=[np.linspace(0,1,npts[0]),
-               np.linspace(0,6.28318531,npts[1]),
-               np.linspace(0,10,npts[2]),
-               np.linspace(0,10,npts[3])]
-
-    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
-    print( "nprocs = {}".format( nprocs ), flush=True )
+    nprocs = compute_2d_process_grid( [40,20,10,30], MPI.COMM_WORLD.Get_size() )
+    
+    eta_grids=[np.linspace(0,1,4),
+               np.linspace(0,6.28318531,4),
+               np.linspace(0,10,4),
+               np.linspace(0,10,10)]
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
-    
-    size = remapper.bufferSize
+    remapper = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     
     grid = Grid(eta_grids,remapper,'flux_surface')
     
-    assert(grid._my_data.size==size)
-    
     define_f(grid)
     
     grid.setLayout('v_parallel')
     
-    assert(grid._my_data.size==size)
-    
-    compare_f(grid)
-    
-    grid.setLayout('poloidal')
-    
-    assert(grid._my_data.size==size)
-    
     compare_f(grid)
 
-##############################################
-def my_print( comm, master, *args, **kwargs ):
-    if comm.Get_rank() == master:
-        kwargs['flush'] = True
-        print( *args, **kwargs )
-    comm.Barrier()
-##############################################
-
-@pytest.mark.parametrize( 'npts', ([10,10,10,10],[40,20,10,30]) )
 @pytest.mark.parallel
-
-def test_Contiguous( npts ):
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    eta_grids=[np.linspace(0,1,npts[0]),
-               np.linspace(0,6.28318531,npts[1]),
-               np.linspace(0,10,npts[2]),
-               np.linspace(0,10,npts[3])]
+def test_Contiguous():
+    eta_grids=[np.linspace(0,1,10),
+               np.linspace(0,6.28318531,10),
+               np.linspace(0,10,10),
+               np.linspace(0,10,10)]
     
-    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
-    print( "nprocs = {}".format( nprocs ), flush=True )
+    nprocs = compute_2d_process_grid( [10,10,10,10], MPI.COMM_WORLD.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
+    manager = LayoutManager( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
-    my_print( comm, 0,
-        ">>> Creating Grid in 'flux_surface' layout", end='... ' )
-    if (npts[0]%nprocs[0]!=0 or npts[3]%nprocs[1]!=0):
-        my_print( comm, 0, "Distribution is not equal" )
-
     grid = Grid(eta_grids,manager,'flux_surface')
-    
-    my_print( comm, 0, "DONE" )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
-    
-    my_print( comm, 0,
-        ">>> Transposing data into 'v_parallel' layout", end='... ' )
-    if (npts[0]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
-        my_print( comm, 0, "Distribution is not equal" )
     
     grid.setLayout('v_parallel')
     
-    my_print( comm, 0, "DONE" )
-    
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
-    
-    my_print( comm, 0,
-        ">>> Transposing data into 'poloidal' layout", end='... ' )
-    
-    if (npts[3]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
-        my_print( comm, 0, "Distribution is not equal" )
     
     grid.setLayout('poloidal')
     
-    my_print( comm, 0, "DONE" )
-    
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
-    
-    my_print( comm, 0,
-        ">>> Transposing data into 'v_parallel' layout", end='... ' )
-    
-    if (npts[0]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
-        my_print( comm, 0, "Distribution is not equal" )
     
     grid.setLayout('v_parallel')
     
-    my_print( comm, 0, "DONE" )
-    
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
     
-    my_print( comm, 0,
-        ">>> Transposing data into 'flux_surface' layout", end='... ' )
-    
-    if (npts[3]%nprocs[0]!=0 or npts[2]%nprocs[1]!=0):
-        my_print( comm, 0, "Distribution is not equal" )
-    
     grid.setLayout('flux_surface')
-    
-    my_print( comm, 0, "DONE", flush=True )
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
