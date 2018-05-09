@@ -9,16 +9,14 @@ from ..model.process_grid   import compute_2d_process_grid
 from .initialiser           import initialise_flux_surface, initialise_poloidal, initialise_v_parallel
 from .                      import constants
 
-def setupCylindricalGrid(nr: int, ntheta: int, nz: int, nv: int, layout: str, **kwargs):
+def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     """
     Setup using radial topology can be initialised using the following arguments:
     
     Compulsory arguments:
-    nr     -- number of points in the radial direction
-    ntheta -- number of points in the tangential direction
-    nz     -- number of points in the axial direction
-    nv     -- number of velocities for v perpendicular
-    layout -- parallel distribution configuration
+    npts   -- number of points in each direction 
+              (radial, tangential, axial, v perpendicular)
+    layout -- parallel distribution start configuration
     
     Optional arguments:
     rMin   -- minimum radius, a float. (default constants.rMin)
@@ -48,7 +46,6 @@ def setupCylindricalGrid(nr: int, ntheta: int, nz: int, nv: int, layout: str, **
     mpi_size = comm.Get_size()
     
     domain = [ [rMin,rMax], [zMin,zMax], [0,2*pi], [vMin, vMax]]
-    npts   = [nr, ntheta, nz, nv]
     degree = [rDegree, qDegree, zDegree, vDegree]
     period = [False, True, True, False]
     

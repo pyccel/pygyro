@@ -10,10 +10,7 @@ def test_Perturbation_FluxSurface():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 m      = m,
                                 n      = n)
@@ -36,10 +33,7 @@ def test_Perturbation_vPar():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel',
                                 m      = m,
                                 n      = n)
@@ -88,10 +82,7 @@ def test_FieldPlot_FluxSurface():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 m      = m,
                                 n      = n)
@@ -114,10 +105,7 @@ def test_FieldPlot_vPar():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel',
                                 m      = m,
                                 n      = n)
@@ -140,10 +128,7 @@ def test_FieldPlot_Poloidal():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
@@ -166,10 +151,7 @@ def test_Equilibrium_FluxSurface():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 m      = m,
                                 n      = n)
@@ -192,10 +174,7 @@ def test_Equilibrium_vPar():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel',
                                 m      = m,
                                 n      = n)
@@ -218,10 +197,7 @@ def test_Equilibrium_Poloidal():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
@@ -242,29 +218,20 @@ def test_Equilibrium_Poloidal():
 @pytest.mark.serial
 def test_FluxSurface():
     npts = [10,10,20,20]
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
     SlicePlotter4d(grid).show()
 
 @pytest.mark.serial
 def test_vParallel():
     npts = [10,10,20,20]
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
     SlicePlotter4d(grid).show()
 
 @pytest.mark.serial
 def test_Poloidal():
     npts = [10,10,20,20]
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     SlicePlotter4d(grid).show()
