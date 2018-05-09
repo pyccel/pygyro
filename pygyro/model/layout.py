@@ -99,7 +99,7 @@ class Layout:
     
     @property
     def inv_dims_order( self ):
-        """ Get order of dimensions eta1, eta2, etc... in layout.
+        """ Get global order of dimensions eta1, eta2, etc... from layout ordering.
         """
         return self._inv_dims_order
     
@@ -202,7 +202,7 @@ class LayoutManager:
         self.nLayouts=len(self._layouts)
         
         # Allocate the buffer
-        self._buffer = np.empty(self._buffer_size)
+        #self._buffer = np.empty(self._buffer_size)
         
         # Calculate direct layout connections
         myMap = []
@@ -237,14 +237,17 @@ class LayoutManager:
     def bufferSize( self ):
         return self._buffer_size
     
-    def transpose( self, source, dest, source_name, dest_name ):
+    def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
-        Change from one layout to another leaving the source layout intact.
+        Change from one layout to another, if a buffer is provided then
+        this will leave the source layout intact. Otherwise the source
+        will be used as the buffer
 
         Parameters
         ----------
-        source : View of array_like
-            A view of the data to be transposed
+        source : array_like
+            The entire memory block where the data is currently stored
+            (including unused cells)
 
         dest : array_like
             The entire memory block where the data will be stored
@@ -256,6 +259,10 @@ class LayoutManager:
         dest_name : str
             The name of the destination layout
 
+        buf : array_like
+            A memory block large enough to store all data. If this
+            parameter is not provided then source will not be kept intact
+
         Notes
         -----
         source and dest are assumed to not overlap in memory
@@ -265,14 +272,14 @@ class LayoutManager:
         # Verify that the input makes sense
         assert source_name in self._layouts
         assert dest_name   in self._layouts
-        assert all(source.shape == self._layouts[source_name].shape)
-        assert dest  .size == self._buffer.size
+        assert source.size == self._buffer_size
+        assert dest  .size == self._buffer_size
         
         # If the source and destination are the same then copy the data
         if (source_name==dest_name):
             layout_dest   = self._layouts[  dest_name]
-            destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
-            destView[:]=source
+            destView    = np.split( dest  , [layout_dest.size])[0]
+            destView[:] = np.split( source, [layout_dest.size])[0]
             return
         
         # Check that a direct path is available
@@ -280,49 +287,16 @@ class LayoutManager:
             # if so then carry out the transpose
             layout_source = self._layouts[source_name]
             layout_dest   = self._layouts[  dest_name]
-            self._transpose(source,dest,layout_source,layout_dest)
+            if (buf is None):
+                self._transpose(source,dest,layout_source,layout_dest)
+            else:
+                self._transpose_source_intact(source,dest,buf,layout_source,layout_dest)
         else:
             # if not reroute the transpose via intermediate steps
-            self._transposeRedirect(source,dest,source_name,dest_name)
-    
-    def in_place_transpose( self, data, source_name, dest_name ):
-        """
-        Change from one layout to another in the same memory space.
-
-        Parameters
-        ----------
-        data : array_like
-            The entire memory block where the data is currently stored.
-            This is also the block where the result will be stored
-
-        source_name : str
-            The name of the source layout
-
-        dest_name : str
-            The name of the destination layout
-
-        """
-        
-        # Verify that the input makes sense
-        assert source_name in self._layouts
-        assert dest_name   in self._layouts
-        
-        # If the source and destination are the same then there is nothing
-        # to be done
-        if (source_name==dest_name):
-            return
-        
-        # Check that a direct path is available
-        if (len(self._route_map[source_name][dest_name])==1):
-            layout_source = self._layouts[source_name]
-            layout_dest   = self._layouts[  dest_name]
-            assert data.size>=layout_source.size
-            assert data.size>=layout_dest.size
-            # if so then carry out the transpose
-            self._in_place_transpose(data,layout_source,layout_dest)
-        else:
-            # if not reroute the transpose via intermediate steps
-            self._in_place_transposeRedirect(data,source_name,dest_name)
+            if (buf is None):
+                self._transposeRedirect(source,dest,source_name,dest_name)
+            else:
+                self._transposeRedirect_source_intact(source,dest,buf,source_name,dest_name)
     
     def _transposeRedirect(self,source,dest,source_name,dest_name):
         """
@@ -338,26 +312,26 @@ class LayoutManager:
         warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
                 .format(source_name,dest_name,nSteps))
         
-        # take the first step to move the data
-        nowLayoutKey=steps[0]
-        nowLayout=self._layouts[nowLayoutKey]
+        # carry out the steps one by one
+        nowLayoutKey=source_name
+        nowLayout=self._layouts[source_name]
         
-        assert dest.size>=nowLayout.size
+        fromBuf = source
+        toBuf = dest
         
-        destView = np.split(dest,[nowLayout.size])[0].reshape(nowLayout.shape)
-        
-        self._transpose(source,dest,self._layouts[source_name],nowLayout)
-        
-        # carry out subsequent steps in place
-        for i in range(1,nSteps):
+        for i in range(nSteps):
             nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
-            assert dest.size>=nextLayout.size
-            self._in_place_transpose(dest,nowLayout,nextLayout)
+            self._transpose(fromBuf,toBuf,nowLayout,nextLayout)
             nowLayout=nextLayout
             nowLayoutKey=nextLayoutKey
+            fromBuf, toBuf = toBuf, fromBuf
+        
+        # Ensure the result is found in the expected place
+        if  (nSteps%2==0):
+            dest[:]=source
     
-    def _in_place_transposeRedirect(self,data,source_name,dest_name):
+    def _transposeRedirect_source_intact(self,source,dest,buf,source_name,dest_name):
         """
         Function for changing layout via multiple steps.
         """
@@ -369,53 +343,69 @@ class LayoutManager:
         warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
                 .format(source_name,dest_name,nSteps))
         
-        # carry out the steps one by one
-        nowLayoutKey=source_name
-        nowLayout=self._layouts[source_name]
-        for i in range(nSteps):
+        # take the first step to move the data
+        nowLayoutKey=steps[0]
+        nowLayout=self._layouts[nowLayoutKey]
+        
+        # The first step needs to place the data in such a way that the
+        # final result will be stored in the destination
+        if (nSteps%2==0):
+            self._transpose_source_intact(source,buf,dest,self._layouts[source_name],nowLayout)
+            fromBuf = buf
+            toBuf   = dest
+        else:
+            self._transpose_source_intact(source,dest,buf,self._layouts[source_name],nowLayout)
+            fromBuf = dest
+            toBuf   = buf
+        
+        # take the remaining steps
+        for i in range(1,nSteps):
             nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
             
-            assert data.size>=nextLayout.size
-            
-            self._in_place_transpose(data,nowLayout,nextLayout)
+            self._transpose(fromBuf,toBuf,nowLayout,nextLayout)
             
             nowLayout=nextLayout
             nowLayoutKey=nextLayoutKey
+            fromBuf, toBuf = toBuf, fromBuf
     
     def _transpose(self, source, dest, layout_source, layout_dest):
         # get axis information
         axis = self._get_swap_axes(layout_source,layout_dest)
         
+        # get views of the important parts of the data
+        sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
+        
         # If both axes being swapped are not distributed
         if (axis[0]>=self._nDims):
             destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
             assert(destView.base is dest)
-            destView[:]=np.swapaxes(source,axis[0],axis[1])
+            destView[:]=np.swapaxes(sourceView,axis[0],axis[1])
             return
         
         # carry out transpose
         comm = self._subcomms[axis[0]]
-        self._extract_from_source(source,layout_source,layout_dest,axis,comm)
-        self._rearrange_from_buffer(dest,layout_source,layout_dest,axis,comm)
+        self._extract_from_source(sourceView,dest,layout_source,layout_dest,axis,comm)
+        self._rearrange_from_buffer(dest,source,layout_source,layout_dest,axis,comm)
     
-    def _in_place_transpose(self, data, layout_source, layout_dest):
+    def _transpose_source_intact(self, source, dest, buf, layout_source, layout_dest):
         # get views of the important parts of the data
-        source = np.split(data,[layout_source.size])[0].reshape(layout_source.shape)
+        sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
         
         # get axis information
         axis = self._get_swap_axes(layout_source,layout_dest)
         
         # If both axes being swapped are not distributed
         if (axis[0]>=self._nDims):
-            dest   = np.split(data,[layout_dest  .size])[0].reshape(layout_dest  .shape)
-            dest[:]=np.swapaxes(source,axis[0],axis[1])
+            dest   = np.split(dest,[layout_dest  .size])[0].reshape(layout_dest  .shape)
+            dest[:]=np.swapaxes(sourceView,axis[0],axis[1])
             return
         
         # carry out transpose
         comm = self._subcomms[axis[0]]
-        self._extract_from_source(source,layout_source,layout_dest,axis,comm)
-        self._rearrange_from_buffer(data,layout_source,layout_dest,axis,comm)
+        self._extract_from_source(sourceView,dest,layout_source,layout_dest,axis,comm)
+        
+        self._rearrange_from_buffer(dest,buf,layout_source,layout_dest,axis,comm)
     
     def _get_swap_axes(self,layout_source,layout_dest):
         # Find the axes which will be swapped
@@ -426,18 +416,16 @@ class LayoutManager:
         # axis[0] is the distributed axis in the source layout
         # axis[1] is the distributed axis in the destination layout
         
-        assert(axis[1]==layout_source.ndims-1)
         return axis
     
-    def _extract_from_source(self, source, layout_source : Layout, layout_dest : Layout, axis : list, comm : MPI.Comm):
+    def _extract_from_source(self, source, tobuffer, layout_source : Layout,
+                            layout_dest : Layout, axis : list, comm : MPI.Comm):
         """
         Take the information from the source and save it blockwise into
         the buffer. The saved blocks are also transposed
         """
         # get the number of processes that the data is split across
         nSplits=layout_source.nprocs[axis[0]]
-        
-        assert(source.base is source.T.base)
         
         start = 0
         
@@ -448,26 +436,32 @@ class LayoutManager:
             shape=layout_source.shape.copy()
             shape[axis[1]]=split_length
             
-            # Transpose the shape
-            shape=shape[::-1]
+            # Find the order to which the axes will be transposed for sending
+            # This is the same as before but the axis to be concatenated 
+            # must be the 0-th axis
+            order = list(range(layout_source.ndims))
+            if (axis[0]!=0):
+                order[0], order[axis[0]] = order[axis[0]], order[0]
+                shape[0], shape[axis[0]] = shape[axis[0]], shape[0]
+            
             # Remember the shape and size for later
             size = np.prod(shape)
             self._shapes.append((shape,size))
             
             # Get a view on the buffer which is the same size as the block
-            arr = self._buffer[start:start+size].reshape(shape)
-            assert(arr.base is self._buffer)
+            arr = tobuffer[start:start+size].reshape(shape)
+            assert(arr.base is tobuffer)
             
             # Save the block into the buffer via the source
             # This may result in a copy, however this copy would only be
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            arr[:] = source[...,mpi_start:mpi_start+split_length].T
+            arr[:] = source[...,mpi_start:mpi_start+split_length].transpose(order)
             
             start+=size
     
-    def _rearrange_from_buffer(self, dest, layout_source : Layout, 
+    def _rearrange_from_buffer(self, data, buf, layout_source : Layout, 
                                 layout_dest : Layout, axis : list , comm: MPI.Comm):
         """
         Swap the axes of the blocks
@@ -502,56 +496,43 @@ class LayoutManager:
         assert(sum(sourceSizes)==layout_source.size)
         assert(sum(destSizes)==layout_dest.size)
         
-        
-        # Modify the values in axis so they are accurate for the transpose
-        axis[0] = layout_source.ndims-1-axis[0]
-        axis[1] = layout_source.ndims-1-axis[1]
-        
-        start = 0
-        
-        for (shape,size) in self._shapes:
-            # Collect the block saved in the buffer and reshape it to the
-            # correct shape
-            arr = self._buffer[start:start+size].reshape(shape)
-            assert(arr.base is self._buffer)
-            
-            # Swap the sizes of the axes to be swapped
-            shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
-            
-            # Create a view on the destination buffer which is shaped like
-            # the data after the axes have been swapped
-            saveArr = dest[start:start+size].reshape(shape)
-            assert(saveArr.base is dest)
-            start+=size
-            
-            # Save the array into the destination buffer
-            # This may result in a copy, however this copy would only be
-            # the size of the block
-            # The data should however be written directly in the buffer
-            # as the shapes agree
-            saveArr[:] = np.swapaxes(arr,axis[0],axis[1])
-        
         # Get a view on the data to be sent
-        sendBuf=np.split(dest,[layout_source.size],axis=0)[0]
-        assert(sendBuf.base is dest)
+        sendBuf=np.split(data,[layout_source.size],axis=0)[0]
+        assert(sendBuf.base is data)
         
         comm.Alltoallv( ( sendBuf                      ,
                           ( sourceSizes, sourceStarts ),
                           MPI.DOUBLE                   ) ,
                         
-                        ( self._buffer                 , 
+                        ( buf                 , 
                           ( destSizes  , destStarts   ),
                           MPI.DOUBLE                   ) )
         
+        # Find the order to which the axes will be transposed.
+        # This equates to simply swapping the axes, however as the axis
+        # to be concatenated must be in the 0-th position it may include
+        # an additional rearrangement.
+        # Find the received shape. This is equal to the shape with the 
+        # axes which will be swapped not yet swapped. In addition the 
+        # axis to be concatenated is the 0-th axis (it is now already concatenated)
+        order = list(range(layout_source.ndims))
+        shape = layout_dest.shape.copy()
+        if (axis[0]!=0):
+            order[0], order[axis[0]], order[axis[1]] = order[axis[0]], order[axis[1]], order[0]
+            shape[0], shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[0], shape[axis[0]]
+        else:
+            order[axis[0]], order[axis[1]] = order[axis[1]], order[axis[0]]
+            shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
+        
         # Get a view on the destination
-        destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
-        assert(destView.base is dest)
+        destView = np.split(data,[layout_dest.size])[0].reshape(layout_dest.shape)
+        assert(destView.base is data)
         # Get a view on the actual data received
-        bufView = np.split(self._buffer,[layout_dest.size])[0].reshape(layout_dest.shape[::-1])
-        assert(bufView.base is self._buffer)
+        bufView = np.split(buf,[layout_dest.size])[0].reshape(shape)
+        assert(bufView.base is buf)
         # Transpose the data. As the axes to be concatenated are the first dimension
         # the concatenation is done automatically by the alltoall
-        destView[:] = bufView.T
+        destView[:] = bufView.transpose(order)
     
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -568,23 +549,19 @@ class LayoutManager:
 
         """
         dims = []
-        nDims = len(l1.dims_order)
-        lastDimDistributed = False
         # check the ordering of the dimensions
         for i,o in enumerate(l1.dims_order):
             if (o!=l2.dims_order[i]):
                 # Save dimensions where the ordering differs
                 dims.append(o)
                 dims.append(l2.dims_order[i])
-                if (i==nDims-1):
-                    lastDimDistributed=True
         # The dimension ordering of compatible layouts should be identical
         # except in the last dimension and one other dimension.
         # The values in these dimensions should be swapped
         # e.g. if l1.dims_order=[a,b,c,d] l2.dims_order can be
         # [d,b,c,a], [a,d,c,b], or [a,b,d,c]
         # This means if a,b are the swapped values that dim should contain [a,b,b,a]
-        return (len(dims)==4 and lastDimDistributed and dims[0]==dims[3] and dims[1]==dims[2])
+        return (len(dims)==4 and dims[0]==dims[3] and dims[1]==dims[2])
 
     def _makeConnectionMap(self, DirectConnections: dict):
         """

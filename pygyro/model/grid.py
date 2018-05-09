@@ -1,18 +1,11 @@
 from mpi4py import MPI
 import numpy as np
-from enum import Enum, IntEnum
 from math import pi
 
 from ..                 import splines as spl
 from .layout            import LayoutManager
 
 class Grid(object):
-    class Dimension(IntEnum):
-        ETA1 = 0
-        ETA2 = 3
-        ETA3 = 1
-        ETA4 = 2
-    
     def __init__( self, eta_grid: list, layouts: LayoutManager,
                     chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD):
         # get MPI values
@@ -24,14 +17,14 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        self._my_data = np.empty(self._layout_manager.bufferSize)
+        self._my_data = [np.empty(self._layout_manager.bufferSize),
+                         np.empty(self._layout_manager.bufferSize)]
+        self._dataIdx = 0
+        self._buffIdx = 1
+        
         # Remember views on the data
         shapes = layouts.availableLayouts
-        views = []
-        for (name,shape) in shapes:
-            views.append((name,np.split(self._my_data,[np.prod(shape)])[0].reshape(shape)))
-        self._views = dict(views)
-        self._f = np.split(self._my_data,[self._layout.size])[0].reshape(self._layout.shape)
+        self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
         
         # save coordinate information
         # saving in list allows simpler reordering of coordinates
@@ -93,12 +86,14 @@ class Grid(object):
         return self._f[slices]
     
     def setLayout(self,new_layout: str):
-        self._layout_manager.in_place_transpose(
-                        self._my_data,
+        self._layout_manager.transpose(
+                        self._my_data[self._dataIdx],
+                        self._my_data[self._buffIdx],
                         self._current_layout_name,
                         new_layout)
+        self._dataIdx, self._buffIdx = self._buffIdx, self._dataIdx
         self._layout = self._layout_manager.getLayout(new_layout)
-        self._f      = self._views[new_layout]
+        self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
         self._current_layout_name = new_layout
     
     ####################################################################
@@ -262,92 +257,3 @@ class Grid(object):
         else:
             # Gather information from all ranks
             self.commEta14.Gatherv(toSend,toSend, 0)
-    
-    def getMin(self,axis = None,fixValue = None):
-        
-        # if we want the total of all points on the grid
-        if (axis==None and fixValue==None):
-            # return the min of the min found on each process
-            return self.global_comm.reduce(np.amin(self.f),op=MPI.MIN,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta3 is fixed
-        # ensure that the required index is covered by this process
-        if (axis==self.Dimension.ETA3 and fixValue>=self.eta3_start and fixValue<self.eta3_end):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue-self.eta3_start,)
-            # return the min of the min found on each process's slice
-            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta1 is fixed
-        # ensure that the required index is covered by this process
-        elif (axis==self.Dimension.ETA1 and fixValue>=self.eta1_start and fixValue<self.eta1_end):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue-self.eta1_start,)
-            # return the min of the min found on each process's slice
-            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta4 is fixed
-        # ensure that the required index is covered by this process
-        elif (axis==self.Dimension.ETA4 and fixValue>=self.eta4_start and fixValue<self.eta4_end):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue-self.eta4_start,)
-            # return the min of the min found on each process's slice
-            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta2 is fixed
-        # ensure that the required index is covered by this process
-        elif (axis==self.Dimension.ETA2):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue,)
-            # return the min of the min found on each process's slice
-            return self.global_comm.reduce(np.amin(self.f[idx]),op=MPI.MIN,root=0)
-        
-        # if the data is not on this process then send the largest possible value of f
-        # this way min will always choose an alternative
-        else:
-            return self.global_comm.reduce(1,op=MPI.MIN,root=0)
-    
-    
-    def getMax(self,axis = None,fixValue = None):
-        
-        # if we want the total of all points on the grid
-        if (axis==None and fixValue==None):
-            # return the max of the max found on each process
-            return self.global_comm.reduce(np.amax(self.f),op=MPI.MAX,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta3 is fixed
-        # ensure that the required index is covered by this process
-        if (axis==self.Dimension.ETA3 and fixValue>=self.eta3_start and fixValue<self.eta3_end):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue-self.eta3_start,)
-            # return the max of the max found on each process's slice
-            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta1 is fixed
-        # ensure that the required index is covered by this process
-        elif (axis==self.Dimension.ETA1 and fixValue>=self.eta1_start and fixValue<self.eta1_end):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue-self.eta1_start,)
-            # return the max of the max found on each process's slice
-            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta4 is fixed
-        # ensure that the required index is covered by this process
-        elif (axis==self.Dimension.ETA4 and fixValue>=self.eta4_start and fixValue<self.eta4_end):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue-self.eta4_start,)
-            # return the max of the max found on each process's slice
-            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        
-        # if we want the total of all points on a 3D slice where the value of eta2 is fixed
-        # ensure that the required index is covered by this process
-        elif (axis==self.Dimension.ETA2):
-            # get the indices of the required slice
-            idx = (np.s_[:],) * axis + (fixValue,)
-            # return the max of the max found on each process's slice
-            return self.global_comm.reduce(np.amax(self.f[idx]),op=MPI.MAX,root=0)
-        
-        # if the data is not on this process then send the smallest possible value of f
-        # this way max will always choose an alternative
-        else:
-            return self.global_comm.reduce(0,op=MPI.MAX,root=0)
