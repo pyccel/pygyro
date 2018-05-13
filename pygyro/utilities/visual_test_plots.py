@@ -24,7 +24,7 @@ def test_Poloidal_Stitch():
     
     grid=setupCylindricalGrid(npts, 'poloidal')
 
-    grid.f[:,:,:,:]=comm.Get_rank()
+    grid._f[:,:,:,:]=comm.Get_rank()
     p = SlicePlotter4d(grid)
     p.show()
 
@@ -36,7 +36,7 @@ def test_vParallel_Stitch():
     
     grid=setupCylindricalGrid(npts, 'v_parallel')
 
-    grid.f[:,:,:,:]=comm.Get_rank()
+    grid._f[:,:,:,:]=comm.Get_rank()
     p = SlicePlotter4d(grid)
     p.show()
 
