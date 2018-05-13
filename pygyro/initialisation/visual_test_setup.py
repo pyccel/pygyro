@@ -56,10 +56,7 @@ def test_Perturbation_Poloidal():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(nr     = npts[0],
-                                ntheta = npts[1],
-                                nz     = npts[2],
-                                nv     = npts[3],
+    grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
@@ -165,7 +162,7 @@ def test_Equilibrium_FluxSurface():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            FluxSurface[:]=fEq(r,theta,z,v,m,n)
+            FluxSurface[:]=fEq(r,v)
     
     Plotter2d(grid,'r','v').show()
 
@@ -188,7 +185,7 @@ def test_Equilibrium_vPar():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            Surface[:]=fEq(r,theta,z,v,m,n)
+            Surface[:]=fEq(r,v)
     
     Plotter2d(grid,'r','v').show()
 
@@ -211,7 +208,7 @@ def test_Equilibrium_Poloidal():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=fEq(r,theta,z,v,m,n)
+            PoloidalSurface[:]=fEq(r,v)
     
     Plotter2d(grid,'r','v').show()
 
