@@ -177,15 +177,14 @@ class LayoutManager:
         self._nDims=len(nprocs)
         self._nprocs = nprocs
         
-        topology = comm.Create_cart( nprocs, periods=[False]*self._nDims,
-                reorder=False )
+        topology = comm.Create_cart( nprocs, periods=[False]*self._nDims )
         
         # Get communicator for each dimension
         self._subcomms = []
         for i in range(self._nDims):
             self._subcomms.append(topology.Sub( [i==j for j in range(self._nDims)] ))
         
-        mpi_coords = topology.Get_coords(comm.Get_rank())
+        self._mpi_coords = topology.Get_coords(comm.Get_rank())
         
         # Create the layouts and save them in a dictionary
         # Find the largest layout
@@ -193,7 +192,7 @@ class LayoutManager:
         self._buffer_size = 0
         self._shapes = []
         for name,dim_order in layouts.items():
-            new_layout = Layout(name,nprocs,dim_order,eta_grids,mpi_coords)
+            new_layout = Layout(name,nprocs,dim_order,eta_grids,self._mpi_coords)
             layoutObjects.append((name,new_layout))
             self._shapes.append((name,new_layout.shape))
             if (new_layout.size>self._buffer_size):
@@ -228,6 +227,18 @@ class LayoutManager:
     
     def getLayout( self, name):
         return self._layouts[name]
+    
+    @property
+    def nProcs( self ):
+        return self._nprocs
+    
+    @property
+    def mpiCoords( self ):
+        return self._mpi_coords.copy()
+    
+    @property
+    def nDistributedDirections( self ):
+        return nDims
     
     @property
     def availableLayouts( self ):

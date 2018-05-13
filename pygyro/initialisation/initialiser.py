@@ -1,4 +1,5 @@
-from math import sqrt, exp, pi, tanh, cos
+from math import pi
+import numpy as np
 
 from . import constants
 
@@ -6,37 +7,55 @@ def initF(r,theta,z,vPar,m = constants.m,n = constants.n):
     return fEq(r,vPar)*(1+constants.eps*perturbation(r,theta,z,m,n))
 
 def perturbation(r,theta,z,m = constants.m,n = constants.n):
-    return exp(-(r-constants.rp)**2/constants.deltaR)*cos(constants.m*theta+constants.n*z/constants.R0)
+    return np.exp(-np.square(r-constants.rp)/constants.deltaR)*np.cos(constants.m*theta+constants.n*z/constants.R0)
 
 def fEq(r,vPar):
-    return n0(r)*exp(-0.5*vPar*vPar/Ti(r))/sqrt(2*pi*Ti(r))
+    return n0(r)*np.exp(-0.5*vPar*vPar/Ti(r))/np.sqrt(2*pi*Ti(r))
 
 def n0(r):
-    return constants.CN0*exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
+    return constants.CN0*np.exp(-constants.kN0*constants.deltaRN0*np.tanh((r-constants.rp)/constants.deltaRN0))
 
 def Ti(r):
-    return constants.CTi*exp(-constants.kTi*constants.deltaRTi*tanh((r-constants.rp)/constants.deltaRTi))
+    return constants.CTi*np.exp(-constants.kTi*constants.deltaRTi*np.tanh((r-constants.rp)/constants.deltaRTi))
 
 def Te(r):
-    return constants.CTe*exp(-constants.kTe*constants.deltaRTe*tanh((r-constants.rp)/constants.deltaRTe))
+    return constants.CTe*np.exp(-constants.kTe*constants.deltaRTe*np.tanh((r-constants.rp)/constants.deltaRTe))
 
-def initialise(grid,m = constants.m,n = constants.n):
-    for i,r in grid.getEta1Coords():
-        for j,z in grid.getEta3Coords():
-            for k,v in grid.getEta4Coords():
-                for l,theta in grid.getEta2Coords():
-                    grid.f[i,j,k,l]=initF(r,theta,z,v,m,n)
+def initialise_flux_surface(grid,m = constants.m,n = constants.n):
+    for i,r in grid.getCoords(0):
+        for j,v in grid.getCoords(1):
+            # Get surface
+            FluxSurface = grid.get2DSlice([i,j])
+            # Get coordinate values
+            theta = grid.getCoordVals(2)
+            z = grid.getCoordVals(3)
+            
+            # transpose theta to use ufuncs
+            theta = theta.reshape(theta.size,1)
+            FluxSurface[:]=initF(r,theta,z,v,m,n)
 
-def getPerturbation(grid,m = constants.m,n = constants.n):
-    for i,r in grid.getEta1Coords():
-        for j,z in grid.getEta3Coords():
-            for k,v in grid.getEta4Coords():
-                for l,theta in grid.getEta2Coords():
-                    grid.f[i,j,k,l]=perturbation(r,theta,z,m,n)
+def initialise_poloidal(grid,m = constants.m,n = constants.n):
+    for i,v in grid.getCoords(0):
+        for j,z in grid.getCoords(1):
+            # Get surface
+            PoloidalSurface = grid.get2DSlice([i,j])
+            # Get coordinate values
+            theta = grid.getCoordVals(2)
+            r = grid.getCoordVals(3)
+            
+            # transpose theta to use ufuncs
+            theta = theta.reshape(theta.size,1)
+            PoloidalSurface[:]=initF(r,theta,z,v,m,n)
 
-def getEquilibrium(grid):
-    for i,r in grid.getEta1Coords():
-        for j,z in grid.getEta3Coords():
-            for k,v in grid.getEta4Coords():
-                for l,theta in grid.getEta2Coords():
-                    grid.f[i,j,k,l]=fEq(r,v)
+def initialise_v_parallel(grid,m = constants.m,n = constants.n):
+    for i,r in grid.getCoords(0):
+        for j,z in grid.getCoords(1):
+            # Get surface
+            Surface = grid.get2DSlice([i,j])
+            # Get coordinate values
+            theta = grid.getCoordVals(2)
+            v = grid.getCoordVals(3)
+            
+            # transpose theta to use ufuncs
+            theta = theta.reshape(theta.size,1)
+            Surface[:]=initF(r,theta,z,v,m,n)

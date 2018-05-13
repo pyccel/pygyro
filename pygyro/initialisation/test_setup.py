@@ -4,73 +4,45 @@ from functools import reduce
 import pytest
 
 from  .setups                 import setupCylindricalGrid
-from  ..model.grid            import Layout
 
 @pytest.mark.serial
-def test_FieldAligned_setup():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
-    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
-
-@pytest.mark.serial
-def test_Poloidal_setup():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
-    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
-
-@pytest.mark.serial
-def test_vParallel_setup():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
-    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
+def test_setup():
+    npts = [10,20,10,10]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface')
+    
+    for (coord,npt) in zip(grid.eta_grid,npts):
+        assert(len(coord)==npt)
+    
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'poloidal')
+    
+    for (coord,npt) in zip(grid.eta_grid,npts):
+        assert(len(coord)==npt)
+    
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'v_parallel')
+    
+    for (coord,npt) in zip(grid.eta_grid,npts):
+        assert(len(coord)==npt)
 
 @pytest.mark.parallel
-@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
-def test_FieldAligned_setup_parallel(splitN):
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
-    size=MPI.COMM_WORLD.Get_size()
-    n1=max(size//splitN,1)
-    n2=size//n1
-    if (n1*n2!=size):
-        return
+def test_setup():
+    npts = [10,20,10,10]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface')
     
-    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED,nProcEta1=n1,nProcEta4=n2)
-
-@pytest.mark.parallel
-@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
-def test_Poloidal_setup_parallel(splitN):
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
-    size=MPI.COMM_WORLD.Get_size()
-    n1=max(size//splitN,1)
-    n2=size//n1
-    if (n1*n2!=size):
-        return
+    for (coord,npt) in zip(grid.eta_grid,npts):
+        assert(len(coord)==npt)
     
-    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL,nProcEta3=n1,nProcEta4=n2)
-
-@pytest.mark.parallel
-@pytest.mark.parametrize("splitN", [1,2,3,4,5,6])
-def test_vParallel_setup_parallel(splitN):
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
-    size=MPI.COMM_WORLD.Get_size()
-    n1=max(size//splitN,1)
-    n2=size//n1
-    if (n1*n2!=size):
-        return
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'poloidal')
     
-    setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL,nProcEta1=n1,nProcEta3=n2)
+    for (coord,npt) in zip(grid.eta_grid,npts):
+        assert(len(coord)==npt)
+    
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'v_parallel')
+    
+    for (coord,npt) in zip(grid.eta_grid,npts):
+        assert(len(coord)==npt)
