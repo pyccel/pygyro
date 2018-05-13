@@ -156,6 +156,9 @@ class SlicePlotter4d(object):
 
 class SlicePlotter3d(object):
     def __init__(self,grid: Grid, *args, **kwargs):
+        self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
+        self.drawRank = kwargs.pop('drawingRank',0)
+        
         self.grid = grid
         
         # use arguments to get coordinate values (including omitted coordinate)
@@ -167,7 +170,7 @@ class SlicePlotter3d(object):
             self.y=np.append(grid.eta_grid[Dimension.ETA2],2*pi)
             self.zVals=Dimension.ETA3
             self.omit=Dimension.ETA4
-            self.omitVal=grid.nEta4//2
+            self.omitVal=self.grid.nGlobalCoords[Dimension.ETA4]//2
         else:
             assert(len(args)==3)
             # use arguments to get x values
@@ -219,13 +222,13 @@ class SlicePlotter3d(object):
             
             # fix unused dimension at an arbitrary (but measured) value
             if (self.omit==Dimension.ETA1):
-                self.omitVal=grid.nEta1//2
+                self.omitVal=self.grid.nGlobalCoords[Dimension.ETA1]//2
             elif (self.omit==Dimension.ETA2):
-                self.omitVal=grid.nEta2//2
+                self.omitVal=self.grid.nGlobalCoords[Dimension.ETA2]//2
             elif (self.omit==Dimension.ETA3):
-                self.omitVal=grid.nEta3//2
+                self.omitVal=self.grid.nGlobalCoords[Dimension.ETA3]//2
             elif (self.omit==Dimension.ETA4):
-                self.omitVal=grid.nEta4//2
+                self.omitVal=self.grid.nGlobalCoords[Dimension.ETA4]//2
         
         # save x and y grid values
         nx=len(self.x)
@@ -276,9 +279,10 @@ class SlicePlotter3d(object):
                 self.slider = DiscreteSlider(self.sliderax1, "z", valinit=grid.eta_grid[Dimension.ETA3][0],
                         values=grid.eta_grid[Dimension.ETA3])
             elif (self.zVals==Dimension.ETA4):
-                self.initVal = grid.nEta4//2
+                self.initVal = self.grid.nGlobalCoords[Dimension.ETA4]//2
                 self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$', 
-                        valinit=grid.eta_grid[Dimension.ETA4][grid.nEta4//2],values=grid.eta_grid[Dimension.ETA4])
+                        valinit=grid.eta_grid[Dimension.ETA4][self.grid.nGlobalCoords[Dimension.ETA4]//2],
+                        values=grid.eta_grid[Dimension.ETA4])
             self.slider.on_changed(self.updateVal)
             if (not self.polar):
                 # add x-axis label
@@ -306,7 +310,7 @@ class SlicePlotter3d(object):
         else:
             # on other ranks save the initial value for the slider
             if (self.zVals==Dimension.ETA4):
-                self.initVal = grid.nEta4//2
+                self.initVal = self.grid.nGlobalCoords[Dimension.ETA4]//2
             else:
                 self.initVal = 0
             
@@ -334,8 +338,67 @@ class SlicePlotter3d(object):
     def plotFigure(self):
         # get slice by passing dictionary containing fixed dimensions and their values
         d = {self.zVals : self.initVal, self.omit : self.omitVal}
-        theSlice = self.grid.getSliceFromDict(d)
         
+        if (self.rank==self.drawRank):
+            layout, starts, mpi_data, nprocs, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+            baseShape = layout.shape
+            
+            if (layout.inv_dims_order[self.zVals]<2 and layout.inv_dims_order[self.omit]<2):
+                idx = np.where(starts==0)[-1]
+                myShape = baseShape.copy()
+                myShape[0]=1
+                myShape[1]=1
+                theSlice=np.squeeze(theSlice.reshape(myShape))
+            else:
+                splitSlice = np.split(theSlice,starts[1:])
+                concatReady = [[None for i in range(nprocs[0])] for j in range(nprocs[1])]
+                for i,chunk in enumerate(splitSlice):
+                    coords=mpi_data[i]
+                    myShape=baseShape.copy()
+                    myShape[0]=layout.mpi_lengths(0)[coords[0]]
+                    myShape[1]=layout.mpi_lengths(1)[coords[1]]
+                    if (chunk.size==0):
+                        myShape[min(layout.inv_dims_order[self.zVals],
+                                    layout.inv_dims_order[self.omit])]=0
+                        myShape[max(layout.inv_dims_order[self.zVals],
+                                    layout.inv_dims_order[self.omit])]=1
+                    else:
+                        myShape[layout.inv_dims_order[self.zVals]]=1
+                        myShape[layout.inv_dims_order[self.omit]]=1
+                    concatReady[coords[0]][coords[1]]=chunk.reshape(myShape)
+                
+                concat1 = [np.concatenate(concat,axis=1) for concat in concatReady]
+                theSlice = np.squeeze(np.concatenate(concat1,axis=0))
+            
+            if (layout.inv_dims_order[self.xVals]>layout.inv_dims_order[self.yVals]):
+                if (Dimension.ETA2 == self.xVals):
+                    theSlice = np.append(theSlice, theSlice[:,0,None],axis=1).T
+                elif (Dimension.ETA2 == self.yVals):
+                    theSlice = np.append(theSlice, theSlice[None,0,:],axis=0).T
+                else:
+                    theSlice = theSlice.T
+            else:
+                if (Dimension.ETA2 == self.xVals):
+                    theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
+                elif (Dimension.ETA2 == self.yVals):
+                    theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+            
+            self.fig.canvas.draw()
+            
+            if (hasattr(self,'plot')):
+                # remove the old plot
+                del self.plot
+                del self.ax.get_children()[0]
+            self.colorbarax2.clear()
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
+            self.fig.colorbar(self.plot,cax=self.colorbarax2)
+            
+            self.fig.canvas.draw()
+            
+        else:
+            self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+        
+        """
         if (self.rank==0):
             if (Dimension.ETA2 in [self.xVals, self.yVals]):
                 theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
@@ -353,6 +416,7 @@ class SlicePlotter3d(object):
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             self.fig.canvas.draw()
+        """
     
     def show(self):
         # set-up non-0 ranks as listeners so they can react to interactions with the plot on rank 0
@@ -524,13 +588,18 @@ class Plotter2d(object):
             # remove the old plot
             self.ax.clear()
             self.colorbarax2.clear()
+            
             if (layout.inv_dims_order[self.xVals]>layout.inv_dims_order[self.yVals]):
-                if (Dimension.ETA2 in [self.xVals, self.yVals]):
+                if (Dimension.ETA2 == self.xVals):
                     theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+                elif (Dimension.ETA2 == self.yVals):
+                    theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
                 self.plot = self.ax.pcolormesh(self.x,self.y,theSlice.T)
             else:
-                if (Dimension.ETA2 in [self.xVals, self.yVals]):
+                if (Dimension.ETA2 == self.xVals):
                     theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
+                elif (Dimension.ETA2 == self.yVals):
+                    theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
                 self.plot = self.ax.pcolormesh(self.x,self.y,theSlice)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
