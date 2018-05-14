@@ -98,7 +98,7 @@ class SlicePlotter4d(object):
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
                 splitSlice = np.split(theSlice,starts[1:])
-                concatReady = [[None for i in range(nprocs[0])] for j in range(nprocs[1])]
+                concatReady = [[None for i in range(nprocs[1])] for j in range(nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
                     myShape=baseShape.copy()
@@ -125,7 +125,7 @@ class SlicePlotter4d(object):
             # remove the old plot
             self.ax.clear()
             self.colorbarax2.clear()
-            self.plot = self.ax.pcolormesh(self.x,self.y,np.transpose(theSlice),vmin=self.minimum,vmax=self.maximum)
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             self.ax.set_xlabel("x [m]")
@@ -351,7 +351,7 @@ class SlicePlotter3d(object):
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
                 splitSlice = np.split(theSlice,starts[1:])
-                concatReady = [[None for i in range(nprocs[0])] for j in range(nprocs[1])]
+                concatReady = [[None for i in range(nprocs[1])] for j in range(nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
                     myShape=baseShape.copy()
@@ -545,7 +545,7 @@ class Plotter2d(object):
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
                 splitSlice = np.split(theSlice,starts[1:])
-                concatReady = [[None for i in range(nprocs[0])] for j in range(nprocs[1])]
+                concatReady = [[None for i in range(nprocs[1])] for j in range(nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
                     myShape=baseShape.copy()
