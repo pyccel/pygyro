@@ -33,12 +33,16 @@ def test_vParallelAdvection_gridIntegration():
     grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
     
-    splines = grid.get1DSpline()
+    spline = grid.get1DSpline()
+    
+    old_f=grid._f.copy()
     
     for i,r in grid.getCoords(0):
         for j,z in grid.getCoords(1):
             for k,q in grid.getCoords(2):
-                vParallelAdv(grid.get1DSlice([i,j,k]))
+                vParallelAdv(grid.get1DSlice([i,j,k]),grid.getCoordVals(3),spline,0.1,0)
+    
+    assert(np.allclose(old_f,grid._f))
 
 @pytest.mark.serial
 def test_poloidalAdvection_gridIntegration():
