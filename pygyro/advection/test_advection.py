@@ -17,43 +17,37 @@ def test_poloidalAdvection():
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
+    npts = [10,20,10,10]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface')
     
-    """
-    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.FIELD_ALIGNED)
-    for j,r in grid.getEta1Coords():
-        for k,v in grid.getEta4Coords():
-            fluxSurfaceAdv(grid.getFieldAlignedSlice(j,k))
-    """
+    splines = grid.get2DSpline()
+    
+    for i,r in grid.getCoords(0):
+        for j,v in grid.getCoords(1):
+            fluxSurfaceAdv(grid.get2DSlice([i,j]),splines)
 
 @pytest.mark.serial
 def test_vParallelAdvection_gridIntegration():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
+    npts = [10,20,10,10]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'v_parallel')
     
-    """
-    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.V_PARALLEL)
-    for i,r in grid.getEta1Coords():
-        for j,z in grid.getEta3Coords():
-            for k,q in grid.getEta2Coords():
-                vParallelAdv(grid.getEta4_Slice(i,j,k))
-    """
+    splines = grid.get1DSpline()
+    
+    for i,r in grid.getCoords(0):
+        for j,z in grid.getCoords(1):
+            for k,q in grid.getCoords(2):
+                vParallelAdv(grid.get1DSlice([i,j,k]))
 
 @pytest.mark.serial
 def test_poloidalAdvection_gridIntegration():
-    nr=10
-    ntheta=20
-    nz=10
-    nv=10
+    npts = [10,20,10,10]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'poloidal')
     
-    """
-    grid=setupCylindricalGrid(nr, ntheta, nz, nv, Layout.POLOIDAL)
-    for j,z in grid.getEta3Coords():
-        for k,v in grid.getEta4Coords():
-            fluxSurfaceAdv(grid.getPoloidalSlice(j,k))
-    """
+    splines = grid.get2DSpline()
+    
+    for i,z in grid.getCoords(0):
+        for j,v in grid.getCoords(1):
+            poloidalAdv(grid.get2DSlice([i,j]))
