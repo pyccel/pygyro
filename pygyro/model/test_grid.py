@@ -44,7 +44,7 @@ def test_Grid_serial():
                'poloidal'    : [3,2,1,0]}
     manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
-    Grid(eta_grids,manager,'flux_surface')
+    Grid(eta_grids,[],manager,'flux_surface')
 
 @pytest.mark.parallel
 def test_Grid_parallel():
@@ -61,7 +61,7 @@ def test_Grid_parallel():
                'poloidal'    : [3,2,1,0]}
     manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
-    Grid(eta_grids,manager,'flux_surface')
+    Grid(eta_grids,[],manager,'flux_surface')
 
 @pytest.mark.serial
 def test_CoordinateSave():
@@ -80,7 +80,7 @@ def test_CoordinateSave():
                'poloidal'    : [3,2,1,0]}
     manager = LayoutManager( comm, layouts, nprocs, eta_grid )
     
-    grid = Grid(eta_grid,manager,'flux_surface')
+    grid = Grid(eta_grid,[],manager,'flux_surface')
     
     dim_order = [0,3,1,2]
     for j in range(4):
@@ -106,7 +106,7 @@ def test_LayoutSwap():
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     
-    grid = Grid(eta_grids,remapper,'flux_surface')
+    grid = Grid(eta_grids,[],remapper,'flux_surface')
     
     define_f(grid)
     
@@ -130,7 +130,7 @@ def test_Contiguous():
                'poloidal'    : [3,2,1,0]}
     manager = LayoutManager( comm, layouts, nprocs, eta_grids )
     
-    grid = Grid(eta_grids,manager,'flux_surface')
+    grid = Grid(eta_grids,[],manager,'flux_surface')
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
