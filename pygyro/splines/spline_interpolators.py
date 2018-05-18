@@ -137,12 +137,12 @@ class SplineInterpolator2D():
         wt = self._bwork
 
         # Copy interpolation data onto w array
-        w[:,:] = ug[:,:]
+        w[:n1,:n2] = ug[:,:]
 
         # Cycle over x1 position and interpolate f along x2 direction.
         # Work on spl.coeffs
         for i1 in range(n1):
-            self._interp2.compute_interpolant( w[i1,:], self._spline2 )
+            self._interp2.compute_interpolant( w[i1,:n2], self._spline2 )
             w[i1,:] = self._spline2.coeffs
 
         # Transpose coefficients to self._bwork
@@ -151,7 +151,7 @@ class SplineInterpolator2D():
         # Cycle over x2 position and interpolate w along x1 direction.
         # Work on self._bwork
         for i2 in range(n2):
-            self._interp1.compute_interpolant( wt[i2,:], self._spline1 )
+            self._interp1.compute_interpolant( wt[i2,:n1], self._spline1 )
             wt[i2,:] = self._spline1.coeffs
 
         # x2-periodic only: "wrap around" coefficients onto extended array
