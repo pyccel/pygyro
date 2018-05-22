@@ -136,13 +136,10 @@ class SplineInterpolator2D():
         w  = spl.coeffs
         wt = self._bwork
 
-        # Copy interpolation data onto w array
-        w[:n1,:n2] = ug[:,:]
-
         # Cycle over x1 position and interpolate f along x2 direction.
         # Work on spl.coeffs
         for i1 in range(n1):
-            self._interp2.compute_interpolant( w[i1,:n2], self._spline2 )
+            self._interp2.compute_interpolant( ug[i1,:], self._spline2 )
             w[i1,:] = self._spline2.coeffs
 
         # Transpose coefficients to self._bwork
