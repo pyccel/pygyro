@@ -15,7 +15,7 @@ def test_fluxSurfaceAdvection(fact):
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
     
-    N = 101
+    N = 100
     
     dt=0.1
     c=2
@@ -37,7 +37,7 @@ def test_fluxSurfaceAdvection(fact):
     f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
     f_start = f_vals.copy()
     
-    for n in range(1,N):
+    for n in range(N):
         fluxAdv.step(f_vals,dt,c)
     
     assert(np.max(f_vals-f_start)<1e-8)
@@ -64,7 +64,7 @@ def test_vParallelAdvection(function,N,periodic):
     
     f = function(x)+fEdge
     
-    vParAdv = vParallelAdvection(x, spline)
+    vParAdv = vParallelAdvection([0,0,0,x], spline)
     
     for i in range(N):
         vParAdv.step(f,dt,c,r)
@@ -108,7 +108,7 @@ def test_vParallelAdvection_gridIntegration():
     
     old_f=grid._f.copy()
     
-    vParAdv = vParallelAdvection(grid.eta_grid[3], grid.get1DSpline())
+    vParAdv = vParallelAdvection(grid.eta_grid, grid.get1DSpline())
     
     for i,r in grid.getCoords(0):
         for j,z in grid.getCoords(1):
