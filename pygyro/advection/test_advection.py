@@ -6,12 +6,42 @@ from ..initialisation.initialiser   import fEq
 from .advection                     import *
 from ..                     import splines as spl
 
-@pytest.mark.serial
-def test_fluxSurfaceAdvection():
-    pass
-
 def gauss(x):
     return np.exp(-x**2/2/0.5**2)
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "fact", [10, 5, 2] )
+def test_fluxSurfaceAdvection(fact):
+    npts = [30,20]
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
+                np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
+    
+    N = 101
+    
+    dt=0.1
+    c=2
+    
+    f_vals = np.ndarray(npts)
+    
+    domain    = [ [0,2*pi], [0,20] ]
+    nkts      = [n+1                           for n          in npts ]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,3,True )    for b          in breaks]
+    bsplines  = [spl.BSplines( k,3,True )      for k          in knots]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+    
+    eta_vals[1]=eta_grids[0]
+    eta_vals[2]=eta_grids[1]
+    
+    fluxAdv = fluxSurfaceAdvection(eta_vals, bsplines)
+    
+    f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
+    f_start = f_vals.copy()
+    
+    for n in range(1,N):
+        fluxAdv.step(f_vals,dt,c)
+    
+    assert(np.max(f_vals-f_start)<1e-8)
 
 @pytest.mark.serial
 @pytest.mark.parametrize( "function,N,periodic", [(gauss,10,False),(gauss,10,True),(gauss,20,False),(gauss,20,True),
@@ -62,7 +92,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
     
     dt=0.1
     
-    fluxAdv = fluxSurfaceAdvection(grid.eta_grid[1:3], grid.get2DSpline())
+    fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
     
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
@@ -94,7 +124,7 @@ def test_poloidalAdvection_gridIntegration():
     grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     
-    polAdv = poloidalAdvection(grid.eta_grid[1::-1], grid.get2DSpline())
+    polAdv = poloidalAdvection(grid.eta_grid, grid.get2DSpline())
     
     #~ for i,z in grid.getCoords(0):
         #~ for j,v in grid.getCoords(1):
