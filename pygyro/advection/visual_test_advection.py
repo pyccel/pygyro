@@ -3,7 +3,7 @@ import matplotlib.pyplot    as plt
 from mpl_toolkits.mplot3d import Axes3D
 from math                 import pi
 
-import cProfile, pstats, io
+#import cProfile, pstats, io
 
 from ..                         import splines as spl
 from ..initialisation.setups    import setupCylindricalGrid
@@ -15,12 +15,12 @@ def test_fluxSurfaceAdvection():
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
     
-    N = 201
+    N = 100
     
     dt=0.1
-    c=1
+    c=2
     
-    f_vals = np.ndarray([npts[0],npts[1],N])
+    f_vals = np.ndarray([npts[0],npts[1],N+1])
     
     domain    = [ [0,2*pi], [0,20] ]
     nkts      = [n+1                           for n          in npts ]
@@ -37,19 +37,20 @@ def test_fluxSurfaceAdvection():
     #f_vals[:,:,0]=np.exp(-((np.atleast_2d(eta_vals[1]).T-pi)**2+(eta_vals[2]-10)**2)/4)
     f_vals[:,:,0]=np.sin(eta_vals[2]*pi/10)
     
-    pr = cProfile.Profile()
-    pr.enable()
+    # profiling:
+    #pr = cProfile.Profile()
+    #pr.enable()
     
-    for n in range(1,N):
-        f_vals[:,:,n]=f_vals[:,:,n-1]
-        fluxAdv.step(f_vals[:,:,n],dt,c)
+    for n in range(N):
+        f_vals[:,:,n+1]=f_vals[:,:,n]
+        fluxAdv.step(f_vals[:,:,n+1],dt,c)
     
-    pr.disable()
-    s = io.StringIO()
-    sortby = 'cumulative'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
-    print(s.getvalue())
+    #pr.disable()
+    #s = io.StringIO()
+    #sortby = 'cumulative'
+    #ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    #ps.print_stats()
+    #print(s.getvalue())
     
     
     x,y = np.meshgrid(eta_vals[2], eta_vals[1])
