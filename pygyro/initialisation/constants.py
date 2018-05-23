@@ -1,3 +1,4 @@
+import numpy as np
 from scipy import integrate
 from math import exp, tanh
 
@@ -22,6 +23,8 @@ CTe = float(CTi)
 m = 15
 n = -11
 
+def iota(r = rp):
+    return np.full_like(r,0.0)
 
 def normalisingFunc(r):
     return exp(-kN0*deltaRN0*tanh((r-rp)/deltaRN0))
