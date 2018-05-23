@@ -1,5 +1,4 @@
 import pytest
-import matplotlib.pyplot    as plt
 
 from ..initialisation.setups        import setupCylindricalGrid
 from ..initialisation.initialiser   import fEq
