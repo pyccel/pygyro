@@ -2,8 +2,6 @@ import numpy as np
 from scipy.interpolate              import lagrange
 from math                           import pi
 
-import matplotlib.pyplot    as plt
-
 from ..splines.splines              import Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..initialisation.initialiser   import fEq
@@ -62,14 +60,6 @@ class fluxSurfaceAdvection:
                                self._spline.eval(thetaPts[5],zEvalPts[5]),
                                self._spline.eval(thetaPts[6],zEvalPts[6])]
                 poly = lagrange(zPts,lagrangePts)
-                """
-                print(thetaPts,zEvalPts)
-                
-                x=np.linspace(zPts[0]-self._dz,zPts[-1]+self._dz,20)
-                plt.plot(x, np.polyval(poly, x), label="Polynom")
-                plt.legend(loc='upper right')
-                plt.show()
-                """
                 if (self._points[1][i]-c*self._bz[rGIdx]*dt>zPts[-1] or self._points[1][i]-c*self._bz[rGIdx]*dt<zPts[0]):
                     print("outside")
                 f[j,i] = poly(self._points[1][i]-c*self._bz[rGIdx]*dt)
