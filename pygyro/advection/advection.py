@@ -35,11 +35,7 @@ class fluxSurfaceAdvection:
         
         zDist = -c*self._bz[rGIdx]*dt
         
-        # produces 6 unique points unless zDist is an integer
-        # TODO: Fix
-        bkwdShifts = floor( zDist ) - np.array([2,1,0])
-        fwdShifts  = ceil(  zDist ) + np.array([0,1,2])
-        Shifts = np.concatenate([bkwdShifts, fwdShifts])
+        Shifts = floor( zDist ) + np.array([-2,-1,0,1,2,3])
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
         LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], 6])
