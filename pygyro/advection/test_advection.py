@@ -6,18 +6,21 @@ from .advection                     import *
 from ..                     import splines as spl
 
 def gauss(x):
-    return np.exp(-x**2/2/0.5**2)
+    return np.exp(-x**2/4)
+
+def iota0():
+    return 0.0
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "fact", [10, 5, 2] )
-def test_fluxSurfaceAdvection(fact):
+@pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1),(5,0.1), (2,1), (2,0.1)] )
+def test_fluxSurfaceAdvection(fact,dt):
     npts = [30,20]
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
     
     N = 100
     
-    dt=0.1
+    dt=1
     c=2
     
     f_vals = np.ndarray(npts)
@@ -32,35 +35,35 @@ def test_fluxSurfaceAdvection(fact):
     eta_vals[1]=eta_grids[0]
     eta_vals[2]=eta_grids[1]
     
-    fluxAdv = fluxSurfaceAdvection(eta_vals, bsplines)
+    fluxAdv = fluxSurfaceAdvection(eta_vals, bsplines, iota0)
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
-    f_start = f_vals.copy()
+    f_end = np.sin((eta_vals[2]-c*dt*N)*pi/fact)
     
     for n in range(N):
         fluxAdv.step(f_vals,dt,c)
     
-    assert(np.max(f_vals-f_start)<1e-8)
+    assert(np.max(np.abs(f_vals-f_end))<1e-8)
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "function,N,periodic", [(gauss,10,False),(gauss,10,True),(gauss,20,False),(gauss,20,True),
-                                                    (gauss,30,False),(gauss,30,True)] )
-def test_vParallelAdvection(function,N,periodic):
-    npts = 100
+@pytest.mark.parametrize( "function,N", [(gauss,10),(gauss,20),(gauss,30)] )
+def test_vParallelAdvection(function,N):
+    npts = 50
     f = np.empty(npts)
+    N=10
     
     dt=0.1
     c=2
     
-    
-    nkts      = npts+1+3*(int(periodic)-1)
+    nkts      = npts-2
     breaks    = np.linspace( -5, 5, num=nkts )
-    knots     = spl.make_knots( breaks,3,periodic )
-    spline    = spl.BSplines( knots,3,periodic )
+    knots     = spl.make_knots( breaks,3,False )
+    spline    = spl.BSplines( knots,3,False )
     x         = spline.greville
     
     r = 4
-    fEdge = fEq(4,x[0])
+    fEdge = fEq(r,x[0])
+    assert(fEq(r,x[0])==fEq(r,x[-1]))
     
     f = function(x)+fEdge
     
@@ -72,12 +75,13 @@ def test_vParallelAdvection(function,N,periodic):
     fEnd = np.empty(npts)
     
     for i in range(npts):
-        if (x[i]-c*dt<x[0]):
-            fEnd[i]=fEdge
+        if ((x[i]-c*dt*N)<x[0]):
+            fEnd[i]=fEq(r,(x[i]-c*dt*N))
         else:
             fEnd[i]=fEdge+function(x[i]-c*dt*N)
     
-    assert(max(f-fEnd)<2e-5)
+    print(max(abs(f-fEnd)))
+    assert(max(abs(f-fEnd))<1e-3)
 
 @pytest.mark.serial
 def test_poloidalAdvection():
