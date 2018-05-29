@@ -85,6 +85,11 @@ class Grid(object):
         return (self._splines[self._layout.dims_order[-2]],
                 self._splines[self._layout.dims_order[-1]])
     
+    def getSpline( self, i ):
+        """ get the i-th spline (in global coordinates r,theta,z,v)
+        """
+        return self._splines[i]
+    
     def get1DSlice( self, slices: list ):
         """ get the 1D slice at the provided list of coordinates
         """
