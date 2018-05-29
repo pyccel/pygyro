@@ -50,6 +50,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     qDegree=kwargs.pop('thetaDegree',3)
     zDegree=kwargs.pop('zDegree',3)
     vDegree=kwargs.pop('vDegree',3)
+    eps=kwargs.pop('eps',constants.eps)
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     
     mpi_size = comm.Get_size()
@@ -80,9 +81,9 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     grid = Grid(eta_grids,bsplines,remapper,layout)
     
     if (layout=='flux_surface'):
-        initialise_flux_surface(grid,m,n)
+        initialise_flux_surface(grid,m,n,eps)
     elif (layout=='v_parallel'):
-        initialise_v_parallel(grid,m,n)
+        initialise_v_parallel(grid,m,n,eps)
     elif (layout=='poloidal'):
-        initialise_poloidal(grid,m,n)
+        initialise_poloidal(grid,m,n,eps)
     return grid

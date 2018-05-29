@@ -3,8 +3,8 @@ import numpy as np
 
 from . import constants
 
-def initF(r,theta,z,vPar,m = constants.m,n = constants.n):
-    return fEq(r,vPar)*(1+constants.eps*perturbation(r,theta,z,m,n))
+def initF(r,theta,z,vPar,m = constants.m,n = constants.n, eps = constants.eps):
+    return fEq(r,vPar)*(1+eps*perturbation(r,theta,z,m,n))
 
 def perturbation(r,theta,z,m = constants.m,n = constants.n):
     return np.exp(-np.square(r-constants.rp)/constants.deltaR)*np.cos(constants.m*theta+constants.n*z/constants.R0)
@@ -21,7 +21,7 @@ def Ti(r):
 def Te(r):
     return constants.CTe*np.exp(-constants.kTe*constants.deltaRTe*np.tanh((r-constants.rp)/constants.deltaRTe))
 
-def initialise_flux_surface(grid,m = constants.m,n = constants.n):
+def initialise_flux_surface(grid,m = constants.m,n = constants.n, eps = constants.eps):
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
             # Get surface
@@ -32,9 +32,9 @@ def initialise_flux_surface(grid,m = constants.m,n = constants.n):
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            FluxSurface[:]=initF(r,theta,z,v,m,n)
+            FluxSurface[:]=initF(r,theta,z,v,m,n,eps)
 
-def initialise_poloidal(grid,m = constants.m,n = constants.n):
+def initialise_poloidal(grid,m = constants.m,n = constants.n, eps = constants.eps):
     for i,v in grid.getCoords(0):
         for j,z in grid.getCoords(1):
             # Get surface
@@ -45,9 +45,9 @@ def initialise_poloidal(grid,m = constants.m,n = constants.n):
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=initF(r,theta,z,v,m,n)
+            PoloidalSurface[:]=initF(r,theta,z,v,m,n,eps)
 
-def initialise_v_parallel(grid,m = constants.m,n = constants.n):
+def initialise_v_parallel(grid,m = constants.m,n = constants.n, eps = constants.eps):
     for i,r in grid.getCoords(0):
         for j,z in grid.getCoords(1):
             # Get surface
@@ -58,4 +58,4 @@ def initialise_v_parallel(grid,m = constants.m,n = constants.n):
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            Surface[:]=initF(r,theta,z,v,m,n)
+            Surface[:]=initF(r,theta,z,v,m,n,eps)
