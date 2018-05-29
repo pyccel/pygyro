@@ -61,16 +61,11 @@ class vParallelAdvection:
         
         self.evalFunc = np.vectorize(self.evaluate)
     
-    def step( self, f, dt, c: Spline1D, r ):
+    def step( self, f, dt, c, r ):
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        c1 = c.eval(self._points)
-        pt1 = self._points-c1*dt
-        c2 = c.eval(pt1)
-        
-        #f[:]=self.evalFunc(self._points-c*dt, r)
-        f[:]=self.evalFunc(self._points-0.5*(c1+c2)*dt, r)
+        f[:]=self.evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
         if (v<self._points[0] or v>self._points[-1]):
