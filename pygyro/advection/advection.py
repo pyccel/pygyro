@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate              import lagrange
 from math                           import pi, floor, ceil
 
-from ..splines.splines              import Spline1D, Spline2D, BSplines
+from ..splines.splines              import Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
@@ -61,12 +61,16 @@ class vParallelAdvection:
         
         self.evalFunc = np.vectorize(self.evaluate)
     
-    def step( self, f, dt, c, r ):
+    def step( self, f, dt, c: Spline1D, r ):
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        #f[:]=self._spline.eval(self._points-c*dt)
-        f[:]=self.evalFunc(self._points-c*dt, r)
+        c1 = c.eval(self._points)
+        pt1 = self._points-c1*dt
+        c2 = c.eval(pt1)
+        
+        #f[:]=self.evalFunc(self._points-c*dt, r)
+        f[:]=self.evalFunc(self._points-0.5*(c1+c2)*dt, r)
     
     def evaluate( self, v, r ):
         if (v<self._points[0] or v>self._points[-1]):
@@ -77,28 +81,55 @@ class vParallelAdvection:
 class poloidalAdvection:
     def __init__( self, eta_vals, splines ):
         self._points = eta_vals[1::-1]
+        self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size,self._points[1].size)
         self._interpolator = SplineInterpolator2D(splines[0],splines[1])
         self._spline = Spline2D(splines[0],splines[1])
         
         self.evalFunc = np.vectorize(self.evaluate)
     
-    def step( self, f, dt, phi: BSplines, v ):
+    def step( self, f, dt, phi: Spline2D, v ):
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
+        multFactor = dt/constants.B0/self._points[1]
+        
         drPhi = phi.eval(*self._points,0,1)
         dthetaPhi = phi.eval(*self._points,1,0)
-        #f[:]=self._spline.eval(np.atleast_2d(self._points[0]).T-drPhi*dt/constants.B0/self.points[1],
-        #                       self._points[1]+dthetaPhi*dt/constants.B0/self.points[1])
-        multFactor = dt/constants.B0/self._points[1]
+        
+        endPts = ( self._shapedQ   -     drPhi*multFactor,
+                   self._points[1] + dthetaPhi*multFactor )
+        
+        for i in range(self._nPoints[0]):
+            for j in range(self._nPoints[1]):
+                while (endPts[0][i][j]<0):
+                    endPts[0][i][j]+=2*pi
+                while (endPts[0][i][j]>2*pi):
+                    endPts[0][i][j]-=2*pi
+                # TODO: handle boundary conditions in r
+                drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)
+                dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)
+        
+        multFactor*=0.5
+        
+        endPts = ( self._shapedQ   -     drPhi*multFactor,
+                   self._points[1] + dthetaPhi*multFactor )
+        
+        #f[:]=self.evalFunc(np.atleast_2d(self._points[0]).T-drPhi*dt/constants.B0/self.points[1],
+        #                   self._points[1]+dthetaPhi*dt/constants.B0/self.points[1])
+        
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
-                f[i,j]=self.evalFunc(self._points[0][i]-    drPhi[i,j]*multFactor[j],
-                                     self._points[1][j]+dthetaPhi[i,j]*multFactor[j],v)
+                f[i,j]=self.evalFunc(endPts[0][i][j],endPts[1][i][j],v)
     
-    def evaluate( self, r, theta, v ):
-        if (r<self._points[1][0] or r>self._points[1][-1]):
+    def evaluate( self, theta, r, v ):
+        if (r<self._points[1][0]):
+            return fEq(self._points[1][0],v);
+        elif (r>self._points[1][-1]):
             return fEq(r,v);
         else:
-            return self._spline.eval(r,theta)
+            while (theta>2*pi):
+                theta-=2*pi
+            while (theta<0):
+                theta+=2*pi
+            return self._spline.eval(theta,r)
