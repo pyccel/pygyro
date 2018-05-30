@@ -1,3 +1,4 @@
+from mpi4py                 import MPI
 import pytest
 
 from ..initialisation.setups        import setupCylindricalGrid
@@ -84,8 +85,8 @@ def test_vParallelAdvection(function,N):
     assert(max(abs(f-fEnd))<1e-3)
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1),(5,0.1), (2,1), (2,0.1)] )
-def test_poloidalAdvection(fact,dt):
+@pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
+def test_poloidalAdvection(dt,v):
     npts = [30,20]
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
@@ -109,20 +110,21 @@ def test_poloidalAdvection(fact,dt):
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:]=eta_vals[0]*2+np.atleast_2d(eta_vals[1]).T*3
+    phiVals[:]=3*eta_vals[0]**2 * (1+ 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T*2))
+    #phiVals[:]=10*eta_vals[0]
     interp = SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:,:] = np.atleast_2d(np.sin(eta_vals[1]*pi/fact)).T
-    f_end = np.atleast_2d(np.sin((eta_vals[1]-3*dt*N)*pi/fact)).T
+    #f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 + fEq(0.1,v)
+    f_vals[:,:] = phiVals + fEq(0.1,v)
     
-    v=0
+    f_start=f_vals.copy()
     
     for n in range(N):
         polAdv.step(f_vals,dt,phi,v)
     
-    assert(np.max(np.abs(f_vals-f_end))<1e-2)
+    assert(np.max(np.abs(f_vals-f_start))<1e-2)
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
@@ -186,7 +188,7 @@ def test_equilibrium():
     npts = [20,20,10,8]
     grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
-                                eps    = 0.1,
+                                eps    = 0,
                                 comm   = comm)
     
     startVals = grid._f.copy()
@@ -238,5 +240,4 @@ def test_equilibrium():
             for j,v in grid.getCoords(1):
                 fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
     
-    print(np.max(startVals-grid._f))
-    assert(np.max(startVals-grid._f)<1e-2)
+    assert(np.max(startVals-grid._f)<1e-8)
