@@ -14,8 +14,12 @@ class Dimension(IntEnum):
     ETA4 = 3
 
 class SlicePlotter4d(object):
-    def __init__(self,grid: Grid, comm: MPI.Comm = MPI.COMM_WORLD, drawingRank: int = 0):
+    def __init__(self,grid: Grid, autoUpdate: bool = True,
+                 comm: MPI.Comm = MPI.COMM_WORLD, drawingRank: int = 0,
+                 drawRankInGrid: bool = True):
         self.grid = grid
+        self.autoUpdate = autoUpdate
+        self.drawRankInGrid = drawRankInGrid
         
         # get MPI values
         self.comm = comm
@@ -26,11 +30,31 @@ class SlicePlotter4d(object):
         self.vVal = grid.nGlobalCoords[Dimension.ETA4]//2
         self.zVal = 0
         
-        # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin()
-        self.maximum=grid.getMax()
+        if (autoUpdate):
+            # get max and min values of f to avoid colorbar jumps
+            self.minimum=grid.getMin()
+            self.maximum=grid.getMax()
+        else:
+            self.minimum=0
+            self.maximum=1
         
-        if (self.rank==0):
+        if (not drawRankInGrid):
+            otherRank = (self.drawRank+1)%self.comm.Get_size()
+            if (self.rank == self.drawRank):
+                layout1=comm.recv(None, source=otherRank, tag=77)
+                layout2=comm.recv(None, source=otherRank, tag=77)
+                layout3=comm.recv(None, source=otherRank, tag=77)
+                self._layouts = {'flux_surface':layout1, 'poloidal': layout2, 'v_parallel': layout3}
+                self.nprocs = comm.recv(None, source=otherRank, tag=77)
+            elif (self.rank == otherRank):
+                comm.send(grid._layout_manager.getLayout('flux_surface'), dest=self.drawRank, tag=77)
+                comm.send(grid._layout_manager.getLayout('poloidal'), dest=self.drawRank, tag=77)
+                comm.send(grid._layout_manager.getLayout('v_parallel'), dest=self.drawRank, tag=77)
+                comm.send(grid._layout_manager.nProcs, dest=self.drawRank, tag=77)
+        else:
+            self.nprocs = grid._layout_manager.nProcs
+        
+        if (self.rank==self.drawRank):
             self.fig = plt.figure()
             self.fig.canvas.mpl_connect('close_event', self.handle_close)
             self.ax = self.fig.add_axes([0.1, 0.25, 0.7, 0.7],)
@@ -63,31 +87,45 @@ class SlicePlotter4d(object):
         self.plotFigure()
 
     def updateV(self, value):
-        # alert non-0 ranks that v has been updated and the drawing must be updated
-        MPI.COMM_WORLD.bcast(1,root=0)
-        self.vVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA4])).argmin()
-        # broadcast new value
-        self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
-        # update plot
-        self.updateDraw()
+        if (self.autoUpdate):
+            # alert non-0 ranks that v has been updated and the drawing must be updated
+            MPI.COMM_WORLD.bcast(1,root=0)
+            self.vVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA4])).argmin()
+            # broadcast new value
+            self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
+            # update plot
+            self.updateDraw()
+        elif (self.rank==self.drawRank):
+            self.vVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA4])).argmin()
 
     def updateZ(self, value):
-        # alert non-0 ranks that z has been updated and the drawing must be updated
-        MPI.COMM_WORLD.bcast(2,root=0)
-        self.zVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA3])).argmin()
-        # broadcast new value
-        self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
-        # update plot
-        self.updateDraw()
+        if (self.autoUpdate):
+            # alert non-0 ranks that z has been updated and the drawing must be updated
+            MPI.COMM_WORLD.bcast(2,root=0)
+            # broadcast new value
+            self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
+            # update plot
+            self.updateDraw()
+        elif (self.rank==self.drawRank):
+            self.zVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA3])).argmin()
     
     def updateDraw(self):
+        if (not self.autoUpdate):
+            # broadcast new v value
+            self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
+            
+            # broadcast new z value
+            self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
         self.plotFigure()
     
     def plotFigure(self):
         # get the slice with v and z values as indicated by the sliders
         d = {2 : self.zVal, 3 : self.vVal}
         if (self.rank==self.drawRank):
-            layout, starts, mpi_data, nprocs, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+            
+            layout = self._layouts[layout.name]
+            
             baseShape = layout.shape
             
             if (layout.inv_dims_order[2]<2 and layout.inv_dims_order[3]<2):
@@ -97,8 +135,12 @@ class SlicePlotter4d(object):
                 myShape[1]=1
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
-                splitSlice = np.split(theSlice,starts[1:])
-                concatReady = [[None for i in range(nprocs[1])] for j in range(nprocs[0])]
+                if (self.drawRankInGrid):
+                    splitSlice = np.split(theSlice,starts[1:])
+                else:
+                    splitSlice = np.split(theSlice,starts[2:])
+                    mpi_data=mpi_data[1:]
+                concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
                     myShape=baseShape.copy()
@@ -120,12 +162,11 @@ class SlicePlotter4d(object):
             else:
                 theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
             
-            self.fig.canvas.draw()
-            
             # remove the old plot
             self.ax.clear()
             self.colorbarax2.clear()
-            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
+            #,vmin=self.minimum,vmax=self.maximum
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet")
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             self.ax.set_xlabel("x [m]")
@@ -160,6 +201,8 @@ class SlicePlotter3d(object):
         self.drawRank = kwargs.pop('drawingRank',0)
         
         self.grid = grid
+        
+        self.nprocs = grid._layout_manager.nProcs
         
         # use arguments to get coordinate values (including omitted coordinate)
         if (len(args)==0):
@@ -340,7 +383,7 @@ class SlicePlotter3d(object):
         d = {self.zVals : self.initVal, self.omit : self.omitVal}
         
         if (self.rank==self.drawRank):
-            layout, starts, mpi_data, nprocs, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
             baseShape = layout.shape
             
             if (layout.inv_dims_order[self.zVals]<2 and layout.inv_dims_order[self.omit]<2):
@@ -351,7 +394,7 @@ class SlicePlotter3d(object):
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
                 splitSlice = np.split(theSlice,starts[1:])
-                concatReady = [[None for i in range(nprocs[1])] for j in range(nprocs[0])]
+                concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
                     myShape=baseShape.copy()
@@ -390,7 +433,7 @@ class SlicePlotter3d(object):
                 del self.plot
                 del self.ax.get_children()[0]
             self.colorbarax2.clear()
-            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum)
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum,cmap="jet")
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             self.fig.canvas.draw()
@@ -417,6 +460,8 @@ class Plotter2d(object):
     def __init__(self,grid: Grid, *args, **kwargs):
         self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
         self.drawRank = kwargs.pop('drawingRank',0)
+        
+        self.nprocs = grid._layout_manager.nProcs
         
         # use arguments to get x values
         assert(len(args)==2)
@@ -534,7 +579,7 @@ class Plotter2d(object):
         d = {self.omit1 : self.omitVal1, self.omit2 : self.omitVal2}
         
         if (self.rank==self.drawRank):
-            layout, starts, mpi_data, nprocs, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
             baseShape = layout.shape
             
             if (layout.inv_dims_order[self.omit1]<2 and layout.inv_dims_order[self.omit2]<2):
@@ -545,7 +590,7 @@ class Plotter2d(object):
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
                 splitSlice = np.split(theSlice,starts[1:])
-                concatReady = [[None for i in range(nprocs[1])] for j in range(nprocs[0])]
+                concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
                     myShape=baseShape.copy()
@@ -575,13 +620,13 @@ class Plotter2d(object):
                     theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
                 elif (Dimension.ETA2 == self.yVals):
                     theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
-                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice.T)
+                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice.T,cmap="jet")
             else:
                 if (Dimension.ETA2 == self.xVals):
                     theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
                 elif (Dimension.ETA2 == self.yVals):
                     theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
-                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice)
+                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet")
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             if (not self.polar):
