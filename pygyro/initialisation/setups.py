@@ -52,8 +52,17 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     vDegree=kwargs.pop('vDegree',3)
     eps=kwargs.pop('eps',constants.eps)
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
+    plotThread=kwargs.pop('plot_thread',False)
+    drawRank=kwargs.pop('draw_rank',0)
     
-    mpi_size = comm.Get_size()
+    rank=comm.Get_rank()
+    
+    if (plotThread):
+        layout_comm = comm.Split(rank==drawRank,comm.Get_rank())
+    else:
+        layout_comm = comm
+    
+    mpi_size = layout_comm.Get_size()
     
     domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
     degree = [rDegree, qDegree, zDegree, vDegree]
@@ -75,7 +84,10 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
                'poloidal'    : [3,2,1,0]}
 
     # Create layout manager
-    remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
+    if (plotThread and rank==drawRank):
+        remapper = LayoutManager( layout_comm, layouts, nprocs, [[],[],[],[]] )
+    else:
+        remapper = LayoutManager( layout_comm, layouts, nprocs, eta_grids )
     
     # Create grid
     grid = Grid(eta_grids,bsplines,remapper,layout,comm)
