@@ -78,7 +78,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
     
     # Create grid
-    grid = Grid(eta_grids,bsplines,remapper,layout)
+    grid = Grid(eta_grids,bsplines,remapper,layout,comm)
     
     if (layout=='flux_surface'):
         initialise_flux_surface(grid,m,n,eps)
