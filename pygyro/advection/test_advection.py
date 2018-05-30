@@ -84,6 +84,7 @@ def test_vParallelAdvection(function,N):
     print(max(abs(f-fEnd)))
     assert(max(abs(f-fEnd))<1e-3)
 
+"""
 @pytest.mark.serial
 @pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
 def test_poloidalAdvection(dt,v):
@@ -125,6 +126,7 @@ def test_poloidalAdvection(dt,v):
         polAdv.step(f_vals,dt,phi,v)
     
     assert(np.max(np.abs(f_vals-f_start))<1e-2)
+"""
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
