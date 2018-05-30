@@ -122,7 +122,7 @@ def test_poloidalAdvection(fact,dt):
     for n in range(N):
         polAdv.step(f_vals,dt,phi,v)
     
-    assert(np.max(np.abs(f_vals-f_end))<1e-8)
+    assert(np.max(np.abs(f_vals-f_end))<1e-2)
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
