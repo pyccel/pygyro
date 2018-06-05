@@ -35,6 +35,7 @@ class parallelGradient:
         else:
             self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, 6])
             self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
+            assert(np.isfinite(self._thetaVals).all())
     
     def _getThetaVals( self, r, thetaVals, eta_grid, iota ):
         n = eta_grid[2].size
@@ -47,6 +48,7 @@ class parallelGradient:
         for k,z in enumerate(eta_grid[2][-3:]):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
+        assert(np.isfinite(thetaVals).all())
     
     def parallel_gradient( self, phi_r, i ):
         if (self._variesInR):
@@ -83,6 +85,8 @@ class parallelGradient:
             der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
             der[:,(i-2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
             der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
+        
+        #assert(np.isfinite(der).all())
         
         der*= ( bz * self._inv_dz )/60
         
