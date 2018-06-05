@@ -1,6 +1,7 @@
 from mpi4py                 import MPI
 from math                   import pi
 from enum                   import IntEnum
+from matplotlib.widgets     import Button
 import matplotlib.pyplot    as plt
 import numpy                as np
 
@@ -20,6 +21,7 @@ class SlicePlotter4d(object):
         self.grid = grid
         self.autoUpdate = autoUpdate
         self.drawRankInGrid = drawRankInGrid
+        self.closed=False
         
         # get MPI values
         self.comm = comm
@@ -30,29 +32,27 @@ class SlicePlotter4d(object):
         self.vVal = grid.nGlobalCoords[Dimension.ETA4]//2
         self.zVal = 0
         
-        if (autoUpdate):
-            # get max and min values of f to avoid colorbar jumps
-            self.minimum=grid.getMin()
-            self.maximum=grid.getMax()
-        else:
-            self.minimum=0
-            self.maximum=1
+        self.minimum=grid.getMin(drawingRank)
+        self.maximum=grid.getMax(drawingRank)
         
         if (not drawRankInGrid):
             otherRank = (self.drawRank+1)%self.comm.Get_size()
             if (self.rank == self.drawRank):
                 layout1=comm.recv(None, source=otherRank, tag=77)
-                layout2=comm.recv(None, source=otherRank, tag=77)
-                layout3=comm.recv(None, source=otherRank, tag=77)
+                layout2=comm.recv(None, source=otherRank, tag=78)
+                layout3=comm.recv(None, source=otherRank, tag=79)
                 self._layouts = {'flux_surface':layout1, 'poloidal': layout2, 'v_parallel': layout3}
-                self.nprocs = comm.recv(None, source=otherRank, tag=77)
+                self.nprocs = comm.recv(None, source=otherRank, tag=80)
             elif (self.rank == otherRank):
                 comm.send(grid._layout_manager.getLayout('flux_surface'), dest=self.drawRank, tag=77)
-                comm.send(grid._layout_manager.getLayout('poloidal'), dest=self.drawRank, tag=77)
-                comm.send(grid._layout_manager.getLayout('v_parallel'), dest=self.drawRank, tag=77)
-                comm.send(grid._layout_manager.nProcs, dest=self.drawRank, tag=77)
+                comm.send(grid._layout_manager.getLayout('poloidal'), dest=self.drawRank, tag=78)
+                comm.send(grid._layout_manager.getLayout('v_parallel'), dest=self.drawRank, tag=79)
+                comm.send(grid._layout_manager.nProcs, dest=self.drawRank, tag=80)
         else:
             self.nprocs = grid._layout_manager.nProcs
+            self._layouts = {'flux_surface':grid._layout_manager.getLayout('flux_surface'),
+                             'poloidal': grid._layout_manager.getLayout('poloidal'),
+                             'v_parallel': grid._layout_manager.getLayout('v_parallel')}
         
         if (self.rank==self.drawRank):
             self.fig = plt.figure()
@@ -60,7 +60,13 @@ class SlicePlotter4d(object):
             self.ax = self.fig.add_axes([0.1, 0.25, 0.7, 0.7],)
             self.sliderax1 = self.fig.add_axes([0.1, 0.02, 0.6, 0.03],)
             self.sliderax2 = self.fig.add_axes([0.1, 0.12, 0.6, 0.03],)
-            self.colorbarax2 = self.fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+            self.colorbarax2 = self.fig.add_axes([0.85, 0.15, 0.03, 0.8],)
+            
+            self.calcText = plt.text(0.5, 0.5, 'calculating...',
+                                     horizontalalignment='center',
+                                     verticalalignment='center',
+                                     transform=self.ax.transAxes)
+            self.calcText.set_zorder(20)
 
             # add sliders and remember their values
             self.vPar = DiscreteSlider(self.sliderax1, r'$v_\parallel$',
@@ -69,6 +75,10 @@ class SlicePlotter4d(object):
                     values=grid.eta_grid[Dimension.ETA3])
             self.vPar.on_changed(self.updateV)
             self.Z.on_changed(self.updateZ)
+            
+            self.buttonax = plt.axes([0.9, 0.01, 0.09, 0.075])
+            self._button = Button(self.buttonax, 'Step')
+            self._button.on_clicked(self.step)
             
             # get coordinate values
             theta = np.repeat(np.append(self.grid.eta_grid[Dimension.ETA2],2*pi),
@@ -89,33 +99,40 @@ class SlicePlotter4d(object):
     def updateV(self, value):
         if (self.autoUpdate):
             # alert non-0 ranks that v has been updated and the drawing must be updated
-            MPI.COMM_WORLD.bcast(1,root=0)
+            MPI.COMM_WORLD.bcast(1,root=self.drawRank)
             self.vVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA4])).argmin()
             # broadcast new value
-            self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
+            self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=self.drawRank)
             # update plot
             self.updateDraw()
+            self.fig.canvas.start_event_loop(-1)
         elif (self.rank==self.drawRank):
             self.vVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA4])).argmin()
 
     def updateZ(self, value):
         if (self.autoUpdate):
             # alert non-0 ranks that z has been updated and the drawing must be updated
-            MPI.COMM_WORLD.bcast(2,root=0)
+            MPI.COMM_WORLD.bcast(2,root=self.drawRank)
+            self.zVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA3])).argmin()
             # broadcast new value
-            self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
+            self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=self.drawRank)
             # update plot
             self.updateDraw()
+            self.fig.canvas.start_event_loop(-1)
         elif (self.rank==self.drawRank):
             self.zVal=(np.abs(value-self.grid.eta_grid[Dimension.ETA3])).argmin()
     
     def updateDraw(self):
         if (not self.autoUpdate):
             # broadcast new v value
-            self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
+            self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=self.drawRank)
             
             # broadcast new z value
-            self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
+            self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=self.drawRank)
+            
+            self.minimum=self.grid.getMin(self.drawRank)
+            self.maximum=self.grid.getMax(self.drawRank)
+            
         self.plotFigure()
     
     def plotFigure(self):
@@ -166,7 +183,7 @@ class SlicePlotter4d(object):
             self.ax.clear()
             self.colorbarax2.clear()
             #,vmin=self.minimum,vmax=self.maximum
-            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet")
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
             self.ax.set_xlabel("x [m]")
@@ -182,18 +199,61 @@ class SlicePlotter4d(object):
         if (self.rank!=0):
             stop=1
             while (stop!=0):
-                stop=MPI.COMM_WORLD.bcast(1,root=0)
+                stop=MPI.COMM_WORLD.bcast(1,root=self.drawRank)
                 if (stop==1):
-                    self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=0)
+                    self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=self.drawRank)
                     self.updateDraw()
                 elif (stop==2):
-                    self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=0)
+                    self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=self.drawRank)
                     self.updateDraw()
-        plt.show()
+        else:
+            plt.show()
+    
+    def listen(self):
+        self.autoUpdate = True
+        # set-up non-0 ranks as listeners so they can react to interactions with the plot on rank 0
+        if (self.rank!=self.drawRank):
+            stop=1
+            while (stop!=0):
+                stop=MPI.COMM_WORLD.bcast(1,root=self.drawRank)
+                if (stop==1):
+                    self.vVal=MPI.COMM_WORLD.bcast(self.vVal,root=self.drawRank)
+                    self.updateDraw()
+                elif (stop==2):
+                    self.zVal=MPI.COMM_WORLD.bcast(self.zVal,root=self.drawRank)
+                    self.updateDraw()
+                elif (stop==3):
+                    self.autoUpdate = False
+                    stop=0
+                elif (stop==0):
+                    return 0
+        else:
+            self.calcText.set_visible(False)
+            plt.ioff()
+            self.fig.canvas.start_event_loop(-1)
+            if (self.closed):
+                return 0
+            else:
+                self.calcText = plt.text(0.5, 0.5, 'calculating...',
+                                         horizontalalignment='center',
+                                         verticalalignment='center',
+                                         transform=self.ax.transAxes,
+                                         bbox=dict(color='white'))
+                self.fig.canvas.draw()
     
     def handle_close(self,_evt):
+        self.fig.canvas.stop_event_loop()
         # broadcast 0 to break non-0 ranks listen loop
-        MPI.COMM_WORLD.bcast(0,root=0)
+        MPI.COMM_WORLD.bcast(0,root=self.drawRank)
+        self.closed=True
+    
+    def step( self, _evt ):
+        plt.ion()
+        # broadcast 3 to break non-0 ranks listen loop
+        MPI.COMM_WORLD.bcast(3,root=self.drawRank)
+        self.autoUpdate = False
+        self.fig.canvas.stop_event_loop()
+        
 
 class SlicePlotter3d(object):
     def __init__(self,grid: Grid, *args, **kwargs):
@@ -299,8 +359,8 @@ class SlicePlotter3d(object):
         self.rank = self.comm.Get_rank()
         
         # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin(self.omit,self.omitVal)
-        self.maximum=grid.getMax(self.omit,self.omitVal)
+        self.minimum=grid.getMin(0,self.omit,self.omitVal)
+        self.maximum=grid.getMax(0,self.omit,self.omitVal)
         
         # on rank 0 set-up the graph
         if (self.rank==0):
