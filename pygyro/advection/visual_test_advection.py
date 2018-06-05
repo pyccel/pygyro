@@ -315,7 +315,7 @@ def test_equilibrium():
                                 plot_thread = True)
     
     plt.ion()
-                                
+    
     plot = SlicePlotter4d(grid,False,comm,drawingRank=0,drawRankInGrid=False)
     
     N=10
@@ -334,7 +334,6 @@ def test_equilibrium():
         phiVals[:]=3
         #phiVals[:]=10*eta_vals[0]
         interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
-    
     
     for n in range(N):
         if (rank!=0):
@@ -367,4 +366,7 @@ def test_equilibrium():
             for i,r in grid.getCoords(0):
                 for j,v in grid.getCoords(1):
                     fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+        
         plot.updateDraw()
+        if (plot.listen()==0):
+            break
