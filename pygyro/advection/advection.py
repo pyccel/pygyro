@@ -7,13 +7,14 @@ from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpola
 from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 
-def fieldline(theta,z,full_z,idx,n,iota):
-    return theta+iota(constants.R0)*(full_z[idx%n]-z)/constants.R0
+def fieldline(theta,z,full_z,idx,iota):
+    return theta+iota(constants.R0)*(full_z[idx]-z)/constants.R0
 
 class parallelGradient:
     def __init__( self, spline, eta_grid, iota = constants.iota ):
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         self._nz = eta_grid[2].size
+        assert(self._nz>5)
         self._inv_dz = 1.0/self._dz
         try:
             dtheta =  np.atleast_2d(self._dz * iota() / constants.R0)
@@ -37,10 +38,15 @@ class parallelGradient:
     
     def _getThetaVals( self, r, thetaVals, eta_grid, iota ):
         n = eta_grid[2].size
-        for j,theta in enumerate(eta_grid[1]):
-            for k,z in enumerate(eta_grid[2]):
-                for i,l in enumerate([-3,-2,-1,1,2,3]):
-                    thetaVals[j,(k+l)%n,i]=fieldline(theta,z,eta_grid[2],k+l,n,iota)
+        for k,z in enumerate(eta_grid[2][:3]):
+            for i,l in enumerate([-3,-2,-1,1,2,3]):
+                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
+        for k,z in enumerate(eta_grid[2][3:-3]):
+            for i,l in enumerate([-3,-2,-1,1,2,3]):
+                thetaVals[:,(k+l),i]=fieldline(eta_grid[1],z,eta_grid[2],k+l,iota)
+        for k,z in enumerate(eta_grid[2][-3:]):
+            for i,l in enumerate([-3,-2,-1,1,2,3]):
+                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
     
     def parallel_gradient( self, phi_r, i ):
         if (self._variesInR):
@@ -51,7 +57,25 @@ class parallelGradient:
             thetaVals = self._thetaVals
         der=np.full_like(phi_r,0)
         
-        for i in range(self._nz):
+        for i in range(3):
+            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
+            der[:,(i+2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
+            der[:,(i+1)%self._nz]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
+            der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
+            der[:,(i-2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
+            der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
+        
+        for i in range(3,self._nz-3):
+            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            der[:,(i+3)]-=self._thetaSpline.eval(thetaVals[:,i,0])
+            der[:,(i+2)]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
+            der[:,(i+1)]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
+            der[:,(i-1)]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
+            der[:,(i-2)]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
+            der[:,(i-3)]+=self._thetaSpline.eval(thetaVals[:,i,5])
+        
+        for i in range(self._nz-3,self._nz):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
             der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
             der[:,(i+2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
