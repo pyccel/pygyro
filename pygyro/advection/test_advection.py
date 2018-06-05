@@ -243,3 +243,81 @@ def test_equilibrium():
                 fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
     
     assert(np.max(startVals-grid._f)<1e-8)
+
+@pytest.mark.parallel
+def test_perturbedEquilibrium():
+    comm = MPI.COMM_WORLD
+    
+    npts = [20,20,10,8]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface',
+                                comm   = comm)
+    
+    startVals = grid._f.copy()
+    
+    N=10
+        
+    fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+    vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
+    polAdv = poloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
+    
+    dt=0.1
+    halfStep = dt*0.5
+    
+    phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
+    phiVals = np.empty([npts[1],npts[0]])
+    phiVals[:]=3
+    #phiVals[:]=10*eta_vals[0]
+    interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
+    
+    
+    for n in range(N):
+        for i,r in grid.getCoords(0):
+            for j,v in grid.getCoords(1):
+                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+        
+        grid.setLayout('v_parallel')
+        
+        for i,r in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                for k,q in grid.getCoords(2):
+                    vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
+        
+        grid.setLayout('poloidal')
+        
+        for i,v in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
+        
+        grid.setLayout('v_parallel')
+        
+        for i,r in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                for k,q in grid.getCoords(2):
+                    vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
+        
+        grid.setLayout('flux_surface')
+        
+        for i,r in grid.getCoords(0):
+            for j,v in grid.getCoords(1):
+                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+    
+    assert(np.max(startVals-grid._f)>1e-5)
+
+def test_vParGrad():
+    comm = MPI.COMM_WORLD
+    
+    npts = [20,20,10,8]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface',
+                                eps    = 0,
+                                comm   = comm)
+    
+    N=10
+    
+    pG = parallelGradient(grid.getSpline(1),grid.eta_grid)
+    
+    phiVals = np.empty([npts[1],npts[2]])
+    phiVals[:]=3
+    
+    assert((np.abs(phiVals)<1e-12).all())
