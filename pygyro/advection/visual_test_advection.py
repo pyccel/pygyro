@@ -9,6 +9,7 @@ from ..initialisation.setups    import setupCylindricalGrid
 from .advection                 import *
 from ..utilities.grid_plotter   import SlicePlotter4d
 
+"""
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
     npts = [30,20]
@@ -66,6 +67,7 @@ def test_fluxSurfaceAdvection():
         fig.canvas.flush_events()
     
     print(np.max(f_vals[:,:,n]-f_vals[:,:,0]))
+"""
 
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
@@ -331,41 +333,74 @@ def test_equilibrium():
         
         phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
         phiVals = np.empty([npts[1],npts[0]])
-        phiVals[:]=3
+        #phiVals[:]=3
+        phiVals[:]=3*grid.eta_grid[0]**2
         #phiVals[:]=10*eta_vals[0]
         interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
     
+    if (plot.listen()==0):
+        return
+    
     for n in range(N):
-        if (rank!=0):
-            for i,r in grid.getCoords(0):
-                for j,v in grid.getCoords(1):
-                    fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+        for i,r in grid.getCoords(0):
+            for j,v in grid.getCoords(1):
+                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+        
+        print("rank ",rank," has completed flux step 1")
+        
+        plot.updateDraw()
+        if (plot.listen()==0):
+            break
             
-            grid.setLayout('v_parallel')
-            
-            for i,r in grid.getCoords(0):
-                for j,z in grid.getCoords(1):
-                    for k,q in grid.getCoords(2):
-                        vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
-            
-            grid.setLayout('poloidal')
-            
-            for i,v in grid.getCoords(0):
-                for j,z in grid.getCoords(1):
-                    polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
-            
-            grid.setLayout('v_parallel')
-            
-            for i,r in grid.getCoords(0):
-                for j,z in grid.getCoords(1):
-                    for k,q in grid.getCoords(2):
-                        vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
-            
-            grid.setLayout('flux_surface')
-            
-            for i,r in grid.getCoords(0):
-                for j,v in grid.getCoords(1):
-                    fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+        grid.setLayout('v_parallel')
+        
+        for i,r in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                for k,q in grid.getCoords(2):
+                    vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
+        
+        print("rank ",rank," has completed v parallel step 1")
+        
+        plot.updateDraw()
+        if (plot.listen()==0):
+            break
+        
+        grid.setLayout('poloidal')
+        
+        for i,v in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
+        
+        print("rank ",rank," has completed poloidal step")
+        
+        plot.updateDraw()
+        if (plot.listen()==0):
+            break
+        
+        grid.setLayout('v_parallel')
+        
+        for i,r in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                for k,q in grid.getCoords(2):
+                    vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
+        
+        print("rank ",rank," has completed v parallel step 2")
+        
+        plot.updateDraw()
+        if (plot.listen()==0):
+            break
+        
+        grid.setLayout('flux_surface')
+        
+        for i,r in grid.getCoords(0):
+            for j,v in grid.getCoords(1):
+                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+        
+        print("rank ",rank," has completed flux step 2")
+        
+        plot.updateDraw()
+        if (plot.listen()==0):
+            break
         
         plot.updateDraw()
         if (plot.listen()==0):
