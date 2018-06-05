@@ -7,18 +7,69 @@ from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpola
 from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 
-"""
+def fieldline(theta,z,full_z,idx,n,iota):
+    return theta+iota(constants.R0)*(full_z[idx%n]-z)/constants.R0
 
-def fieldline(theta,z,idx,full_z):
-    return theta+iota(r0)*(full_z[idx%len(full_z)]-z)
-"""
+class parallelGradient:
+    def __init__( self, spline, eta_grid, iota = constants.iota ):
+        self._dz = eta_grid[2][1]-eta_grid[2][0]
+        self._nz = eta_grid[2].size
+        self._inv_dz = 1.0/self._dz
+        try:
+            dtheta =  np.atleast_2d(self._dz * iota() / constants.R0)
+        except:
+            dtheta = np.atleast_2d(self._dz * iota(eta_grid[0]) / constants.R0).T
+        
+        self._bz = self._dz / np.sqrt(self._dz**2+dtheta**2)
+        
+        self._interpolator = SplineInterpolator1D(spline)
+        self._thetaSpline = Spline1D(spline)
+        
+        self._variesInR = self._bz.size!=1
+        
+        if (self._variesInR):
+            self._thetaVals = np.empty([eta_grid[0].size, eta_grid[1].size, eta_grid[2].size, 6])
+            for i,r in enumerate(eta_gird[0]):
+                self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
+        else:
+            self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, 6])
+            self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
+    
+    def _getThetaVals( self, r, thetaVals, eta_grid, iota ):
+        n = eta_grid[2].size
+        for j,theta in enumerate(eta_grid[1]):
+            for k,z in enumerate(eta_grid[2]):
+                for i,l in enumerate([-3,-2,-1,1,2,3]):
+                    thetaVals[j,(k+l)%n,i]=fieldline(theta,z,eta_grid[2],k+l,n,iota)
+    
+    def parallel_gradient( self, phi_r, i ):
+        if (self._variesInR):
+            bz=self._bz[i]
+            thetaVals = self._thetaVals[i]
+        else:
+            bz=self._bz
+            thetaVals = self._thetaVals
+        der=np.full_like(phi_r,0)
+        
+        for i in range(self._nz):
+            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
+            der[:,(i+2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
+            der[:,(i+1)%self._nz]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
+            der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
+            der[:,(i-2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
+            der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
+        
+        der*= ( bz * self._inv_dz )/60
+        
+        return der
 
 class fluxSurfaceAdvection:
     def __init__( self, eta_grid, splines, iota = constants.iota ):
         self._points = eta_grid[1:3]
         self._nPoints = (self._points[0].size,self._points[1].size)
         self._interpolator = SplineInterpolator1D(splines[0])
-        self._thetaSplines = [Spline1D(splines[0]) for i in range(self._nPoints[1])]
+        self._thetaSpline = Spline1D(splines[0])
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         try:
             self._dtheta =  np.atleast_2d(self._dz * iota() / constants.R0)
@@ -36,15 +87,11 @@ class fluxSurfaceAdvection:
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
         LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], 6])
-        for i in range(self._nPoints[1]):
-            for j in range(self._nPoints[0]):
-                for k in range(6):
-                    LagrangeVals[i,j,k]=k+j*6+i*6*self._nPoints[0]
         
-        for i,spline in enumerate(self._thetaSplines):
-            self._interpolator.compute_interpolant(f[:,i],spline)
+        for i in range(self._nPoints[1]):
+            self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
             for j,s in enumerate(Shifts):
-                LagrangeVals[(i-s)%self._nPoints[1],:,j]=spline.eval(self._points[0]+thetaShifts[j])
+                LagrangeVals[(i-s)%self._nPoints[1],:,j]=self._thetaSpline.eval(self._points[0]+thetaShifts[j])
         
         for i,z in enumerate(self._points[1]):
             zPts = z+self._dz*Shifts
