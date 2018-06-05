@@ -24,8 +24,6 @@ class DiscreteSlider(Slider):
         xy[3] = discrete_val, 0
         self.poly.xy = xy
         self.valtext.set_text(self.valfmt % discrete_val)
-        if self.drawon: 
-            self.ax.figure.canvas.draw()
         self.val = val
         if not self.eventson: 
             return
