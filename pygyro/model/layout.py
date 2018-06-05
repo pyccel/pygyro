@@ -280,6 +280,10 @@ class LayoutManager:
 
         """
         
+        # If this thread is only here for plotting purposes then ignore the command
+        if (self._buffer_size==0):
+            return
+        
         # Verify that the input makes sense
         assert source_name in self._layouts
         assert dest_name   in self._layouts
