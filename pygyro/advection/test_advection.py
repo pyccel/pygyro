@@ -206,8 +206,7 @@ def test_equilibrium():
     
     phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:]=3
-    #phiVals[:]=10*eta_vals[0]
+    phiVals[:]=3*grid.eta_grid[0]**2
     interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
     
     
@@ -266,8 +265,7 @@ def test_perturbedEquilibrium():
     
     phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:]=3
-    #phiVals[:]=10*eta_vals[0]
+    phiVals[:]=3*grid.eta_grid[0]**2
     interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
     
     
@@ -304,6 +302,7 @@ def test_perturbedEquilibrium():
     
     assert(np.max(startVals-grid._f)>1e-5)
 
+@pytest.mark.serial
 def test_vParGrad():
     comm = MPI.COMM_WORLD
     
@@ -313,6 +312,8 @@ def test_vParGrad():
                                 eps    = 0,
                                 comm   = comm)
     
+    assert((grid.get1DSlice([0,0,0]).base is grid._my_data[0]) or (grid.get1DSlice([0,0,0]).base is grid._my_data[1]))
+    
     N=10
     
     pG = parallelGradient(grid.getSpline(1),grid.eta_grid)
@@ -320,4 +321,6 @@ def test_vParGrad():
     phiVals = np.empty([npts[1],npts[2]])
     phiVals[:]=3
     
-    assert((np.abs(phiVals)<1e-12).all())
+    der = pG.parallel_gradient(phiVals,0)
+    assert(np.isfinite(der).all())
+    assert((np.abs(der)<1e-12).all())
