@@ -9,7 +9,6 @@ from ..initialisation.setups    import setupCylindricalGrid
 from .advection                 import *
 from ..utilities.grid_plotter   import SlicePlotter4d
 
-"""
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
     npts = [30,20]
@@ -68,7 +67,7 @@ def test_fluxSurfaceAdvection():
     
     print(np.max(f_vals[:,:,n]-f_vals[:,:,0]))
 """
-
+"""
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
     npts = [30,20]
@@ -328,7 +327,7 @@ def test_equilibrium():
         vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
         polAdv = poloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
         
-        dt=0.1
+        dt=1
         halfStep = dt*0.5
         
         phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
@@ -337,6 +336,8 @@ def test_equilibrium():
         phiVals[:]=3*grid.eta_grid[0]**2
         #phiVals[:]=10*eta_vals[0]
         interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
+        
+        interp.compute_interpolant(phiVals,phi)
     
     if (plot.listen()==0):
         return
