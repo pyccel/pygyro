@@ -34,7 +34,9 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     zDegree     -- degree of splines in the axial direction. (default 3)
     vDegree     -- degree of splines in the v parallel direction. (default 3)
     
-    comm  -- MPI communicator. (default MPI.COMM_WORLD)
+    comm        -- MPI communicator. (default MPI.COMM_WORLD)
+    plotThread  -- whether there is a thread to be used only for plotting (default False)
+    drawRank    -- Thread to be used for plotting (default 0)
     
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
@@ -52,8 +54,8 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     vDegree=kwargs.pop('vDegree',3)
     eps=kwargs.pop('eps',constants.eps)
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
-    plotThread=kwargs.pop('plot_thread',False)
-    drawRank=kwargs.pop('draw_rank',0)
+    plotThread=kwargs.pop('plotThread',False)
+    drawRank=kwargs.pop('drawRank',0)
     
     rank=comm.Get_rank()
     
