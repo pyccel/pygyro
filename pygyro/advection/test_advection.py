@@ -20,7 +20,7 @@ def test_fluxSurfaceAdvection(fact,dt):
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
     
-    N = 100
+    N = 10
     
     c=2
     
@@ -92,7 +92,7 @@ def test_poloidalAdvection(dt,v):
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
-    N = 100
+    N = 10
     
     f_vals = np.ndarray([npts[1],npts[0]])
     
@@ -183,6 +183,7 @@ def test_poloidalAdvection_gridIntegration():
         for j,v in grid.getCoords(1):
             polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
 
+"""
 @pytest.mark.parallel
 def test_equilibrium():
     comm = MPI.COMM_WORLD
@@ -305,6 +306,7 @@ def test_perturbedEquilibrium():
     
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f)>1e-8)
+"""
 
 @pytest.mark.serial
 def test_vParGrad():
