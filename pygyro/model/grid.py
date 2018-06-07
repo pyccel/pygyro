@@ -187,11 +187,11 @@ class Grid(object):
             
             # Gather information from all ranks to rank 0 in the
             # direction of the comm
-            comm.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), 0)
+            comm.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), rank)
             return (self._layout,starts,mpi_data,mySlice)
         else:
             # Gather information from all ranks
-            comm.Gatherv(toSend,toSend, 0)
+            comm.Gatherv(toSend,toSend, rank)
     
     def getMin(self,drawingRank,axis = None,fixValue = None):
         
