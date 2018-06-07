@@ -309,19 +309,21 @@ def test_equilibrium():
     rank = comm.Get_rank()
     
     npts = [20,20,10,8]
+    drawRank = 1
     grid = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0.1,
                                 comm   = comm,
-                                plot_thread = True)
+                                plotThread = True,
+                                drawRank = drawRank)
     
     plt.ion()
     
-    plot = SlicePlotter4d(grid,False,comm,drawingRank=0,drawRankInGrid=False)
+    plot = SlicePlotter4d(grid,False,comm,drawingRank=drawRank,drawRankInGrid=False)
     
     N=10
     
-    if (rank!=0):
+    if (rank!=drawRank):
         
         fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
         vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
@@ -349,9 +351,9 @@ def test_equilibrium():
         
         print("rank ",rank," has completed flux step 1")
         
-        plot.updateDraw()
-        if (plot.listen()==0):
-            break
+        #~ plot.updateDraw()
+        #~ if (plot.listen()==0):
+            #~ break
             
         grid.setLayout('v_parallel')
         
@@ -362,9 +364,9 @@ def test_equilibrium():
         
         print("rank ",rank," has completed v parallel step 1")
         
-        plot.updateDraw()
-        if (plot.listen()==0):
-            break
+        #~ plot.updateDraw()
+        #~ if (plot.listen()==0):
+            #~ break
         
         grid.setLayout('poloidal')
         
@@ -374,9 +376,9 @@ def test_equilibrium():
         
         print("rank ",rank," has completed poloidal step")
         
-        plot.updateDraw()
-        if (plot.listen()==0):
-            break
+        #~ plot.updateDraw()
+        #~ if (plot.listen()==0):
+            #~ break
         
         grid.setLayout('v_parallel')
         
@@ -387,9 +389,9 @@ def test_equilibrium():
         
         print("rank ",rank," has completed v parallel step 2")
         
-        plot.updateDraw()
-        if (plot.listen()==0):
-            break
+        #~ plot.updateDraw()
+        #~ if (plot.listen()==0):
+            #~ break
         
         grid.setLayout('flux_surface')
         
@@ -398,10 +400,6 @@ def test_equilibrium():
                 fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
         
         print("rank ",rank," has completed flux step 2")
-        
-        plot.updateDraw()
-        if (plot.listen()==0):
-            break
         
         plot.updateDraw()
         if (plot.listen()==0):
