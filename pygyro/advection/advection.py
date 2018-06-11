@@ -124,23 +124,24 @@ class fluxSurfaceAdvection:
                 f[j,i] = poly(z+zDist)
 
 class vParallelAdvection:
-    def __init__( self, eta_vals, splines ):
+    def __init__( self, eta_vals, splines, edgeFunc = fEq ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
         
-        self.evalFunc = np.vectorize(self.evaluate)
+        self._evalFunc = np.vectorize(self.evaluate)
+        self._edge = edgeFunc
     
     def step( self, f, dt, c, r ):
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        f[:]=self.evalFunc(self._points-c*dt, r)
+        f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
         if (v<self._points[0] or v>self._points[-1]):
-            return fEq(r,v);
+            return self._edge(r,v)
         else:
             return self._spline.eval(v)
 
@@ -172,17 +173,24 @@ class poloidalAdvection:
                     endPts[0][i][j]+=2*pi
                 while (endPts[0][i][j]>2*pi):
                     endPts[0][i][j]-=2*pi
-                # TODO: handle boundary conditions in r
-                drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)
-                dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)
+                # Phi is 0 outside of domain
+                if (not (endPts[1][i][j]<self._points[1][0] or 
+                         endPts[1][i][j]>self._points[1][-1])):
+                    drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)
+                    dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)
         
         multFactor*=0.5
         
         endPts = ( self._shapedQ   -     drPhi*multFactor,
                    self._points[1] + dthetaPhi*multFactor )
         
-        #f[:]=self.evalFunc(np.atleast_2d(self._points[0]).T-drPhi*dt/constants.B0/self.points[1],
-        #                   self._points[1]+dthetaPhi*dt/constants.B0/self.points[1])
+        for i,theta in enumerate(self._points[0]):
+            for j,r in enumerate(self._points[1]):
+                f[i,j]=self.evalFunc(endPts[0][i][j],endPts[1][i][j],v)
+    
+    def exact_step( self, f, endPts, v ):
+        assert(f.shape==self._nPoints)
+        self._interpolator.compute_interpolant(f,self._spline)
         
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
@@ -190,8 +198,10 @@ class poloidalAdvection:
     
     def evaluate( self, theta, r, v ):
         if (r<self._points[1][0]):
+            return 0
             return fEq(self._points[1][0],v);
         elif (r>self._points[1][-1]):
+            return 0
             return fEq(r,v);
         else:
             while (theta>2*pi):
