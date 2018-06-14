@@ -228,7 +228,24 @@ class FluxSurfaceAdvection:
                 f[j,i] = poly(z+zDist)
 
 class VParallelAdvection:
-    def __init__( self, eta_vals, splines, edgeFunc = fEq ):
+    """
+    VParallelAdvection: Class containing information necessary to carry out
+    an advection step along the v-parallel surface.
+
+    Parameters
+    ----------
+    eta_grid: list of array_like
+        The coordinates of the grid points in each dimension
+
+    splines: BSplines
+        The spline approximations along v
+
+    edgeFunc: function handle - optional
+        Function returning the value at the boundary as a function of r and v
+        Default is fEquilibrium
+
+    """
+    def __init__( self, eta_vals: list, splines: BSplines, edgeFunc = fEq ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
@@ -237,7 +254,26 @@ class VParallelAdvection:
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         self._edge = edgeFunc
     
-    def step( self, f, dt, c, r ):
+    def step( self, f: np.ndarray, dt: float, c: float, r: float ):
+        """
+        Carry out an advection step for the flux parallel advection
+
+        Parameters
+        ----------
+        f: array_like
+            The current value of the function at the nodes.
+            The result will be stored here
+        
+        dt: float
+            Time-step
+        
+        c: float
+            Advection parameter d_tf + c d_xf=0
+        
+        r: float
+            The radial coordinate
+        
+        """
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
