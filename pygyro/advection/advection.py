@@ -234,7 +234,7 @@ class VParallelAdvection:
 
     Parameters
     ----------
-    eta_grid: list of array_like
+    eta_vals: list of array_like
         The coordinates of the grid points in each dimension
 
     splines: BSplines
@@ -256,7 +256,7 @@ class VParallelAdvection:
     
     def step( self, f: np.ndarray, dt: float, c: float, r: float ):
         """
-        Carry out an advection step for the flux parallel advection
+        Carry out an advection step for the v-parallel advection
 
         Parameters
         ----------
@@ -286,7 +286,20 @@ class VParallelAdvection:
             return self._spline.eval(v)
 
 class PoloidalAdvection:
-    def __init__( self, eta_vals, splines ):
+    """
+    PoloidalAdvection: Class containing information necessary to carry out
+    an advection step along the poloidal surface.
+
+    Parameters
+    ----------
+    eta_vals: list of array_like
+        The coordinates of the grid points in each dimension
+
+    splines: list of BSplines
+        The spline approximations along theta and r
+
+    """
+    def __init__( self, eta_vals: list, splines: list ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size,self._points[1].size)
@@ -295,7 +308,26 @@ class PoloidalAdvection:
         
         self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
     
-    def step( self, f, dt, phi: Spline2D, v ):
+    def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
+        """
+        Carry out an advection step for the poloidal advection
+
+        Parameters
+        ----------
+        f: array_like
+            The current value of the function at the nodes.
+            The result will be stored here
+        
+        dt: float
+            Time-step
+        
+        phi: Spline2D
+            Advection parameter d_tf + {phi,f}=0
+        
+        r: float
+            The parallel velocity coordinate
+        
+        """
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
@@ -304,26 +336,36 @@ class PoloidalAdvection:
         drPhi = phi.eval(*self._points,0,1)/self._points[1]
         dthetaPhi = phi.eval(*self._points,1,0)/self._points[1]
         
+        # Step one of Heun method
+        # x' = x^n + f(x^n)
         endPts = ( self._shapedQ   -     drPhi*multFactor,
                    self._points[1] + dthetaPhi*multFactor )
         
         for i in range(self._nPoints[0]):
             for j in range(self._nPoints[1]):
+                # Handle theta boundary conditions
                 while (endPts[0][i][j]<0):
                     endPts[0][i][j]+=2*pi
                 while (endPts[0][i][j]>2*pi):
                     endPts[0][i][j]-=2*pi
+                
                 # Phi is 0 outside of domain
                 if (not (endPts[1][i][j]<self._points[1][0] or 
                          endPts[1][i][j]>self._points[1][-1])):
+                    # Add the new value of phi to the derivatives
+                    # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
+                    #                               ^^^^^^^^^^^^^^^
                     drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)/endPts[1][i][j]
                     dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)/endPts[1][i][j]
         
         multFactor*=0.5
         
+        # Step two of Heun method
+        # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
         endPts = ( self._shapedQ   -     drPhi*multFactor,
                    self._points[1] + dthetaPhi*multFactor )
         
+        # Find value at the determined point
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
                 f[i,j]=self.evalFunc(endPts[0][i][j],endPts[1][i][j],v)
