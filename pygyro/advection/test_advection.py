@@ -36,7 +36,7 @@ def test_fluxSurfaceAdvection(fact,dt):
     eta_vals[1]=eta_grids[0]
     eta_vals[2]=eta_grids[1]
     
-    fluxAdv = fluxSurfaceAdvection(eta_vals, bsplines, iota0)
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota0)
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
     f_end = np.sin((eta_vals[2]-c*dt*N)*pi/fact)
@@ -68,7 +68,7 @@ def test_vParallelAdvection(function,N):
     
     f = function(x)+fEdge
     
-    vParAdv = vParallelAdvection([0,0,0,x], spline)
+    vParAdv = VParallelAdvection([0,0,0,x], spline)
     
     for i in range(N):
         vParAdv.step(f,dt,c,r)
@@ -107,7 +107,7 @@ def test_poloidalAdvection(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = poloidalAdvection(eta_vals, bsplines[::-1])
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -136,7 +136,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
     
     dt=0.1
     
-    fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
     
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
@@ -153,7 +153,7 @@ def test_vParallelAdvection_gridIntegration():
     
     old_f=grid._f.copy()
     
-    vParAdv = vParallelAdvection(grid.eta_grid, grid.get1DSpline())
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline())
     
     for i,r in grid.getCoords(0):
         for j,z in grid.getCoords(1):
@@ -169,7 +169,7 @@ def test_poloidalAdvection_gridIntegration():
                                 layout = 'poloidal')
     
     basis = grid.get2DSpline()
-    polAdv = poloidalAdvection(grid.eta_grid, basis)
+    polAdv = PoloidalAdvection(grid.eta_grid, basis)
     
     phi = Spline2D(basis[0],basis[1])
     phiVals = np.full((npts[1],npts[0]),2)
@@ -198,9 +198,9 @@ def test_equilibrium():
     
     N=10
         
-    fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-    vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
-    polAdv = poloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     dt=0.1
     halfStep = dt*0.5
@@ -259,9 +259,9 @@ def test_perturbedEquilibrium():
     
     N=10
         
-    fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-    vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
-    polAdv = poloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     dt=0.1
     halfStep = dt*0.5
@@ -320,7 +320,7 @@ def test_vParGrad():
     
     N=10
     
-    pG = parallelGradient(grid.getSpline(1),grid.eta_grid)
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid)
     
     phiVals = np.empty([npts[1],npts[2]])
     phiVals[:]=3
