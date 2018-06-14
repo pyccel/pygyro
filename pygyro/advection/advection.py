@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate              import lagrange
 from math                           import pi, floor, ceil
 
-from ..splines.splines              import Spline1D, Spline2D
+from ..splines.splines              import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
@@ -10,24 +10,58 @@ from ..initialisation               import constants
 def fieldline(theta,z,full_z,idx,iota):
     return theta+iota(constants.R0)*(full_z[idx]-z)/constants.R0
 
-class parallelGradient:
-    def __init__( self, spline, eta_grid, iota = constants.iota ):
+class ParallelGradient:
+    """
+    ParallelGradient: Class containing information necessary to carry out
+    an advection step along the flux surface
+
+    Parameters
+    ----------
+    spline : str
+        A name which is used to identify the layout.
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+
+    iota : function handle - optional
+        Function returning the value of iota at a given radius r.
+        Default is constants.iota
+
+    """
+    def __init__( self, spline: BSplines, eta_grid: list, iota = constants.iota ):
+        # Save z step
         self._dz = eta_grid[2][1]-eta_grid[2][0]
+        # Save size in z direction
         self._nz = eta_grid[2].size
+        
+        # If there are too few points then the access cannot be optimised
+        # at the boundaries in the way that has been used
         assert(self._nz>5)
+        
+        # Save the inverse as it is used multiple times
         self._inv_dz = 1.0/self._dz
+        
+        # Save theta step. If iota does not vary with the radius then this
+        # should be one value. Otherwise it is an array.
         try:
             dtheta =  np.atleast_2d(self._dz * iota() / constants.R0)
         except:
+            # The result is transposed to allow it to be used with simply
+            # with dz
             dtheta = np.atleast_2d(self._dz * iota(eta_grid[0]) / constants.R0).T
         
+        # Determine bz
         self._bz = self._dz / np.sqrt(self._dz**2+dtheta**2)
         
+        # Save the necessary spline and interpolator
         self._interpolator = SplineInterpolator1D(spline)
         self._thetaSpline = Spline1D(spline)
         
+        # Remember whether or not there are different values for iota
         self._variesInR = self._bz.size!=1
         
+        # The positions at which the spline will be evaluated are always the same.
+        # They can therefore be calculated in advance
         if (self._variesInR):
             self._thetaVals = np.empty([eta_grid[0].size, eta_grid[1].size, eta_grid[2].size, 6])
             for i,r in enumerate(eta_gird[0]):
@@ -37,18 +71,41 @@ class parallelGradient:
             self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
     
     def _getThetaVals( self, r, thetaVals, eta_grid, iota ):
+        # The positions at which the spline will be evaluated are always the same.
+        # They can therefore be calculated in advance
         n = eta_grid[2].size
+        
+        # The first three theta values require the final three z values
         for k,z in enumerate(eta_grid[2][:3]):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
+        
+        # The central values only require consecutive values so the modulo
+        # operator can be avoided
         for k,z in enumerate(eta_grid[2][3:-3],3):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
                 thetaVals[:,(k+l),i]=fieldline(eta_grid[1],z,eta_grid[2],k+l,iota)
+        
+        # The final three theta values require the first three z values
         for k,z in enumerate(eta_grid[2][-3:],n-3):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
     
-    def parallel_gradient( self, phi_r, i ):
+    def parallel_gradient( self, phi_r, i : int ):
+        """
+        Get the gradient of a function in the direction parallel to the
+        flux surface
+
+        Parameters
+        ----------
+        phi_r : array_like
+            The values of the function at the nodes
+        
+        i : int
+            The current index of r
+        
+        """
+        # Get scalar values necessary for this slice
         if (self._variesInR):
             bz=self._bz[i]
             thetaVals = self._thetaVals[i]
@@ -56,6 +113,11 @@ class parallelGradient:
             bz=self._bz
             thetaVals = self._thetaVals
         der=np.full_like(phi_r,0)
+        
+        # For each value of z interpolate the spline along theta and add
+        # the value multiplied by the corresponding coefficient to the
+        # derivative at the point at which it is required
+        # This is split into three steps to avoid unnecessary modulo operations
         
         for i in range(3):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
@@ -88,7 +150,7 @@ class parallelGradient:
         
         return der
 
-class fluxSurfaceAdvection:
+class FluxSurfaceAdvection:
     def __init__( self, eta_grid, splines, iota = constants.iota ):
         self._points = eta_grid[1:3]
         self._nPoints = (self._points[0].size,self._points[1].size)
@@ -123,14 +185,14 @@ class fluxSurfaceAdvection:
                 poly = lagrange(zPts,LagrangeVals[i,j,:])
                 f[j,i] = poly(z+zDist)
 
-class vParallelAdvection:
+class VParallelAdvection:
     def __init__( self, eta_vals, splines, edgeFunc = fEq ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
         
-        self._evalFunc = np.vectorize(self.evaluate)
+        self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         self._edge = edgeFunc
     
     def step( self, f, dt, c, r ):
@@ -145,7 +207,7 @@ class vParallelAdvection:
         else:
             return self._spline.eval(v)
 
-class poloidalAdvection:
+class PoloidalAdvection:
     def __init__( self, eta_vals, splines ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
@@ -153,7 +215,7 @@ class poloidalAdvection:
         self._interpolator = SplineInterpolator2D(splines[0],splines[1])
         self._spline = Spline2D(splines[0],splines[1])
         
-        self.evalFunc = np.vectorize(self.evaluate)
+        self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
     
     def step( self, f, dt, phi: Spline2D, v ):
         assert(f.shape==self._nPoints)
