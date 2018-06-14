@@ -159,10 +159,10 @@ class poloidalAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        multFactor = dt/constants.B0/self._points[1]
+        multFactor = dt/constants.B0
         
-        drPhi = phi.eval(*self._points,0,1)
-        dthetaPhi = phi.eval(*self._points,1,0)
+        drPhi = phi.eval(*self._points,0,1)/self._points[1]
+        dthetaPhi = phi.eval(*self._points,1,0)/self._points[1]
         
         endPts = ( self._shapedQ   -     drPhi*multFactor,
                    self._points[1] + dthetaPhi*multFactor )
@@ -176,8 +176,8 @@ class poloidalAdvection:
                 # Phi is 0 outside of domain
                 if (not (endPts[1][i][j]<self._points[1][0] or 
                          endPts[1][i][j]>self._points[1][-1])):
-                    drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)
-                    dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)
+                    drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)/endPts[1][i][j]
+                    dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)/endPts[1][i][j]
         
         multFactor*=0.5
         
