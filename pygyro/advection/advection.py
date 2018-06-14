@@ -12,13 +12,13 @@ def fieldline(theta,z,full_z,idx,iota):
 
 class ParallelGradient:
     """
-    ParallelGradient: Class containing information necessary to carry out
-    an advection step along the flux surface
+    ParallelGradient: Class containing values necessary to derive a function
+    along the direction parallel to the flux surface
 
     Parameters
     ----------
-    spline : str
-        A name which is used to identify the layout.
+    spline : BSplines
+        A spline along the theta direction
 
     eta_grids : list of array_like
         The coordinates of the grid points in each dimension
@@ -70,7 +70,7 @@ class ParallelGradient:
             self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, 6])
             self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
     
-    def _getThetaVals( self, r, thetaVals, eta_grid, iota ):
+    def _getThetaVals( self, r: np.ndarray, thetaVals: np.ndarray, eta_grid: list, iota ):
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         n = eta_grid[2].size
@@ -91,7 +91,7 @@ class ParallelGradient:
             for i,l in enumerate([-3,-2,-1,1,2,3]):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
     
-    def parallel_gradient( self, phi_r, i : int ):
+    def parallel_gradient( self, phi_r: np.ndarray, i : int ):
         """
         Get the gradient of a function in the direction parallel to the
         flux surface
@@ -151,12 +151,31 @@ class ParallelGradient:
         return der
 
 class FluxSurfaceAdvection:
-    def __init__( self, eta_grid, splines, iota = constants.iota ):
+    """
+    FluxSurfaceAdvection: Class containing information necessary to carry out
+    an advection step along the flux surface.
+
+    Parameters
+    ----------
+    eta_grid: list of array_like
+        The coordinates of the grid points in each dimension
+
+    splines: list of BSplines
+        The spline approximations along theta and z
+
+    iota: function handle - optional
+        Function returning the value of iota at a given radius r.
+        Default is constants.iota
+
+    """
+    def __init__( self, eta_grid: list, splines: list, iota = constants.iota ):
+        # Save all pertinent information
         self._points = eta_grid[1:3]
         self._nPoints = (self._points[0].size,self._points[1].size)
         self._interpolator = SplineInterpolator1D(splines[0])
         self._thetaSpline = Spline1D(splines[0])
         self._dz = eta_grid[2][1]-eta_grid[2][0]
+        # dtheta is a scalar if iota does not depend on r and a vector otherwise
         try:
             self._dtheta =  np.atleast_2d(self._dz * iota() / constants.R0)
         except:
@@ -164,14 +183,36 @@ class FluxSurfaceAdvection:
         
         self._bz = self._dz / np.sqrt(self._dz**2+self._dtheta**2)
     
-    def step( self, f, dt, c, rGIdx = 0 ):
+    def step( self, f: np.ndarray, dt: float, c: float, rGIdx: int = 0 ):
+        """
+        Carry out an advection step for the flux parallel advection
+
+        Parameters
+        ----------
+        f: array_like
+            The current value of the function at the nodes.
+            The result will be stored here
+        
+        dt: float
+            Time-step
+        
+        c: float
+            Advection parameter d_tf + c d_xf=0
+        
+        rGIdx: int - optional
+            The current index of r. Not necessary if iota does not depend on r
+        
+        """
         assert(f.shape==self._nPoints)
         
+        # Find the distance travelled in the z direction
         zDist = -c*self._bz[rGIdx]*dt
         
+        # Find the values of theta on the 6 z lines around the end point
         Shifts = floor( zDist ) + np.array([-2,-1,0,1,2,3])
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
+        # find the values of the function at each required point
         LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], 6])
         
         for i in range(self._nPoints[1]):
@@ -179,6 +220,7 @@ class FluxSurfaceAdvection:
             for j,s in enumerate(Shifts):
                 LagrangeVals[(i-s)%self._nPoints[1],:,j]=self._thetaSpline.eval(self._points[0]+thetaShifts[j])
         
+        # Use lagrange interpolation to find the value at the final position
         for i,z in enumerate(self._points[1]):
             zPts = z+self._dz*Shifts
             for j in range(self._nPoints[0]):
@@ -261,10 +303,10 @@ class PoloidalAdvection:
     def evaluate( self, theta, r, v ):
         if (r<self._points[1][0]):
             return 0
-            return fEq(self._points[1][0],v);
+            #return fEq(self._points[1][0],v);
         elif (r>self._points[1][-1]):
             return 0
-            return fEq(r,v);
+            #return fEq(r,v);
         else:
             while (theta>2*pi):
                 theta-=2*pi
