@@ -1,6 +1,7 @@
 from mpi4py                 import MPI
 import pytest
 import matplotlib.pyplot    as plt
+import matplotlib.colors    as colors
 from mpl_toolkits.mplot3d import Axes3D
 from math                 import pi
 
@@ -33,7 +34,7 @@ def test_fluxSurfaceAdvection():
     eta_vals[1]=eta_grids[0]
     eta_vals[2]=eta_grids[1]
     
-    fluxAdv = fluxSurfaceAdvection(eta_vals, bsplines)
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines)
     
     #f_vals[:,:,0]=np.exp(-((np.atleast_2d(eta_vals[1]).T-pi)**2+(eta_vals[2]-10)**2)/4)
     f_vals[:,:,0]=np.sin(eta_vals[2]*pi/10)
@@ -66,8 +67,7 @@ def test_fluxSurfaceAdvection():
         fig.canvas.flush_events()
     
     print(np.max(f_vals[:,:,n]-f_vals[:,:,0]))
-"""
-"""
+
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
     npts = [30,20]
@@ -94,7 +94,7 @@ def test_poloidalAdvection_invariantPhi():
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = poloidalAdvection(eta_vals, bsplines[::-1])
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -163,7 +163,7 @@ def test_poloidalAdvection_vortex():
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = poloidalAdvection(eta_vals, bsplines[::-1])
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -230,7 +230,7 @@ def test_poloidalAdvection_constantAdv():
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = poloidalAdvection(eta_vals, bsplines[::-1])
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -285,7 +285,7 @@ def test_vParallelAdvection():
     
     f_vals = np.ndarray([npts[3],N])
 
-    vParAdv = vParallelAdvection(grid.eta_grid, grid.get1DSpline())
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline())
     
     for n in range(N):
         for i,r in grid.getCoords(0):
@@ -325,9 +325,9 @@ def test_equilibrium():
     
     if (rank!=drawRank):
         
-        fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-        vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
-        polAdv = poloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
+        fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+        vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+        polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
         
         dt=1
         halfStep = dt*0.5
@@ -404,3 +404,97 @@ def test_equilibrium():
         plot.updateDraw()
         if (plot.listen()==0):
             break
+
+def Phi(r,theta):
+    return - 5 * r**2 + np.sin(theta)
+
+factor = pi/8
+rFact = 1/36
+thetaFact = 1/pi
+
+def initConditions(r,theta):
+    r=np.sqrt((r-7)**2+2*(theta-pi)**2)
+    if (r<=4):
+        return np.cos(r*factor)**4
+    else:
+        return 0.0
+
+initConds = np.vectorize(initConditions, otypes=[np.float])
+
+@pytest.mark.serial
+def test_poloidalAdvection():
+    npts = [32,32]
+    
+    print(npts)
+    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
+                np.linspace(0,1,4),np.linspace(0,1,4)]
+    
+    N = 100
+    dt=0.01
+    
+    v=0
+    
+    f_vals = np.ndarray([npts[1],npts[0],N+1])
+    
+    deg = 3
+    
+    domain    = [ [1,13], [0,2*pi] ]
+    periodic  = [ False, True ]
+    nkts      = [n+1+deg*(int(p)-1)            for (n,p)      in zip( npts, periodic )]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,deg,p )     for b,p        in zip(breaks,periodic)]
+    bsplines  = [spl.BSplines( k,deg,p )       for k,p        in zip(knots,periodic)]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+    
+    eta_vals[0]=eta_grids[0]
+    eta_vals[1]=eta_grids[1]
+    
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+    
+    phi = Spline2D(bsplines[1],bsplines[0])
+    phiVals = np.empty([npts[1],npts[0]])
+    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    
+    interp.compute_interpolant(phiVals,phi)
+    
+    f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    
+    endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
+    endPts[0][:] = polAdv._shapedQ   +     10*dt/constants.B0
+    endPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
+                    + np.sin(endPts[0])/5/constants.B0)
+    
+    for n in range(N):
+        f_vals[:,:,n+1]=f_vals[:,:,n]
+        polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
+        #polAdv.step(f_vals[:,:],dt,phi,v)
+    
+    f_min = np.min(f_vals)
+    f_max = np.max(f_vals)
+    
+    print(f_min,f_max)
+    
+    plt.ion()
+
+    fig = plt.figure()
+    ax = plt.subplot(111, projection='polar')
+    ax.set_rlim(0,13)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+    
+    norm = colors.BoundaryNorm(boundaries=np.linspace(0,1,21), ncolors=256,clip=True)
+    plotParams = {'vmin':0,'vmax':1, 'norm':norm, 'cmap':"jet"}
+    
+    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+    
+    fig.colorbar(line1, cax = colorbarax2)
+    
+    for n in range(1,N+1):
+        for coll in line1.collections:
+            coll.remove()
+        del line1
+        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
