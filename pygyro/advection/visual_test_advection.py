@@ -408,33 +408,37 @@ def test_equilibrium():
 def Phi(r,theta):
     return - 5 * r**2 + np.sin(theta)
 
-factor = pi/8
-rFact = 1/36
-thetaFact = 1/pi
+a=6
+factor = pi/2/a
 
 def initConditions(r,theta):
-    r=np.sqrt((r-7)**2+2*(theta-pi)**2)
-    if (r<=4):
-        return np.cos(r*factor)**4
-    else:
-        return 0.0
+    x=r*np.cos(theta)
+    y=r*np.sin(theta)
+    R1=np.sqrt((x+7)**2+8*y**2)
+    R2=np.sqrt(4*(x+7)**2+0.5*y**2)
+    result=0.0
+    if (R1<=a):
+        result+=0.5*np.cos(R1*factor)**4
+    if (R2<=a):
+        result+=0.5*np.cos(R2*factor)**4
+    return result
 
 initConds = np.vectorize(initConditions, otypes=[np.float])
 
 @pytest.mark.serial
 def test_poloidalAdvection():
-    npts = [32,32]
+    npts = [128,128]
     
     print(npts)
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
-    N = 100
+    N = 0
     dt=0.01
     
     v=0
     
-    f_vals = np.ndarray([npts[1],npts[0],N+1])
+    f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
     
     deg = 3
     
@@ -458,7 +462,7 @@ def test_poloidalAdvection():
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
     
     endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
     endPts[0][:] = polAdv._shapedQ   +     10*dt/constants.B0
@@ -466,14 +470,17 @@ def test_poloidalAdvection():
                     + np.sin(endPts[0])/5/constants.B0)
     
     for n in range(N):
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
-        #polAdv.step(f_vals[:,:],dt,phi,v)
+        f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
+        polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
+        #polAdv.step(f_vals[:-1,:],dt,phi,v)
     
+    f_vals[-1,:,:]=f_vals[0,:,:]
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
     
     print(f_min,f_max)
+    
+    theta=np.append(eta_vals[1],eta_vals[1][0])
     
     plt.ion()
 
@@ -485,7 +492,7 @@ def test_poloidalAdvection():
     norm = colors.BoundaryNorm(boundaries=np.linspace(0,1,21), ncolors=256,clip=True)
     plotParams = {'vmin':0,'vmax':1, 'norm':norm, 'cmap':"jet"}
     
-    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
+    line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -495,6 +502,89 @@ def test_poloidalAdvection():
         for coll in line1.collections:
             coll.remove()
         del line1
-        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+def initConditionsFlux(theta,z):
+    a=4
+    factor = pi/a/2
+    r=np.sqrt((z-10)**2+2*(theta-pi)**2)
+    if (r<=4):
+        return np.cos(r*factor)**4
+    else:
+        return 0.0
+
+initCondsF = np.vectorize(initConditionsFlux, otypes=[np.float])
+
+def iota0(r = 6):
+    return np.full_like(r,10.0)
+
+@pytest.mark.serial
+def test_fluxAdvection_dz():
+    dt=0.1
+    npts = [32,32]
+    
+    CFL = dt*(npts[0]+npts[1])
+    
+    N = 20
+    
+    v=0
+    
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
+            np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
+    
+    c=2
+    
+    f_vals = np.ndarray([npts[0],npts[1],N+1])
+    final_f_vals = np.ndarray(npts)
+    
+    domain    = [ [0,2*pi], [0,20] ]
+    nkts      = [n+1                           for n          in npts ]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,3,True )    for b          in breaks]
+    bsplines  = [spl.BSplines( k,3,True )      for k          in knots]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+    
+    eta_vals[1]=eta_grids[0]
+    eta_vals[2]=eta_grids[1]
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota0)
+    
+    dz = eta_vals[2][1]-eta_vals[2][0]
+    dtheta = iota0()*dz/constants.R0
+    
+    btheta = dtheta/np.sqrt(dz**2+dtheta**2)
+    bz = dz/np.sqrt(dz**2+dtheta**2)
+    
+    f_vals[:,:,0] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
+    finalPts=[eta_vals[1]-c*N*dt*btheta,eta_vals[2]-c*N*dt*bz]
+    final_f_vals[:,:] = initCondsF(np.atleast_2d(finalPts[0]).T,finalPts[1])
+    
+    for n in range(N):
+        f_vals[:,:,n+1]=f_vals[:,:,n]
+        fluxAdv.step(f_vals[:,:,n+1],dt,c)
+    
+    x,y = np.meshgrid(eta_vals[2],eta_vals[1])
+    
+    f_min = np.min(f_vals)
+    f_max = np.max(f_vals)
+    
+    plt.ion()
+
+    fig = plt.figure()
+    ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+    
+    line1 = ax.pcolormesh(x,y,f_vals[:,:,0],vmin=f_min,vmax=f_max)
+    ax.set_title('End of Calculation')
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+    
+    fig.colorbar(line1, cax = colorbarax2)
+    
+    for n in range(1,N):
+        del line1
+        line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
