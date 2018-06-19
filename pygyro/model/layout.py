@@ -230,23 +230,39 @@ class LayoutManager:
     
     @property
     def nProcs( self ):
+        """ The number of processes available on the distributed dimensions
+        """
         return self._nprocs
     
     @property
     def mpiCoords( self ):
+        """ The coordinates of the current processor on the MPI grid communicator
+        """
         return self._mpi_coords.copy()
     
     @property
     def nDistributedDirections( self ):
-        return nDims
+        """ The number of distributed directions
+        """
+        return self._nDims
     
     @property
     def availableLayouts( self ):
+        """ The names and shapes of possible layouts
+        """
         return self._shapes
     
     @property
     def bufferSize( self ):
+        """ The size of the buffer required to hold all data
+        """
         return self._buffer_size
+    
+    @property
+    def communicators( self ):
+        """ The communicators used by the LayoutManager
+        """
+        return self._subcomms
     
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
