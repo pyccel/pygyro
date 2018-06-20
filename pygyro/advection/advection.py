@@ -122,28 +122,28 @@ class ParallelGradient:
         for i in range(3):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
             der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
-            der[:,(i+2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
+            der[:,(i+2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,1])
             der[:,(i+1)%self._nz]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
             der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
-            der[:,(i-2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
+            der[:,(i-2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,4])
             der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
         
         for i in range(3,self._nz-3):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
             der[:,(i+3)]-=self._thetaSpline.eval(thetaVals[:,i,0])
-            der[:,(i+2)]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
+            der[:,(i+2)]+=9*self._thetaSpline.eval(thetaVals[:,i,1])
             der[:,(i+1)]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
             der[:,(i-1)]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
-            der[:,(i-2)]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
+            der[:,(i-2)]-=9*self._thetaSpline.eval(thetaVals[:,i,4])
             der[:,(i-3)]+=self._thetaSpline.eval(thetaVals[:,i,5])
         
         for i in range(self._nz-3,self._nz):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
             der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
-            der[:,(i+2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,1])
+            der[:,(i+2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,1])
             der[:,(i+1)%self._nz]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
             der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
-            der[:,(i-2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,4])
+            der[:,(i-2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,4])
             der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
         
         der*= ( bz * self._inv_dz )/60
