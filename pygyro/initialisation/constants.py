@@ -24,7 +24,7 @@ m = 15
 n = -11
 
 def iota(r = rp):
-    return np.full_like(r,0.0)
+    return np.full_like(r,0.0,dtype=float)
 
 def normalisingFunc(r):
     return exp(-kN0*deltaRN0*tanh((r-rp)/deltaRN0))
