@@ -208,8 +208,10 @@ class FluxSurfaceAdvection:
         # Find the distance travelled in the z direction
         zDist = -c*self._bz[rGIdx]*dt
         
-        # Find the values of theta on the 6 z lines around the end point
-        Shifts = floor( zDist ) + np.array([-2,-1,0,1,2,3])
+        # Find the number of steps between the start point and the 6 z 
+        # lines around the end point
+        Shifts = floor( zDist/self._dz ) + np.array([-2,-1,0,1,2,3])
+        # Find the corresponding shift in the theta direction
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
         # find the values of the function at each required point
