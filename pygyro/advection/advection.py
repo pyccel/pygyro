@@ -7,8 +7,8 @@ from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpola
 from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 
-def fieldline(theta,z,full_z,idx,iota):
-    return theta+iota(constants.R0)*(full_z[idx]-z)/constants.R0
+def fieldline(theta,z_diff,iota):
+    return np.mod(theta+iota(constants.R0)*z_diff/constants.R0,2*pi)
 
 class ParallelGradient:
     """
@@ -78,18 +78,18 @@ class ParallelGradient:
         # The first three theta values require the final three z values
         for k,z in enumerate(eta_grid[2][:3]):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
-                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
+                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
         
         # The central values only require consecutive values so the modulo
         # operator can be avoided
         for k,z in enumerate(eta_grid[2][3:-3],3):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
-                thetaVals[:,(k+l),i]=fieldline(eta_grid[1],z,eta_grid[2],k+l,iota)
+                thetaVals[:,(k+l),i]=fieldline(eta_grid[1],self._dz*l,iota)
         
         # The final three theta values require the first three z values
         for k,z in enumerate(eta_grid[2][-3:],n-3):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
-                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],z,eta_grid[2],(k+l)%n,iota)
+                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
     
     def parallel_gradient( self, phi_r: np.ndarray, i : int ):
         """
