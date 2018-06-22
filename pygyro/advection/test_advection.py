@@ -82,7 +82,6 @@ def test_vParallelAdvection(function,N):
         else:
             fEnd[i]=fEdge+function(x[i]-c*dt*N)
     
-    print(max(abs(f-fEnd)))
     assert(max(abs(f-fEnd))<1e-3)
 
 def Phi(r,theta):
