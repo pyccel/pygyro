@@ -60,6 +60,7 @@ class Layout:
         self._starts = np.zeros(self._ndims,int)
         self._ends = np.empty(self._ndims,int)
         self._shape = np.empty(self._ndims,int)
+        self._max_shape = np.empty(self._ndims,int)
         
         for i,nRanks in enumerate(self._nprocs):
             ranks=np.arange(0,nRanks+1)
@@ -87,8 +88,14 @@ class Layout:
             self._starts[i] = starts[myRanks[i]]
             self._ends[i]   = starts[myRanks[i]+1]
             self._shape[i]  = self._ends[i]-self._starts[i]
+            self._max_shape[i] = big_size if nBig>0 else small_size
         
         self._size = np.prod(self._shape)
+        self._max_size = np.prod(self._max_shape)
+        
+        self._shape=tuple(self._shape)
+        self._mpi_starts=tuple(self._mpi_starts)
+        self._mpi_lengths=tuple(self._mpi_lengths)
     
     @property
     def name( self ):
@@ -133,10 +140,22 @@ class Layout:
         return self._shape
     
     @property
+    def max_block_shape( self ):
+        """ Get shape of largest data chunk in this layout.
+        """
+        return self._max_shape
+    
+    @property
     def size( self ):
         """ Get size of data chunk in memory.
         """
         return self._size
+    
+    @property
+    def max_block_size( self ):
+        """ Get size of the largest data chunk.
+        """
+        return self._max_size
     
     @property
     def nprocs( self ):
@@ -312,19 +331,15 @@ class LayoutHandler(LayoutManager):
         # Create the layouts and save them in a dictionary
         # Find the largest layout
         layoutObjects = []
-        self._buffer_size = 0
         self._shapes = []
         for name,dim_order in layouts.items():
             new_layout = Layout(name,nprocs,dim_order,eta_grids,self._mpi_coords)
             layoutObjects.append((name,new_layout))
             self._shapes.append((name,new_layout.shape))
-            if (new_layout.size>self._buffer_size):
-                self._buffer_size=new_layout.size
         self._layouts = dict(layoutObjects)
         self.nLayouts=len(self._layouts)
         
-        # Allocate the buffer
-        #self._buffer = np.empty(self._buffer_size)
+        self._buffer_size = 0
         
         # Calculate direct layout connections
         myMap = []
@@ -334,6 +349,20 @@ class LayoutHandler(LayoutManager):
                 if (self.compatible(l1,l2)):
                     myMap[i][1].append(name1)
                     myMap[n][1].append(name2)
+                    
+                    # Find the size of the block required to switch between these layouts
+                    blockshape=list(l1.shape)
+                    axis=self._get_swap_axes(l1,l2)
+                    blockshape[axis[0]]=l1.max_block_shape[axis[0]]
+                    blockshape[axis[1]]=l2.max_block_shape[axis[0]]
+                    # Find the maximum memory required
+                    if (axis[0]<len(self._subcomms)):
+                        buffsize=np.prod(blockshape)*self._subcomms[axis[0]].Get_size()
+                    else:
+                        buffsize=np.prod(blockshape)
+                    
+                    if (buffsize>self._buffer_size):
+                        self._buffer_size=buffsize
         # Save the connections in a dictionary
         DirectConnections=dict(myMap)
         
@@ -549,35 +578,39 @@ class LayoutHandler(LayoutManager):
         
         start = 0
         
-        self._shapes = []
+        # Get the shape of the block
+        shape=list(layout_source.shape)
+        shape[axis[0]]=layout_source.max_block_shape[axis[0]]
+        shape[axis[1]]=layout_dest.max_block_shape[axis[0]]
+        size = np.prod(shape)
+        
+        ranges = [slice(x) for x in layout_source.shape ]
+        
+        # Find the order to which the axes will be transposed for sending
+        # This is the same as before but the axis to be concatenated 
+        # must be the 0-th axis
+        order = list(range(layout_source.ndims))
+        if (axis[0]!=0):
+            order[0], order[axis[0]] = order[axis[0]], order[0]
+            shape[0], shape[axis[0]] = shape[axis[0]], shape[0]
+            ranges[0], ranges[axis[0]] = ranges[axis[0]], ranges[0]
         
         for (split_length,mpi_start) in zip(layout_dest.mpi_lengths(axis[0]),layout_dest.mpi_starts(axis[0])):
-            # Get the shape of the block
-            shape=layout_source.shape.copy()
-            shape[axis[1]]=split_length
-            
-            # Find the order to which the axes will be transposed for sending
-            # This is the same as before but the axis to be concatenated 
-            # must be the 0-th axis
-            order = list(range(layout_source.ndims))
-            if (axis[0]!=0):
-                order[0], order[axis[0]] = order[axis[0]], order[0]
-                shape[0], shape[axis[0]] = shape[axis[0]], shape[0]
-            
-            # Remember the shape and size for later
-            size = np.prod(shape)
-            self._shapes.append((shape,size))
-            
             # Get a view on the buffer which is the same size as the block
             arr = tobuffer[start:start+size].reshape(shape)
             assert(arr.base is tobuffer)
+            
+            # Use the list of slices to access the relevant elements on the block
+            ranges[axis[1]]=slice(split_length)
+            arrView = arr[ranges]
+            assert(arrView.base is tobuffer)
             
             # Save the block into the buffer via the source
             # This may result in a copy, however this copy would only be
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            arr[:] = source[...,mpi_start:mpi_start+split_length].transpose(order)
+            arrView[:] = source[...,mpi_start:mpi_start+split_length].transpose(order)
             
             start+=size
     
@@ -588,45 +621,24 @@ class LayoutHandler(LayoutManager):
         Pass the blocks to the correct processes, concatenating in the process
         Transpose the result to get the final layout in the destination
         """
-        size = comm.Get_size()
+        mpi_size = comm.Get_size()
         
-        # Get the sizes of the sent and received blocks.
-        # This is equal to the product of the number of points in each
-        # dimension except the dimension that was/will be distributed
-        # multiplied by the number of points in the distributed direction
-        # (e.g. when going from n_eta1=10, n_eta2=10, n_eta3=20, n_eta4=10
-        # to n_eta1=20, n_eta2=10, n_eta3=10, n_eta4=10
-        # the sent sizes are (10*10*[10 10]*10) and the received sizes
-        # are ([10 10]*10*10*10)
-        sourceSizes = layout_source.size *                      \
-                      layout_dest  .mpi_lengths( axis[0] ) //   \
-                      layout_source.shape[axis[1]]
+        # Get the shape of the send block
+        block_shape = list(layout_source.shape)
+        block_shape[axis[1]] = layout_dest.max_block_shape[axis[0]]
+        block_shape[axis[0]] = layout_source.max_block_shape[axis[0]]*mpi_size
         
-        destSizes   = layout_dest  .size *                      \
-                      layout_source.mpi_lengths( axis[0] ) //   \
-                      layout_dest  .shape[axis[1]]
-        
-        # get the start points in the array
-        sourceStarts     = np.zeros(size,int)
-        destStarts       = np.zeros(size,int)
-        sourceStarts[1:] = np.cumsum(sourceSizes)[:-1]
-        destStarts  [1:] = np.cumsum(  destSizes)[:-1]
-        
-        # check the sizes have been computed correctly
-        assert(sum(sourceSizes)==layout_source.size)
-        assert(sum(destSizes)==layout_dest.size)
+        size = np.prod(block_shape)
         
         # Get a view on the data to be sent
-        sendBuf=np.split(data,[layout_source.size],axis=0)[0]
+        sendBuf=np.split(data,[size],axis=0)[0]
         assert(sendBuf.base is data)
         
-        comm.Alltoallv( ( sendBuf                      ,
-                          ( sourceSizes, sourceStarts ),
-                          MPI.DOUBLE                   ) ,
-                        
-                        ( buf                 , 
-                          ( destSizes  , destStarts   ),
-                          MPI.DOUBLE                   ) )
+        # Get a view where the data will be received
+        rcvBuf=np.split(buf,[size],axis=0)[0]
+        assert(rcvBuf.base is buf)
+        
+        comm.Alltoall( sendBuf, rcvBuf )
         
         # Find the order to which the axes will be transposed.
         # This equates to simply swapping the axes, however as the axis
@@ -636,10 +648,17 @@ class LayoutHandler(LayoutManager):
         # axes which will be swapped not yet swapped. In addition the 
         # axis to be concatenated is the 0-th axis (it is now already concatenated)
         order = list(range(layout_source.ndims))
-        shape = layout_dest.shape.copy()
+        
+        # Get shape of destination block
+        shape = list(layout_dest.shape)
+        shape[axis[0]]=layout_dest.max_block_shape[axis[0]]
+        shape[axis[1]]=layout_source.max_block_shape[axis[0]]*mpi_size
+        
+        # Reorder the shape to the current format
         if (axis[0]!=0):
             order[0], order[axis[0]], order[axis[1]] = order[axis[0]], order[axis[1]], order[0]
             shape[0], shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[0], shape[axis[0]]
+            block_shape[0], block_shape[axis[0]] = block_shape[axis[0]], block_shape[0]
         else:
             order[axis[0]], order[axis[1]] = order[axis[1]], order[axis[0]]
             shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
@@ -647,12 +666,29 @@ class LayoutHandler(LayoutManager):
         # Get a view on the destination
         destView = np.split(data,[layout_dest.size])[0].reshape(layout_dest.shape)
         assert(destView.base is data)
+        
         # Get a view on the actual data received
-        bufView = np.split(buf,[layout_dest.size])[0].reshape(shape)
+        bufView = np.split(buf,[size])[0].reshape(block_shape)
         assert(bufView.base is buf)
-        # Transpose the data. As the axes to be concatenated are the first dimension
-        # the concatenation is done automatically by the alltoall
-        destView[:] = bufView.transpose(order)
+        
+        for r in range(mpi_size):
+            start = layout_source.max_block_shape[axis[0]]*r
+            
+            # Get a view on the block
+            bufRanges=[slice(x) for x in shape]
+            bufRanges[order[axis[0]]]=slice(layout_dest.shape[axis[0]])
+            bufRanges[order[axis[1]]]=slice(layout_dest.shape[axis[1]])
+            bufRanges[0]=slice(start,start+layout_source.mpi_lengths(axis[0])[r])
+            assert(bufView[bufRanges].base is buf)
+            
+            # Get a view on the block in the destination memory
+            destRanges=[slice(x) for x in layout_dest.shape]
+            destRanges[axis[1]]=slice(layout_source.mpi_starts(axis[0])[r],
+                               layout_source.mpi_starts(axis[0])[r]+layout_source.mpi_lengths(axis[0])[r])
+            
+            # Transpose the data. As the axes to be concatenated are the first dimension
+            # the concatenation is done automatically
+            destView[destRanges] = np.transpose(bufView[bufRanges],order)
     
     def compatible(self, l1: Layout, l2: Layout):
         """
