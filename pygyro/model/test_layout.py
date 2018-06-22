@@ -5,7 +5,6 @@ import pytest
 from .layout        import getLayoutHandler, Layout, LayoutSwapper
 from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from_max
 
-"""
 def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
     nEta1=len(Eta1)
     nEta2=len(Eta2)
@@ -557,7 +556,6 @@ def test_copy():
                        dest=fBuf,
                        source_name='flux_surface',
                        dest_name='flux_surface')
-"""
 
 def test_LayoutSwapper():
     comm = MPI.COMM_WORLD
