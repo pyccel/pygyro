@@ -4,7 +4,7 @@ import numpy as np
 
 from ..splines.splines      import make_knots, BSplines
 from ..model.process_grid   import compute_2d_process_grid
-from ..model.layout         import LayoutManager
+from ..model.layout         import getLayoutHandler
 from ..model.grid           import Grid
 
 #===============================================================================
@@ -52,7 +52,7 @@ layouts = {'flux_surface': [0,3,1,2],
            'poloidal'    : [3,2,1,0]}
 
 # Create layout manager
-remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
+remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
 
 # Create grid
 phase_space = Grid(eta_grids,remapper,'flux_surface')
