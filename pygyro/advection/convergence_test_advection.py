@@ -83,7 +83,7 @@ def test_vParallelAdvection():
 def Phi(r,theta):
     return - 5 * r**2 + np.sin(theta)
 
-
+"""
 def initConditions(r,theta):
     a=6
     factor = pi/a/2
@@ -97,7 +97,7 @@ def initConditions(r,theta):
     if (R2<=a):
         result+=0.5*np.cos(R2*factor)**4
     return result
-
+"""
 
 def initConditions(r,theta):
     a=4
@@ -256,11 +256,6 @@ def test_poloidalAdvection_constantAdv_dt():
         finalPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
                         + np.sin(finalPts[0])/5/constants.B0)
         final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
-        
-        endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-        endPts[0][:] = polAdv._shapedQ   -     10*dt/constants.B0
-        endPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                        + np.sin(endPts[0])/5/constants.B0)
         
         for n in range(N):
             polAdv.step(f_vals[:,:],dt,phi,v)
