@@ -734,7 +734,8 @@ class LayoutSwapper(LayoutManager):
         
         self._nDims = [1 if isinstance(x,int) else max(len(x)-x.count(1),1) for x in nprocs]
         
-        self._largestLayoutManager, self._maxDims = max(enumerate(self._nDims), key=operator.itemgetter(1))
+        self._maxDims = max([1 if isinstance(x,int) else len(x) for x in nprocs])
+        self._largestLayoutManager,x = max(enumerate(self._nDims), key=operator.itemgetter(1))
         
         self._totProcs = np.prod(nprocs[self._largestLayoutManager])
         
@@ -764,12 +765,12 @@ class LayoutSwapper(LayoutManager):
         
         i=sortOrder[0]
         
-        self._topologies[i] = comm.Create_cart( self._nprocs[i], periods=[False]*self._nDims[i] )
+        self._topologies[i] = comm.Create_cart( self._nprocs[i], periods=[False]*len(self._nprocs[i]) )
 
         # Get communicator for each dimension
         subcomms = []
-        for k in range(self._nDims[i]):
-            subcomms.append(self._topologies[i].Sub( [k==j for j in range(self._nDims[i])] ))
+        for k in range(self._maxDims):
+            subcomms.append(self._topologies[i].Sub( [k==j for j in range(len(self._nprocs[i]))] ))
 
         mpi_coords = self._topologies[i].Get_coords(comm.Get_rank())
         
@@ -935,8 +936,14 @@ class LayoutSwapper(LayoutManager):
         source_ndims = self._nprocs[self._handlers[layout_source.name]]
         dest_nprocs = layout_dest.nprocs
         dest_ndims = self._nprocs[self._handlers[layout_dest.name]]
-        idx = list(np.equal(source_ndims,dest_ndims)).index(False)
         
+        proc_diff = np.equal(source_ndims,dest_ndims)
+        if (proc_diff.all()):
+            dest[:]=source
+            return
+        
+        idx = list(proc_diff).index(False)
+                
         if (dest_ndims>source_ndims):
             # If the source has fewer dimensions then the layout was not
             # distributed and all necessary information is already on the thread
@@ -985,7 +992,13 @@ class LayoutSwapper(LayoutManager):
         source_ndims = self._nprocs[self._handlers[layout_source.name]]
         dest_nprocs = layout_dest.nprocs
         dest_ndims = self._nprocs[self._handlers[layout_dest.name]]
-        idx = list(np.equal(source_ndims,dest_ndims)).index(False)
+        
+        proc_diff = np.equal(source_ndims,dest_ndims)
+        if (proc_diff.all()):
+            dest[:]=source
+            return
+        
+        idx = list(proc_diff).index(False)
         
         if (dest_ndims>source_ndims):
             # If the source has fewer dimensions then the layout was not
