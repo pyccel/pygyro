@@ -1023,14 +1023,14 @@ class LayoutSwapper(LayoutManager):
                             ( destSizes  , destStarts ),
                               MPI.DOUBLE                )                     )
             
-            blocks = np.split(dest,destStarts[1:])
-            for i,b in enumerate(blocks):
+            blocks = np.split(dest,[*destStarts[1:],destStarts[-1]+destSizes[-1]])
+            for i,b in enumerate(blocks[:-1]):
                 shape = list(layout_source.shape)
                 shape[idx] = layout_source.mpi_lengths(idx)[i]
                 blocks[i]=b.reshape(shape)
             
             destView = np.split(source,[layout_dest.size])[0].reshape(layout_dest.shape)
-            np.concatenate(blocks,axis=idx,out=destView)
+            np.concatenate(blocks[:-1],axis=idx,out=destView)
             dest[:]=source[:]
             
     def _transpose_source_intact(self, source, dest, buf, layout_source: Layout, layout_dest: Layout):
