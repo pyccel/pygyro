@@ -320,7 +320,9 @@ def test_LayoutSwap_IntactSource():
 @pytest.mark.parallel
 def test_LayoutSwap():
     npts = [40,20,10,30]
-    nprocs = compute_2d_process_grid( npts, MPI.COMM_WORLD.Get_size() )
+    comm = MPI.COMM_WORLD
+    
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     
     eta_grids=[np.linspace(0,1,npts[0]),
                np.linspace(0,6.28318531,npts[1]),
@@ -330,14 +332,12 @@ def test_LayoutSwap():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    remapper = getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    assert(remapper.bufferSize==max(fsLayout.size,vLayout.size,pLayout.size))
-
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     
@@ -442,8 +442,6 @@ def test_BadStepWarning():
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    assert(remapper.bufferSize==max(fsLayout.size,vLayout.size,pLayout.size))
-    
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     
@@ -472,9 +470,10 @@ def test_BadStepWarning_IntactSource():
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    fStart = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    fEnd = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
-    fBuf = np.empty(max(fsLayout.size,vLayout.size,pLayout.size))
+    fStart = np.empty(remapper.bufferSize)
+    fEnd = np.empty(remapper.bufferSize)
+    fBuf = np.empty(remapper.bufferSize)
+    
     f_fs_s = np.split(fStart,[fsLayout.size])[0].reshape(fsLayout.shape)
     assert(not f_fs_s.flags['OWNDATA'])
     f_v_s  = np.split(fStart,[ vLayout.size])[0].reshape( vLayout.shape)
