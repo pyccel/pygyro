@@ -62,15 +62,25 @@ class Layout:
         self._shape = np.empty(self._ndims,int)
         
         for i,nRanks in enumerate(self._nprocs):
-            ranks=np.arange(0,nRanks)
-            n=len(eta_grids[dims_order[i]])
-            Overflow=n%nRanks
+            ranks=np.arange(0,nRanks+1)
             
-            # get start indices for all processes
-            starts=n//nRanks*ranks + np.minimum(ranks,Overflow)
-            self._mpi_starts.append(starts)
+            n=len(eta_grids[dims_order[i]])
+            
+            # Find block sizes
+            small_size = n//nRanks
+            big_size = small_size+1
+            
+            # Find number of blocks of each size
+            nBig = n%nRanks
+            
+            # Get start indices for all processes
+            # The different sized blocks should be optimally distributed
+            # This means that if the distribution is changed elsewhere,
+            # the load balance should remain good
+            starts=small_size*ranks+nBig*ranks//nRanks
+            
+            self._mpi_starts.append(starts[:-1])
             # append end index
-            starts=np.append(starts,n)
             self._mpi_lengths.append(starts[1:]-starts[:-1])
             
             # save start and indices from list using cartesian ranks
