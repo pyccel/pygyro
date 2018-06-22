@@ -252,8 +252,6 @@ def test_LayoutSwap_IntactSource():
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
     
-    assert(remapper.bufferSize==max(fsLayout.size,vLayout.size,pLayout.size))
-    
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     f3 = np.empty(remapper.bufferSize)
