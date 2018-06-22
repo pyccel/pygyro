@@ -301,7 +301,7 @@ class PoloidalAdvection:
         The spline approximations along theta and r
 
     """
-    def __init__( self, eta_vals: list, splines: list ):
+    def __init__( self, eta_vals: list, splines: list, edgeFunc = fEq ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size,self._points[1].size)
@@ -309,6 +309,7 @@ class PoloidalAdvection:
         self._spline = Spline2D(splines[0],splines[1])
         
         self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
+        self._edge = edgeFunc
     
     def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
         """
@@ -382,11 +383,9 @@ class PoloidalAdvection:
     
     def evaluate( self, theta, r, v ):
         if (r<self._points[1][0]):
-            return 0
-            #return fEq(self._points[1][0],v);
+            return self._edge(self._points[1][0],v)
         elif (r>self._points[1][-1]):
-            return 0
-            #return fEq(r,v);
+            return self._edge(r,v)
         else:
             while (theta>2*pi):
                 theta-=2*pi
