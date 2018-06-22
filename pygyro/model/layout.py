@@ -356,7 +356,7 @@ class LayoutHandler(LayoutManager):
                     blockshape[axis[0]]=l1.max_block_shape[axis[0]]
                     blockshape[axis[1]]=l2.max_block_shape[axis[0]]
                     # Find the maximum memory required
-                    if (axis[0]<len(self._subcomms)):
+                    if (axis[0]<len(self._subcomms) and self._subcomms[axis[0]]!=None):
                         buffsize=np.prod(blockshape)*self._subcomms[axis[0]].Get_size()
                     else:
                         buffsize=np.prod(blockshape)
@@ -1025,7 +1025,7 @@ class LayoutSwapper(LayoutManager):
             
             blocks = np.split(dest,destStarts[1:])
             for i,b in enumerate(blocks):
-                shape = layout_source.shape
+                shape = list(layout_source.shape)
                 shape[idx] = layout_source.mpi_lengths(idx)[i]
                 blocks[i]=b.reshape(shape)
             
