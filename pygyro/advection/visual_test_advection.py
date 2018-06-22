@@ -511,19 +511,19 @@ def initConditionsFlux(theta,z):
     factor = pi/a/2
     r=np.sqrt((z-10)**2+2*(theta-pi)**2)
     if (r<=4):
-        return np.cos(r*factor)**4
+        return np.cos(r*factor)**6
     else:
         return 0.0
 
 initCondsF = np.vectorize(initConditionsFlux, otypes=[np.float])
 
-def iota0(r = 6):
-    return np.full_like(r,10.0)
+def iota0(r = 6.0):
+    return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
 def test_fluxAdvection_dz():
     dt=0.1
-    npts = [32,32]
+    npts = [16,64]
     
     CFL = dt*(npts[0]+npts[1])
     
@@ -537,7 +537,6 @@ def test_fluxAdvection_dz():
     c=2
     
     f_vals = np.ndarray([npts[0],npts[1],N+1])
-    final_f_vals = np.ndarray(npts)
     
     domain    = [ [0,2*pi], [0,20] ]
     nkts      = [n+1                           for n          in npts ]
@@ -558,12 +557,10 @@ def test_fluxAdvection_dz():
     bz = dz/np.sqrt(dz**2+dtheta**2)
     
     f_vals[:,:,0] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
-    finalPts=[eta_vals[1]-c*N*dt*btheta,eta_vals[2]-c*N*dt*bz]
-    final_f_vals[:,:] = initCondsF(np.atleast_2d(finalPts[0]).T,finalPts[1])
     
-    for n in range(N):
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        fluxAdv.step(f_vals[:,:,n+1],dt,c)
+    for n in range(1,N+1):
+        f_vals[:,:,n]=f_vals[:,:,n-1]
+        fluxAdv.step(f_vals[:,:,n],dt,c)
     
     x,y = np.meshgrid(eta_vals[2],eta_vals[1])
     
@@ -583,7 +580,7 @@ def test_fluxAdvection_dz():
     
     fig.colorbar(line1, cax = colorbarax2)
     
-    for n in range(1,N):
+    for n in range(1,N+1):
         del line1
         line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
