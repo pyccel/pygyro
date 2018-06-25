@@ -1003,34 +1003,32 @@ class LayoutSwapper(LayoutManager):
             length = layout_dest.mpi_lengths(idx)[rank]
             destView[:layout_dest.size]=sourceView.take(range(start,start+length),axis=idx)
         else:
-            
-            destSizes   = layout_dest  .size *                      \
-                          layout_source.mpi_lengths( idx ) //   \
-                          layout_dest  .shape[idx]
-            
             comm = self._managers[self._handlers[layout_source.name]].communicators[idx]
-            size = comm.Get_size()
+            mpi_size = comm.Get_size()
             
-            # get the start points in the array
-            destStarts       = np.zeros(size,int)
-            destStarts  [1:] = np.cumsum(  destSizes)[:-1]
+            blockShape = list(layout_source.shape)
+            blockShape[idx] = layout_source.max_block_shape[idx]
+            blockSize = np.prod(blockShape)
             
-            comm.Allgatherv(( source                                      ,
-                            ( layout_source.size, layout_dest.starts[idx]),
-                              MPI.DOUBLE                                   ) ,
-                            
-                            ( dest                     , 
-                            ( destSizes  , destStarts ),
-                              MPI.DOUBLE                )                     )
+            sourceView = np.split(source,[blockSize])[0]
             
-            blocks = np.split(dest,[*destStarts[1:],destStarts[-1]+destSizes[-1]])
-            for i,b in enumerate(blocks[:-1]):
-                shape = list(layout_source.shape)
-                shape[idx] = layout_source.mpi_lengths(idx)[i]
-                blocks[i]=b.reshape(shape)
+            comm.Allgather(( sourceView , MPI.DOUBLE ),
+                           ( dest     , MPI.DOUBLE ) )
             
+            blocks = np.split(dest,blockSize*np.arange(1,mpi_size+1))
             destView = np.split(source,[layout_dest.size])[0].reshape(layout_dest.shape)
-            np.concatenate(blocks[:-1],axis=idx,out=destView)
+            
+            destView[:]=0
+            
+            slices = [slice(x) for x in layout_source.shape]
+            
+            for i,b in enumerate(blocks[:-1]):
+                block=b.reshape(blockShape)
+                bSlice = slices.copy()
+                slices[idx] = slice(layout_source.mpi_starts(idx)[i],
+                                    layout_source.mpi_starts(idx)[i]+layout_source.mpi_lengths(idx)[i])
+                bSlice[idx] = slice(layout_source.mpi_lengths(idx)[i])
+                destView[slices]=block[bSlice]
             dest[:]=source[:]
             
     def _transpose_source_intact(self, source, dest, buf, layout_source: Layout, layout_dest: Layout):
@@ -1059,34 +1057,32 @@ class LayoutSwapper(LayoutManager):
             length = layout_dest.mpi_lengths(idx)[rank]
             destView[:layout_dest.size]=sourceView.take(range(start,start+length),axis=idx)
         else:
-            
-            destSizes   = layout_dest  .size *                      \
-                          layout_source.mpi_lengths( idx ) //   \
-                          layout_dest  .shape[idx]
-            
             comm = self._managers[self._handlers[layout_source.name]].communicators[idx]
-            size = comm.Get_size()
+            mpi_size = comm.Get_size()
             
-            # get the start points in the array
-            destStarts       = np.zeros(size,int)
-            destStarts  [1:] = np.cumsum(  destSizes)[:-1]
+            blockShape = list(layout_source.shape)
+            blockShape[idx] = layout_source.max_block_shape[idx]
+            blockSize = np.prod(blockShape)
             
-            comm.Allgatherv(( source                                      ,
-                            ( layout_source.size, layout_dest.starts[idx]),
-                              MPI.DOUBLE                                   ) ,
-                            
-                            ( buf                      , 
-                            ( destSizes  , destStarts ),
-                              MPI.DOUBLE                )                     )
+            sourceView = np.split(source,[blockSize])[0]
             
-            blocks = np.split(buf,destStarts[1:])
-            for i,b in enumerate(blocks):
-                shape = layout_source.shape
-                shape[idx] = layout_source.mpi_lengths(idx)[i]
-                blocks[i]=b.reshape(shape)
+            comm.Allgather(( sourceView , MPI.DOUBLE ),
+                           ( buf     , MPI.DOUBLE ) )
             
+            blocks = np.split(buf,blockSize*np.arange(1,mpi_size+1))
             destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
-            np.concatenate(blocks,axis=idx,out=destView)
+            
+            destView[:]=0
+            
+            slices = [slice(x) for x in layout_source.shape]
+            
+            for i,b in enumerate(blocks[:-1]):
+                block=b.reshape(blockShape)
+                bSlice = slices.copy()
+                slices[idx] = slice(layout_source.mpi_starts(idx)[i],
+                                    layout_source.mpi_starts(idx)[i]+layout_source.mpi_lengths(idx)[i])
+                bSlice[idx] = slice(layout_source.mpi_lengths(idx)[i])
+                destView[slices]=block[bSlice]
         
     def _transposeRedirect(self,source,dest,source_name,dest_name):
         """
