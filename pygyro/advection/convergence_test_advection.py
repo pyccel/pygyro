@@ -241,7 +241,7 @@ def test_poloidalAdvection_constantAdv_dt():
         eta_vals[0]=eta_grids[0]
         eta_vals[1]=eta_grids[1]
         
-        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0)
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
