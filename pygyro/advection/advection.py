@@ -94,7 +94,7 @@ class ParallelGradient:
         A=np.zeros([n,n])
         for i in range(n):
             for j in range(n):
-                A[i][j]=(j+start)**i
+                A[i,j]=(j+start)**i
         
         # Solve the linear system to find the coefficients
         self._coeffs = solve(A,b)
