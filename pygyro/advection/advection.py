@@ -75,19 +75,7 @@ class ParallelGradient:
         # They can therefore be calculated in advance
         n = eta_grid[2].size
         
-        # The first three theta values require the final three z values
-        for k,z in enumerate(eta_grid[2][:3]):
-            for i,l in enumerate([-3,-2,-1,1,2,3]):
-                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
-        
-        # The central values only require consecutive values so the modulo
-        # operator can be avoided
-        for k,z in enumerate(eta_grid[2][3:-3],3):
-            for i,l in enumerate([-3,-2,-1,1,2,3]):
-                thetaVals[:,(k+l),i]=fieldline(eta_grid[1],self._dz*l,iota)
-        
-        # The final three theta values require the first three z values
-        for k,z in enumerate(eta_grid[2][-3:],n-3):
+        for k,z in enumerate(eta_grid[2]):
             for i,l in enumerate([-3,-2,-1,1,2,3]):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
     
