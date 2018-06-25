@@ -443,9 +443,6 @@ def test_Phi_deriv_dtheta():
         approxGrad = pGrad.parallel_gradient(phiVals,0)
         exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
         
-        print(np.linalg.norm(approxGrad-exactGrad,'fro'))
-        print(np.linalg.norm((approxGrad-exactGrad).flatten(),np.inf))
-        
         err = approxGrad-exactGrad
         
         l2[i]=np.sqrt(np.trapz(np.trapz(err**2,dx=dz),dx=dtheta))
@@ -508,9 +505,6 @@ def test_Phi_deriv_dz():
         
         approxGrad = pGrad.parallel_gradient(phiVals,0)
         exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
-        
-        print(np.linalg.norm(approxGrad-exactGrad,'fro'))
-        print(np.linalg.norm((approxGrad-exactGrad).flatten(),np.inf))
         
         err = approxGrad-exactGrad
         
