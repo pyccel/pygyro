@@ -217,14 +217,14 @@ class FluxSurfaceAdvection:
         # Find the distance travelled in the z direction
         zDist = -c*self._bz[rGIdx]*dt
         
-        # Find the number of steps between the start point and the 6 z 
-        # lines around the end point
+        # Find the number of steps between the start point and the lines
+        # around the end point
         Shifts = floor( zDist/self._dz ) + np.arange(-self._zLagrangePts//2+1,self._zLagrangePts//2+1)
         # Find the corresponding shift in the theta direction
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
         # find the values of the function at each required point
-        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], 6])
+        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
         
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
