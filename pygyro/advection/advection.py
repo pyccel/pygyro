@@ -94,7 +94,7 @@ class ParallelGradient:
         A=np.zeros([n,n])
         for i in range(n):
             for j in range(n):
-                A[i][j]=(j+start)**i
+                A[i,j]=(j+start)**i
         
         # Solve the linear system to find the coefficients
         self._coeffs = solve(A,b)
@@ -129,7 +129,7 @@ class ParallelGradient:
         else:
             bz=self._bz
             thetaVals = self._thetaVals
-        der=np.full_like(phi_r,0)
+        der=np.zeros_like(phi_r)
         
         # For each value of z interpolate the spline along theta and add
         # the value multiplied by the corresponding coefficient to the
@@ -217,14 +217,14 @@ class FluxSurfaceAdvection:
         # Find the distance travelled in the z direction
         zDist = -c*self._bz[rGIdx]*dt
         
-        # Find the number of steps between the start point and the 6 z 
-        # lines around the end point
+        # Find the number of steps between the start point and the lines
+        # around the end point
         Shifts = floor( zDist/self._dz ) + np.arange(-self._zLagrangePts//2+1,self._zLagrangePts//2+1)
         # Find the corresponding shift in the theta direction
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
         # find the values of the function at each required point
-        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], 6])
+        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
         
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
