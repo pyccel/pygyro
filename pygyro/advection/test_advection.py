@@ -349,11 +349,11 @@ def test_vParGrad():
     assert(np.isfinite(der).all())
     assert((np.abs(der)<1e-12).all())
 
-def Phi(theta,z):
+def pg_Phi(theta,z):
     #return np.cos(z*pi*0.1) + np.sin(theta)
     return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
 
-def dPhi(theta,z,btheta,bz):
+def pg_dPhi(theta,z,btheta,bz):
     #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
     return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta
 
@@ -384,12 +384,12 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
         phiVals = np.empty([npts[1],npts[2]])
-        phiVals[:] = Phi(np.atleast_2d(eta_grid[1]).T,eta_grid[2])
+        phiVals[:] = pg_Phi(np.atleast_2d(eta_grid[1]).T,eta_grid[2])
         
         pGrad = ParallelGradient(spline_theta,eta_grid,iota,zOrder)
         
         approxGrad = pGrad.parallel_gradient(phiVals,0)
-        exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
+        exactGrad = pg_dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
         
         err = approxGrad-exactGrad
         
