@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.linalg                   import solve
 from scipy.interpolate              import lagrange
+from scipy.integrate                import trapz
 from math                           import pi, floor, ceil
 
 from ..splines.splines              import BSplines, Spline1D, Spline2D
@@ -308,14 +309,30 @@ class PoloidalAdvection:
 
     splines: list of BSplines
         The spline approximations along theta and r
+    
+    edgeFunc: function handle - optional
+        Function returning the value at the boundary as a function of r and v
+        Default is fEquilibrium
+    
+    explicitTrap: bool - optional
+        Indicates whether the explicit trapezoidal method (Heun's method)
+        should be used or the implicit trapezoidal method should be used
+        instead
+    
+    tol: float - optional
+        The tolerance used for the implicit trapezoidal rule
 
     """
-    def __init__( self, eta_vals: list, splines: list, edgeFunc = fEq ):
+    def __init__( self, eta_vals: list, splines: list, edgeFunc = fEq, 
+                    explicitTrap: bool =  True, tol: float = 1e-10 ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size,self._points[1].size)
         self._interpolator = SplineInterpolator2D(splines[0],splines[1])
         self._spline = Spline2D(splines[0],splines[1])
+        
+        self._explicit = explicitTrap
+        self._TOL = tol
         
         self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         self._edge = edgeFunc
@@ -345,42 +362,68 @@ class PoloidalAdvection:
         
         multFactor = dt/constants.B0
         
-        drPhi = phi.eval(*self._points,0,1)/self._points[1]
-        dthetaPhi = phi.eval(*self._points,1,0)/self._points[1]
+        drPhi_0 = phi.eval(*self._points,0,1)/self._points[1]
+        dthetaPhi_0 = phi.eval(*self._points,1,0)/self._points[1]
         
         # Step one of Heun method
         # x' = x^n + f(x^n)
-        endPts = ( self._shapedQ   -     drPhi*multFactor,
-                   self._points[1] + dthetaPhi*multFactor )
+        endPts_k1 = ( self._shapedQ   -     drPhi_0*multFactor,
+                     self._points[1] + dthetaPhi_0*multFactor )
         
-        for i in range(self._nPoints[0]):
-            for j in range(self._nPoints[1]):
-                # Handle theta boundary conditions
-                while (endPts[0][i][j]<0):
-                    endPts[0][i][j]+=2*pi
-                while (endPts[0][i][j]>2*pi):
-                    endPts[0][i][j]-=2*pi
-                
-                # Phi is 0 outside of domain
-                if (not (endPts[1][i][j]<self._points[1][0] or 
-                         endPts[1][i][j]>self._points[1][-1])):
-                    # Add the new value of phi to the derivatives
-                    # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-                    #                               ^^^^^^^^^^^^^^^
-                    drPhi[i,j]     += phi.eval(endPts[0][i][j],endPts[1][i][j],0,1)/endPts[1][i][j]
-                    dthetaPhi[i,j] += phi.eval(endPts[0][i][j],endPts[1][i][j],1,0)/endPts[1][i][j]
+        drPhi_k = np.empty_like(drPhi_0)
+        dthetaPhi_k = np.empty_like(dthetaPhi_0)
         
         multFactor*=0.5
         
-        # Step two of Heun method
-        # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-        endPts = ( self._shapedQ   -     drPhi*multFactor,
-                   self._points[1] + dthetaPhi*multFactor )
+        jetztStep=0
+        
+        while (True):
+            jetztStep+=1
+            
+            for i in range(self._nPoints[0]):
+                for j in range(self._nPoints[1]):
+                    # Handle theta boundary conditions
+                    while (endPts_k1[0][i,j]<0):
+                        endPts_k1[0][i,j]+=2*pi
+                    while (endPts_k1[0][i,j]>2*pi):
+                        endPts_k1[0][i,j]-=2*pi
+                    
+                    if (not (endPts_k1[1][i,j]<self._points[1][0] or 
+                             endPts_k1[1][i,j]>self._points[1][-1])):
+                        # Add the new value of phi to the derivatives
+                        # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
+                        #                               ^^^^^^^^^^^^^^^
+                        drPhi_k[i,j]     = phi.eval(endPts_k1[0][i,j],endPts_k1[1][i,j],0,1)/endPts_k1[1][i,j]
+                        dthetaPhi_k[i,j] = phi.eval(endPts_k1[0][i,j],endPts_k1[1][i,j],1,0)/endPts_k1[1][i,j]
+                    else:
+                        drPhi_k[i,j]     = 0.0
+                        dthetaPhi_k[i,j] = 0.0
+            
+            if (self._explicit):
+                # Step two of Heun method
+                # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
+                endPts_k2 = ( np.mod(self._shapedQ   - (drPhi_0     + drPhi_k)*multFactor,2*pi),
+                              self._points[1] + (dthetaPhi_0 + dthetaPhi_k)*multFactor )
+                break
+            else:
+                # Step two of Heun method
+                # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
+
+                # Clipping seems to be necessary to avoid infinite loops due to boundary conditions
+                # this should be discussedx
+                endPts_k2 = ( np.mod(self._shapedQ   - (drPhi_0     + drPhi_k)*multFactor,2*pi),
+                              np.clip(self._points[1] + (dthetaPhi_0 + dthetaPhi_k)*multFactor,
+                                      self._points[1][0], self._points[1][-1]) )
+                norm = max(np.linalg.norm((endPts_k2[0]-endPts_k1[0]).flatten(),np.inf),
+                           np.linalg.norm((endPts_k2[1]-endPts_k1[1]).flatten(),np.inf))
+                if (norm<self._TOL):
+                    break
+                endPts_k1=endPts_k2
         
         # Find value at the determined point
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
-                f[i,j]=self.evalFunc(endPts[0][i][j],endPts[1][i][j],v)
+                f[i,j]=self.evalFunc(endPts_k2[0][i,j],endPts_k2[1][i,j],v)
     
     def exact_step( self, f, endPts, v ):
         assert(f.shape==self._nPoints)
@@ -388,7 +431,7 @@ class PoloidalAdvection:
         
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
-                f[i,j]=self.evalFunc(endPts[0][i][j],endPts[1][i][j],v)
+                f[i,j]=self.evalFunc(endPts[0][i,j],endPts[1][i,j],v)
     
     def evaluate( self, theta, r, v ):
         if (r<self._points[1][0]):
