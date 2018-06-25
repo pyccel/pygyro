@@ -154,10 +154,14 @@ class FluxSurfaceAdvection:
     iota: function handle - optional
         Function returning the value of iota at a given radius r.
         Default is constants.iota
+    
+    zDegree: int - optional
+        Order of the lagrange interpolation
 
     """
-    def __init__( self, eta_grid: list, splines: list, iota = constants.iota ):
+    def __init__( self, eta_grid: list, splines: list, iota = constants.iota, zDegree: int = 5 ):
         # Save all pertinent information
+        self._zLagrangePts = zDegree+1
         self._points = eta_grid[1:3]
         self._nPoints = (self._points[0].size,self._points[1].size)
         self._interpolator = SplineInterpolator1D(splines[0])
@@ -198,7 +202,7 @@ class FluxSurfaceAdvection:
         
         # Find the number of steps between the start point and the 6 z 
         # lines around the end point
-        Shifts = floor( zDist/self._dz ) + np.array([-2,-1,0,1,2,3])
+        Shifts = floor( zDist/self._dz ) + np.arange(-self._zLagrangePts//2+1,self._zLagrangePts//2+1)
         # Find the corresponding shift in the theta direction
         thetaShifts = self._dtheta[rGIdx]*Shifts
         
