@@ -82,7 +82,6 @@ def test_vParallelAdvection(function,N):
         else:
             fEnd[i]=fEdge+function(x[i]-c*dt*N)
     
-    print(max(abs(f-fEnd)))
     assert(max(abs(f-fEnd))<1e-3)
 
 def Phi(r,theta):
@@ -349,3 +348,56 @@ def test_vParGrad():
     der = pG.parallel_gradient(phiVals,0)
     assert(np.isfinite(der).all())
     assert((np.abs(der)<1e-12).all())
+
+def Phi(theta,z):
+    #return np.cos(z*pi*0.1) + np.sin(theta)
+    return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
+
+def dPhi(theta,z,btheta,bz):
+    #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
+    return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta
+
+def iota(r = 6.0):
+    return np.full_like(r,0.8,dtype=float)
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(3,6), (4,6)] )
+def test_Phi_deriv_dz(phiOrder,zOrder):
+    nconvpts = 2
+    npts = [128,1024,128]
+    
+    l2=np.empty(nconvpts)
+    linf=np.empty(nconvpts)
+    
+    for i in range(nconvpts):
+        breaks_theta = np.linspace(0,2*pi,npts[1]+1)
+        spline_theta = spl.BSplines(spl.make_knots(breaks_theta,phiOrder,True),phiOrder,True)
+        breaks_z = np.linspace(0,20,npts[2]+1)
+        spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
+        
+        eta_grid = [[1], spline_theta.greville, spline_z.greville]
+        
+        dz = eta_grid[2][1]-eta_grid[2][0]
+        dtheta = iota()*dz/constants.R0
+        
+        bz = dz/np.sqrt(dz**2+dtheta**2)
+        btheta = dtheta/np.sqrt(dz**2+dtheta**2)
+        
+        phiVals = np.empty([npts[1],npts[2]])
+        phiVals[:] = Phi(np.atleast_2d(eta_grid[1]).T,eta_grid[2])
+        
+        pGrad = ParallelGradient(spline_theta,eta_grid,iota,zOrder)
+        
+        approxGrad = pGrad.parallel_gradient(phiVals,0)
+        exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
+        
+        err = approxGrad-exactGrad
+        
+        l2[i]=np.sqrt(np.trapz(np.trapz(err**2,dx=dz),dx=dtheta))
+        linf[i]=np.linalg.norm(err.flatten(),np.inf)
+        
+        npts[2]*=2
+    
+    linfOrder = np.log2(linf[0]/linf[1])
+    
+    assert(abs(linfOrder-zOrder)<0.1)
