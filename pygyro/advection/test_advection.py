@@ -148,6 +148,54 @@ def test_poloidalAdvection(dt,v):
     assert(l2<0.2)
 
 @pytest.mark.serial
+@pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
+def test_poloidalAdvectionImplicit(dt,v):
+    
+    npts = [64,64]
+    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
+                np.linspace(0,1,4),np.linspace(0,1,4)]
+    
+    N = int(1/dt)
+    
+    f_vals = np.ndarray([npts[1],npts[0]])
+    final_f_vals = np.ndarray([npts[1],npts[0]])
+    
+    deg = 3
+    
+    domain    = [ [1,14.5], [0,2*pi] ]
+    periodic  = [ False, True ]
+    nkts      = [n+1+deg*(int(p)-1)            for (n,p)      in zip( npts, periodic )]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,deg,p )     for b,p        in zip(breaks,periodic)]
+    bsplines  = [spl.BSplines( k,deg,p )       for k,p        in zip(knots,periodic)]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+    
+    eta_vals[0]=eta_grids[0]
+    eta_vals[1]=eta_grids[1]
+    
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0,False,1e-10)
+    
+    phi = Spline2D(bsplines[1],bsplines[0])
+    phiVals = np.empty([npts[1],npts[0]])
+    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    
+    interp.compute_interpolant(phiVals,phi)
+    
+    f_vals[:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
+    finalPts[0][:] = np.mod(polAdv._shapedQ   +     10*dt*N/constants.B0,2*pi)
+    finalPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
+                    + np.sin(finalPts[0])/5/constants.B0)
+    final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
+    
+    for n in range(N):
+        polAdv.step(f_vals[:,:],dt,phi,v)
+    
+    l2=np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,eta_grids[1],axis=0)*eta_grids[0],eta_grids[0]))
+    print(l2)
+
+@pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
     npts = [10,20,10,10]
     grid = setupCylindricalGrid(npts   = npts,
