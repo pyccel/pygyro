@@ -129,7 +129,7 @@ class ParallelGradient:
         else:
             bz=self._bz
             thetaVals = self._thetaVals
-        der=np.full_like(phi_r,0)
+        der=np.zeros_like(phi_r)
         
         # For each value of z interpolate the spline along theta and add
         # the value multiplied by the corresponding coefficient to the
