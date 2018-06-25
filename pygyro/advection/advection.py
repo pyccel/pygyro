@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.linalg                   import solve
 from scipy.interpolate              import lagrange
 from math                           import pi, floor, ceil
 
@@ -26,9 +27,12 @@ class ParallelGradient:
     iota : function handle - optional
         Function returning the value of iota at a given radius r.
         Default is constants.iota
+    
+    order : int - optional
+        The order of the finite differences scheme that is used
 
     """
-    def __init__( self, spline: BSplines, eta_grid: list, iota = constants.iota ):
+    def __init__( self, spline: BSplines, eta_grid: list, iota = constants.iota, order: int = 6 ):
         # Save z step
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         # Save size in z direction
@@ -36,7 +40,11 @@ class ParallelGradient:
         
         # If there are too few points then the access cannot be optimised
         # at the boundaries in the way that has been used
-        assert(self._nz>5)
+        assert(self._nz>order)
+        
+        # Find the coefficients and shifts used to find the first derivative
+        # of the correct order
+        self.getCoeffsFirstDeriv(order+1)
         
         # Save the inverse as it is used multiple times
         self._inv_dz = 1.0/self._dz
@@ -63,12 +71,33 @@ class ParallelGradient:
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         if (self._variesInR):
-            self._thetaVals = np.empty([eta_grid[0].size, eta_grid[1].size, eta_grid[2].size, 6])
+            self._thetaVals = np.empty([eta_grid[0].size, eta_grid[1].size, eta_grid[2].size, order+1])
             for i,r in enumerate(eta_gird[0]):
                 self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
         else:
-            self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, 6])
+            self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, order+1])
             self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
+    
+    def getCoeffsFirstDeriv( self, n: int):
+        b=np.zeros(n)
+        b[1]=1
+        
+        start = 1-(n+1)//2
+        # Create the shifts
+        self._shifts = np.arange(n)+start
+        # Save the number of forward and backward steps to avoid
+        # unnecessary modulo operations
+        self._fwdSteps = -start
+        self._bkwdSteps = self._shifts[-1]
+        
+        # Create the matrix
+        A=np.zeros([n,n])
+        for i in range(n):
+            for j in range(n):
+                A[i][j]=(j+start)**i
+        
+        # Solve the linear system to find the coefficients
+        self._coeffs = solve(A,b)
     
     def _getThetaVals( self, r: np.ndarray, thetaVals: np.ndarray, eta_grid: list, iota ):
         # The positions at which the spline will be evaluated are always the same.
@@ -76,7 +105,7 @@ class ParallelGradient:
         n = eta_grid[2].size
         
         for k,z in enumerate(eta_grid[2]):
-            for i,l in enumerate([-3,-2,-1,1,2,3]):
+            for i,l in enumerate(self._shifts):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
     
     def parallel_gradient( self, phi_r: np.ndarray, i : int ):
@@ -107,34 +136,22 @@ class ParallelGradient:
         # derivative at the point at which it is required
         # This is split into three steps to avoid unnecessary modulo operations
         
-        for i in range(3):
+        for i in range(self._fwdSteps):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
-            der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
-            der[:,(i+2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,1])
-            der[:,(i+1)%self._nz]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
-            der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
-            der[:,(i-2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,4])
-            der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
+            for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
+                der[:,(i-s)%self._nz]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
-        for i in range(3,self._nz-3):
+        for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
-            der[:,(i+3)]-=self._thetaSpline.eval(thetaVals[:,i,0])
-            der[:,(i+2)]+=9*self._thetaSpline.eval(thetaVals[:,i,1])
-            der[:,(i+1)]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
-            der[:,(i-1)]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
-            der[:,(i-2)]-=9*self._thetaSpline.eval(thetaVals[:,i,4])
-            der[:,(i-3)]+=self._thetaSpline.eval(thetaVals[:,i,5])
+            for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
+                der[:,(i-s)]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
-        for i in range(self._nz-3,self._nz):
+        for i in range(self._nz-self._bkwdSteps,self._nz):
             self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
-            der[:,(i+3)%self._nz]-=self._thetaSpline.eval(thetaVals[:,i,0])
-            der[:,(i+2)%self._nz]+=9*self._thetaSpline.eval(thetaVals[:,i,1])
-            der[:,(i+1)%self._nz]-=45*self._thetaSpline.eval(thetaVals[:,i,2])
-            der[:,(i-1)%self._nz]+=45*self._thetaSpline.eval(thetaVals[:,i,3])
-            der[:,(i-2)%self._nz]-=9*self._thetaSpline.eval(thetaVals[:,i,4])
-            der[:,(i-3)%self._nz]+=self._thetaSpline.eval(thetaVals[:,i,5])
+            for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
+                der[:,(i-s)%self._nz]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
-        der*= ( bz * self._inv_dz )/60
+        der*= ( bz * self._inv_dz )
         
         return der
 
