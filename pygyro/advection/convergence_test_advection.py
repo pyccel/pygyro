@@ -310,7 +310,7 @@ def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
-def test_fluxAdvection():
+def test_fluxAdvection_dtheta():
     dt=0.2
     zStart=16
     thetaStart=16
@@ -355,7 +355,7 @@ def test_fluxAdvection():
         bz = dz/np.sqrt(dz**2+dtheta**2)
         btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
-        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota, 3)
+        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota)
         
         f_vals[:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
         finalPts=[eta_vals[1]-c*N*dt*btheta,eta_vals[2]-c*N*dt*bz]
@@ -443,9 +443,6 @@ def test_Phi_deriv_dtheta():
         approxGrad = pGrad.parallel_gradient(phiVals,0)
         exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
         
-        print(np.linalg.norm(approxGrad-exactGrad,'fro'))
-        print(np.linalg.norm((approxGrad-exactGrad).flatten(),np.inf))
-        
         err = approxGrad-exactGrad
         
         l2[i]=np.sqrt(np.trapz(np.trapz(err**2,dx=dz),dx=dtheta))
@@ -508,9 +505,6 @@ def test_Phi_deriv_dz():
         
         approxGrad = pGrad.parallel_gradient(phiVals,0)
         exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
-        
-        print(np.linalg.norm(approxGrad-exactGrad,'fro'))
-        print(np.linalg.norm((approxGrad-exactGrad).flatten(),np.inf))
         
         err = approxGrad-exactGrad
         
