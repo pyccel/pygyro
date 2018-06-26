@@ -420,10 +420,7 @@ class PoloidalAdvection:
         
         multFactor*=0.5
         
-        jetztStep=0
-        
         while (True):
-            jetztStep+=1
             
             for i in range(self._nPoints[0]):
                 for j in range(self._nPoints[1]):
@@ -454,11 +451,12 @@ class PoloidalAdvection:
                 # Step two of Heun method
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
 
-                # Clipping seems to be necessary to avoid infinite loops due to boundary conditions
-                # this should be discussed
+                # Clipping is one method of avoiding infinite loops due to boundary conditions
+                # Using the splines to extrapolate is not sufficient
                 endPts_k2 = ( np.mod(self._shapedQ   - (drPhi_0     + drPhi_k)*multFactor,2*pi),
                               np.clip(self._points[1] + (dthetaPhi_0 + dthetaPhi_k)*multFactor,
                                       self._points[1][0], self._points[1][-1]) )
+                
                 norm = max(np.linalg.norm((endPts_k2[0]-endPts_k1[0]).flatten(),np.inf),
                            np.linalg.norm((endPts_k2[1]-endPts_k1[1]).flatten(),np.inf))
                 if (norm<self._TOL):
