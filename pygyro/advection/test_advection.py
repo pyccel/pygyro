@@ -210,7 +210,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
     
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
-            fluxAdv.step(grid.get2DSlice([i,j]),dt,v)
+            fluxAdv.step(grid.get2DSlice([i,j]),j)
 
 @pytest.mark.serial
 def test_vParallelAdvection_gridIntegration():
