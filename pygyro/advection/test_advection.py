@@ -23,8 +23,6 @@ def test_fluxSurfaceAdvection(fact,dt):
     
     N = 10
     
-    c=2
-    
     f_vals = np.ndarray(npts)
     
     domain    = [ [0,2*pi], [0,20] ]
@@ -34,18 +32,23 @@ def test_fluxSurfaceAdvection(fact,dt):
     bsplines  = [spl.BSplines( k,3,True )      for k          in knots]
     eta_grids = [bspl.greville                 for bspl       in bsplines]
     
+    c=2
+    
     eta_vals[1]=eta_grids[0]
     eta_vals[2]=eta_grids[1]
+    eta_vals[3][0]=c
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota0)
+    layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
     f_end = np.sin((eta_vals[2]-c*dt*N)*pi/fact)
     
     for n in range(N):
-        fluxAdv.step(f_vals,dt,c)
+        fluxAdv.step(f_vals,0)
     
-    assert(np.max(np.abs(f_vals-f_end))<1e-2)
+    assert(np.max(np.abs(f_vals-f_end))<1e-4)
 
 @pytest.mark.serial
 @pytest.mark.parametrize( "function,N", [(gauss,10),(gauss,20),(gauss,30)] )
@@ -203,7 +206,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
     
     dt=0.1
     
-    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),grid.getLayout('flux_surface'),dt)
     
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
@@ -265,13 +268,13 @@ def test_equilibrium():
     startVals = grid._f.copy()
     
     N=10
-        
-    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
-    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     dt=0.1
     halfStep = dt*0.5
+    
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),grid.getLayout('flux_surface'),halfStep)
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
@@ -283,7 +286,7 @@ def test_equilibrium():
     for n in range(N):
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+                fluxAdv.step(grid.get2DSlice([i,j]),j)
         
         grid.setLayout('v_parallel')
         
@@ -309,7 +312,7 @@ def test_equilibrium():
         
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+                fluxAdv.step(grid.get2DSlice([i,j]),j)
     
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f)<1e-8)
@@ -326,13 +329,13 @@ def test_perturbedEquilibrium():
     startVals = grid._f.copy()
     
     N=10
-        
-    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
-    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     dt=0.1
     halfStep = dt*0.5
+    
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),grid.getLayout('flux_surface'),halfStep)
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
@@ -344,7 +347,7 @@ def test_perturbedEquilibrium():
     for n in range(N):
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+                fluxAdv.step(grid.get2DSlice([i,j]),j)
         
         grid.setLayout('v_parallel')
         
@@ -370,7 +373,7 @@ def test_perturbedEquilibrium():
         
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+                fluxAdv.step(grid.get2DSlice([i,j]),j)
     
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f)>1e-8)
