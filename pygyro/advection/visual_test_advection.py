@@ -8,7 +8,7 @@ from math                 import pi
 from ..                         import splines as spl
 from ..initialisation.setups    import setupCylindricalGrid
 from .advection                 import *
-
+"""
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
     npts = [30,20]
@@ -301,9 +301,9 @@ def test_vParallelAdvection():
         line1.set_ydata(f_vals[:,n])
         fig.canvas.draw()
         fig.canvas.flush_events()
-
-def Phi(r,theta):
-    return - 5 * r**2 + np.sin(theta)
+"""
+def Phi(r,theta,a,b,c,d):
+    return - a * (r-b)**2 + c*np.sin(d*theta)
 
 a=6
 factor = pi/2/a
@@ -330,12 +330,13 @@ def test_poloidalAdvection():
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
-    N = 0
+    N = 100
     dt=0.01
     
     v=0
     
-    f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
+    #f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
+    f_vals = np.ndarray([npts[1],npts[0],N+1])
     
     deg = 3
     
@@ -350,34 +351,45 @@ def test_poloidalAdvection():
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0.0)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    a=5
+    b=0
+    c=40
+    d=1
+    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T,a,b,c,d)
     interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    print("phi:",np.isfinite(phiVals).all())
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    #f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
     
     endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-    endPts[0][:] = polAdv._shapedQ   +     10*dt/constants.B0
-    endPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                    + np.sin(endPts[0])/5/constants.B0)
+    endPts[0][:] = polAdv._shapedQ   +     2*a*dt/constants.B0
+    endPts[1][:] = np.sqrt(polAdv._points[1]**2-c*np.sin(d*polAdv._shapedQ)/a/constants.B0 \
+                    + c*np.sin(d*endPts[0])/a/constants.B0)
+    print(np.isfinite(endPts[0]).all(),np.isfinite(endPts[1]).all())
     
     for n in range(N):
-        f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
-        polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
-        #polAdv.step(f_vals[:-1,:],dt,phi,v)
+        #f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
+        f_vals[:,:,n+1]=f_vals[:,:,n]
+        #polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
+        #polAdv.step(f_vals[:-1,:,n+1],dt,phi,v)
+        #polAdv.step(f_vals[:,:,n+1],dt,phi,v)
+        polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
     
-    f_vals[-1,:,:]=f_vals[0,:,:]
+    #f_vals[-1,:,:]=f_vals[0,:,:]
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
     
     print(f_min,f_max)
     
-    theta=np.append(eta_vals[1],eta_vals[1][0])
+    #~ theta=np.append(eta_vals[1],eta_vals[1][0])
+    theta=eta_vals[1]
     
     plt.ion()
 
@@ -402,7 +414,7 @@ def test_poloidalAdvection():
         line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
         fig.canvas.draw()
         fig.canvas.flush_events()
-
+"""
 def initConditionsFlux(theta,z):
     a=4
     factor = pi/a/2
@@ -482,3 +494,4 @@ def test_fluxAdvection_dz():
         line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
+"""
