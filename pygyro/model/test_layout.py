@@ -651,9 +651,9 @@ def test_phiSwapper():
     layout_advection = {'dphi'    : [0,1,2],
                         'poloidal': [2,1,0]}
     
-    nproc = max(nprocs)
+    nproc = nprocs[0]
     if (nproc>n1):
-        nproc=min(nprocs)
+        nproc=(1,nprocs[1])
     
     remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], eta_grids, 'dphi' )
     
