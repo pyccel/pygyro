@@ -554,11 +554,14 @@ def test_copy():
                        source_name='flux_surface',
                        dest_name='flux_surface')
 
+@pytest.mark.parallel
 def test_LayoutSwapper():
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
     
     npts = [128, 64, 32, 64]
+    
+    nprocs = compute_2d_process_grid( npts, mpi_size )
     
     # Create dictionary describing layouts
     layouts1 = {'flux_surface2': [0,3,1,2],
@@ -567,14 +570,11 @@ def test_LayoutSwapper():
     layouts2 = {'flux_surface1': [0,3,1,2],
                'z_surface'     : [2,3,1,0],
                'vr_contig1'    : [2,1,3,0]}
-    layouts3 = {'vr_contig3'   : [2,1,3,0],
-               'z_surface'     : [2,3,1,0],
-               'vr_contig'     : [2,1,3,0]}
     
     eta_grids = [np.linspace( 0,10, num=num ) for num in npts ]
     
     # Create layout manager
-    remapper = LayoutSwapper( comm, [layouts1,layouts2], [(2,2),(2)], eta_grids, 'flux_surface2' )
+    remapper = LayoutSwapper( comm, [layouts1,layouts2], [nprocs,nprocs[0]], eta_grids, 'flux_surface2' )
 
 def define_phi(Eta1,Eta2,Eta3,layout,f):
     nEta1=len(Eta1)
@@ -631,12 +631,12 @@ def compare_phi(Eta1,Eta2,Eta3,layout,f):
                 assert(f[indices[0],indices[1],indices[2]]== \
                     float(I*nEta3*nEta2+J*nEta3+K))
 
+@pytest.mark.parallel
 def test_phiSwapper():
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
     
-    #~ npts = [32, 64, 32]
-    npts = [4,8,4]
+    npts = [32, 64, 32]
     
     n1 = min(npts[0],npts[2])
     n2 = min(npts[0],npts[1])
