@@ -528,7 +528,7 @@ class LayoutHandler(LayoutManager):
         sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
         
         # If both axes being swapped are not distributed
-        if (axis[0]>=self._nDims):
+        if (axis[0]>=self._nDims or self._nprocs[axis[0]]==1):
             destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
             assert(destView.base is dest)
             destView[:]=np.swapaxes(sourceView,axis[0],axis[1])
