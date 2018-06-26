@@ -55,7 +55,6 @@ def test_fluxSurfaceAdvection(fact,dt):
 def test_vParallelAdvection(function,N):
     npts = 50
     f = np.empty(npts)
-    N=10
     
     dt=0.1
     c=2.0
@@ -85,7 +84,7 @@ def test_vParallelAdvection(function,N):
         else:
             fEnd[i]=fEdge+function(x[i]-c*dt*N)
     
-    assert(max(abs(f-fEnd))<1e-3)
+    assert(max(abs(f-fEnd))<2e-3)
 
 def Phi(r,theta):
     return - 5 * r**2 + np.sin(theta)
