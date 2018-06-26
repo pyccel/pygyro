@@ -726,42 +726,47 @@ def test_phiSwapper():
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
     
-    remapper.transpose(source=fStart,
-                       dest=fEnd,
-                       buf=fBuf,
-                       source_name='mode_find',
-                       dest_name='dphi')
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fStart,
+                           dest=fEnd,
+                           buf=fBuf,
+                           source_name='mode_find',
+                           dest_name='dphi')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],dpLayout,f_dp_e)
     
-    remapper.transpose(source=fEnd,
-                       dest=fStart,
-                       source_name='dphi',
-                       dest_name='mode_find')
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fEnd,
+                           dest=fStart,
+                           source_name='dphi',
+                           dest_name='mode_find')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
     
-    remapper.transpose(source=fStart,
-                       dest=fBuf,
-                       source_name='mode_find',
-                       dest_name='poloidal')
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fStart,
+                           dest=fBuf,
+                           source_name='mode_find',
+                           dest_name='poloidal')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_b)
     
-    remapper.transpose(source=fBuf,
-                       dest=fStart,
-                       buf=fEnd,
-                       source_name='poloidal',
-                       dest_name='mode_find')
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fBuf,
+                           dest=fStart,
+                           buf=fEnd,
+                           source_name='poloidal',
+                           dest_name='mode_find')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
     
-    remapper.transpose(source=fStart,
-                       dest=fEnd,
-                       buf=fBuf,
-                       source_name='mode_find',
-                       dest_name='poloidal')
+    with pytest.warns(UserWarning):
+        remapper.transpose(source=fStart,
+                           dest=fEnd,
+                           buf=fBuf,
+                           source_name='mode_find',
+                           dest_name='poloidal')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
     
