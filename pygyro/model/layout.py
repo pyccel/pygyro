@@ -177,15 +177,14 @@ class LayoutManager:
         self._nDims=len(nprocs)
         self._nprocs = nprocs
         
-        topology = comm.Create_cart( nprocs, periods=[False]*self._nDims,
-                reorder=False )
+        topology = comm.Create_cart( nprocs, periods=[False]*self._nDims )
         
         # Get communicator for each dimension
         self._subcomms = []
         for i in range(self._nDims):
             self._subcomms.append(topology.Sub( [i==j for j in range(self._nDims)] ))
         
-        mpi_coords = topology.Get_coords(comm.Get_rank())
+        self._mpi_coords = topology.Get_coords(comm.Get_rank())
         
         # Create the layouts and save them in a dictionary
         # Find the largest layout
@@ -193,7 +192,7 @@ class LayoutManager:
         self._buffer_size = 0
         self._shapes = []
         for name,dim_order in layouts.items():
-            new_layout = Layout(name,nprocs,dim_order,eta_grids,mpi_coords)
+            new_layout = Layout(name,nprocs,dim_order,eta_grids,self._mpi_coords)
             layoutObjects.append((name,new_layout))
             self._shapes.append((name,new_layout.shape))
             if (new_layout.size>self._buffer_size):
@@ -230,12 +229,40 @@ class LayoutManager:
         return self._layouts[name]
     
     @property
+    def nProcs( self ):
+        """ The number of processes available on the distributed dimensions
+        """
+        return self._nprocs
+    
+    @property
+    def mpiCoords( self ):
+        """ The coordinates of the current processor on the MPI grid communicator
+        """
+        return self._mpi_coords.copy()
+    
+    @property
+    def nDistributedDirections( self ):
+        """ The number of distributed directions
+        """
+        return self._nDims
+    
+    @property
     def availableLayouts( self ):
+        """ The names and shapes of possible layouts
+        """
         return self._shapes
     
     @property
     def bufferSize( self ):
+        """ The size of the buffer required to hold all data
+        """
         return self._buffer_size
+    
+    @property
+    def communicators( self ):
+        """ The communicators used by the LayoutManager
+        """
+        return self._subcomms
     
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
@@ -268,6 +295,10 @@ class LayoutManager:
         source and dest are assumed to not overlap in memory
 
         """
+        
+        # If this thread is only here for plotting purposes then ignore the command
+        if (self._buffer_size==0):
+            return
         
         # Verify that the input makes sense
         assert source_name in self._layouts

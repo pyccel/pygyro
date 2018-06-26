@@ -13,6 +13,8 @@ and stripping them of any non-essential parts.
 NOTE: This is still work-in-progress!
 
 """
+from mpi4py import MPI
+
 import pytest
 import traceback
 import warnings

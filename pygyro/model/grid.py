@@ -6,7 +6,7 @@ from ..                 import splines as spl
 from .layout            import LayoutManager
 
 class Grid(object):
-    def __init__( self, eta_grid: list, layouts: LayoutManager,
+    def __init__( self, eta_grid: list, bsplines: list, layouts: LayoutManager,
                     chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD):
         # get MPI values
         self.global_comm = comm
@@ -29,6 +29,7 @@ class Grid(object):
         # save coordinate information
         # saving in list allows simpler reordering of coordinates
         self._Vals = eta_grid
+        self._splines = bsplines
         self._nDims = len(eta_grid)
         self._nGlobalCoords = [len(x) for x in eta_grid]
     
@@ -78,12 +79,28 @@ class Grid(object):
                       slice(self._nGlobalCoords[self._layout.dims_order[-1]])])
         return self._f[slices]
     
-    def get1DSlice(self, slices: list):
+    def get2DSpline( self ):
+        """ get the splines associated with the last 2 dimensions
+        """
+        return (self._splines[self._layout.dims_order[-2]],
+                self._splines[self._layout.dims_order[-1]])
+    
+    def getSpline( self, i ):
+        """ get the i-th spline (in global coordinates r,theta,z,v)
+        """
+        return self._splines[i]
+    
+    def get1DSlice( self, slices: list ):
         """ get the 1D slice at the provided list of coordinates
         """
         assert(len(slices)==self._nDims-1)
         slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
         return self._f[slices]
+    
+    def get1DSpline( self ):
+        """ get the spline associated with the last dimension
+        """
+        return self._splines[self._layout.dims_order[-1]]
     
     def setLayout(self,new_layout: str):
         self._layout_manager.transpose(
@@ -95,4 +112,9 @@ class Grid(object):
         self._layout = self._layout_manager.getLayout(new_layout)
         self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
         self._current_layout_name = new_layout
+    
+    def getLayout( self, name: str ):
+        """ Return requested layout
+        """
+        return self._layout_manager.getLayout(name)
     

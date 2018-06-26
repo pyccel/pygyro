@@ -78,7 +78,7 @@ phase_space.setLayout('v_parallel')
 # Iterate over all elements using a 1D slice (v_parallel)
 for i,r in phase_space.getCoords(0):
     for j,z in phase_space.getCoords(1):
-        for k,theta in phase_space.getCoords(1):
+        for k,theta in phase_space.getCoords(2):
             # Get surface
             VParSurface = phase_space.get1DSlice([i,j,k])
             # Get coordinate values
