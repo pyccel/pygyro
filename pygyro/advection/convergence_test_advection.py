@@ -113,8 +113,8 @@ initConds = np.vectorize(initConditions, otypes=[np.float])
 
 @pytest.mark.serial
 def test_poloidalAdvection_constantAdv():
-    npts = [128,128]
-    dt=0.0025
+    npts = [32,32]
+    dt=0.1
     
     nconvpts = 4
     
@@ -122,14 +122,11 @@ def test_poloidalAdvection_constantAdv():
     linf = np.ndarray(nconvpts)
     
     for i in range(nconvpts):
-        npts[0]*=2
-        npts[1]*=2
-        dt/=2
         print(npts)
         eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                     np.linspace(0,1,4),np.linspace(0,1,4)]
         
-        N = 100
+        N=10
         
         v=0
         
@@ -149,7 +146,7 @@ def test_poloidalAdvection_constantAdv():
         eta_vals[0]=eta_grids[0]
         eta_vals[1]=eta_grids[1]
         
-        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0)
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
@@ -178,6 +175,9 @@ def test_poloidalAdvection_constantAdv():
         
         print("l2:",l2[i])
         print("linf:",linf[i])
+        npts[0]*=2
+        npts[1]*=2
+        dt/=2
     
     print("l2:",l2)
     print("linf:",linf)
