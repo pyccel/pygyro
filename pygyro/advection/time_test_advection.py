@@ -7,7 +7,7 @@ from ..                             import splines as spl
 from ..initialisation               import constants
 from ..model.layout                 import Layout
 
-NSteps = 10000
+NSteps = 1000
 NGrid = 20
 
 def iota0():
@@ -42,7 +42,8 @@ def test_fluxSurfaceAdvection():
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/10)
     
-    print(timeit.Timer(lambda: fluxAdv.step(f_vals,0)).timeit(NSteps)/NSteps)
+    fTime = timeit.Timer(lambda: fluxAdv.step(f_vals,0)).timeit(NSteps)
+    print(fTime/NSteps," per step, ",fTime," total")
 
 def gauss(x):
     return np.exp(-x**2/4)
@@ -69,7 +70,8 @@ def test_vParallelAdvection():
     
     vParAdv = VParallelAdvection([0,0,0,x], spline, lambda r,v : 0)
     
-    print(timeit.Timer(lambda: vParAdv.step(f,dt,c,r)).timeit(NSteps)/NSteps)
+    vTime = timeit.Timer(lambda: vParAdv.step(f,dt,c,r)).timeit(NSteps)
+    print(vTime/NSteps," per step, ",vTime," total")
 
 
 def Phi(r,theta):
@@ -127,4 +129,5 @@ def test_explicitPoloidalAdvection():
     
     f_vals[:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
     
-    print(timeit.Timer(lambda: polAdv.step(f_vals,dt,phi,v)).timeit(NSteps)/NSteps)
+    pTime = timeit.Timer(lambda: polAdv.step(f_vals,dt,phi,v)).timeit(NSteps)
+    print(pTime/NSteps," per step, ",pTime," total")
