@@ -869,6 +869,45 @@ class LayoutSwapper(LayoutManager):
                 if (self._compatibleLayout(name1,name2)):
                     myMap[i][1].append(name1)
                     myMap[n][1].append(name2)
+                    if (self._handlers[name1]!=self._handlers[name2]):
+                        # Find the layouts
+                        l1 = self.getLayout(name1)
+                        l2 = self.getLayout(name2)
+                        
+                        # Find the distribution patterns
+                        nprocs1 = l1.nprocs
+                        ndims1 = self._nprocs[self._handlers[name1]]
+                        nprocs2 = l2.nprocs
+                        ndims2 = self._nprocs[self._handlers[name2]]
+                        
+                        # Find the differences between the two distribution patterns
+                        proc_diff = np.equal(ndims1,ndims2)
+                        
+                        if (not proc_diff.all()):
+                            # Find the index along which the data is to be distributed or rejoined
+                            idx = list(proc_diff).index(False)
+                            
+                            # Find the shape of each block
+                            blockShape1 = list(l1.shape)
+                            blockShape1[idx] = l1.max_block_shape[idx]
+                            blockSize1 = np.prod(blockShape1)
+                            
+                            blockShape2 = list(l2.shape)
+                            blockShape2[idx] = l2.max_block_shape[idx]
+                            blockSize2 = np.prod(blockShape2)
+                            
+                            # Ensure that there is enough memory for this gather operation
+                            if (blockSize1>blockSize2):
+                                comm = self._managers[self._handlers[name2]].communicators[idx]
+                                mpi_size = comm.Get_size()
+                            
+                                self._buffer_size = max(self._buffer_size,blockSize2*mpi_size)
+                            else:
+                                comm = self._managers[self._handlers[name1]].communicators[idx]
+                                mpi_size = comm.Get_size()
+                            
+                                self._buffer_size = max(self._buffer_size,blockSize1*mpi_size)
+        
         # Save the connections in a dictionary
         DirectConnections=dict(myMap)
         
@@ -1070,17 +1109,19 @@ class LayoutSwapper(LayoutManager):
             slices = [slice(x) for x in layout_source.shape]
             
             for i,b in enumerate(blocks[:-1]):
-                # Recreate the original block
-                block=b.reshape(blockShape)
+                # Find the original block shape
+                blockShape=list(layout_source.shape)
+                blockShape[idx]=layout_source.mpi_lengths(idx)[i]
+                blockSize=np.prod(blockShape)
                 
                 # Find the relevant data
-                bSlice = slices.copy()
                 slices[idx] = slice(layout_source.mpi_starts(idx)[i],
                                     layout_source.mpi_starts(idx)[i]+layout_source.mpi_lengths(idx)[i])
-                bSlice[idx] = slice(layout_source.mpi_lengths(idx)[i])
+                
+                block = np.split(b,[blockSize])[0].reshape(blockShape)
                 
                 # Copy the block into the correct part of the memory
-                destView[slices]=block[bSlice]
+                destView[slices]=block
             
             # The data now resides on the wrong memory chunk and must be copied
             dest[:]=source[:]
@@ -1147,17 +1188,19 @@ class LayoutSwapper(LayoutManager):
             slices = [slice(x) for x in layout_source.shape]
             
             for i,b in enumerate(blocks[:-1]):
-                # Recreate the original block
-                block=b.reshape(blockShape)
+                # Find the original block shape
+                blockShape=list(layout_source.shape)
+                blockShape[idx]=layout_source.mpi_lengths(idx)[i]
+                blockSize=np.prod(blockShape)
                 
                 # Find the relevant data
-                bSlice = slices.copy()
                 slices[idx] = slice(layout_source.mpi_starts(idx)[i],
                                     layout_source.mpi_starts(idx)[i]+layout_source.mpi_lengths(idx)[i])
-                bSlice[idx] = slice(layout_source.mpi_lengths(idx)[i])
+                
+                block = np.split(b,[blockSize])[0].reshape(blockShape)
                 
                 # Copy the block into the correct part of the memory
-                destView[slices]=block[bSlice]
+                destView[slices]=block
         
     def _transposeRedirect(self,source,dest,source_name,dest_name):
         """
