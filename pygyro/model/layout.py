@@ -1059,7 +1059,7 @@ class LayoutSwapper(LayoutManager):
             # Gather the data from the blocks on the processes
             destView = np.split(dest,[blockSize*mpi_size])[0]
             comm.Allgather(( sourceView , MPI.DOUBLE ),
-                           ( dest     , MPI.DOUBLE ) )
+                           ( destView   , MPI.DOUBLE ) )
             
             # Get a view on the received blocks
             blocks = np.split(dest,blockSize*np.arange(1,mpi_size+1))
@@ -1136,7 +1136,7 @@ class LayoutSwapper(LayoutManager):
             # Gather the data from the blocks on the processes
             bufView = np.split(buf,[blockSize*mpi_size])[0]
             comm.Allgather(( sourceView , MPI.DOUBLE ),
-                           ( buf     , MPI.DOUBLE ) )
+                           ( bufView    , MPI.DOUBLE ) )
             
             # Get a view on the received blocks
             blocks = np.split(buf,blockSize*np.arange(1,mpi_size+1))
