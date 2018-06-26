@@ -8,7 +8,6 @@ from math                 import pi
 from ..                         import splines as spl
 from ..initialisation.setups    import setupCylindricalGrid
 from .advection                 import *
-from ..utilities.grid_plotter   import SlicePlotter4d
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
@@ -303,115 +302,12 @@ def test_vParallelAdvection():
         fig.canvas.draw()
         fig.canvas.flush_events()
 
-@pytest.mark.parallel
-def test_equilibrium():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    
-    npts = [20,20,10,8]
-    drawRank = 1
-    grid = setupCylindricalGrid(npts   = npts,
-                                layout = 'flux_surface',
-                                eps    = 0.1,
-                                comm   = comm,
-                                plotThread = True,
-                                drawRank = drawRank)
-    
-    plt.ion()
-    
-    plot = SlicePlotter4d(grid,False,comm,drawingRank=drawRank,drawRankInGrid=False)
-    
-    N=10
-    
-    if (rank!=drawRank):
-        
-        fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-        vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
-        polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
-        
-        dt=1
-        halfStep = dt*0.5
-        
-        phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
-        phiVals = np.empty([npts[1],npts[0]])
-        #phiVals[:]=3
-        phiVals[:]=3*grid.eta_grid[0]**2
-        #phiVals[:]=10*eta_vals[0]
-        interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
-        
-        interp.compute_interpolant(phiVals,phi)
-    
-    if (plot.listen()==0):
-        return
-    
-    for n in range(N):
-        for i,r in grid.getCoords(0):
-            for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
-        
-        print("rank ",rank," has completed flux step 1")
-        
-        #~ plot.updateDraw()
-        #~ if (plot.listen()==0):
-            #~ break
-            
-        grid.setLayout('v_parallel')
-        
-        for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
-                    vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
-        
-        print("rank ",rank," has completed v parallel step 1")
-        
-        #~ plot.updateDraw()
-        #~ if (plot.listen()==0):
-            #~ break
-        
-        grid.setLayout('poloidal')
-        
-        for i,v in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
-        
-        print("rank ",rank," has completed poloidal step")
-        
-        #~ plot.updateDraw()
-        #~ if (plot.listen()==0):
-            #~ break
-        
-        grid.setLayout('v_parallel')
-        
-        for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
-                    vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
-        
-        print("rank ",rank," has completed v parallel step 2")
-        
-        #~ plot.updateDraw()
-        #~ if (plot.listen()==0):
-            #~ break
-        
-        grid.setLayout('flux_surface')
-        
-        for i,r in grid.getCoords(0):
-            for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
-        
-        print("rank ",rank," has completed flux step 2")
-        
-        plot.updateDraw()
-        if (plot.listen()==0):
-            break
-
-def Phi(r,theta):
-    return - 5 * r**2 + np.sin(theta)
-
-a=6
-factor = pi/2/a
+def Phi(r,theta,a,b,c,d):
+    return - a * (r-b)**2 + c*np.sin(d*theta)
 
 def initConditions(r,theta):
+    a=6
+    factor = pi/2/a
     x=r*np.cos(theta)
     y=r*np.sin(theta)
     R1=np.sqrt((x+7)**2+8*y**2)
@@ -433,12 +329,13 @@ def test_poloidalAdvection():
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
-    N = 0
+    N = 100
     dt=0.01
     
     v=0
     
-    f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
+    #f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
+    f_vals = np.ndarray([npts[1],npts[0],N+1])
     
     deg = 3
     
@@ -453,34 +350,43 @@ def test_poloidalAdvection():
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0.0)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    a=5
+    b=0
+    c=40
+    d=1
+    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T,a,b,c,d)
     interp = SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    #f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
     
     endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-    endPts[0][:] = polAdv._shapedQ   +     10*dt/constants.B0
-    endPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                    + np.sin(endPts[0])/5/constants.B0)
+    endPts[0][:] = polAdv._shapedQ   +     2*a*dt/constants.B0
+    endPts[1][:] = np.sqrt(polAdv._points[1]**2-c*np.sin(d*polAdv._shapedQ)/a/constants.B0 \
+                    + c*np.sin(d*endPts[0])/a/constants.B0)
     
     for n in range(N):
-        f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
-        polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
-        #polAdv.step(f_vals[:-1,:],dt,phi,v)
+        #f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
+        f_vals[:,:,n+1]=f_vals[:,:,n]
+        #polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
+        #polAdv.step(f_vals[:-1,:,n+1],dt,phi,v)
+        #polAdv.step(f_vals[:,:,n+1],dt,phi,v)
+        polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
     
-    f_vals[-1,:,:]=f_vals[0,:,:]
+    #f_vals[-1,:,:]=f_vals[0,:,:]
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
     
     print(f_min,f_max)
     
-    theta=np.append(eta_vals[1],eta_vals[1][0])
+    #~ theta=np.append(eta_vals[1],eta_vals[1][0])
+    theta=eta_vals[1]
     
     plt.ion()
 

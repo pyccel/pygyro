@@ -113,3 +113,8 @@ class Grid(object):
         self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
         self._current_layout_name = new_layout
     
+    def getLayout( self, name: str ):
+        """ Return requested layout
+        """
+        return self._layout_manager.getLayout(name)
+
