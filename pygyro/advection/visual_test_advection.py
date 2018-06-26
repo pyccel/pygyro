@@ -8,7 +8,7 @@ from math                 import pi
 from ..                         import splines as spl
 from ..initialisation.setups    import setupCylindricalGrid
 from .advection                 import *
-"""
+
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
     npts = [30,20]
@@ -301,14 +301,13 @@ def test_vParallelAdvection():
         line1.set_ydata(f_vals[:,n])
         fig.canvas.draw()
         fig.canvas.flush_events()
-"""
+
 def Phi(r,theta,a,b,c,d):
     return - a * (r-b)**2 + c*np.sin(d*theta)
 
-a=6
-factor = pi/2/a
-
 def initConditions(r,theta):
+    a=6
+    factor = pi/2/a
     x=r*np.cos(theta)
     y=r*np.sin(theta)
     R1=np.sqrt((x+7)**2+8*y**2)
@@ -361,7 +360,6 @@ def test_poloidalAdvection():
     d=1
     phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T,a,b,c,d)
     interp = SplineInterpolator2D(bsplines[1],bsplines[0])
-    print("phi:",np.isfinite(phiVals).all())
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -372,7 +370,6 @@ def test_poloidalAdvection():
     endPts[0][:] = polAdv._shapedQ   +     2*a*dt/constants.B0
     endPts[1][:] = np.sqrt(polAdv._points[1]**2-c*np.sin(d*polAdv._shapedQ)/a/constants.B0 \
                     + c*np.sin(d*endPts[0])/a/constants.B0)
-    print(np.isfinite(endPts[0]).all(),np.isfinite(endPts[1]).all())
     
     for n in range(N):
         #f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
@@ -414,7 +411,7 @@ def test_poloidalAdvection():
         line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
         fig.canvas.draw()
         fig.canvas.flush_events()
-"""
+
 def initConditionsFlux(theta,z):
     a=4
     factor = pi/a/2
@@ -494,4 +491,3 @@ def test_fluxAdvection_dz():
         line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
-"""
