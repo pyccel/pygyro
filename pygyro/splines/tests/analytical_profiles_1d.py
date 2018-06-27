@@ -7,7 +7,7 @@ import numpy as np
 from .analytical_profiles_base import AnalyticalProfile
 from .utilities                import horner, falling_factorial
 
-__all__ = ['AnalyticalProfile_1d_cos','AnalyticalProfile1D_Poly']
+__all__ = ['AnalyticalProfile1D_Cos','AnalyticalProfile1D_Poly']
 
 #===============================================================================
 class AnalyticalProfile1D_Cos( AnalyticalProfile ):

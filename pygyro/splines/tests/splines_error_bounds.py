@@ -50,7 +50,7 @@ def tihomirov_error_bound( h, deg, norm_f ):
         Max of error $E(x):=f(x)-S(x)$ over domain
 
     """
-    norm_e = k[deg] * h**deg * norm_f
+    norm_e = k[deg] * h**(deg+1) * norm_f
 
     return norm_e
 
@@ -98,7 +98,7 @@ def spline_2d_error_bound( profile_2d, dx1, dx2, deg1, deg2 ):
     Parameters
     ----------
     profile_2d : 2D analytical profile
-        Must provide 'max_norm( n1,n2 )' method to compute max norm of its
+        Must provide 'max_norm( (n1,n2) )' method to compute max norm of its
         mixed derivative of degree (n1,n2) over domain.
 
     dx1 : float
@@ -120,12 +120,12 @@ def spline_2d_error_bound( profile_2d, dx1, dx2, deg1, deg2 ):
 
     """
     # Max norm of highest partial derivatives in x1 and x2 of analytical profile
-    max_norm1 = profile_2d.max_norm( deg1+1, 0      )
-    max_norm2 = profile_2d.max_norm( 0     , deg2+1 )
+    max_norm1 = profile_2d.max_norm( (deg1+1, 0     ) )
+    max_norm2 = profile_2d.max_norm( (0     , deg2+1) )
 
     # Error bound on function value
-    max_error = f_tihomirov_error_bound( dx1, deg1, max_norm1 ) \
-              + f_tihomirov_error_bound( dx2, deg2, max_norm2 )
+    max_error = tihomirov_error_bound( dx1, deg1, max_norm1 ) \
+              + tihomirov_error_bound( dx2, deg2, max_norm2 )
 
     # Empirical correction: for linear interpolation increase estimate by 5%
     if (deg1 == 1 or deg2 == 1):
@@ -141,15 +141,15 @@ def spline_2d_error_bounds_on_grad( profile_2d, dx1, dx2, deg1, deg2 ):
 
     """
     # Max norm of highest partial derivatives in x1 and x2 of analytical profile
-    max_norm1 = profile_2d.max_norm( deg1+1, 0      )
-    max_norm2 = profile_2d.max_norm( 0     , deg2+1 )
+    max_norm1 = profile_2d.max_norm( (deg1+1, 0     ) )
+    max_norm2 = profile_2d.max_norm( (0     , deg2+1) )
 
     # Error bound on x1-derivative
-    max_error1 = f_tihomirov_error_bound( dx1, deg1-1, max_norm1 ) \
-               + f_tihomirov_error_bound( dx2, deg2  , max_norm2 )
+    max_error1 = tihomirov_error_bound( dx1, deg1-1, max_norm1 ) \
+               + tihomirov_error_bound( dx2, deg2  , max_norm2 )
 
     # Error bound on x2-derivative
-    max_error2 = f_tihomirov_error_bound( dx1, deg1  , max_norm1 ) \
-               + f_tihomirov_error_bound( dx2, deg2-1, max_norm2 )
+    max_error2 = tihomirov_error_bound( dx1, deg1  , max_norm1 ) \
+               + tihomirov_error_bound( dx2, deg2-1, max_norm2 )
 
     return (max_error1, max_error2)
