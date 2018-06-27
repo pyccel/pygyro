@@ -80,7 +80,7 @@ def test_vParallelAdvection():
     print(np.mean(l2Order))
     print(np.mean(linfOrder))
 
-def Phi(r,theta):
+def Phi_adv(r,theta):
     return - 5 * r**2 + np.sin(theta)
 
 """
@@ -113,8 +113,8 @@ initConds = np.vectorize(initConditions, otypes=[np.float])
 
 @pytest.mark.serial
 def test_poloidalAdvection_constantAdv():
-    npts = [128,128]
-    dt=0.0025
+    npts = [32,32]
+    dt=0.1
     
     nconvpts = 4
     
@@ -122,14 +122,11 @@ def test_poloidalAdvection_constantAdv():
     linf = np.ndarray(nconvpts)
     
     for i in range(nconvpts):
-        npts[0]*=2
-        npts[1]*=2
-        dt/=2
         print(npts)
         eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                     np.linspace(0,1,4),np.linspace(0,1,4)]
         
-        N = 100
+        N=10
         
         v=0
         
@@ -149,11 +146,11 @@ def test_poloidalAdvection_constantAdv():
         eta_vals[0]=eta_grids[0]
         eta_vals[1]=eta_grids[1]
         
-        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0)
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
-        phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+        phiVals[:] = Phi_adv(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
         interp = SplineInterpolator2D(bsplines[1],bsplines[0])
         
         interp.compute_interpolant(phiVals,phi)
@@ -178,6 +175,9 @@ def test_poloidalAdvection_constantAdv():
         
         print("l2:",l2[i])
         print("linf:",linf[i])
+        npts[0]*=2
+        npts[1]*=2
+        dt/=2
     
     print("l2:",l2)
     print("linf:",linf)
@@ -241,11 +241,11 @@ def test_poloidalAdvection_constantAdv_dt():
         eta_vals[0]=eta_grids[0]
         eta_vals[1]=eta_grids[1]
         
-        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1])
+        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0)
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
-        phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+        phiVals[:] = Phi_adv(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
         interp = SplineInterpolator2D(bsplines[1],bsplines[0])
         
         interp.compute_interpolant(phiVals,phi)
@@ -310,10 +310,10 @@ def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
-def test_fluxAdvection_dtheta():
-    dt=0.2
-    zStart=16
-    thetaStart=16
+def test_fluxAdvection():
+    dt=0.1
+    zStart=32
+    thetaStart=32
     npts = [thetaStart,zStart]
     
     nconvpts = 5
@@ -323,9 +323,6 @@ def test_fluxAdvection_dtheta():
     dts = np.ndarray(nconvpts)
     
     for i in range(nconvpts):
-        dt/=2
-        npts[0]*=2
-        npts[1]*=2
         dts[i]=dt
         N = int(1/dt)
         print(npts,dt,N)
@@ -333,7 +330,7 @@ def test_fluxAdvection_dtheta():
         v=0
         
         eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
-                np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
+                np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2,4)]
         
         c=2
         
@@ -348,6 +345,7 @@ def test_fluxAdvection_dtheta():
         
         eta_vals[1]=eta_grids[0]
         eta_vals[2]=eta_grids[1]
+        eta_vals[3][0]=c
         
         dz = eta_vals[2][1]-eta_vals[2][0]
         dtheta = iota()*dz/constants.R0
@@ -355,21 +353,25 @@ def test_fluxAdvection_dtheta():
         bz = dz/np.sqrt(dz**2+dtheta**2)
         btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
-        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota)
+        layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
+        
+        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota, zDegree=3)
         
         f_vals[:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
         finalPts=[eta_vals[1]-c*N*dt*btheta,eta_vals[2]-c*N*dt*bz]
         final_f_vals = initCondsF(np.atleast_2d(finalPts[0]).T,finalPts[1])
         
         for n in range(N):
-            print(n)
-            fluxAdv.step(f_vals,dt,c)
+            fluxAdv.step(f_vals,0)
         
         linf[i]=np.linalg.norm((f_vals-final_f_vals).flatten(),np.inf)
         l2[i]=np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,eta_vals[1],axis=0),eta_vals[2]))
         
         print(N,"l2:",l2[i])
         print(N,"linf:",linf[i])
+        dt/=2
+        npts[0]*=2
+        npts[1]*=2
     
     print("l2:",l2)
     print("linf:",linf)
@@ -396,7 +398,7 @@ def test_fluxAdvection_dtheta():
         dt = dts[i+1]
         mag2Order = np.floor(np.log10(l2[i+1]))
         maginfOrder = np.floor(np.log10(linf[i+1]))
-        print(q," & & ",z," & & ",dts[i],"    & & $",end=' ')
+        print(q," & & ",z," & & ",dt,"    & & $",end=' ')
         print(str.format('{0:.2f}',l2[i+1]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
         print("}$ & ",str.format('{0:.2f}',l2Order[i])," & $",end=' ')
         print(str.format('{0:.2f}',linf[i+1]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
@@ -442,9 +444,6 @@ def test_Phi_deriv_dtheta():
         
         approxGrad = pGrad.parallel_gradient(phiVals,0)
         exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
-        
-        print(np.linalg.norm(approxGrad-exactGrad,'fro'))
-        print(np.linalg.norm((approxGrad-exactGrad).flatten(),np.inf))
         
         err = approxGrad-exactGrad
         
@@ -508,9 +507,6 @@ def test_Phi_deriv_dz():
         
         approxGrad = pGrad.parallel_gradient(phiVals,0)
         exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
-        
-        print(np.linalg.norm(approxGrad-exactGrad,'fro'))
-        print(np.linalg.norm((approxGrad-exactGrad).flatten(),np.inf))
         
         err = approxGrad-exactGrad
         
