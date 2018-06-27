@@ -3,6 +3,8 @@ import numpy as np
 import warnings
 import operator
 
+from abc        import ABC
+
 class Layout:
     """
     Layout: Class containing information about how to access data
@@ -175,7 +177,13 @@ class Layout:
 
 #===============================================================================
 
-class LayoutManager:
+class LayoutManager(ABC):
+    """
+    LayoutManager: Class containing information about the different layouts.
+    It handles conversion from one layout to another
+    This class is a super class and should never be instantiated
+    """
+    
     def getLayout( self, name ):
         return self._layouts[name]
     
@@ -278,6 +286,31 @@ class LayoutManager:
 #===============================================================================
 
 def getLayoutHandler(comm: MPI.Comm, layouts : dict, nprocs: list, eta_grids: list):
+    """
+    getLayoutHandler: Class containing information about the different layouts
+    available. It handles conversion from one layout to another
+
+    Parameters
+    ----------
+    comm : MPI.Comm
+        The communicator on which the data will be distributed
+    
+    layouts : dict
+        The keys should be strings which will be used to identify layouts.
+        
+        The values should be an array_like containing the ordering of
+        the dimensions in this layout.
+        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
+        The length of the values should be at least as long as the
+        length of nprocs.
+
+    nprocs : list of int
+        The number of processes in each distribution direction.
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+
+    """
     nDims=len(nprocs)
         
     topology = comm.Create_cart( nprocs, periods=[False]*nDims )
@@ -292,7 +325,7 @@ def getLayoutHandler(comm: MPI.Comm, layouts : dict, nprocs: list, eta_grids: li
 
 class LayoutHandler(LayoutManager):
     """
-    LayoutManager: Class containing information about the different layouts
+    LayoutHandler: Class containing information about the different layouts
     available. It handles conversion from one layout to another
 
     Parameters
