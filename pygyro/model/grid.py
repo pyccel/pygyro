@@ -118,6 +118,12 @@ class Grid(object):
         """
         return self._layout_manager.getLayout(name)
     
+    @property
+    def currentLayout( self ):
+        """ Return name of current layout
+        """
+        return self._current_layout_name
+    
     ####################################################################
     ####                   Functions for figures                    ####
     ####################################################################
