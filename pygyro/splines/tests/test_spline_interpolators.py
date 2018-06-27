@@ -5,8 +5,9 @@ import pytest
 import numpy as np
 
 from  .utilities              import horner, random_grid
-from  .splines_error_bounds   import spline_1d_error_bound
+from  .splines_error_bounds   import spline_1d_error_bound, spline_2d_error_bound
 from  .analytical_profiles_1d import AnalyticalProfile1D_Cos, AnalyticalProfile1D_Poly
+from  .analytical_profiles_2d import AnalyticalProfile2D_CosCos
 from ..splines                import make_knots, BSplines, Spline1D, Spline2D
 from ..spline_interpolators   import SplineInterpolator1D, SplineInterpolator2D
 
@@ -122,3 +123,47 @@ def test_SplineInterpolator2D_exact( nc1, nc2, deg1, deg2 ):
 
     max_norm_err = np.max( abs( err ) )
     assert max_norm_err < 2.0e-14
+
+#===============================================================================
+@pytest.mark.parametrize( "ncells"   , [10,20,40,80,160] )
+@pytest.mark.parametrize( "degree"   , range(1,5)   )
+@pytest.mark.parametrize( "periodic1", [True,False] )
+@pytest.mark.parametrize( "periodic2", [True,False] )
+
+def test_SplineInterpolator2D_cosine( ncells, degree, periodic1, periodic2 ):
+
+    nc1  = nc2  = ncells
+    deg1 = deg2 = degree
+
+    f = AnalyticalProfile2D_CosCos( n1=3, n2=3, c1=0.3, c2=0.7 )
+    domain1  , domain2   = f.domain
+    periodic1, periodic2 = (True, True)
+
+    # Along x1
+    breaks1 = random_grid( domain1, nc1, 0.0 )
+    knots1  = make_knots( breaks1, deg1, periodic1 )
+    basis1  = BSplines( knots1, deg1, periodic1 )
+
+    # Along x2
+    breaks2 = random_grid( domain2, nc2, 0.0 )
+    knots2  = make_knots( breaks2, deg2, periodic2 )
+    basis2  = BSplines( knots2, deg2, periodic2 )
+
+    # 2D spline and interpolator on tensor-product space
+    spline  = Spline2D( basis1, basis2 )
+    interp  = SplineInterpolator2D( basis1, basis2 )
+
+    x1g = basis1.greville
+    x2g = basis2.greville
+    ug  = f.eval( np.meshgrid( x1g, x2g, indexing='ij' ) )
+
+    interp.compute_interpolant( ug, spline )
+
+    x1t = np.linspace( *domain1, num=20 )
+    x2t = np.linspace( *domain2, num=20 )
+    err = spline.eval( x1t, x2t ) - f.eval( np.meshgrid( x1t, x2t, indexing='ij' ) )
+
+    max_norm_err = np.max( abs( err ) )
+    err_bound    = spline_2d_error_bound( f, np.diff(breaks1).max(), np.diff(breaks2).max(), deg1, deg2 )
+
+    assert max_norm_err < err_bound

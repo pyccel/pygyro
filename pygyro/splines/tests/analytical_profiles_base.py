@@ -26,9 +26,9 @@ class AnalyticalProfile( metaclass=ABCMeta ):
         """
 
     @abstractmethod
-    def eval(self, x, diff=0):
+    def eval(self, x, diff):
         """ Evaluate profile (or its derivative) at position x. """
 
     @abstractmethod
-    def max_norm(self, diff=0):
+    def max_norm(self, diff):
         """ Compute max-norm of profile (or its derivative) over domain. """
