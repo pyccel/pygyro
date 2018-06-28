@@ -2,7 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 
-from ..model.process_grid       import compute_2d_process_grid_from_max
+from ..model.process_grid       import compute_2d_process_grid
 from ..model.layout             import LayoutSwapper
 from ..model.grid               import Grid
 from ..initialisation.setups    import setupCylindricalGrid
@@ -21,7 +21,7 @@ def test_PoissonSolver():
     
     eta_grids = [np.linspace( 0,10, num=num ) for num in npts ]
     
-    nprocs = compute_2d_process_grid_from_max( n1 , n2 , mpi_size )
+    nprocs = compute_2d_process_grid( nptsGrid , mpi_size )
     
     # Create dictionary describing layouts
     layout_poisson = {'mode_solve': [1,2,0],
