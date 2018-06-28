@@ -10,8 +10,8 @@ from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 from ..model.layout                 import Layout
 
-def fieldline(theta,z_diff,iota):
-    return np.mod(theta+iota(constants.R0)*z_diff/constants.R0,2*pi)
+def fieldline(theta,z_diff,iota,r):
+    return np.mod(theta+iota(r)*z_diff/constants.R0,2*pi)
 
 class ParallelGradient:
     """
@@ -74,7 +74,7 @@ class ParallelGradient:
         # They can therefore be calculated in advance
         if (self._variesInR):
             self._thetaVals = np.empty([eta_grid[0].size, eta_grid[1].size, eta_grid[2].size, order+1])
-            for i,r in enumerate(eta_gird[0]):
+            for i,r in enumerate(eta_grid[0]):
                 self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
         else:
             self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, order+1])
@@ -101,14 +101,14 @@ class ParallelGradient:
         # Solve the linear system to find the coefficients
         self._coeffs = solve(A,b)
     
-    def _getThetaVals( self, r: np.ndarray, thetaVals: np.ndarray, eta_grid: list, iota ):
+    def _getThetaVals( self, r: float, thetaVals: np.ndarray, eta_grid: list, iota ):
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         n = eta_grid[2].size
         
         for k,z in enumerate(eta_grid[2]):
             for i,l in enumerate(self._shifts):
-                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
+                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota,r)
     
     def parallel_gradient( self, phi_r: np.ndarray, i : int ):
         """
