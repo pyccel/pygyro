@@ -1,6 +1,9 @@
 from mpi4py import MPI
 import numpy as np
 import warnings
+import operator
+
+from abc        import ABC
 
 class Layout:
     """
@@ -59,25 +62,42 @@ class Layout:
         self._starts = np.zeros(self._ndims,int)
         self._ends = np.empty(self._ndims,int)
         self._shape = np.empty(self._ndims,int)
+        self._max_shape = np.empty(self._ndims,int)
         
         for i,nRanks in enumerate(self._nprocs):
-            ranks=np.arange(0,nRanks)
-            n=len(eta_grids[dims_order[i]])
-            Overflow=n%nRanks
+            ranks=np.arange(0,nRanks+1)
             
-            # get start indices for all processes
-            starts=n//nRanks*ranks + np.minimum(ranks,Overflow)
-            self._mpi_starts.append(starts)
+            n=len(eta_grids[dims_order[i]])
+            
+            # Find block sizes
+            small_size = n//nRanks
+            big_size = small_size+1
+            
+            # Find number of blocks of each size
+            nBig = n%nRanks
+            
+            # Get start indices for all processes
+            # The different sized blocks should be optimally distributed
+            # This means that if the distribution is changed elsewhere,
+            # the load balance should remain good
+            starts=small_size*ranks+nBig*ranks//nRanks
+            
+            self._mpi_starts.append(starts[:-1])
             # append end index
-            starts=np.append(starts,n)
             self._mpi_lengths.append(starts[1:]-starts[:-1])
             
             # save start and indices from list using cartesian ranks
             self._starts[i] = starts[myRanks[i]]
             self._ends[i]   = starts[myRanks[i]+1]
             self._shape[i]  = self._ends[i]-self._starts[i]
+            self._max_shape[i] = big_size if nBig>0 else small_size
         
         self._size = np.prod(self._shape)
+        self._max_size = np.prod(self._max_shape)
+        
+        self._shape=tuple(self._shape)
+        self._mpi_starts=tuple(self._mpi_starts)
+        self._mpi_lengths=tuple(self._mpi_lengths)
     
     @property
     def name( self ):
@@ -122,10 +142,22 @@ class Layout:
         return self._shape
     
     @property
+    def max_block_shape( self ):
+        """ Get shape of largest data chunk in this layout.
+        """
+        return self._max_shape
+    
+    @property
     def size( self ):
         """ Get size of data chunk in memory.
         """
         return self._size
+    
+    @property
+    def max_block_size( self ):
+        """ Get size of the largest data chunk.
+        """
+        return self._max_size
     
     @property
     def nprocs( self ):
@@ -145,87 +177,14 @@ class Layout:
 
 #===============================================================================
 
-class LayoutManager:
+class LayoutManager(ABC):
     """
-    LayoutManager: Class containing information about the different layouts
-    available. It handles conversion from one layout to another
-
-    Parameters
-    ----------
-    comm : MPI.Comm
-        The communicator on which the data will be distributed
-
-    layouts : dict
-        The keys should be strings which will be used to identify layouts.
-        
-        The values should be an array_like containing the ordering of
-        the dimensions in this layout.
-        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
-        The length of the values should be at least as long as the
-        length of nprocs.
-
-    nprocs : list of int
-        The number of processes in each distribution direction.
-
-    eta_grids : list of array_like
-        The coordinates of the grid points in each dimension
-
+    LayoutManager: Class containing information about the different layouts.
+    It handles conversion from one layout to another
+    This class is a super class and should never be instantiated
     """
-    def __init__( self, comm : MPI.Comm, layouts : dict, nprocs: list, eta_grids: list ):
-        self.rank=comm.Get_rank()
-        
-        self._nDims=len(nprocs)
-        self._nprocs = nprocs
-        
-        topology = comm.Create_cart( nprocs, periods=[False]*self._nDims )
-        
-        # Get communicator for each dimension
-        self._subcomms = []
-        for i in range(self._nDims):
-            self._subcomms.append(topology.Sub( [i==j for j in range(self._nDims)] ))
-        
-        self._mpi_coords = topology.Get_coords(comm.Get_rank())
-        
-        # Create the layouts and save them in a dictionary
-        # Find the largest layout
-        layoutObjects = []
-        self._buffer_size = 0
-        self._shapes = []
-        for name,dim_order in layouts.items():
-            new_layout = Layout(name,nprocs,dim_order,eta_grids,self._mpi_coords)
-            layoutObjects.append((name,new_layout))
-            self._shapes.append((name,new_layout.shape))
-            if (new_layout.size>self._buffer_size):
-                self._buffer_size=new_layout.size
-        self._layouts = dict(layoutObjects)
-        self.nLayouts=len(self._layouts)
-        
-        # Allocate the buffer
-        #self._buffer = np.empty(self._buffer_size)
-        
-        # Calculate direct layout connections
-        myMap = []
-        for n,(name1,l1) in enumerate(layoutObjects):
-            myMap.append((name1,[]))
-            for i,(name2,l2) in enumerate(layoutObjects[:n]):
-                if (self.compatible(l1,l2)):
-                    myMap[i][1].append(name1)
-                    myMap[n][1].append(name2)
-        # Save the connections in a dictionary
-        DirectConnections=dict(myMap)
-        
-        # Save all layout paths in a map and save any remaining unconnected layouts
-        unvisited = self._makeConnectionMap(DirectConnections)
-        
-        # all layouts should have been found
-        if (unvisited!=set()):
-            s=str()
-            for name in unvisited:
-                s+=(" '"+name+"'")
-            raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
-        
     
-    def getLayout( self, name):
+    def getLayout( self, name ):
         return self._layouts[name]
     
     @property
@@ -257,6 +216,207 @@ class LayoutManager:
         """ The size of the buffer required to hold all data
         """
         return self._buffer_size
+    
+    def _makeConnectionMap(self, DirectConnections: dict):
+        """
+        Find the shortest path connected each pair of layouts.
+        Return any unconnected layouts
+        """
+        # Make a map to be used for reference when transposing
+        # The keys are the source layout name
+        # The keys of the resulting dictionary are the destination layout name
+        # The values are lists containing the steps that must be taken
+        # to travel from the source to the destination
+        MyMap = []
+        for name1 in DirectConnections.keys():
+            Routing = []
+            for name2 in DirectConnections.keys():
+                # Make a map of layout names to lists
+                Routing.append((name2,[]))
+            MyMap.append((name1,dict(Routing)))
+        self._route_map = dict(MyMap)
+        
+        # Create helpful arrays
+        visitedNodes   = []
+        remainingNodes = set(DirectConnections.keys())
+        nodesToVisit   = [list(DirectConnections.keys())[0]]
+        remainingNodes.remove(nodesToVisit[0])
+        
+        # While there are still nodes connected to the nodes visited so far
+        while (len(nodesToVisit)>0):
+            # get node
+            currentNode = nodesToVisit.pop(0)
+            
+            # Add connected nodes that have not yet been considered to list of nodes to check
+            for name in DirectConnections[currentNode]:
+                if (name in remainingNodes):
+                    nodesToVisit.append(name)
+                    remainingNodes.remove(name)
+            
+            # Find a path to each node that has already been considered
+            for aim in visitedNodes:
+                if (aim in DirectConnections[currentNode]):
+                    # If the node is directly connected then save the path
+                    self._route_map[currentNode][aim].append(aim)
+                    self._route_map[aim][currentNode].append(currentNode)
+                else:
+                    # If the node is not directly connected, find the connected
+                    # node which has the shortest path to the node for which we
+                    # are aiming
+                    viaList = []
+                    winningVia = None
+                    shortestLength = len(DirectConnections)
+                    for via in DirectConnections[currentNode]:
+                        if (not via in visitedNodes):
+                            continue
+                        elif(len(self._route_map[via][aim])<shortestLength):
+                            viaList = self._route_map[via][aim]
+                            winningVia = via
+                    # Save the path via this node
+                    self._route_map[currentNode][aim].append(winningVia)
+                    self._route_map[currentNode][aim].extend(viaList)
+                    self._route_map[aim][currentNode].extend(self._route_map[aim][winningVia])
+                    self._route_map[aim][currentNode].append(currentNode)
+            # Remember that this node has now been visited
+            visitedNodes.append(currentNode)
+        
+        # Return unconnected nodes
+        return remainingNodes
+
+#===============================================================================
+
+def getLayoutHandler(comm: MPI.Comm, layouts : dict, nprocs: list, eta_grids: list):
+    """
+    getLayoutHandler: Create a LayoutHandler object with the described
+    layouts spread over the designated number of processes.
+    
+    This function handles the creation of the sub-communicators which
+    are taken as an argument for the creation of a LayoutHandler.
+
+    Parameters
+    ----------
+    comm : MPI.Comm
+        The communicator on which the data will be distributed
+    
+    layouts : dict
+        The keys should be strings which will be used to identify layouts.
+        
+        The values should be an array_like containing the ordering of
+        the dimensions in this layout.
+        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
+        The length of the values should be at least as long as the
+        length of nprocs.
+
+    nprocs : list of int
+        The number of processes in each distribution direction.
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+
+    Returns
+    -------
+    An instance of the LayoutHandler class
+
+    """
+    nDims=len(nprocs)
+        
+    topology = comm.Create_cart( nprocs, periods=[False]*nDims )
+    
+    # Get communicator for each dimension
+    subcomms = []
+    for i in range(nDims):
+        subcomms.append(topology.Sub( [i==j for j in range(nDims)] ))
+    
+    mpi_coords = topology.Get_coords(comm.Get_rank())
+    return LayoutHandler(subcomms,mpi_coords,layouts,nprocs,eta_grids)
+
+class LayoutHandler(LayoutManager):
+    """
+    LayoutHandler: Class containing information about the different layouts
+    available. It handles conversion from one layout to another
+
+    Parameters
+    ----------
+    comms : list of MPI.Comm
+        The sub-communicators on which the data will be distributed
+    
+    coords : list of int
+        The rank on each sub-communicator
+
+    layouts : dict
+        The keys should be strings which will be used to identify layouts.
+        
+        The values should be an array_like containing the ordering of
+        the dimensions in this layout.
+        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
+        The length of the values should be at least as long as the
+        length of nprocs.
+
+    nprocs : list of int
+        The number of processes in each distribution direction.
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+
+    """
+    def __init__( self, comms : list, coords: list , layouts : dict, nprocs: list, eta_grids: list ):
+        
+        self._subcomms = comms
+        self._mpi_coords = coords
+        
+        self._nDims=len(nprocs)
+        self._nprocs = nprocs
+        
+        
+        # Create the layouts and save them in a dictionary
+        # Find the largest layout
+        layoutObjects = []
+        self._shapes = []
+        for name,dim_order in layouts.items():
+            new_layout = Layout(name,nprocs,dim_order,eta_grids,self._mpi_coords)
+            layoutObjects.append((name,new_layout))
+            self._shapes.append((name,new_layout.shape))
+        self._layouts = dict(layoutObjects)
+        self.nLayouts=len(self._layouts)
+        
+        # Initialise the buffer size before the loop
+        self._buffer_size = 0
+        
+        # Calculate direct layout connections
+        myMap = []
+        for n,(name1,l1) in enumerate(layoutObjects):
+            myMap.append((name1,[]))
+            for i,(name2,l2) in enumerate(layoutObjects[:n]):
+                if (self.compatible(l1,l2)):
+                    myMap[i][1].append(name1)
+                    myMap[n][1].append(name2)
+                    
+                    # Find the size of the block required to switch between these layouts
+                    blockshape=list(l1.shape)
+                    axis=self._get_swap_axes(l1,l2)
+                    blockshape[axis[0]]=l1.max_block_shape[axis[0]]
+                    blockshape[axis[1]]=l2.max_block_shape[axis[0]]
+                    # Find the maximum memory required
+                    if (axis[0]<len(self._subcomms) and self._subcomms[axis[0]]!=None):
+                        buffsize=np.prod(blockshape)*self._subcomms[axis[0]].Get_size()
+                    else:
+                        buffsize=np.prod(blockshape)
+                    
+                    if (buffsize>self._buffer_size):
+                        self._buffer_size=buffsize
+        
+        # Save the connections in a dictionary
+        DirectConnections=dict(myMap)
+        
+        # Save all layout paths in a map and save any remaining unconnected layouts
+        unvisited = self._makeConnectionMap(DirectConnections)
+        
+        # all layouts should have been found
+        if (unvisited!=set()):
+            s=str()
+            for name in unvisited:
+                s+=(" '"+name+"'")
+            raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
     
     @property
     def communicators( self ):
@@ -303,8 +463,8 @@ class LayoutManager:
         # Verify that the input makes sense
         assert source_name in self._layouts
         assert dest_name   in self._layouts
-        assert source.size == self._buffer_size
-        assert dest  .size == self._buffer_size
+        assert source.size >= self._buffer_size
+        assert dest  .size >= self._buffer_size
         
         # If the source and destination are the same then copy the data
         if (source_name==dest_name):
@@ -408,7 +568,7 @@ class LayoutManager:
         sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
         
         # If both axes being swapped are not distributed
-        if (axis[0]>=self._nDims):
+        if (axis[0]>=self._nDims or self._nprocs[axis[0]]==1):
             destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
             assert(destView.base is dest)
             destView[:]=np.swapaxes(sourceView,axis[0],axis[1])
@@ -460,35 +620,39 @@ class LayoutManager:
         
         start = 0
         
-        self._shapes = []
+        # Get the shape of the block
+        shape=list(layout_source.shape)
+        shape[axis[0]]=layout_source.max_block_shape[axis[0]]
+        shape[axis[1]]=layout_dest.max_block_shape[axis[0]]
+        size = np.prod(shape)
+        
+        ranges = [slice(x) for x in layout_source.shape ]
+        
+        # Find the order to which the axes will be transposed for sending
+        # This is the same as before but the axis to be concatenated 
+        # must be the 0-th axis
+        order = list(range(layout_source.ndims))
+        if (axis[0]!=0):
+            order[0], order[axis[0]] = order[axis[0]], order[0]
+            shape[0], shape[axis[0]] = shape[axis[0]], shape[0]
+            ranges[0], ranges[axis[0]] = ranges[axis[0]], ranges[0]
         
         for (split_length,mpi_start) in zip(layout_dest.mpi_lengths(axis[0]),layout_dest.mpi_starts(axis[0])):
-            # Get the shape of the block
-            shape=layout_source.shape.copy()
-            shape[axis[1]]=split_length
-            
-            # Find the order to which the axes will be transposed for sending
-            # This is the same as before but the axis to be concatenated 
-            # must be the 0-th axis
-            order = list(range(layout_source.ndims))
-            if (axis[0]!=0):
-                order[0], order[axis[0]] = order[axis[0]], order[0]
-                shape[0], shape[axis[0]] = shape[axis[0]], shape[0]
-            
-            # Remember the shape and size for later
-            size = np.prod(shape)
-            self._shapes.append((shape,size))
-            
             # Get a view on the buffer which is the same size as the block
             arr = tobuffer[start:start+size].reshape(shape)
             assert(arr.base is tobuffer)
+            
+            # Use the list of slices to access the relevant elements on the block
+            ranges[axis[1]]=slice(split_length)
+            arrView = arr[ranges]
+            assert(arrView.base is tobuffer)
             
             # Save the block into the buffer via the source
             # This may result in a copy, however this copy would only be
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            arr[:] = source[...,mpi_start:mpi_start+split_length].transpose(order)
+            arrView[:] = source[...,mpi_start:mpi_start+split_length].transpose(order)
             
             start+=size
     
@@ -499,45 +663,24 @@ class LayoutManager:
         Pass the blocks to the correct processes, concatenating in the process
         Transpose the result to get the final layout in the destination
         """
-        size = comm.Get_size()
+        mpi_size = comm.Get_size()
         
-        # Get the sizes of the sent and received blocks.
-        # This is equal to the product of the number of points in each
-        # dimension except the dimension that was/will be distributed
-        # multiplied by the number of points in the distributed direction
-        # (e.g. when going from n_eta1=10, n_eta2=10, n_eta3=20, n_eta4=10
-        # to n_eta1=20, n_eta2=10, n_eta3=10, n_eta4=10
-        # the sent sizes are (10*10*[10 10]*10) and the received sizes
-        # are ([10 10]*10*10*10)
-        sourceSizes = layout_source.size *                      \
-                      layout_dest  .mpi_lengths( axis[0] ) //   \
-                      layout_source.shape[axis[1]]
+        # Get the shape of the send block
+        block_shape = list(layout_source.shape)
+        block_shape[axis[1]] = layout_dest.max_block_shape[axis[0]]
+        block_shape[axis[0]] = layout_source.max_block_shape[axis[0]]*mpi_size
         
-        destSizes   = layout_dest  .size *                      \
-                      layout_source.mpi_lengths( axis[0] ) //   \
-                      layout_dest  .shape[axis[1]]
-        
-        # get the start points in the array
-        sourceStarts     = np.zeros(size,int)
-        destStarts       = np.zeros(size,int)
-        sourceStarts[1:] = np.cumsum(sourceSizes)[:-1]
-        destStarts  [1:] = np.cumsum(  destSizes)[:-1]
-        
-        # check the sizes have been computed correctly
-        assert(sum(sourceSizes)==layout_source.size)
-        assert(sum(destSizes)==layout_dest.size)
+        size = np.prod(block_shape)
         
         # Get a view on the data to be sent
-        sendBuf=np.split(data,[layout_source.size],axis=0)[0]
+        sendBuf=np.split(data,[size],axis=0)[0]
         assert(sendBuf.base is data)
         
-        comm.Alltoallv( ( sendBuf                      ,
-                          ( sourceSizes, sourceStarts ),
-                          MPI.DOUBLE                   ) ,
-                        
-                        ( buf                 , 
-                          ( destSizes  , destStarts   ),
-                          MPI.DOUBLE                   ) )
+        # Get a view where the data will be received
+        rcvBuf=np.split(buf,[size],axis=0)[0]
+        assert(rcvBuf.base is buf)
+        
+        comm.Alltoall( sendBuf, rcvBuf )
         
         # Find the order to which the axes will be transposed.
         # This equates to simply swapping the axes, however as the axis
@@ -547,10 +690,17 @@ class LayoutManager:
         # axes which will be swapped not yet swapped. In addition the 
         # axis to be concatenated is the 0-th axis (it is now already concatenated)
         order = list(range(layout_source.ndims))
-        shape = layout_dest.shape.copy()
+        
+        # Get shape of destination block
+        shape = list(layout_dest.shape)
+        shape[axis[0]]=layout_dest.max_block_shape[axis[0]]
+        shape[axis[1]]=layout_source.max_block_shape[axis[0]]*mpi_size
+        
+        # Reorder the shape to the current format
         if (axis[0]!=0):
             order[0], order[axis[0]], order[axis[1]] = order[axis[0]], order[axis[1]], order[0]
             shape[0], shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[0], shape[axis[0]]
+            block_shape[0], block_shape[axis[0]] = block_shape[axis[0]], block_shape[0]
         else:
             order[axis[0]], order[axis[1]] = order[axis[1]], order[axis[0]]
             shape[axis[0]], shape[axis[1]] = shape[axis[1]], shape[axis[0]]
@@ -558,12 +708,29 @@ class LayoutManager:
         # Get a view on the destination
         destView = np.split(data,[layout_dest.size])[0].reshape(layout_dest.shape)
         assert(destView.base is data)
+        
         # Get a view on the actual data received
-        bufView = np.split(buf,[layout_dest.size])[0].reshape(shape)
+        bufView = np.split(buf,[size])[0].reshape(block_shape)
         assert(bufView.base is buf)
-        # Transpose the data. As the axes to be concatenated are the first dimension
-        # the concatenation is done automatically by the alltoall
-        destView[:] = bufView.transpose(order)
+        
+        for r in range(mpi_size):
+            start = layout_source.max_block_shape[axis[0]]*r
+            
+            # Get a view on the block
+            bufRanges=[slice(x) for x in shape]
+            bufRanges[order[axis[0]]]=slice(layout_dest.shape[axis[0]])
+            bufRanges[order[axis[1]]]=slice(layout_dest.shape[axis[1]])
+            bufRanges[0]=slice(start,start+layout_source.mpi_lengths(axis[0])[r])
+            assert(bufView[bufRanges].base is buf)
+            
+            # Get a view on the block in the destination memory
+            destRanges=[slice(x) for x in layout_dest.shape]
+            destRanges[axis[1]]=slice(layout_source.mpi_starts(axis[0])[r],
+                               layout_source.mpi_starts(axis[0])[r]+layout_source.mpi_lengths(axis[0])[r])
+            
+            # Transpose the data. As the axes to be concatenated are the first dimension
+            # the concatenation is done automatically
+            destView[destRanges] = np.transpose(bufView[bufRanges],order)
     
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -594,68 +761,549 @@ class LayoutManager:
         # This means if a,b are the swapped values that dim should contain [a,b,b,a]
         return (len(dims)==4 and dims[0]==dims[3] and dims[1]==dims[2])
 
-    def _makeConnectionMap(self, DirectConnections: dict):
+#===============================================================================
+
+class LayoutSwapper(LayoutManager):
+    """
+    LayoutSwapper: Class containing information about the different layouts
+    available. It handles conversion from one layout to another. Including
+    conversions using different numbers of processors
+
+    Parameters
+    ----------
+    comm : MPI.Comm
+        The communicator on which the data will be distributed
+
+    layouts : list of dict
+        Each element of the list is associated with a different LayoutManager.
+        
+        
+        For each element:
+        
+        The keys should be strings which will be used to identify layouts.
+        
+        The values should be an array_like containing the ordering of
+        the dimensions in this layout.
+        E.g. [0,2,1] means that the ordering is (eta1,eta3,eta2)
+        The length of the values should be at least as long as the
+        length of nprocs.
+
+    nprocs : list of list of int
+        Each element of the outer list should be a list containing the 
+        number of processes in each distribution direction.
+        
+        Each element of the list is associated with the corresponding
+        element in the layouts list
+
+    eta_grids : list of array_like
+        The coordinates of the grid points in each dimension
+    
+    start : str
+        The start layout
+
+    Notes
+    -----
+    For one Layout Manager created with the command:
+    
+    : LayoutManager( comm, layouts, nprocs, eta_grids )
+    
+    the command should be
+    
+    : LayoutSwapper( comm, [layouts], [nprocs], eta_grids )
+
+    """
+    def __init__( self, comm: MPI.Comm, layouts: list, nprocs: list, eta_grids: list, start: str ):
+        
+        self._comm = comm
+        
+        self._nLayoutManagers = len(layouts)
+        if(self._nLayoutManagers!=len(nprocs)):
+            raise RuntimeError('There must be an equal number of layout sets and distribution setups')
+        
+        self._nDims = [1 if isinstance(x,int) else max(len(x)-x.count(1),1) for x in nprocs]
+        
+        self._maxDims = max([1 if isinstance(x,int) else len(x) for x in nprocs])
+        self._largestLayoutManager,x = max(enumerate(self._nDims), key=operator.itemgetter(1))
+        
+        self._totProcs = np.prod(nprocs[self._largestLayoutManager])
+        
+        # Get a list of the distribution pattern for each layout type
+        self._nprocs=[]
+        for n in nprocs:
+            assert(self._totProcs%np.prod(n)==0)
+            if (isinstance(n,int)):
+                N = [n]
+            else:
+                N =list(n)
+            for i in range(len(N),self._maxDims):
+                N.append(1)
+            self._nprocs.append(N)
+        
+        self._maxProcs = np.max(self._nprocs,axis=0)
+        
+        # Ensure that all layouts are similar in that if a direction is
+        # distributed it is always distributed over the same number of processes
+        # If it could be useful then this restriction could be relaxed
+        # (this would require changes in the transpose functions
+        #  and in the declaration of the communicators)
+        for i in range(self._maxDims):
+            for j in range(self._nLayoutManagers):
+                assert(self._nprocs[j][i]==1 or self._nprocs[j][i]==self._maxProcs[i])
+        
+        # Find the order of the layout types so it is clear which transposes
+        # are valid
+        sortOrder=sorted(range(len(self._nDims)), key=self._nDims.__getitem__,reverse=True)
+        
+        # Ensure that there are no missing links
+        for i,idx in enumerate(sortOrder[1:]):
+            assert(self._compatible(layouts[sortOrder[i-1]],layouts[idx]))
+        
+        # Create the LayoutHandlers
+        self._managers = [None for i in range(self._nLayoutManagers)]
+        
+        # Starting with the most distributed layout handler
+        i=sortOrder[0]
+        
+        # Create the communicators that will be used by all LayoutHandlers
+        topology = comm.Create_cart( self._nprocs[i], periods=[False]*len(self._nprocs[i]) )
+        
+        # Get communicator for each dimension
+        subcomms = []
+        for k in range(self._maxDims):
+            subcomms.append(topology.Sub( [k==j for j in range(len(self._nprocs[i]))] ))
+        
+        # Find the rank on each communicator
+        mpi_coords = topology.Get_coords(comm.Get_rank())
+        
+        # Create the LayoutHandler
+        self._managers[i] = LayoutHandler(subcomms,mpi_coords,layouts[i],self._nprocs[i],eta_grids)
+        
+        for idx in sortOrder[1:]:
+            # Find the relevant subcommunicators and ranks
+            the_subcomms=subcomms.copy()
+            coords = mpi_coords.copy()
+            for i in range(self._maxDims-1,-1,-1):
+                if (self._nprocs[idx][i]==1):
+                    the_subcomms[i]=None
+                    coords[i]=0
+            # Create the LayoutHandler
+            self._managers[idx] = LayoutHandler(the_subcomms,coords,layouts[idx],self._nprocs[idx],eta_grids)
+        
+        # Find the largest buffer required to ensure that enough memory
+        # is allocated
+        buffSize = [x.bufferSize for x in self._managers]
+        self._buffer_size = max(buffSize)
+        
+        # Create a dictionary to link layouts to their Handlers
+        self._handlers = dict()
+        for i,h in enumerate(layouts):
+            for n,l in h.items():
+                self._handlers[n]=i
+        
+        # Calculate direct layout connections
+        self._layouts = list(self._handlers.keys())
+        myMap = []
+        for n,name1 in enumerate(self._layouts):
+            myMap.append((name1,[]))
+            for i,name2 in enumerate(self._layouts[:n]):
+                if (self._compatibleLayout(name1,name2)):
+                    myMap[i][1].append(name1)
+                    myMap[n][1].append(name2)
+                    if (self._handlers[name1]!=self._handlers[name2]):
+                        # Find the layouts
+                        l1 = self.getLayout(name1)
+                        l2 = self.getLayout(name2)
+                        
+                        # Find the distribution patterns
+                        nprocs1 = l1.nprocs
+                        ndims1 = self._nprocs[self._handlers[name1]]
+                        nprocs2 = l2.nprocs
+                        ndims2 = self._nprocs[self._handlers[name2]]
+                        
+                        # Find the differences between the two distribution patterns
+                        proc_diff = np.equal(ndims1,ndims2)
+                        
+                        if (not proc_diff.all()):
+                            # Find the index along which the data is to be distributed or rejoined
+                            idx = list(proc_diff).index(False)
+                            
+                            # Find the shape of each block
+                            blockShape1 = list(l1.shape)
+                            blockShape1[idx] = l1.max_block_shape[idx]
+                            blockSize1 = np.prod(blockShape1)
+                            
+                            blockShape2 = list(l2.shape)
+                            blockShape2[idx] = l2.max_block_shape[idx]
+                            blockSize2 = np.prod(blockShape2)
+                            
+                            # Ensure that there is enough memory for this gather operation
+                            if (blockSize1>blockSize2):
+                                comm = self._managers[self._handlers[name2]].communicators[idx]
+                                mpi_size = comm.Get_size()
+                            
+                                self._buffer_size = max(self._buffer_size,blockSize2*mpi_size)
+                            else:
+                                comm = self._managers[self._handlers[name1]].communicators[idx]
+                                mpi_size = comm.Get_size()
+                            
+                                self._buffer_size = max(self._buffer_size,blockSize1*mpi_size)
+        
+        # Save the connections in a dictionary
+        DirectConnections=dict(myMap)
+        
+        # Save all layout paths in a map and save any remaining unconnected layouts
+        unvisited = self._makeConnectionMap(DirectConnections)
+        
+        # all layouts should have been found
+        if (unvisited!=set()):
+            s=str()
+            for name in unvisited:
+                s+=(" '"+name+"'")
+            raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
+        
+        # Remember the current LayoutHandler to help the properties
+        self._current_manager = self._managers[self._handlers[start]]
+    
+    def _compatible( self, layout1: dict, layout2: dict ):
+        # The LayoutHandlers are compatible if they both contain a layout where
+        # the order of the dimensions is the same
+        for name1,l1 in layout1.items():
+            for name2,l2 in layout2.items():
+                if (l1==l2):
+                    return True
+        return False
+    
+    def _compatibleLayout( self, layout1: str, layout2: str ):
+        """ Tests whether 2 layouts are compatible by testing whether
+            they are on the same LayoutHandler or whether the dimensions
+            are ordered in the same way and the LayoutHandlers are compatible
         """
-        Find the shortest path connected each pair of layouts.
-        Return any unconnected layouts
+        i1 = self._handlers[layout1]
+        i2 = self._handlers[layout2]
+        
+        if (i1==i2):
+            return True
+        else:
+            handler1 = self._managers[i1]
+            handler2 = self._managers[i2]
+            if (abs(handler1.nDistributedDirections-handler2.nDistributedDirections)>1):
+                return False
+            l1 = handler1.getLayout(layout1)
+            l2 = handler2.getLayout(layout2)
+            return l1.dims_order==l2.dims_order
+    
+    def getLayout( self, name ):
+        """ Return a requested layout
         """
-        # Make a map to be used for reference when transposing
-        # The keys are the source layout name
-        # The keys of the resulting dictionary are the destination layout name
-        # The values are lists containing the steps that must be taken
-        # to travel from the source to the destination
-        MyMap = []
-        for name1 in DirectConnections.keys():
-            Routing = []
-            for name2 in DirectConnections.keys():
-                # Make a map of layout names to lists
-                Routing.append((name2,[]))
-            MyMap.append((name1,dict(Routing)))
-        self._route_map = dict(MyMap)
+        return self._managers[self._handlers[name]].getLayout(name)
+    
+    @property
+    def nProcs( self ):
+        """ The number of processes available on the distributed dimensions
+        """
+        return self._current_manager.nProcs
+    
+    @property
+    def mpiCoords( self ):
+        """ The coordinates of the current processor on the MPI grid communicator
+        """
+        return self._current_manager.mpiCoords
+    
+    @property
+    def nDistributedDirections( self ):
+        """ The number of distributed directions
+        """
+        return self._current_manager.nDistributedDirections
+    
+    @property
+    def availableLayouts( self ):
+        """ The names of possible layouts
+        """
+        return self._layouts
+    
+    def transpose( self, source, dest, source_name, dest_name, buf = None ):
+        """
+        Change from one layout to another, if a buffer is provided then
+        this will leave the source layout intact. Otherwise the source
+        will be used as the buffer
+
+        Parameters
+        ----------
+        source : array_like
+            The entire memory block where the data is currently stored
+            (including unused cells)
+
+        dest : array_like
+            The entire memory block where the data will be stored
+            (including cells which will not be used)
+
+        source_name : str
+            The name of the source layout
+
+        dest_name : str
+            The name of the destination layout
+
+        buf : array_like
+            A memory block large enough to store all data. If this
+            parameter is not provided then source will not be kept intact
+
+        Notes
+        -----
+        source and dest are assumed to not overlap in memory
+
+        """
         
-        # Create helpful arrays
-        visitedNodes   = []
-        remainingNodes = set(DirectConnections.keys())
-        nodesToVisit   = [list(DirectConnections.keys())[0]]
-        remainingNodes.remove(nodesToVisit[0])
+        # If this thread is only here for plotting purposes then ignore the command
+        if (self._buffer_size==0):
+            return
         
-        # While there are still nodes connected to the nodes visited so far
-        while (len(nodesToVisit)>0):
-            # get node
-            currentNode = nodesToVisit.pop(0)
+        # Verify that the input makes sense
+        assert source_name in self._layouts
+        assert dest_name   in self._layouts
+        assert source.size == self._buffer_size
+        assert dest  .size == self._buffer_size
+        
+        if (self._handlers[source_name]==self._handlers[dest_name]):
+            # If the source and destination are on the same LayoutHandler
+            # then let it handle everything
+            self._managers[self._handlers[source_name]].transpose(source,dest,source_name,dest_name,buf)
+            self._current_manager = self._managers[self._handlers[dest_name]]
+            return
+        
+        # Check that a direct path is available
+        if (len(self._route_map[source_name][dest_name])==1):
+            # if so then carry out the transpose
+            layout_source = self.getLayout(source_name)
+            layout_dest   = self.getLayout(dest_name)
+            if (buf is None):
+                self._transpose(source,dest,layout_source,layout_dest)
+            else:
+                self._transpose_source_intact(source,dest,buf,layout_source,layout_dest)
+        else:
+            # if not reroute the transpose via intermediate steps
+            if (buf is None):
+                self._transposeRedirect(source,dest,source_name,dest_name)
+            else:
+                self._transposeRedirect_source_intact(source,dest,buf,source_name,dest_name)
+        self._current_manager = self._managers[self._handlers[dest_name]]
+    
+    def _transpose(self, source, dest, layout_source: Layout, layout_dest: Layout):
+        # Find the distribution patterns
+        source_nprocs = layout_source.nprocs
+        source_ndims = self._nprocs[self._handlers[layout_source.name]]
+        dest_nprocs = layout_dest.nprocs
+        dest_ndims = self._nprocs[self._handlers[layout_dest.name]]
+        
+        # Find the differences between the two distribution patterns
+        proc_diff = np.equal(source_ndims,dest_ndims)
+        
+        if (proc_diff.all()):
+            # If the processes are distributed in the same way then
+            # there is nothing to do
+            dest[:]=source
+            return
+        
+        # Find the index along which the data is to be distributed or rejoined
+        idx = list(proc_diff).index(False)
+                
+        if (dest_ndims>source_ndims):
+            # If the source has fewer dimensions then the layout was not
+            # distributed and all necessary information is already on the thread
+            sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
+            destView   = np.split(dest  ,[  layout_dest.size])[0].reshape(  layout_dest.shape)
             
-            # Add connected nodes that have not yet been considered to list of nodes to check
-            for name in DirectConnections[currentNode]:
-                if (name in remainingNodes):
-                    nodesToVisit.append(name)
-                    remainingNodes.remove(name)
+            # Get the information about the position in the communicators
+            comm = self._managers[self._handlers[layout_dest.name]].communicators[idx]
+            rank = comm.Get_rank()
             
-            # Find a path to each node that has already been considered
-            for aim in visitedNodes:
-                if (aim in DirectConnections[currentNode]):
-                    # If the node is directly connected then save the path
-                    self._route_map[currentNode][aim].append(aim)
-                    self._route_map[aim][currentNode].append(currentNode)
-                else:
-                    # If the node is not directly connected, find the connected
-                    # node which has the shortest path to the node for which we
-                    # are aiming
-                    viaList = []
-                    winningVia = None
-                    shortestLength = len(DirectConnections)
-                    for via in DirectConnections[currentNode]:
-                        if (not via in visitedNodes):
-                            continue
-                        elif(len(self._route_map[via][aim])<shortestLength):
-                            viaList = self._route_map[via][aim]
-                            winningVia = via
-                    # Save the path via this node
-                    self._route_map[currentNode][aim].append(winningVia)
-                    self._route_map[currentNode][aim].extend(viaList)
-                    self._route_map[aim][currentNode].extend(self._route_map[aim][winningVia])
-                    self._route_map[aim][currentNode].append(currentNode)
-            # Remember that this node has now been visited
-            visitedNodes.append(currentNode)
+            # Find the start and end of the data
+            start = layout_dest.mpi_starts(idx)[rank]
+            length = layout_dest.mpi_lengths(idx)[rank]
+            
+            # Copy the relevant information
+            destView[:layout_dest.size]=sourceView.take(range(start,start+length),axis=idx)
+        else:
+            # Get the information about the communicators
+            comm = self._managers[self._handlers[layout_source.name]].communicators[idx]
+            mpi_size = comm.Get_size()
+            
+            # Find the size of the block to be distributed
+            blockShape = list(layout_source.shape)
+            blockShape[idx] = layout_source.max_block_shape[idx]
+            blockSize = np.prod(blockShape)
+            
+            # Get a view on the block
+            sourceView = np.split(source,[blockSize])[0]
+            
+            # Gather the data from the blocks on the processes
+            destView = np.split(dest,[blockSize*mpi_size])[0]
+            comm.Allgather(( sourceView , MPI.DOUBLE ),
+                           ( destView   , MPI.DOUBLE ) )
+            
+            # Get a view on the received blocks
+            blocks = np.split(dest,blockSize*np.arange(1,mpi_size+1))
+            # Get a view on the result
+            destView = np.split(source,[layout_dest.size])[0].reshape(layout_dest.shape)
+            
+            # Use slices to access the relevant data
+            slices = [slice(x) for x in layout_source.shape]
+            
+            for i,b in enumerate(blocks[:-1]):
+                # Find the original block shape
+                blockShape=list(layout_source.shape)
+                blockShape[idx]=layout_source.mpi_lengths(idx)[i]
+                blockSize=np.prod(blockShape)
+                
+                # Find the relevant data
+                slices[idx] = slice(layout_source.mpi_starts(idx)[i],
+                                    layout_source.mpi_starts(idx)[i]+layout_source.mpi_lengths(idx)[i])
+                
+                block = np.split(b,[blockSize])[0].reshape(blockShape)
+                
+                # Copy the block into the correct part of the memory
+                destView[slices]=block
+            
+            # The data now resides on the wrong memory chunk and must be copied
+            dest[:]=source[:]
+            
+    def _transpose_source_intact(self, source, dest, buf, layout_source: Layout, layout_dest: Layout):
+        # Find the distribution patterns
+        source_nprocs = layout_source.nprocs
+        source_ndims = self._nprocs[self._handlers[layout_source.name]]
+        dest_nprocs = layout_dest.nprocs
+        dest_ndims = self._nprocs[self._handlers[layout_dest.name]]
         
-        # Return unconnected nodes
-        return remainingNodes
+        # Find the differences between the two distribution patterns
+        proc_diff = np.equal(source_ndims,dest_ndims)
+        
+        if (proc_diff.all()):
+            # If the processes are distributed in the same way then
+            # there is nothing to do
+            dest[:]=source
+            return
+        
+        # Find the index along which the data is to be distributed or rejoined
+        idx = list(proc_diff).index(False)
+        
+        if (dest_ndims>source_ndims):
+            # If the source has fewer dimensions then the layout was not
+            # distributed and all necessary information is already on the thread
+            sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
+            destView   = np.split(dest  ,[  layout_dest.size])[0].reshape(  layout_dest.shape)
+            
+            # Get the information about the position in the communicators
+            comm = self._managers[self._handlers[layout_dest.name]].communicators[idx]
+            rank = comm.Get_rank()
+            
+            # Find the start and end of the data
+            start = layout_dest.mpi_starts(idx)[rank]
+            length = layout_dest.mpi_lengths(idx)[rank]
+            
+            # Copy the relevant information
+            destView[:layout_dest.size]=sourceView.take(range(start,start+length),axis=idx)
+        else:
+            # Get the information about the communicators
+            comm = self._managers[self._handlers[layout_source.name]].communicators[idx]
+            mpi_size = comm.Get_size()
+            
+            # Find the size of the block to be distributed
+            blockShape = list(layout_source.shape)
+            blockShape[idx] = layout_source.max_block_shape[idx]
+            blockSize = np.prod(blockShape)
+            
+            # Get a view on the block
+            sourceView = np.split(source,[blockSize])[0]
+            
+            # Gather the data from the blocks on the processes
+            bufView = np.split(buf,[blockSize*mpi_size])[0]
+            comm.Allgather(( sourceView , MPI.DOUBLE ),
+                           ( bufView    , MPI.DOUBLE ) )
+            
+            # Get a view on the received blocks
+            blocks = np.split(buf,blockSize*np.arange(1,mpi_size+1))
+            # Get a view on the result
+            destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
+            
+            # Use slices to access the relevant data
+            slices = [slice(x) for x in layout_source.shape]
+            
+            for i,b in enumerate(blocks[:-1]):
+                # Find the original block shape
+                blockShape=list(layout_source.shape)
+                blockShape[idx]=layout_source.mpi_lengths(idx)[i]
+                blockSize=np.prod(blockShape)
+                
+                # Find the relevant data
+                slices[idx] = slice(layout_source.mpi_starts(idx)[i],
+                                    layout_source.mpi_starts(idx)[i]+layout_source.mpi_lengths(idx)[i])
+                
+                block = np.split(b,[blockSize])[0].reshape(blockShape)
+                
+                # Copy the block into the correct part of the memory
+                destView[slices]=block
+        
+    def _transposeRedirect(self,source,dest,source_name,dest_name):
+        """
+        Function for changing layout via multiple steps leaving the
+        source layout intact.
+        """
+        
+        # Get route from one layout to another
+        steps = self._route_map[source_name][dest_name]
+        nSteps = len(steps)
+        
+        # warn about multiple steps
+        warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
+                .format(source_name,dest_name,nSteps))
+        
+        # carry out the steps one by one
+        nowLayoutKey=source_name
+        
+        fromBuf = source
+        toBuf = dest
+        
+        for i in range(nSteps):
+            nextLayoutKey=steps[i]
+            self.transpose(fromBuf,toBuf,nowLayoutKey,nextLayoutKey)
+            nowLayoutKey=nextLayoutKey
+            fromBuf, toBuf = toBuf, fromBuf
+        
+        # Ensure the result is found in the expected place
+        if  (nSteps%2==0):
+            dest[:]=source
+    
+    def _transposeRedirect_source_intact(self,source,dest,buf,source_name,dest_name):
+        """
+        Function for changing layout via multiple steps.
+        """
+        # Get route from one layout to another
+        steps = self._route_map[source_name][dest_name]
+        nSteps = len(steps)
+        
+        # warn about multiple steps
+        warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
+                .format(source_name,dest_name,nSteps))
+        
+        # take the first step to move the data
+        nowLayoutKey=steps[0]
+        
+        # The first step needs to place the data in such a way that the
+        # final result will be stored in the destination
+        if (nSteps%2==0):
+            self.transpose(source,buf,source_name,nowLayoutKey,dest)
+            fromBuf = buf
+            toBuf   = dest
+        else:
+            self.transpose(source,dest,source_name,nowLayoutKey,buf)
+            fromBuf = dest
+            toBuf   = buf
+        
+        # take the remaining steps
+        for i in range(1,nSteps):
+            nextLayoutKey=steps[i]
+            
+            self.transpose(fromBuf,toBuf,nowLayoutKey,nextLayoutKey)
+            
+            nowLayoutKey=nextLayoutKey
+            fromBuf, toBuf = toBuf, fromBuf
+    

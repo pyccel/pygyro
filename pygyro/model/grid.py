@@ -117,4 +117,3 @@ class Grid(object):
         """ Return requested layout
         """
         return self._layout_manager.getLayout(name)
-    

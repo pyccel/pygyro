@@ -3,7 +3,7 @@ from math import pi
 import numpy as np
 
 from ..                     import splines as spl
-from ..model.layout         import LayoutManager
+from ..model.layout         import getLayoutHandler
 from ..model.grid           import Grid
 from ..model.process_grid   import compute_2d_process_grid
 from .initialiser           import initialise_flux_surface, initialise_poloidal, initialise_v_parallel
@@ -87,9 +87,9 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
 
     # Create layout manager
     if (plotThread and rank==drawRank):
-        remapper = LayoutManager( layout_comm, layouts, nprocs, [[],[],[],[]] )
+        remapper = getLayoutHandler( layout_comm, layouts, nprocs, [[],[],[],[]] )
     else:
-        remapper = LayoutManager( layout_comm, layouts, nprocs, eta_grids )
+        remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
     # Create grid
     grid = Grid(eta_grids,bsplines,remapper,layout,comm)

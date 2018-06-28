@@ -4,8 +4,8 @@ import pytest
 from math import pi
 
 from .grid          import Grid
-from .layout        import LayoutManager
-from .process_grid  import compute_2d_process_grid
+from .layout        import getLayoutHandler, LayoutSwapper
+from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from_max
 
 def define_f(grid):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
@@ -18,6 +18,16 @@ def define_f(grid):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
                     Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
 
+def define_phi(grid):
+    [nEta1,nEta2,nEta3] = grid.nGlobalCoords
+    
+    for i,x in grid.getCoords(0):
+        for j,y in grid.getCoords(1):
+            Slice = grid.get1DSlice([i,j])
+            for k,z in enumerate(Slice):
+                [I,J,K] = grid.getGlobalIndices([i,j,k])
+                Slice[k] = I*nEta3*nEta2+J*nEta3+K
+
 def compare_f(grid):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
     
@@ -28,6 +38,16 @@ def compare_f(grid):
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
                     assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L)
+
+def compare_phi(grid):
+    [nEta1,nEta2,nEta3] = grid.nGlobalCoords
+    
+    for i,x in grid.getCoords(0):
+        for j,y in grid.getCoords(1):
+            Slice = grid.get1DSlice([i,j])
+            for k,a in enumerate(Slice):
+                [I,J,K] = grid.getGlobalIndices([i,j,k])
+                assert(a == I*nEta3*nEta2+J*nEta3+K)
 
 @pytest.mark.serial
 def test_Grid_serial():
@@ -42,7 +62,7 @@ def test_Grid_serial():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,[],manager,'flux_surface')
 
@@ -59,7 +79,7 @@ def test_Grid_parallel():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,[],manager,'flux_surface')
 
@@ -78,7 +98,7 @@ def test_CoordinateSave():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grid )
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grid )
     
     grid = Grid(eta_grid,[],manager,'flux_surface')
     
@@ -101,7 +121,7 @@ def test_LayoutSwap():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    remapper = LayoutManager( comm, layouts, nprocs, eta_grids )
+    remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
@@ -128,7 +148,7 @@ def test_Contiguous():
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
-    manager = LayoutManager( comm, layouts, nprocs, eta_grids )
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     grid = Grid(eta_grids,[],manager,'flux_surface')
     
@@ -154,3 +174,38 @@ def test_Contiguous():
     
     assert(grid.get2DSlice([0,0]).flags['C_CONTIGUOUS'])
     assert(grid.get1DSlice([0,0,0]).flags['C_CONTIGUOUS'])
+
+@pytest.mark.parallel
+def test_PhiLayoutSwap():
+    comm = MPI.COMM_WORLD
+    npts = [40,20,40]
+    
+    n1 = min(npts[0],npts[2])
+    n2 = min(npts[0],npts[1])
+    nprocs = compute_2d_process_grid_from_max( n1 , n2 , comm.Get_size() )
+    
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2])]
+    
+    layout_poisson = {'mode_find' : [2,0,1],
+                      'mode_solve': [2,1,0]}
+    layout_advection = {'dphi'    : [0,1,2],
+                        'poloidal': [2,1,0]}
+    
+    nproc = max(nprocs)
+    if (nproc>n1):
+        nproc=min(nprocs)
+    
+    remapper = LayoutSwapper( comm, [layout_poisson, layout_advection], [nprocs,nproc], eta_grids, 'mode_find' )
+    
+    fsLayout = remapper.getLayout('mode_find')
+    vLayout = remapper.getLayout('poloidal')
+    
+    phi = Grid(eta_grids,[],remapper,'mode_find')
+    
+    define_phi(phi)
+    
+    phi.setLayout('poloidal')
+    
+    compare_phi(phi)
