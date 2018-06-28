@@ -7,7 +7,9 @@ from .layout            import LayoutManager
 
 class Grid(object):
     def __init__( self, eta_grid: list, bsplines: list, layouts: LayoutManager,
-                    chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD):
+                    chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD, **kwargs):
+        dtype = kwargs.pop('dtype',float)
+        
         # get MPI values
         self.global_comm = comm
         self.rank = comm.Get_rank()
@@ -17,8 +19,8 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        self._my_data = [np.empty(self._layout_manager.bufferSize),
-                         np.empty(self._layout_manager.bufferSize)]
+        self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                         np.empty(self._layout_manager.bufferSize,dtype=dtype)]
         self._dataIdx = 0
         self._buffIdx = 1
         
