@@ -287,8 +287,11 @@ class LayoutManager(ABC):
 
 def getLayoutHandler(comm: MPI.Comm, layouts : dict, nprocs: list, eta_grids: list):
     """
-    getLayoutHandler: Class containing information about the different layouts
-    available. It handles conversion from one layout to another
+    getLayoutHandler: Create a LayoutHandler object with the described
+    layouts spread over the designated number of processes.
+    
+    This function handles the creation of the sub-communicators which
+    are taken as an argument for the creation of a LayoutHandler.
 
     Parameters
     ----------
@@ -309,6 +312,10 @@ def getLayoutHandler(comm: MPI.Comm, layouts : dict, nprocs: list, eta_grids: li
 
     eta_grids : list of array_like
         The coordinates of the grid points in each dimension
+
+    Returns
+    -------
+    An instance of the LayoutHandler class
 
     """
     nDims=len(nprocs)
