@@ -8,6 +8,7 @@ from ..model.grid               import Grid
 from ..initialisation.setups    import setupCylindricalGrid
 from .poisson_solver            import PoissonSolver, DensityFinder
 
+@pytest.mark.parallel
 def test_PoissonSolver():
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
