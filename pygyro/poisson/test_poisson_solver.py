@@ -34,17 +34,24 @@ def test_PoissonSolver():
     
     remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], eta_grids, 'v_parallel' )
     
-    rho = Grid(eta_grids,[],remapper,'v_parallel',comm,dtype=np.complex128)
-    phi = Grid(eta_grids,[],remapper,'v_parallel',comm,dtype=np.complex128)
-    
     grid = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel')
+    
+    rho = Grid(eta_grids,grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
+    phi = Grid(eta_grids,grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     
     df = DensityFinder(3,grid)
     
     df.getRho(grid,rho)
     
-    psolver = PoissonSolver(eta_grids)
+    psolver = PoissonSolver(eta_grids,3,6,rho.getSpline(0))
     
     psolver.getModes(phi,rho)
     
     phi.setLayout('mode_solve')
+    rho.setLayout('mode_solve')
+    
+    psolver.solveEquation(6,phi,rho)
+    
+    phi.setLayout('v_parallel')
+    
+    psolver.findPotential(phi)
