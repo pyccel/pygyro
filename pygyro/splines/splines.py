@@ -181,10 +181,10 @@ class BSplines():
 #===============================================================================
 class Spline1D():
 
-    def __init__( self, basis ):
+    def __init__( self, basis, dtype = float ):
         assert isinstance( basis, BSplines )
         self._basis  = basis
-        self._coeffs = np.zeros( basis.ncells + basis.degree )
+        self._coeffs = np.zeros( basis.ncells + basis.degree, dtype=dtype )
 
     @property
     def basis( self ):
