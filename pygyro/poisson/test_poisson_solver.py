@@ -19,8 +19,6 @@ def test_PoissonSolver():
     n1 = min(npts[0],npts[1])
     n2 = 2
     
-    eta_grids = [np.linspace( 0,10, num=num ) for num in npts ]
-    
     nprocs = compute_2d_process_grid( nptsGrid , mpi_size )
     
     # Create dictionary describing layouts
@@ -32,18 +30,18 @@ def test_PoissonSolver():
     
     nproc = nprocs[0]
     
-    remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], eta_grids, 'v_parallel' )
-    
     grid = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel')
     
-    rho = Grid(eta_grids,grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
-    phi = Grid(eta_grids,grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
+    remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], grid.eta_grid[:3], 'v_parallel' )
+    
+    rho = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
+    phi = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     
     df = DensityFinder(3,grid)
     
     df.getRho(grid,rho)
     
-    psolver = PoissonSolver(eta_grids,6,rho.getSpline(0))
+    psolver = PoissonSolver(grid.eta_grid,6,rho.getSpline(0))
     
     psolver.getModes(phi,rho)
     
