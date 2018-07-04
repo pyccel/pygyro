@@ -6,8 +6,6 @@ from scipy.sparse.linalg            import spsolve
 import numpy                        as np
 from numpy.polynomial.legendre      import leggauss
 
-import matplotlib.pyplot        as plt
-
 from ..model.grid                   import Grid
 from ..initialisation               import constants
 from ..initialisation.initialiser   import fEq, Te, n0
