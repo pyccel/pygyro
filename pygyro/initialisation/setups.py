@@ -1,6 +1,7 @@
 from mpi4py import MPI
 from math import pi
 import numpy as np
+import warnings
 
 from ..                     import splines as spl
 from ..model.layout         import getLayoutHandler
@@ -34,6 +35,8 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     zDegree     -- degree of splines in the axial direction. (default 3)
     vDegree     -- degree of splines in the v parallel direction. (default 3)
     
+    eps         -- perturbation size
+    
     comm        -- MPI communicator. (default MPI.COMM_WORLD)
     plotThread  -- whether there is a thread to be used only for plotting (default False)
     drawRank    -- Thread to be used for plotting (default 0)
@@ -57,6 +60,9 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
+    
+    for name,value in kwargs.items():
+        warnings.warn("{0} is not a recognised parameter for setupCylindricalGrid".format(name))
     
     rank=comm.Get_rank()
     
