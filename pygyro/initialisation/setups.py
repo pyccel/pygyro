@@ -42,6 +42,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     """
     rMin=kwargs.pop('rMin',constants.rMin)
     rMax=kwargs.pop('rMax',constants.rMax)
+    constants.rp = 0.5*(rMin + rMax)
     zMin=kwargs.pop('zMin',constants.zMin)
     zMax=kwargs.pop('zMax',constants.zMax)
     vMax=kwargs.pop('vMax',constants.vMax)
