@@ -1,10 +1,12 @@
 from scipy.integrate                import fixed_quad, quadrature   # fixed_quad = fixed order
                                                                     # quadrature = fixed tolerance
 from scipy.fftpack                  import fft,ifft
-from scipy.sparse                   import coo_matrix
+import scipy.sparse                 as sparse
 from scipy.sparse.linalg            import spsolve
 import numpy                        as np
 from numpy.polynomial.legendre      import leggauss
+
+import matplotlib.pyplot        as plt
 
 from ..model.grid                   import Grid
 from ..initialisation               import constants
@@ -19,8 +21,8 @@ class DensityFinder:
         bspline = grid.getSpline(3)
         breaks = bspline.breaks
         starts = (breaks[:-1]+breaks[1:])/2
-        mult = (breaks[1]-breaks[0])/2
-        self._points = np.repeat(starts,n) + np.tile(mult*points,len(starts))
+        self._multFact = (breaks[1]-breaks[0])/2
+        self._points = np.repeat(starts,n) + np.tile(self._multFact*points,len(starts))
         self._weights = np.tile(points,len(starts))
         self._interpolator = SplineInterpolator1D(grid.getSpline(3))
         self._spline = Spline1D(grid.getSpline(3))
@@ -34,56 +36,149 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    rho_qv[k] = np.sum(self._weights*(self._spline.eval(self._points)-fEq(r,self._points)))
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-fEq(r,self._points)))
                 rho_qv/=n0(r)
     
 class PoissonSolver:
-    def __init__( self, eta_grid: list, spline_degree: int, gauss_degree: int, rspline: BSplines):
-        n=gauss_degree//2+1
+    def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
+                  lBoundary: str = 'dirichlet', rBoundary: str = 'dirichlet'):
+        n=degree//2+1
         points,self._weights = leggauss(n)
-        r = eta_grid[0]
-        starts = (r[:-1]+r[1:])/2
-        mults = (r[1:]-r[:-1])/2
-        self._points = [start + mult*points for start,mult in zip(starts,mults)]
-        self._spline_degree = spline_degree
         
-        self._nBasis = spline_degree+1
+        nDiags = rspline.degree + 1
         
-        self._coeff1 = np.empty((self._nBasis,self._nBasis))
-        x = np.linspace(starts[0],starts[1],self._nBasis)
-        dx = x-x[:,None]
-        factor = np.prod(dx+np.eye(self._nBasis),axis=1)
-        poly = [np.poly1d(list(x).pop(i),True)/factor[i] for i in range(self._nBasis)]
+        nPts = eta_grid[0].size
         
-        evalPts = ((x[-1]-x[0])*points+x[0]+x[-1])*0.5
-        self._coeff2 = np.empty((self._nBasis,self._nBasis))
+        multFactor = (rspline.breaks[1]-rspline.breaks[0])*0.5
+        startPoints = (rspline.breaks[1:]+rspline.breaks[:-1])*0.5
+        self._evalPts = startPoints[:,None]+points[None,:]*multFactor
         
-        self._phi = np.empty((self._nBasis,len(evalPts)))
-        
-        for i in range(0,self._nBasis):
-            self._phi[i,:] = poly[i](evalPts)
-            for j in range(0,self._nBasis):
-                psi = self._phi[i,:]
-                dPsi = poly[i].deriv(1)(evalPts)
-                phi = poly[j](evalPts)
-                dPhi = poly[j].deriv(1)(evalPts)
+        if (rspline.nbasis > 4*rspline.degree):
+            massCoeffs = np.zeros((2*rspline.degree+1,))
+            dPhidPsiCoeffs = np.zeros((2*rspline.degree+1,))
+            dPhiPsiCoeffs = np.zeros((2*rspline.degree+1,))
+            
+            refSpline = rspline[2*rspline.degree]
+            start = rspline.degree
+            end = 2*rspline.degree+1
+            
+            vals = refSpline.eval(self._evalPts[start:end].flatten())
+            derivs = refSpline.eval(self._evalPts[start:end].flatten(),1)
+            nPts = n*(rspline.degree+1)
+            
+            massCoeffs[rspline.degree] = np.sum( np.tile(self._weights,rspline.degree+1) * \
+                                                 multFactor * vals**2 )
+            
+            dPhidPsiCoeffs[rspline.degree] = np.sum( np.tile(self._weights,rspline.degree+1) * \
+                                                 multFactor * derivs**2 )
+            
+            dPhiPsiCoeffs[rspline.degree] = np.sum( np.tile(self._weights,rspline.degree+1) * \
+                                                 multFactor * derivs * vals )
+            
+            for i in range(1,rspline.degree+1):
+                start_i = start + i
+                end_i   = end + i
                 
-                self._coeff1[i,j] = -np.sum((dPsi*dPhi + \
-                                             ( 1/evalPts - constants.kN0 + \
-                                              constants.kN0*np.tanh((evalPts-constants.rp)/constants.deltaRN0)**2 ) * \
-                                             psi*dPhi - \
-                                             psi*phi/Te(evalPts))*self._weights )
+                diff=i*n
                 
-                self._coeff2[i,j] = np.sum( psi*phi/(evalPts**2)*self._weights )
-        self._nCell = len(eta_grid[0])-1
+                massCoeffs[rspline.degree+i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
+                        vals[:nPts-diff] * vals[diff:] )
+                dPhidPsiCoeffs[rspline.degree+i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
+                        derivs[:nPts-diff] * derivs[diff:] )
+                dPhiPsiCoeffs[rspline.degree+i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
+                        vals[diff:] * derivs[:nPts-diff] )
+                dPhiPsiCoeffs[rspline.degree-i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
+                        vals[:nPts-diff] * derivs[diff:] )
+                
+                massCoeffs[rspline.degree-i]=massCoeffs[rspline.degree+i]
+                dPhidPsiCoeffs[rspline.degree-i]=dPhidPsiCoeffs[rspline.degree+i]
+            
+            self._massMatrix = sparse.diags(massCoeffs,range(-rspline.degree,rspline.degree+1),
+                                         (rspline.nbasis,rspline.nbasis),'lil')
+            self._dPhidPsi = sparse.diags(dPhidPsiCoeffs,range(-rspline.degree,rspline.degree+1),
+                                         (rspline.nbasis,rspline.nbasis),'lil')
+            self._dPhiPsi = sparse.diags(dPhiPsiCoeffs,range(-rspline.degree,rspline.degree+1),
+                                         (rspline.nbasis,rspline.nbasis),'lil')
+            maxEnd = rspline.nbasis-1
+            
+            for i in range(rspline.degree+1):
+                spline = rspline[i]
+                
+                for j in range(i,i+rspline.degree):
+                    self._massMatrix[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
+                            rspline[j].eval(self._evalPts[:j+1].flatten()) * \
+                                spline.eval(self._evalPts[:j+1].flatten()) )
+                    self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
+                            rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
+                                spline.eval(self._evalPts[:j+1].flatten(),1) )
+                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
+                            rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
+                                spline.eval(self._evalPts[:j+1].flatten()) )
+                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
+                            rspline[j].eval(self._evalPts[:j+1].flatten()) * \
+                                spline.eval(self._evalPts[:j+1].flatten(),1) )
+                    
+                    self._massMatrix[j,i]=self._massMatrix[i,j]
+                    self._massMatrix[maxEnd-i,maxEnd-j]=self._massMatrix[i,j]
+                    self._massMatrix[maxEnd-j,maxEnd-i]=self._massMatrix[i,j]
+                    
+                    self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
+                    self._dPhidPsi[maxEnd-i,maxEnd-j]=self._dPhidPsi[i,j]
+                    self._dPhidPsi[maxEnd-j,maxEnd-i]=self._dPhidPsi[i,j]
+                    
+                    self._dPhiPsi[maxEnd-i,maxEnd-j]=self._dPhiPsi[i,j]
+                    self._dPhiPsi[maxEnd-j,maxEnd-i]=self._dPhiPsi[i,j]
+            self._massMatrix=self._massMatrix.tocsr()
+            self._dPhidPsi=self._dPhidPsi.tocsr()
+            self._dPhidPsi=self._dPhidPsi.tocsr()
+        else:
+            maxEnd = len(rspline.breaks)-1
+            
+            self._massMatrix = np.zeros((rspline.nbasis,rspline.nbasis))
+            self._dPhidPsi = np.zeros((rspline.nbasis,rspline.nbasis))
+            self._dPhiPsi = np.zeros((rspline.nbasis,rspline.nbasis))
+            
+            for i in range(rspline.nbasis):
+                start_i = max(0,i-rspline.degree)
+                end_i = min(maxEnd,i+1)
+                spline = rspline[i]
+                
+                for j in range(i,rspline.nbasis):
+                    start_j = max(0,j-rspline.degree)
+                    if (start_j<end_i):
+                        end_j = min(maxEnd,j+1)
+                        start = max(start_i,start_j)
+                        end = min(end_i,end_j)
+                        self._massMatrix[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
+                                rspline[j].eval(self._evalPts[start:end].flatten()) * \
+                                    spline.eval(self._evalPts[start:end].flatten()) )
+                        
+                        self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
+                                rspline[j].eval(self._evalPts[start:end].flatten(),1) * \
+                                    spline.eval(self._evalPts[start:end].flatten(),1) )
+                        
+                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
+                                rspline[j].eval(self._evalPts[start:end].flatten(),1) * \
+                                    spline.eval(self._evalPts[start:end].flatten()) )
+                        self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,end-start) * multFactor * \
+                                rspline[j].eval(self._evalPts[start:end].flatten()) * \
+                                    spline.eval(self._evalPts[start:end].flatten(),1) )
+                        
+                        self._massMatrix[j,i]=self._massMatrix[i,j]
+                        self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
+            self._massMatrix = sparse.csr_matrix(self._massMatrix)
+            self._dPhidPsi = sparse.csr_matrix(self._dPhidPsi)
+            self._dPhiPsi = sparse.csr_matrix(self._dPhiPsi)
         
-        self._iCoords = [k//self._nBasis + l*spline_degree for l in range(self._nCell) \
-                                                           for k in range(self._nBasis*self._nBasis)]
-        self._jCoords = [k%self._nBasis + l*spline_degree for l in range(self._nCell) \
-                                                          for k in range(self._nBasis*self._nBasis)]
+        self._stiffnessMatrix = sparse.csr_matrix(-self._dPhidPsi \
+                                -np.diag( 1/eta_grid[0] - constants.kN0* (1 + \
+                                  np.tanh( (eta_grid[0] - constants.rp ) / constants.deltaRN0 )**2) ) \
+                                @ self._dPhiPsi \
+                                + np.diag(1/Te(eta_grid[0])) @ self._massMatrix)
+        self._stiffnessM = sparse.csr_matrix(np.diag(1/eta_grid[0]**2) @ self._massMatrix)
         self._interpolator = SplineInterpolator1D(rspline)
         self._spline = Spline1D(rspline,np.complex128)
-        self._nPts = self._nCell*(self._nBasis-1)+1
+        self._real_spline = Spline1D(rspline)
     
     def getModes( self, phi: Grid, rho: Grid ):
         assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
@@ -98,18 +193,17 @@ class PoissonSolver:
                 vec[:]=mode
     
     def solveEquation( self, m: int, phi: Grid, rho: Grid ):
-        allVals = np.tile((self._coeff1+self._coeff2 * m*m).flatten(),self._nCell)
-        
-        A = coo_matrix((allVals,(self._iCoords,self._jCoords))).tocsr()
-        b = np.empty(self._nPts)
+        stiffnessMatrix = self._stiffnessMatrix + m*m*self._stiffnessM
         
         for i,q in rho.getCoords(0):
             for j,z in rho.getCoords(1):
                 self._interpolator.compute_interpolant(rho.get1DSlice([i,j]),self._spline)
-                for k in range(self._nCell):
-                    for l in range(self._nBasis):
-                        b[k] = np.sum(self._spline.eval(self._points[k])*self._phi[l,:]*self._weights)
-                phi.get1DSlice([i,j])[:] = spsolve(A,b)[::self._spline_degree]
+                coeffs = spsolve(stiffnessMatrix,self._massMatrix*self._spline.coeffs)
+                self._real_spline.coeffs[:] = np.real(coeffs)
+                reals = self._real_spline.eval(rho.getCoordVals(2))
+                self._real_spline.coeffs[:] = np.imag(coeffs)
+                imags = self._real_spline.eval(rho.getCoordVals(2))
+                phi.get1DSlice([i,j])[:] = reals+1j*imags
     
     def findPotential( self, phi: Grid ):
         assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
