@@ -43,7 +43,7 @@ def test_PoissonSolver():
     
     df.getRho(grid,rho)
     
-    psolver = PoissonSolver(eta_grids,3,6,rho.getSpline(0))
+    psolver = PoissonSolver(eta_grids,6,rho.getSpline(0))
     
     psolver.getModes(phi,rho)
     
