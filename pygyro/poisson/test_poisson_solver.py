@@ -37,7 +37,7 @@ def test_PoissonSolver():
     rho = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     phi = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     
-    df = DensityFinder(3,grid)
+    df = DensityFinder(3,grid.getSpline(3))
     
     df.getRho(grid,rho)
     
