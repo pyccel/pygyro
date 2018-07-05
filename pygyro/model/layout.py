@@ -340,7 +340,7 @@ class LayoutHandler(LayoutManager):
         self.nLayouts=len(self._layouts)
         
         # Initialise the buffer size before the loop
-        self._buffer_size = 0
+        self._buffer_size = layoutObjects[0][1].size
         
         # Calculate direct layout connections
         myMap = []
