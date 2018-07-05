@@ -43,12 +43,12 @@ def test_PoissonSolver():
     
     psolver = PoissonSolver(grid.eta_grid,6,rho.getSpline(0))
     
-    psolver.getModes(phi,rho)
+    psolver.getModes(rho)
     
     phi.setLayout('mode_solve')
     rho.setLayout('mode_solve')
     
-    psolver.solveEquation(6,phi,rho)
+    psolver.solveEquation(phi,rho)
     
     phi.setLayout('v_parallel')
     
