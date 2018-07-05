@@ -328,37 +328,37 @@ class PoissonSolver:
             self._dPhidPsi = np.zeros((self._nUnknowns,self._nUnknowns))
             self._dPhiPsi = np.zeros((self._nUnknowns,self._nUnknowns))
             
-            for i in range(rspline.nbasis):
+            for i,s_i in enumerate(range(start_range,end_range)):
                 # For each spline, find the spline and its domain
-                spline = rspline[i]
-                start_i = max(0,i-rspline.degree)
-                end_i = min(maxEnd,i+1)
+                spline = rspline[s_i]
+                start_i = max(0,s_i-rspline.degree)
+                end_i = min(maxEnd,s_i+1)
                 
-                for j in range(i,rspline.nbasis):
+                for j,s_j in enumerate(range(s_i,end_range),i):
                     # Verify if it overlaps with any other splines
-                    start_j = max(0,j-rspline.degree)
+                    start_j = max(0,s_j-rspline.degree)
                     
                     if (start_j<end_i):
                         # For overlapping splines find the domain of the overlap
-                        end_j = min(maxEnd,j+1)
+                        end_j = min(maxEnd,s_j+1)
                         start = max(start_i,start_j)
                         end = min(end_i,end_j)
                         
                         # Find the integral of the multiplication of these splines and
                         # save the value in the appropriate place in the matrix
                         self._massMatrix[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[j].eval(self._evalPts[start:end].flatten()) * \
+                                rspline[s_j].eval(self._evalPts[start:end].flatten()) * \
                                     spline.eval(self._evalPts[start:end].flatten()) )
                         
                         self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[j].eval(self._evalPts[start:end].flatten(),1) * \
+                                rspline[s_j].eval(self._evalPts[start:end].flatten(),1) * \
                                     spline.eval(self._evalPts[start:end].flatten(),1) )
                         
                         self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[j].eval(self._evalPts[start:end].flatten(),1) * \
+                                rspline[s_j].eval(self._evalPts[start:end].flatten(),1) * \
                                     spline.eval(self._evalPts[start:end].flatten()) )
                         self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[j].eval(self._evalPts[start:end].flatten()) * \
+                                rspline[s_j].eval(self._evalPts[start:end].flatten()) * \
                                     spline.eval(self._evalPts[start:end].flatten(),1) )
                         
                         # Save the symmetric values
