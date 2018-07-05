@@ -13,17 +13,31 @@ from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 
 class DensityFinder:
-    def __init__ ( self, degree: int, grid: Grid ):
+    """
+    DensityFinder: Class used to integrate the particle distribution
+    function along the v parallel direction in order to find the particle
+    density
+
+    Parameters
+    ----------
+    degree : int
+        The degree of the highest degree polynomial function which will
+        be exactly integrated
+
+    spline : BSplines
+        A spline along the v parallel direction
+
+    """
+    def __init__ ( self, degree: int, spline: BSplines ):
         n=degree//2+1
         points,weights = leggauss(n)
-        bspline = grid.getSpline(3)
-        breaks = bspline.breaks
+        breaks = spline.breaks
         starts = (breaks[:-1]+breaks[1:])/2
         self._multFact = (breaks[1]-breaks[0])/2
         self._points = np.repeat(starts,n) + np.tile(self._multFact*points,len(starts))
         self._weights = np.tile(points,len(starts))
-        self._interpolator = SplineInterpolator1D(grid.getSpline(3))
-        self._spline = Spline1D(grid.getSpline(3))
+        self._interpolator = SplineInterpolator1D(spline)
+        self._spline = Spline1D(spline)
     
     def getRho ( self, grid: Grid , rho: Grid ):
         assert(grid.currentLayout=="v_parallel")
@@ -39,7 +53,7 @@ class DensityFinder:
     
 class PoissonSolver:
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                  lBoundary: str = 'dirichlet', rBoundary: str = 'dirichlet'):
+                  lBoundary: str = 'dirichlet', rBoundary: str = 'dirichlet',*args,**kwargs):
         n=degree//2+1
         points,self._weights = leggauss(n)
         
@@ -66,6 +80,15 @@ class PoissonSolver:
         
         self._nUnknowns = end_range-start_range
         maxEnd = self._nUnknowns-1
+        
+        r = eta_grid[0][self._coeff_range]
+        
+        ddrFactor = kwargs.pop('ddrFactor',-1)
+        drFactor = kwargs.pop('drFactor',-( 1/r - constants.kN0 * \
+                                (1 + np.tanh( (r - constants.rp ) / \
+                                              constants.deltaRN0 )**2 ) ))
+        rFactor = kwargs.pop('rFactor',1/Te(r))
+        ddqFactor = kwargs.pop('ddThetaFactor',1/r**2)
         
         if (rspline.nbasis > 4*rspline.degree):
             massCoeffs = np.zeros((2*rspline.degree+1,))
@@ -226,14 +249,10 @@ class PoissonSolver:
             self._dPhidPsi = sparse.csr_matrix(self._dPhidPsi)
             self._dPhiPsi = sparse.csr_matrix(self._dPhiPsi)
         
-        r = eta_grid[0][self._coeff_range]
-        
-        self._stiffnessMatrix = sparse.csr_matrix(-self._dPhidPsi \
-                                -np.diag( 1/r - constants.kN0* (1 + \
-                                  np.tanh( (r - constants.rp ) / constants.deltaRN0 )**2) ) \
-                                @ self._dPhiPsi \
-                                + np.diag(1/Te(r)) @ self._massMatrix)
-        self._stiffnessM = sparse.csr_matrix(np.diag(1/r**2) @ self._massMatrix)
+        self._stiffnessMatrix = sparse.csr_matrix(self._dPhidPsi.multiply(ddrFactor) \
+                                + self._dPhiPsi.multiply(drFactor) \
+                                + self._massMatrix.multiply(rFactor))
+        self._stiffnessM = sparse.csr_matrix(self._massMatrix.multiply(ddqFactor))
         self._interpolator = SplineInterpolator1D(rspline)
         self._spline = Spline1D(rspline,np.complex128)
         self._real_spline = Spline1D(rspline)
