@@ -23,7 +23,7 @@ class ParallelGradient:
     spline : BSplines
         A spline along the theta direction
 
-    eta_grids : list of array_like
+    eta_grid : list of array_like
         The coordinates of the grid points in each dimension
 
     iota : function handle - optional
@@ -32,6 +32,7 @@ class ParallelGradient:
     
     order : int - optional
         The order of the finite differences scheme that is used
+        Default is 6
 
     """
     def __init__( self, spline: BSplines, eta_grid: list, iota = constants.iota, order: int = 6 ):
