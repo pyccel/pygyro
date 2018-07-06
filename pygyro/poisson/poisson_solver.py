@@ -160,9 +160,10 @@ class PoissonSolver:
         
         # Calculate the size of the matrices required
         self._nUnknowns = end_range-start_range
-        maxEnd = self._nUnknowns-1
         
         if (rspline.nbasis > 4*rspline.degree):
+            maxEnd = self._nUnknowns-1
+            
             # If there is a spline basis function which only overlaps with
             # other spline basis functions of the same shape (i.e. no border
             # spline basis functions) then the construction can be optimised
@@ -234,6 +235,7 @@ class PoissonSolver:
             # included if the associated boundary condition is a neumann
             # boundary condition
             start_range=1
+            start_enum=0
             if (lBoundary!=rBoundary):
                 # If only one boundary condition is neumann then the loop
                 # for that spline is carried out separately
@@ -241,7 +243,7 @@ class PoissonSolver:
                     i=0
                     spline = rspline[i]
                     
-                    for j in range(i,i+rspline.degree):
+                    for j in range(i,i+rspline.degree+1):
                         # Calculate the required values
                         self._massMatrix[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
                                 rspline[j].eval(self._evalPts[:j+1].flatten()) * \
@@ -259,51 +261,56 @@ class PoissonSolver:
                         # Save the symmetric values
                         self._massMatrix[j,i]=self._massMatrix[i,j]
                         self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
+                    start_enum=1
+                    maxEnd=maxEnd+1
                 else:
+                    idx_i=0
                     i=maxEnd
-                    spline = rspline[i]
+                    spline = rspline[idx_i]
                     
-                    for j in range(i,i+rspline.degree):
+                    for idx_j in range(idx_i,idx_i+rspline.degree+1):
+                        j=maxEnd-idx_j
                         # Calculate the required values
-                        self._massMatrix[i,maxEnd-j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten()) * \
-                                    spline.eval(self._evalPts[:j+1].flatten()) )
-                        self._dPhidPsi[i,maxEnd-j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
-                                    spline.eval(self._evalPts[:j+1].flatten(),1) )
-                        self._dPhiPsi[i,maxEnd-j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
-                                    spline.eval(self._evalPts[:j+1].flatten()) )
-                        self._dPhiPsi[i,maxEnd-j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten()) * \
-                                    spline.eval(self._evalPts[:j+1].flatten(),1) )
+                        self._massMatrix[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
+                                    spline.eval(self._evalPts[:idx_j+1].flatten()) )
+                        self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
+                                    spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
+                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
+                                    spline.eval(self._evalPts[:idx_j+1].flatten()) )
+                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
+                                    spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
                         
                         # Save the symmetric values
-                        self._massMatrix[maxEnd-j,i]=self._massMatrix[i,maxEnd-j]
-                        self._dPhidPsi[maxEnd-j,i]=self._dPhidPsi[i,maxEnd-j]
+                        self._massMatrix[j,i]=self._massMatrix[i,j]
+                        self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
+                    maxEnd=maxEnd-1
             elif (lBoundary=='neumann'):
                 # If both boundary conditions are neumann then the first
                 # and last basis spline can be handled in the same way
                 # as the other splines
                 start_range=0
             
-            for i in range(start_range,rspline.degree+1):
-                spline = rspline[i]
+            for i,idx_i in enumerate(range(start_range,rspline.degree+1+start_range),start_enum):
+                spline = rspline[idx_i]
                 
-                for j in range(i,i+rspline.degree):
+                for j,idx_j in enumerate(range(idx_i,idx_i+rspline.degree+1),i):
                     # Calculate the required values
-                    self._massMatrix[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                            rspline[j].eval(self._evalPts[:j+1].flatten()) * \
-                                spline.eval(self._evalPts[:j+1].flatten()) )
-                    self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                            rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
-                                spline.eval(self._evalPts[:j+1].flatten(),1) )
-                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                            rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
-                                spline.eval(self._evalPts[:j+1].flatten()) )
-                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                            rspline[j].eval(self._evalPts[:j+1].flatten()) * \
-                                spline.eval(self._evalPts[:j+1].flatten(),1) )
+                    self._massMatrix[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
+                                spline.eval(self._evalPts[:idx_j+1].flatten()) )
+                    self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
+                                spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
+                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
+                                spline.eval(self._evalPts[:idx_j+1].flatten()) )
+                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
+                                spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
                     
                     # Save the symmetric values
                     self._massMatrix[j,i]=self._massMatrix[i,j]
@@ -332,7 +339,7 @@ class PoissonSolver:
                 # For each spline, find the spline and its domain
                 spline = rspline[s_i]
                 start_i = max(0,s_i-rspline.degree)
-                end_i = min(maxEnd,s_i+1)
+                end_i = min(rspline.ncells,s_i+1)
                 
                 for j,s_j in enumerate(range(s_i,end_range),i):
                     # Verify if it overlaps with any other splines
@@ -340,7 +347,7 @@ class PoissonSolver:
                     
                     if (start_j<end_i):
                         # For overlapping splines find the domain of the overlap
-                        end_j = min(maxEnd,s_j+1)
+                        end_j = min(rspline.ncells,s_j+1)
                         start = max(start_i,start_j)
                         end = min(end_i,end_j)
                         
