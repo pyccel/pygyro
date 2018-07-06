@@ -57,7 +57,7 @@ def test_vParallelAdvection():
             else:
                 fEnd[i]=gaussLike(x[i]-c*dt*N)
         
-        l2[j][1]=np.linalg.norm((f-fEnd).flatten(),2)
+        l2[j][1]=np.sqrt(trapz((f-fEnd).flatten()**2,x))
         linf[j][1]=np.linalg.norm((f-fEnd).flatten(),np.inf)
     
     print(l2)
@@ -194,7 +194,8 @@ def test_poloidalAdvection_constantAdv():
     maginfOrder = np.floor(np.log10(linf[0]))
     print(str.format('{0:.2f}',l2[0]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
     print("}$ &       & $",str.format('{0:.2f}',linf[0]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
-    print("}$ &  \\")
+    print("}$ &  \\\\")
+    print("\\hline")
     for i in range(nconvpts-1):
         n=2**(i+6)
         mag2Order = np.floor(np.log10(l2[i+1]))
@@ -203,7 +204,8 @@ def test_poloidalAdvection_constantAdv():
         print(str.format('{0:.2f}',l2[i+1]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
         print("}$ & ",str.format('{0:.2f}',l2order[i])," & $",end=' ')
         print(str.format('{0:.2f}',linf[i+1]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
-        print("}$ & ",str.format('{0:.2f}',linforder[i])," \\ \\")
+        print("}$ & ",str.format('{0:.2f}',linforder[i])," \\\\")
+        print("\\hline")
 
 @pytest.mark.serial
 def test_poloidalAdvection_constantAdv_dt():
@@ -283,7 +285,8 @@ def test_poloidalAdvection_constantAdv_dt():
     maginfOrder = np.floor(np.log10(linf[0]))
     print(str.format('{0:.2f}',l2[0]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
     print("}$ &       & $",str.format('{0:.2f}',linf[0]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
-    print("}$ &  \\")
+    print("}$ &  \\\\")
+    print("\\hline")
     for i in range(nconvpts-1):
         n = 20*2**i
         dt = 0.05/2**i
@@ -293,7 +296,8 @@ def test_poloidalAdvection_constantAdv_dt():
         print(str.format('{0:.2f}',l2[i+1]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
         print("}$ & ",str.format('{0:.2f}',l2Order[i])," & $",end=' ')
         print(str.format('{0:.2f}',linf[i+1]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
-        print("}$ & ",str.format('{0:.2f}',linfOrder[i])," \\ \\")
+        print("}$ & ",str.format('{0:.2f}',linfOrder[i])," \\\\")
+        print("\\hline")
 
 def initConditionsFlux(theta,z):
     a=4
