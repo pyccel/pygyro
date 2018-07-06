@@ -1,12 +1,135 @@
-from mpi4py import MPI
-import numpy as np
+from mpi4py                 import MPI
+import numpy                as np
 import pytest
+from math                   import pi
+
+import matplotlib.pyplot    as plt
 
 from ..model.process_grid       import compute_2d_process_grid
-from ..model.layout             import LayoutSwapper
+from ..model.layout             import LayoutSwapper, getLayoutHandler
 from ..model.grid               import Grid
 from ..initialisation.setups    import setupCylindricalGrid
+from ..                         import splines as spl
 from .poisson_solver            import PoissonSolver, DensityFinder
+from ..splines.splines              import BSplines, Spline1D
+from ..splines.spline_interpolators import SplineInterpolator1D
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
+                                          (2,32,0.1),(3,9,0.03),(3,32,0.02),
+                                          (4,10,0.02),(4,40,0.02),(5,14,0.01),
+                                          (5,64,0.01)] )
+def test_BasicPoissonEquation_Dirichlet(deg,npt,eps):
+    npts = [npt,8,4]
+    domain = [[1,5],[0,2*pi],[0,1]]
+    degree = [deg,3,3]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],drFactor=0,rFactor=0,ddThetaFactor=0)
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    
+    r = eta_grid[0]
+    
+    for i,q in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:]=1
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = -0.5*r**2+0.5*(domain[0][0]+domain[0][1])*r-domain[0][0]*domain[0][1]*0.5
+    
+    ps.solveEquation(phi,rho)
+    
+    assert((np.abs(phi._f-phi_exact._f)<eps).all())
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "deg,npt,eps", [(1,4,1.2),(1,32,0.02),(2,6,0.4),
+                                          (2,32,0.006),(3,9,0.1),(3,32,0.004),
+                                          (4,10,0.06),(4,40,0.002),(5,14,0.02),
+                                          (5,64,0.0005)] )
+def test_BasicPoissonEquation_lNeumann(deg,npt,eps):
+    npts = [npt,8,4]
+    domain = [[1,9],[0,2*pi],[0,1]]
+    degree = [deg,2,2]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],lBoundary='neumann',drFactor=0,rFactor=0,ddThetaFactor=0)
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    
+    r = eta_grid[0]
+    
+    for i,q in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:]=1
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = -0.5*r**2+domain[0][0]*r+domain[0][1]**2*0.5-domain[0][0]*domain[0][1]
+    
+    ps.solveEquation(phi,rho)
+    
+    assert((np.abs(phi._f-phi_exact._f)<eps).all())
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "deg,npt,eps", [(1,4,1.2),(1,32,0.02),(2,6,0.4),
+                                          (2,32,0.006),(3,9,0.1),(3,32,0.004),
+                                          (4,10,0.06),(4,40,0.002),(5,14,0.02),
+                                          (5,64,0.0005)] )
+def test_BasicPoissonEquation_rNeumann(deg,npt,eps):
+    npts = [npt,8,4]
+    domain = [[1,9],[0,2*pi],[0,1]]
+    degree = [deg,2,2]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],rBoundary='neumann',drFactor=0,rFactor=0,ddThetaFactor=0)
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    
+    r = eta_grid[0]
+    
+    for i,q in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:]=1
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = -0.5*r**2+domain[0][1]*r+domain[0][0]**2*0.5-domain[0][0]*domain[0][1]
+    
+    ps.solveEquation(phi,rho)
+    
+    assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.parallel
 def test_PoissonSolver():
