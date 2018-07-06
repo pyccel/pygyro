@@ -3,8 +3,6 @@ import numpy                as np
 import pytest
 from math                   import pi
 
-import matplotlib.pyplot    as plt
-
 from ..model.process_grid       import compute_2d_process_grid
 from ..model.layout             import LayoutSwapper, getLayoutHandler
 from ..model.grid               import Grid
