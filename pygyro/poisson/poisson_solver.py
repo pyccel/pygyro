@@ -254,7 +254,7 @@ class PoissonSolver:
                         self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
                                 rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
                                     spline.eval(self._evalPts[:j+1].flatten()) )
-                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
+                        self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,j+1) * multFactor * \
                                 rspline[j].eval(self._evalPts[:j+1].flatten()) * \
                                     spline.eval(self._evalPts[:j+1].flatten(),1) )
                         
@@ -280,7 +280,7 @@ class PoissonSolver:
                         self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
                                 rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
                                     spline.eval(self._evalPts[:idx_j+1].flatten()) )
-                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                        self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
                                 rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
                                     spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
                         
@@ -308,7 +308,7 @@ class PoissonSolver:
                     self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
                             rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
                                 spline.eval(self._evalPts[:idx_j+1].flatten()) )
-                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
+                    self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
                             rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
                                 spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
                     
@@ -321,7 +321,7 @@ class PoissonSolver:
                     self._dPhidPsi[maxEnd-i,maxEnd-j]=self._dPhidPsi[i,j]
                     self._dPhidPsi[maxEnd-j,maxEnd-i]=self._dPhidPsi[i,j]
                     
-                    self._dPhiPsi[maxEnd-i,maxEnd-j]=self._dPhiPsi[i,j]
+                    self._dPhiPsi[maxEnd-i,maxEnd-j]=self._dPhiPsi[j,i]
                     self._dPhiPsi[maxEnd-j,maxEnd-i]=self._dPhiPsi[i,j]
             
             # Convert the matrices to diagonal storage for better
@@ -394,6 +394,9 @@ class PoissonSolver:
         self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(ddrFactor) \
                                 + self._dPhiPsi.multiply(drFactor) \
                                 + self._massMatrix.multiply(rFactor))
+        
+        assert(np.linalg.cond(self._stiffnessMatrix.todense())<1e10)
+        
         # The part of the stiffness matrix relating to the double derivative
         # with respect to theta must be constructed separately as it will
         # be multiplied by the different modes
@@ -415,6 +418,7 @@ class PoissonSolver:
         
         """
         assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
+        assert(rho.getLayout(rho.currentLayout).dims_order[-1]==1)
         for i,r in rho.getCoords(0):
             for j,z in rho.getCoords(1):
                 vec=rho.get1DSlice([i,j])
@@ -439,6 +443,8 @@ class PoissonSolver:
             the particle density
         
         """
+        
+        assert(rho.getLayout(rho.currentLayout).dims_order[-1]==0)
         
         for i,q in rho.getCoords(0):
             m = i + rho.getLayout(rho.currentLayout).starts[0]
@@ -477,7 +483,10 @@ class PoissonSolver:
             electric potential
         
         """
+        
         assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
+        assert(phi.getLayout(phi.currentLayout).dims_order[-1]==1)
+        
         for i,r in phi.getCoords(0):
             for j,z in phi.getCoords(1):
                 vec=phi.get1DSlice([i,j])
