@@ -382,7 +382,7 @@ class PoissonSolver:
         
         # Collect the factors in front of each element of the equation
         r = eta_grid[0][self._coeff_range]
-        ddrFactor = kwargs.pop('ddrFactor',1)
+        ddrFactor = kwargs.pop('ddrFactor',-1)
         drFactor = kwargs.pop('drFactor',-( 1/r - constants.kN0 * \
                                 (1 + np.tanh( (r - constants.rp ) / \
                                               constants.deltaRN0 )**2 ) ))
@@ -391,7 +391,7 @@ class PoissonSolver:
         
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
-        self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(ddrFactor) \
+        self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(-ddrFactor) \
                                 + self._dPhiPsi.multiply(drFactor) \
                                 + self._massMatrix.multiply(rFactor))
         
