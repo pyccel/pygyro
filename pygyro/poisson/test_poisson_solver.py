@@ -176,10 +176,8 @@ def test_grad(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.parallel
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(2,6,0.3),
-                                          (2,32,0.05),(3,10,0.2),(3,32,0.04),
-                                          (4,10,0.2),(4,40,0.03),(5,14,0.09),
-                                          (5,64,0.02)] )
+@pytest.mark.parametrize( "deg,npt,eps", [(1,32,0.07),(2,32,0.05),(3,32,0.04),
+                                          (4,40,0.03),(5,64,0.02)] )
 def test_grad_withFFT(deg,npt,eps):
     npts = [npt,32,4]
     domain = [[1,5],[0,2*pi],[0,1]]
