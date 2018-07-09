@@ -389,18 +389,38 @@ class PoissonSolver:
         rFactor = kwargs.pop('rFactor',1/Te(r))
         ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
         
+        if (lBoundary=='dirichlet'):
+            if (hasattr(ddrFactor,'__len__')):
+                ddrFactor = ddrFactor[1:]
+            if (hasattr(drFactor,'__len__')):
+                drFactor = drFactor[1:]
+            if (hasattr(rFactor,'__len__')):
+                rFactor = rFactor[1:]
+            if (hasattr(ddqFactor,'__len__')):
+                ddqFactor = ddqFactor[1:]
+        
+        if (rBoundary=='dirichlet'):
+            if (hasattr(ddrFactor,'__len__')):
+                ddrFactor = ddrFactor[:-1]
+            if (hasattr(drFactor,'__len__')):
+                drFactor = drFactor[:-1]
+            if (hasattr(rFactor,'__len__')):
+                rFactor = rFactor[:-1]
+            if (hasattr(ddqFactor,'__len__')):
+                ddqFactor = ddqFactor[:-1]
+        
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
-        self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(-ddrFactor) \
-                                + self._dPhiPsi.multiply(drFactor) \
-                                + self._massMatrix.multiply(rFactor))
+        self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(np.atleast_2d(-ddrFactor).T) \
+                                + self._dPhiPsi.multiply(np.atleast_2d(drFactor).T) \
+                                + self._massMatrix.multiply(np.atleast_2d(rFactor).T))
         
         assert(np.linalg.cond(self._stiffnessMatrix.todense())<1e10)
         
         # The part of the stiffness matrix relating to the double derivative
         # with respect to theta must be constructed separately as it will
         # be multiplied by the different modes
-        self._stiffnessM = sparse.dia_matrix(self._massMatrix.multiply(ddqFactor))
+        self._stiffnessM = sparse.dia_matrix(self._massMatrix.multiply(np.atleast_2d(ddqFactor).T))
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(rspline)
