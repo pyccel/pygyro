@@ -387,7 +387,7 @@ class PoissonSolver:
                                 (1 + np.tanh( (r - constants.rp ) / \
                                               constants.deltaRN0 )**2 ) ))
         rFactor = kwargs.pop('rFactor',1/Te(r))
-        ddqFactor = kwargs.pop('ddThetaFactor',1/r**2)
+        ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
         
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
@@ -449,7 +449,7 @@ class PoissonSolver:
         for i,q in rho.getCoords(0):
             m = i + rho.getLayout(rho.currentLayout).starts[0]
             # For each mode on this process, create the necessary matrix
-            stiffnessMatrix = self._stiffnessMatrix + m*m*self._stiffnessM
+            stiffnessMatrix = self._stiffnessMatrix - m*m*self._stiffnessM
             
             for j,z in rho.getCoords(1):
                 # Calculate the coefficients related to rho
