@@ -381,7 +381,7 @@ class PoissonSolver:
             self._dPhiPsi = sparse.dia_matrix(self._dPhiPsi)
         
         # Collect the factors in front of each element of the equation
-        r = eta_grid[0][self._coeff_range]
+        r = eta_grid[0]
         ddrFactor = kwargs.pop('ddrFactor',-1)
         drFactor = kwargs.pop('drFactor',-( 1/r - constants.kN0 * \
                                 (1 + np.tanh( (r - constants.rp ) / \
