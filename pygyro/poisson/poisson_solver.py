@@ -113,7 +113,7 @@ class PoissonSolver:
     drFactor : float or array_like - optional
         The factor in front of the derivative of the electric potential
         with respect to r.
-        Default is 1/r - kN0 * ( 1 + tanh( (r - rp)/deltaRN0 )**2 )
+        Default is kN0 * ( 1 + tanh( (r - rp)/deltaRN0 )**2 ) - 1/r
     
     rFactor : float or array_like - optional
         The factor in front of the electric potential
@@ -122,7 +122,7 @@ class PoissonSolver:
     ddThetaFactor : float or array_like - optional
         The factor in front of the double derivative of the electric
         potential with respect to theta.
-        Default is 1/r**2
+        Default is -1/r**2
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
@@ -422,7 +422,7 @@ class PoissonSolver:
         for i,r in rho.getCoords(0):
             for j,z in rho.getCoords(1):
                 vec=rho.get1DSlice([i,j])
-                mode=fft(vec)
+                mode=fft(vec,overwrite_x=True)
                 vec[:]=mode
     
     def solveEquation( self, phi: Grid, rho: Grid ):
@@ -490,5 +490,5 @@ class PoissonSolver:
         for i,r in phi.getCoords(0):
             for j,z in phi.getCoords(1):
                 vec=phi.get1DSlice([i,j])
-                mode=ifft(vec)
+                mode=ifft(vec,overwrite_x=True)
                 vec[:]=mode
