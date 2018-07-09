@@ -276,14 +276,14 @@ def test_ddTheta(deg,npt,eps):
     #~ plt.colorbar()
     #~ plt.title('rho')
     
-    #~ ps.getModes(rho)
+    ps.getModes(rho)
     
-    #~ rho.setLayout('mode_solve')
+    rho.setLayout('mode_solve')
     
-    #~ ps.solveEquation(phi,rho)
+    ps.solveEquation(phi,rho)
     
-    #~ phi.setLayout('v_parallel')
-    #~ ps.findPotential(phi)
+    phi.setLayout('v_parallel')
+    ps.findPotential(phi)
     
     #~ toPlot = np.empty(phi._f[:,0,:].shape)
     #~ toPlot = np.real(phi._f[:,0,:])
