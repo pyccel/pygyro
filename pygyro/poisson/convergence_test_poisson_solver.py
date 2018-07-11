@@ -484,8 +484,6 @@ def test_ddTheta(deg):
                           'v_parallel': [0,2,1]}
         remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
         
-        #~ a=2*pi/(domain[0][1]-domain[0][0])
-        
         ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=0,rFactor=1,ddThetaFactor=-1,lBoundary='neumann',rBoundary='neumann')
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
