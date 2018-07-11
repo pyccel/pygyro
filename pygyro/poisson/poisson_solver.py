@@ -391,6 +391,9 @@ class PoissonSolver:
         rFactor = kwargs.pop('rFactor',1/Te(r))
         ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
         
+        for name,value in kwargs.items():
+            warnings.warn("{0} is not a recognised parameter for setupCylindricalGrid".format(name))
+        
         # If the factors are vectors and the boundary is a dirichlet boundary
         # then the first value is not needed
         if (lBoundary=='dirichlet'):
