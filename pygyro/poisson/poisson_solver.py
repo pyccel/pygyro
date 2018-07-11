@@ -131,6 +131,8 @@ class PoissonSolver:
         # quadrature
         n=degree//2+1
         
+        self._mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)**2
+        
         # Calculate the points and weights required for the Gauss-Legendre
         # quadrature over the required domain
         points,self._weights = leggauss(n)
@@ -466,10 +468,10 @@ class PoissonSolver:
         
         assert(rho.getLayout(rho.currentLayout).dims_order[-1]==0)
         
-        for i,q in rho.getCoords(0):
-            m = i + rho.getLayout(rho.currentLayout).starts[0]
+        for i,I in enumerate(rho.getGlobalIdxVals(0)):
+            #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
             # For each mode on this process, create the necessary matrix
-            stiffnessMatrix = self._stiffnessMatrix - m*m*self._stiffnessM
+            stiffnessMatrix = self._stiffnessMatrix - self._mVals[I]*self._stiffnessM
             
             for j,z in rho.getCoords(1):
                 # Calculate the coefficients related to rho
