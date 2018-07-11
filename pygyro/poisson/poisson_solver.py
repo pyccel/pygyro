@@ -94,13 +94,13 @@ class PoissonSolver:
         A spline along the r direction
     
     lBoundary : str - optional
-        The type of boundary condition on the left (lower) boundary.
+        The type of boundary condition on the lower boundary.
         This should be either 'dirichlet' or 'neumann'. The value
         associated with the condition is always 0.
         Default is 'dirichlet'
     
-    rBoundary : str - optional
-        The type of boundary condition on the right (upper) boundary.
+    uBoundary : str - optional
+        The type of boundary condition on the upper boundary.
         This should be either 'dirichlet' or 'neumann'. The value
         associated with the condition is always 0.
         Default is 'dirichlet'
@@ -126,7 +126,7 @@ class PoissonSolver:
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                  lBoundary: str = 'dirichlet', rBoundary: str = 'dirichlet',*args,**kwargs):
+                  lBoundary: str = 'dirichlet', uBoundary: str = 'dirichlet',*args,**kwargs):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
@@ -150,7 +150,7 @@ class PoissonSolver:
             self._coeffs[0] = 0
         else:
             start_range = 0
-        if (rBoundary=='dirichlet'):
+        if (uBoundary=='dirichlet'):
             end_range = rspline.nbasis-1
             self._coeffs[end_range] = 0
         else:
@@ -238,7 +238,7 @@ class PoissonSolver:
             # boundary condition
             start_range=1
             start_enum=0
-            if (lBoundary!=rBoundary):
+            if (lBoundary!=uBoundary):
                 # If only one boundary condition is neumann then the loop
                 # for that spline is carried out separately
                 if (lBoundary=='neumann'):
@@ -386,7 +386,7 @@ class PoissonSolver:
         r = eta_grid[0]
         ddrFactor = kwargs.pop('ddrFactor',-1)
         drFactor = kwargs.pop('drFactor',-( 1/r - constants.kN0 * \
-                                (1 + np.tanh( (r - constants.rp ) / \
+                                (1 - np.tanh( (r - constants.rp ) / \
                                               constants.deltaRN0 )**2 ) ))
         rFactor = kwargs.pop('rFactor',1/Te(r))
         ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
@@ -401,7 +401,7 @@ class PoissonSolver:
             if (hasattr(ddqFactor,'__len__')):
                 ddqFactor = ddqFactor[1:]
         
-        if (rBoundary=='dirichlet'):
+        if (uBoundary=='dirichlet'):
             if (hasattr(ddrFactor,'__len__')):
                 ddrFactor = ddrFactor[:-1]
             if (hasattr(drFactor,'__len__')):
