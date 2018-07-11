@@ -160,7 +160,7 @@ class SlicePlotter4d(object):
                 concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
-                    myShape=baseShape.copy()
+                    myShape=list(baseShape)
                     myShape[0]=layout.mpi_lengths(0)[coords[0]]
                     myShape[1]=layout.mpi_lengths(1)[coords[1]]
                     if (chunk.size==0):
