@@ -391,6 +391,8 @@ class PoissonSolver:
         rFactor = kwargs.pop('rFactor',1/Te(r))
         ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
         
+        # If the factors are vectors and the boundary is a dirichlet boundary
+        # then the first value is not needed
         if (lBoundary=='dirichlet'):
             if (hasattr(ddrFactor,'__len__')):
                 ddrFactor = ddrFactor[1:]
