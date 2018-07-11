@@ -33,15 +33,17 @@ def test_fluxSurfaceAdvection():
     
     eta_vals[1]=eta_grids[0]
     eta_vals[2]=eta_grids[1]
+    eta_vals[3][0]=c
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines)
+    layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     
-    #f_vals[:,:,0]=np.exp(-((np.atleast_2d(eta_vals[1]).T-pi)**2+(eta_vals[2]-10)**2)/4)
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
+    
     f_vals[:,:,0]=np.sin(eta_vals[2]*pi/10)
     
     for n in range(N):
         f_vals[:,:,n+1]=f_vals[:,:,n]
-        fluxAdv.step(f_vals[:,:,n+1],dt,c)
+        fluxAdv.step(f_vals[:,:,n+1],0)
     
     x,y = np.meshgrid(eta_vals[2], eta_vals[1])
     
@@ -66,7 +68,7 @@ def test_fluxSurfaceAdvection():
         fig.canvas.draw()
         fig.canvas.flush_events()
     
-    print(np.max(f_vals[:,:,n]-f_vals[:,:,0]))
+    print(np.max(f_vals[:,:,N]-f_vals[:,:,0]))
 
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
@@ -324,13 +326,14 @@ def test_equilibrium():
     N=10
     
     if (rank!=drawRank):
-        
-        fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-        vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
-        polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
-        
+    
         dt=1
         halfStep = dt*0.5
+        
+        fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(), grid.getLayout('flux_surface'), halfStep, iota0)
+        #~ fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
+        vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+        polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
         
         phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
         phiVals = np.empty([npts[1],npts[0]])
@@ -347,7 +350,7 @@ def test_equilibrium():
     for n in range(N):
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+                fluxAdv.step(grid.get2DSlice([i,j]),j)
         
         print("rank ",rank," has completed flux step 1")
         
@@ -397,7 +400,7 @@ def test_equilibrium():
         
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+                fluxAdv.step(grid.get2DSlice([i,j]),j)
         
         print("rank ",rank," has completed flux step 2")
         
@@ -547,8 +550,11 @@ def test_fluxAdvection_dz():
     
     eta_vals[1]=eta_grids[0]
     eta_vals[2]=eta_grids[1]
+    eta_vals[3][0]=c
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, iota0)
+    layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
     
     dz = eta_vals[2][1]-eta_vals[2][0]
     dtheta = iota0()*dz/constants.R0
@@ -560,7 +566,7 @@ def test_fluxAdvection_dz():
     
     for n in range(1,N+1):
         f_vals[:,:,n]=f_vals[:,:,n-1]
-        fluxAdv.step(f_vals[:,:,n],dt,c)
+        fluxAdv.step(f_vals[:,:,n],0)
     
     x,y = np.meshgrid(eta_vals[2],eta_vals[1])
     
