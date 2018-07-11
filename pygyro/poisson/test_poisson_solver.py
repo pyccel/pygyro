@@ -132,6 +132,59 @@ def test_BasicPoissonEquation_rNeumann(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
+@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
+                                          (2,32,0.1),(3,9,0.03),(3,32,0.02),
+                                          (4,10,0.02),(4,40,0.02),(5,14,0.01),
+                                          (5,64,0.01)] )
+def test_PoissonEquation_Dirichlet(deg,npt,eps):
+    npts = [npt,8,4]
+    domain = [[1,5],[0,2*pi],[0,1]]
+    degree = [deg,3,3]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0],
+                      'v_parallel': [0,2,1]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    grid = setupCylindricalGrid(npts=[*npts,4],layout='v_parallel')
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],drFactor=0,rFactor=0,ddThetaFactor=-1)
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
+    
+    q = eta_grid[1]
+    
+    for i,r in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:]=1
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = (-0.5*r**2+0.5*(domain[0][0]+domain[0][1])*r-domain[0][0]*domain[0][1]*0.5)
+    
+    r = eta_grid[0]
+    
+    df = DensityFinder(3,grid.getSpline(3))
+    
+    ps.getModes(rho)
+    
+    rho.setLayout('mode_solve')
+    
+    ps.solveEquation(phi,rho)
+    
+    phi.setLayout('v_parallel')
+    ps.findPotential(phi)
+    
+    assert((np.abs(phi._f-phi_exact._f)<eps).all())
+
+@pytest.mark.serial
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(2,6,0.3),
                                           (2,32,0.05),(3,10,0.2),(3,32,0.04),
                                           (4,10,0.2),(4,40,0.03),(5,14,0.09),
@@ -166,6 +219,49 @@ def test_grad(deg,npt,eps):
     for i,q in rho.getCoords(0):
         plane = rho.get2DSlice([i])
         plane[:]=a*np.cos(a*(r-domain[0][0]))
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = np.sin(a*(r-domain[0][0]))
+    
+    q = eta_grid[1]
+    ps.solveEquation(phi,rho)
+    
+    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert((np.abs(phi._f-phi_exact._f)<eps).all())
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "deg,npt,eps", [(1,32,0.08),(1,256,0.009),(2,32,0.06),
+                                          (2,256,0.006),(3,32,0.04),(3,256,0.005),
+                                          (4,32,0.04),(4,256,0.004),(5,32,0.03),
+                                          (5,256,0.003)] )
+def test_grad_r(deg,npt,eps):
+    npts = [npt,32,4]
+    domain = [[1,8],[0,2*pi],[0,1]]
+    degree = [deg,3,3]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0],
+                      'v_parallel': [0,2,1]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    a=2*pi/(domain[0][1]-domain[0][0])
+    r = eta_grid[0]
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=r,rFactor=0,ddThetaFactor=0)
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    
+    for i,q in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:]=a*np.cos(a*(r-domain[0][0]))*r
         plane = phi_exact.get2DSlice([i])
         plane[:] = np.sin(a*(r-domain[0][0]))
     
@@ -225,12 +321,13 @@ def test_grad_withFFT(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(1,64,0.07),(2,6,0.3),
-                                          (2,32,0.05),(3,10,0.2),(3,32,0.04),
-                                          (4,10,0.2),(4,40,0.03),(5,14,0.09),
-                                          (5,64,0.02)] )
-def test_ddTheta(deg,npt,eps):
-    npts = [64,npt,4]
+#~ @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(1,64,0.07),(2,6,0.3),
+                                          #~ (2,32,0.05),(3,10,0.2),(3,32,0.04),
+                                          #~ (4,10,0.2),(4,40,0.03),(5,14,0.09),
+                                          #~ (5,64,0.02)] )
+@pytest.mark.parametrize( "deg,npt,eps", [(1,32,0.07)] )
+def test_Sin_r_Sin_theta(deg,npt,eps):
+    npts = [256,npt,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
     period = [False,True,False]
@@ -317,6 +414,163 @@ def test_ddTheta(deg,npt,eps):
     
     print(np.max(np.abs(phi._f-phi_exact._f)))
     #~ assert((np.abs(phi._f-phi_exact._f)<eps).all())
+
+@pytest.mark.serial
+#~ @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(1,64,0.07),(2,6,0.3),
+                                          #~ (2,32,0.05),(3,10,0.2),(3,32,0.04),
+                                          #~ (4,10,0.2),(4,40,0.03),(5,14,0.09),
+                                          #~ (5,64,0.02)] )
+@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.07),(1,8,0.07),(1,16,0.07),(1,32,0.07),(1,64,0.07),(1,128,0.07)] )
+def test_ddTheta(deg,npt,eps):
+    npts = [8,npt,5]
+    domain = [[1,5],[0,2*pi],[0,1]]
+    degree = [deg,3,3]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0],
+                      'v_parallel': [0,2,1]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    #~ a=2*pi/(domain[0][1]-domain[0][0])
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=0,rFactor=1,ddThetaFactor=-1,lBoundary='neumann',rBoundary='neumann')
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
+    
+    q = eta_grid[1]
+    
+    for i,r in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        #~ plane[:] = a*np.cos(a*(r-domain[0][0]))*np.sin(q)
+        plane[:] = 2*np.sin(q)
+        plane = phi_exact.get2DSlice([i])
+        #~ plane[:] = np.sin(a*(r-domain[0][0]))*np.sin(q)
+        plane[:] = np.sin(q)
+    
+    r = eta_grid[0]
+    
+    #~ toPlot = np.empty(rho._f[:,0,:].shape)
+    #~ toPlot = np.real(rho._f[:,0,:])
+    
+    #~ plt.figure()
+    #~ plt.pcolormesh(q,r,toPlot)
+    #~ plt.xlabel('theta')
+    #~ plt.ylabel('r')
+    #~ plt.colorbar()
+    #~ plt.title('rho')
+    
+    ps.getModes(rho)
+    
+    rho.setLayout('mode_solve')
+    
+    ps.solveEquation(phi,rho)
+    
+    phi.setLayout('v_parallel')
+    
+    ps.findPotential(phi)
+    
+    z=3
+    
+    #~ toPlot = np.empty(phi._f[:,z,:].shape)
+    #~ toPlot = np.real(phi._f[:,z,:])
+    
+    #~ plt.figure()
+    #~ plt.pcolormesh(q,r,toPlot)
+    #~ plt.colorbar()
+    #~ plt.title('phi')
+    
+    #~ toPlot = np.real(phi_exact._f[:,z,:])
+    
+    #~ plt.figure()
+    #~ plt.pcolormesh(q,r,toPlot)
+    #~ plt.colorbar()
+    #~ plt.title('phi exact')
+    
+    #~ toPlot = np.real(phi_exact._f[:,z,:]-phi._f[:,z,:])
+    
+    #~ plt.figure()
+    #~ plt.pcolormesh(q,r,toPlot)
+    #~ plt.colorbar()
+    #~ plt.title('error')
+    #~ plt.show()
+    
+    #~ interp = SplineInterpolator1D(bsplines[1])
+    #~ spline = Spline1D(bsplines[1])
+    
+    #~ interp.compute_interpolant(np.real(phi._f[2,z,:]),spline)
+    
+    #~ plt.figure()
+    #~ plt.plot([*q,2*pi],spline.eval([*q,2*pi],1))
+    #~ plt.show()
+    
+    #~ print(np.real(phi._f-phi_exact._f))
+    
+    print(np.max(np.abs(np.real(phi._f-phi_exact._f))))
+    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    #~ assert((np.abs(phi._f-phi_exact._f)<eps).all())
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "deg,npt", [(1,4),(1,32),(1,64),(2,6),
+                                      (2,32),(3,10),(3,32),
+                                      (4,10),(4,40),(5,14),
+                                      (5,64)] )
+def test_phi(deg,npt):
+    eps=1e-12
+    npts = [256,npt,4]
+    domain = [[1,5],[0,2*pi],[0,1]]
+    degree = [deg,3,3]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0],
+                      'v_parallel': [0,2,1]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    a=2*pi/(domain[0][1]-domain[0][0])
+    
+    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=0,rFactor=1,ddThetaFactor=0,
+                        lBoundary='neumann',rBoundary='neumann')
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
+    
+    q = eta_grid[1]
+    
+    for i,r in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:] = np.sin(q)
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = np.sin(q)
+    
+    r = eta_grid[0]
+    
+    ps.getModes(rho)
+    
+    rho.setLayout('mode_solve')
+    
+    ps.solveEquation(phi,rho)
+    
+    phi.setLayout('v_parallel')
+    ps.findPotential(phi)
+    
+    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.parallel
 def test_PoissonSolver():
