@@ -65,6 +65,12 @@ class Grid(object):
         """
         return self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]]
     
+    
+    def getGlobalIdxVals( self, i : int ):
+        """ get global indices of local coordinates along axis i
+        """
+        return range(self._layout.starts[i],self._layout.ends[i])
+    
     def getGlobalIndices( self, indices: list):
         """ convert local indices to global indices
         """
