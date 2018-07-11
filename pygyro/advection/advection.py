@@ -171,8 +171,8 @@ class FluxSurfaceAdvection:
     splines: list of BSplines
         The spline approximations along theta and z
         
-    c: list of floats
-        Advection parameter d_tf + c d_xf=0
+    layout: Layout
+        The current layout
         
     dt: float
         Time-step
@@ -244,7 +244,7 @@ class FluxSurfaceAdvection:
         # The first barycentric formula is used to find the lagrange coefficients
         zDiff=zPos-zPts
         omega = np.prod(zDiff,axis=2)[:,:,None]
-        lambdas = 1/np.prod(zPts[:,:,None,:]-zPts[:,:,:,None]+np.eye(self._zLagrangePts)[None,None,:,:],axis=3)
+        lambdas = 1/np.prod(zPts[:,:,:,None]-zPts[:,:,None,:]+np.eye(self._zLagrangePts)[None,None,:,:],axis=3)
         
         # If the final position is one of the points then zDiff=0
         # The division by 0 must be avoided and the coefficients should
@@ -264,7 +264,7 @@ class FluxSurfaceAdvection:
             The result will be stored here
         
         cIdx: int
-            Advection parameter d_tf + c d_xf=0
+            Index of the advection parameter d_tf + c d_xf=0
         
         rIdx: int - optional
             The current index of r. Not necessary if iota does not depend on r
