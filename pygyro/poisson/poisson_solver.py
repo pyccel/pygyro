@@ -456,7 +456,7 @@ class PoissonSolver:
     def solveEquation( self, phi: Grid, rho: Grid ):
         """
         Solve the Poisson equation where the electric potential is unknown.
-        The equation should be solved using the Fourier transform. The
+        The equation is solved in Fourier space. The
         application of the Fourier transform and inverse Fourier transform
         is not handled by this function
         
