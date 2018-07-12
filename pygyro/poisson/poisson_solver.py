@@ -77,9 +77,10 @@ class DensityFinder:
     
 class PoissonSolver:
     """
-    DensityFinder: Class used to integrate the particle distribution
-    function along the v parallel direction in order to find the particle
-    density
+    PoissonSolver: Class used to solve a poisson equation. It contains
+    functions to handle the discrete Fourier transforms and a function
+    which uses the finite elements method to solve the equation in Fourier
+    space
 
     Parameters
     ----------
