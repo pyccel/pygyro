@@ -44,6 +44,7 @@ def test_fluxSurfaceAdvection():
     
     fTime = timeit.Timer(lambda: fluxAdv.step(f_vals,0)).timeit(NSteps)
     print(fTime/NSteps," per step, ",fTime," total")
+    print(fTime*NGrid*NGrid/NSteps," per grid ")
 
 def gauss(x):
     return np.exp(-x**2/4)
@@ -72,6 +73,7 @@ def test_vParallelAdvection():
     
     vTime = timeit.Timer(lambda: vParAdv.step(f,dt,c,r)).timeit(NSteps)
     print(vTime/NSteps," per step, ",vTime," total")
+    print(vTime*NGrid*NGrid*NGrid/NSteps," per grid ")
 
 
 def Phi(r,theta):
@@ -131,3 +133,4 @@ def test_explicitPoloidalAdvection():
     
     pTime = timeit.Timer(lambda: polAdv.step(f_vals,dt,phi,v)).timeit(NSteps)
     print(pTime/NSteps," per step, ",pTime," total")
+    print(pTime*NGrid*NGrid/NSteps," per grid ")
