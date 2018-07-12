@@ -5,6 +5,7 @@ import scipy.sparse                 as sparse
 from scipy.sparse.linalg            import spsolve
 import numpy                        as np
 from numpy.polynomial.legendre      import leggauss
+import warnings
 
 from ..model.grid                   import Grid
 from ..initialisation               import constants
@@ -94,17 +95,15 @@ class PoissonSolver:
     rspline : BSplines
         A spline along the r direction
     
-    lBoundary : str - optional
-        The type of boundary condition on the lower boundary.
-        This should be either 'dirichlet' or 'neumann'. The value
-        associated with the condition is always 0.
-        Default is 'dirichlet'
+    lNeumannIdx : list - optional
+        The modes for which the boundary condition on the lower boundary
+        should be Neumann rather than Dirichlet.
+        Default is []
     
-    uBoundary : str - optional
-        The type of boundary condition on the upper boundary.
-        This should be either 'dirichlet' or 'neumann'. The value
-        associated with the condition is always 0.
-        Default is 'dirichlet'
+    uNeumannIdx : list - optional
+        The modes for which the boundary condition on the upper boundary
+        should be Neumann rather than Dirichlet.
+        Default is []
     
     ddrFactor : float or array_like - optional
         The factor in front of the double derivative of the electric
@@ -127,12 +126,12 @@ class PoissonSolver:
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                  lBoundary: str = 'dirichlet', uBoundary: str = 'dirichlet',*args,**kwargs):
+                  lNeumannIdx: list = [], uNeumannIdx: list = [],*args,**kwargs):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
         
-        self._mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)**2
+        self._mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
         
         # Calculate the points and weights required for the Gauss-Legendre
         # quadrature over the required domain
@@ -146,23 +145,35 @@ class PoissonSolver:
         
         # If dirichlet boundary conditions are used then assign the
         # required value on the boundary
-        if (lBoundary=='dirichlet'):
+        if (lNeumannIdx==[]):
             start_range = 1
-            self._coeffs[0] = 0
+            lBoundary = 'dirichlet'
         else:
             start_range = 0
-        if (uBoundary=='dirichlet'):
+            lBoundary = 'neumann'
+        if (uNeumannIdx==[]):
             end_range = rspline.nbasis-1
-            self._coeffs[end_range] = 0
+            excluded_end_pts = 1
+            uBoundary = 'dirichlet'
         else:
             end_range = rspline.nbasis
-        
-        # Save the access pattern for the calculated result.
-        # This ensures that the boundary conditions remain intact
-        self._coeff_range = slice(start_range,end_range)
+            excluded_end_pts = 0
+            uBoundary = 'neumann'
         
         # Calculate the size of the matrices required
         self._nUnknowns = end_range-start_range
+        
+        # Save the access pattern for the calculated result.
+        # This ensures that the boundary conditions remain intact
+        self._coeff_range = [slice(                  0 if i in lNeumannIdx else 1,
+                                   rspline.nbasis - (0 if i in uNeumannIdx else 1))
+                             for i in self._mVals]
+        
+        self._stiffness_range = [slice(0 if i in lNeumannIdx else (1-start_range),
+                                   self._nUnknowns - (0 if i in uNeumannIdx else (1-excluded_end_pts)))
+                             for i in self._mVals]
+        
+        self._mVals*=self._mVals
         
         if (rspline.nbasis > 4*rspline.degree):
             maxEnd = self._nUnknowns-1
@@ -329,9 +340,9 @@ class PoissonSolver:
             
             # Convert the matrices to diagonal storage for better
             # addition/multiplication etc operations
-            self._massMatrix=self._massMatrix.todia()
-            self._dPhidPsi=self._dPhidPsi.todia()
-            self._dPhidPsi=self._dPhidPsi.todia()
+            self._massMatrix=self._massMatrix.tocsc()
+            self._dPhidPsi=self._dPhidPsi.tocsc()
+            self._dPhidPsi=self._dPhidPsi.tocsc()
         else:
             # Create the storage for the values
             self._massMatrix = np.zeros((self._nUnknowns,self._nUnknowns))
@@ -379,9 +390,9 @@ class PoissonSolver:
             # will therefore not be created by this command. The method
             # used elsewhere means that sparse diagonal matrices are
             # initialised here so the sparse commands don't throw errors
-            self._massMatrix = sparse.dia_matrix(self._massMatrix)
-            self._dPhidPsi = sparse.dia_matrix(self._dPhidPsi)
-            self._dPhiPsi = sparse.dia_matrix(self._dPhiPsi)
+            self._massMatrix = sparse.csc_matrix(self._massMatrix)
+            self._dPhidPsi = sparse.csc_matrix(self._dPhidPsi)
+            self._dPhiPsi = sparse.csc_matrix(self._dPhiPsi)
         
         # Collect the factors in front of each element of the equation
         r = eta_grid[0]
@@ -397,7 +408,7 @@ class PoissonSolver:
         
         # If the factors are vectors and the boundary is a dirichlet boundary
         # then the first value is not needed
-        if (lBoundary=='dirichlet'):
+        if (lNeumannIdx==[]):
             if (hasattr(ddrFactor,'__len__')):
                 ddrFactor = ddrFactor[1:]
             if (hasattr(drFactor,'__len__')):
@@ -407,7 +418,7 @@ class PoissonSolver:
             if (hasattr(ddqFactor,'__len__')):
                 ddqFactor = ddqFactor[1:]
         
-        if (uBoundary=='dirichlet'):
+        if (uNeumannIdx==[]):
             if (hasattr(ddrFactor,'__len__')):
                 ddrFactor = ddrFactor[:-1]
             if (hasattr(drFactor,'__len__')):
@@ -419,7 +430,7 @@ class PoissonSolver:
         
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
-        self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(np.atleast_2d(-ddrFactor).T) \
+        self._stiffnessMatrix = sparse.csc_matrix(self._dPhidPsi.multiply(np.atleast_2d(-ddrFactor).T) \
                                 + self._dPhiPsi.multiply(np.atleast_2d(drFactor).T) \
                                 + self._massMatrix.multiply(np.atleast_2d(rFactor).T))
         
@@ -428,7 +439,7 @@ class PoissonSolver:
         # The part of the stiffness matrix relating to the double derivative
         # with respect to theta must be constructed separately as it will
         # be multiplied by the different modes
-        self._stiffnessM = sparse.dia_matrix(self._massMatrix.multiply(np.atleast_2d(ddqFactor).T))
+        self._stiffnessM = sparse.csc_matrix(self._massMatrix.multiply(np.atleast_2d(ddqFactor).T))
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(rspline)
@@ -456,9 +467,9 @@ class PoissonSolver:
     def solveEquation( self, phi: Grid, rho: Grid ):
         """
         Solve the Poisson equation where the electric potential is unknown.
-        The equation is solved in Fourier space. The
-        application of the Fourier transform and inverse Fourier transform
-        is not handled by this function
+        The equation is solved in Fourier space. The application of the
+        Fourier transform and inverse Fourier transform is not handled 
+        by this function
         
         Parameters
         ----------
@@ -477,7 +488,14 @@ class PoissonSolver:
         for i,I in enumerate(rho.getGlobalIdxVals(0)):
             #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
             # For each mode on this process, create the necessary matrix
-            stiffnessMatrix = self._stiffnessMatrix - self._mVals[I]*self._stiffnessM
+            stiffnessMatrix = (self._stiffnessMatrix - self._mVals[I]*self._stiffnessM) \
+                                    [self._stiffness_range[I],self._stiffness_range[I]]
+            
+            # Set Dirichlet boundary conditions
+            # In the case of Neumann boundary conditions these values
+            # will be overwritten
+            self._coeffs[0] = 0
+            self._coeffs[-1] = 0
             
             for j,z in rho.getCoords(1):
                 # Calculate the coefficients related to rho
@@ -486,9 +504,9 @@ class PoissonSolver:
                 # Save the solution to the preprepared buffer
                 # The boundary values of this buffer are already set if
                 # dirichlet boundary conditions are used
-                self._coeffs[self._coeff_range] = spsolve(stiffnessMatrix, \
-                                                            self._massMatrix @ \
-                                                            self._spline.coeffs[self._coeff_range])
+                self._coeffs[self._coeff_range[I]] = spsolve(stiffnessMatrix, \
+                                                            self._massMatrix[self._stiffness_range[I],self._stiffness_range[I]] @ \
+                                                            self._spline.coeffs[self._coeff_range[I]])
                 
                 # Find the values at the greville points by interpolating
                 # the real and imaginary parts of the coefficients individually
