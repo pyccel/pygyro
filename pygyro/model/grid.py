@@ -9,6 +9,7 @@ class Grid(object):
     def __init__( self, eta_grid: list, bsplines: list, layouts: LayoutManager,
                     chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD, **kwargs):
         dtype = kwargs.pop('dtype',float)
+        self.hasSaveMemory = kwargs.pop('allocateSaveMemory',False)
         
         # get MPI values
         self.global_comm = comm
@@ -19,10 +20,18 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
-                         np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+        if (self.hasSaveMemory):
+            self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+            self.notSaved = True
+        else:
+            self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+        
         self._dataIdx = 0
         self._buffIdx = 1
+        self._saveIdx = 2
         
         # Remember views on the data
         shapes = layouts.availableLayouts
@@ -131,3 +140,30 @@ class Grid(object):
         """ Return name of current layout
         """
         return self._current_layout_name
+    
+    def saveGridValues( self ):
+        """ Save current values into a buffer.
+            This location is protected until it is freed or restored
+        """
+        assert(self.hasSaveMemory)
+        assert(self.notSaved)
+        
+        self._my_data[self._saveIdx] = self._f[:]
+        
+        self.notSaved = False
+    
+    def freeGridSave( self ):
+        """ Signal that the saved grid data is no longer needed and can
+            be overwritten
+        """
+        assert(self.hasSaveMemory)
+        assert(not self.notSaved)
+        self.notSaved = True
+    
+    def restoreGridValues( self ):
+        """ Restore the values from the saved grid data
+        """
+        assert(self.hasSaveMemory)
+        assert(not self.notSaved)
+        self._dataIdx, self._saveIdx = self._saveIdx, self._dataIdx
+        self.notSaved = True
