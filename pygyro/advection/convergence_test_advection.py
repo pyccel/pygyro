@@ -24,8 +24,8 @@ def test_vParallelAdvection():
     dt=0.01
     c=2.0
     
-    l2 = [[npts*(2**(i+1)),0] for i in range(nconvpts)]
-    linf = [[npts*(2**(i+1)),0] for i in range(nconvpts)]
+    l2 = np.ndarray(nconvpts)
+    linf = np.ndarray(nconvpts)
     
     for j in range(nconvpts):
         npts*=2
@@ -57,28 +57,36 @@ def test_vParallelAdvection():
             else:
                 fEnd[i]=gaussLike(x[i]-c*dt*N)
         
-        l2[j][1]=np.sqrt(trapz((f-fEnd).flatten()**2,x))
-        linf[j][1]=np.linalg.norm((f-fEnd).flatten(),np.inf)
+        l2[j]=np.sqrt(trapz((f-fEnd).flatten()**2,x))
+        linf[j]=np.linalg.norm((f-fEnd).flatten(),np.inf)
     
-    print(l2)
-    print(linf)
-    l2Imp = np.ndarray(nconvpts-1)
-    l2Order = np.ndarray(nconvpts-1)
-    linfImp = np.ndarray(nconvpts-1)
-    linfOrder = np.ndarray(nconvpts-1)
+    print("l2:",l2)
+    print("linf:",linf)
+    
+    print("l2 order:",l2[:-1]/l2[1:])
+    print("linf order:",linf[:-1]/linf[1:])
+    l2order = np.log2(l2[:-1]/l2[1:])
+    linforder = np.log2(linf[:-1]/linf[1:])
+    print("l2 order:",l2order)
+    print("linf order:",linforder)
+    
+    print(64,"    & & $",end=' ')
+    mag2Order = np.floor(np.log10(l2[0]))
+    maginfOrder = np.floor(np.log10(linf[0]))
+    print(str.format('{0:.2f}',l2[0]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
+    print("}$ &       & $",str.format('{0:.2f}',linf[0]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
+    print("}$ &  \\\\")
+    print("\\hline")
     for i in range(nconvpts-1):
-        l2Imp[i]=l2[i][1]/l2[i+1][1]
-        l2Order[i]=np.log2(l2Imp[i])
-        linfImp[i]=linf[i][1]/linf[i+1][1]
-        linfOrder[i]=np.log2(linfImp[i])
-    print(l2Imp)
-    print(linfImp)
-    print(l2Order)
-    print(linfOrder)
-    print(np.mean(l2Imp))
-    print(np.mean(linfImp))
-    print(np.mean(l2Order))
-    print(np.mean(linfOrder))
+        n=2**(i+7)
+        mag2Order = np.floor(np.log10(l2[i+1]))
+        maginfOrder = np.floor(np.log10(linf[i+1]))
+        print(n,"    & & $",end=' ')
+        print(str.format('{0:.2f}',l2[i+1]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
+        print("}$ & ",str.format('{0:.2f}',l2order[i])," & $",end=' ')
+        print(str.format('{0:.2f}',linf[i+1]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
+        print("}$ & ",str.format('{0:.2f}',linforder[i])," \\\\")
+        print("\\hline")
 
 def Phi_adv(r,theta):
     return - 5 * r**2 + np.sin(theta)
