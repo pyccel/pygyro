@@ -1,5 +1,6 @@
 from mpi4py                 import MPI
 import pytest
+from matplotlib             import rc        as pltFont
 import matplotlib.pyplot    as plt
 import matplotlib.colors    as colors
 from mpl_toolkits.mplot3d import Axes3D
@@ -306,10 +307,10 @@ def test_vParallelAdvection():
 
 def Phi(r,theta,a,b,c,d):
     return - a * (r-b)**2 + c*np.sin(d*theta)
-
+"""
 def initConditions(r,theta):
     a=6
-    factor = pi/2/a
+    factor = pi/a/2
     x=r*np.cos(theta)
     y=r*np.sin(theta)
     R1=np.sqrt((x+7)**2+8*y**2)
@@ -320,6 +321,17 @@ def initConditions(r,theta):
     if (R2<=a):
         result+=0.5*np.cos(R2*factor)**4
     return result
+"""
+
+def initConditions(r,theta):
+    a=4
+    factor = pi/a/2
+    r=np.sqrt((r-7)**2+2*(theta-pi)**2)
+    
+    if (r<=a):
+        return np.cos(r*factor)**4
+    else:
+        return 0.0
 
 initConds = np.vectorize(initConditions, otypes=[np.float])
 
@@ -336,8 +348,8 @@ def test_poloidalAdvection():
     
     v=0
     
-    #f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
-    f_vals = np.ndarray([npts[1],npts[0],N+1])
+    f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
+    #~ f_vals = np.ndarray([npts[1],npts[0],N+1])
     
     deg = 3
     
@@ -365,8 +377,8 @@ def test_poloidalAdvection():
     
     interp.compute_interpolant(phiVals,phi)
     
-    #f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
-    f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    #f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
     
     endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
     endPts[0][:] = polAdv._shapedQ   +     2*a*dt/constants.B0
@@ -374,24 +386,28 @@ def test_poloidalAdvection():
                     + c*np.sin(d*endPts[0])/a/constants.B0)
     
     for n in range(N):
-        #f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        #polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
+        f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
+        #f_vals[:,:,n+1]=f_vals[:,:,n]
+        polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
         #polAdv.step(f_vals[:-1,:,n+1],dt,phi,v)
         #polAdv.step(f_vals[:,:,n+1],dt,phi,v)
-        polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
+        #polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
     
-    #f_vals[-1,:,:]=f_vals[0,:,:]
+    f_vals[-1,:,:]=f_vals[0,:,:]
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
     
     print(f_min,f_max)
     
-    #~ theta=np.append(eta_vals[1],eta_vals[1][0])
-    theta=eta_vals[1]
+    theta=np.append(eta_vals[1],eta_vals[1][0])
+    #theta=eta_vals[1]
     
     plt.ion()
 
+    font = {'size'   : 16}
+
+    pltFont('font', **font)
+    
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
     ax.set_rlim(0,13)
@@ -495,3 +511,4 @@ def test_fluxAdvection_dz():
         line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
+
