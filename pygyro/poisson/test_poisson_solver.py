@@ -13,7 +13,7 @@ from ..                             import splines as spl
 from .poisson_solver                import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
-"""
+
 @pytest.mark.serial
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
                                           (2,32,0.1),(3,9,0.03),(3,32,0.02),
@@ -553,7 +553,7 @@ def test_quasiNeutrality():
     
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert((np.abs(phi._f-phi_exact._f)<0.1).all())
-"""
+
 @pytest.mark.parallel
 def test_DiffEqSolver():
     comm = MPI.COMM_WORLD
