@@ -11,6 +11,7 @@ zMax = 80.0
 vMax = 5.0
 rp = 0.5*(rMin + rMax)
 eps = 1e-6
+eps0 = 8.854187817e-12
 kN0 = 0.055
 kTi = 0.27586
 kTe = float(kTi)
