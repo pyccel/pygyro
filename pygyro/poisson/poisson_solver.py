@@ -50,9 +50,9 @@ class DensityFinder:
         self._interpolator = SplineInterpolator1D(spline)
         self._spline = Spline1D(spline)
     
-    def getRho ( self, grid: Grid , rho: Grid ):
+    def getPerturbedRho ( self, grid: Grid , rho: Grid ):
         """
-        Get the particle density
+        Get the perturbed particle density
 
         Parameters
         ----------
@@ -61,8 +61,8 @@ class DensityFinder:
             function
         
         rho : Grid
-            The grid in which the values of the particle density will be
-            stored
+            The grid in which the values of the perturbed particle
+            density will be stored
         
         """
         assert(grid.currentLayout=="v_parallel")
@@ -74,26 +74,29 @@ class DensityFinder:
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-fEq(r,self._points)))
-                rho_qv/=n0(r)
     
-class PoissonSolver:
+class DiffEqSolver:
     """
-    PoissonSolver: Class used to solve a poisson equation. It contains
-    functions to handle the discrete Fourier transforms and a function
-    which uses the finite elements method to solve the equation in Fourier
-    space
+    DiffEqSolver: Class used to solve a differential equation of the form:
+    
+        A \partial_r^2 \phi + B \partial_r \phi + C \phi
+        + D \partial_\theta^2 \phi = E \rho
+    
+    It contains functions to handle the discrete Fourier transforms and
+    a function which uses the finite elements method to solve the equation
+    in Fourier space
 
     Parameters
     ----------
-    eta_grid : list of array_like
-        The coordinates of the grid points in each dimension
-    
     degree : int
         The degree of the highest degree polynomial function which will
         be exactly integrated
 
     rspline : BSplines
         A spline along the r direction
+    
+    nTheta : int
+        The number of points in the periodic direction
     
     lNeumannIdx : list - optional
         The modes for which the boundary condition on the lower boundary
@@ -105,33 +108,35 @@ class PoissonSolver:
         should be Neumann rather than Dirichlet.
         Default is []
     
-    ddrFactor : float or array_like - optional
-        The factor in front of the double derivative of the electric
-        potential with respect to r.
-        Default is -1
+    ddrFactor : function handle - optional
+        The factor in front of the double derivative of the unknown with
+        respect to r. (A in the expression above)
+        Default is: lambda r: -1
     
-    drFactor : float or array_like - optional
-        The factor in front of the derivative of the electric potential
-        with respect to r.
-        Default is kN0 * ( 1 + tanh( (r - rp)/deltaRN0 )**2 ) - 1/r
+    drFactor : function handle - optional
+        The factor in front of the derivative of the unknown with respect
+        to r. (B in the expression above)
+        Default is: lambda r: 0
     
-    rFactor : float or array_like - optional
-        The factor in front of the electric potential
-        Default is 1/Te(r)
+    rFactor : function handle - optional
+        The factor in front of the unknown. (C in the expression above)
+        Default is: lambda r: 0
     
-    ddThetaFactor : float or array_like - optional
-        The factor in front of the double derivative of the electric
-        potential with respect to theta.
-        Default is -1/r**2
+    ddThetaFactor : function handle - optional
+        The factor in front of the double derivative of the unknown with
+        respect to theta. (D in the expression above)
+        Default is: lambda r: -1
+    
+    rhoFactor : 
 
     """
-    def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
+    def __init__( self, degree: int, rspline: BSplines, nTheta: int,
                   lNeumannIdx: list = [], uNeumannIdx: list = [],*args,**kwargs):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
         
-        self._mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
+        self._mVals = np.fft.fftfreq(nTheta,1/nTheta)
         
         # Calculate the points and weights required for the Gauss-Legendre
         # quadrature over the required domain
@@ -395,16 +400,14 @@ class PoissonSolver:
             self._dPhiPsi = sparse.csc_matrix(self._dPhiPsi)
         
         # Collect the factors in front of each element of the equation
-        r = eta_grid[0]
-        ddrFactor = kwargs.pop('ddrFactor',-1)
-        drFactor = kwargs.pop('drFactor',-( 1/r - constants.kN0 * \
-                                (1 - np.tanh( (r - constants.rp ) / \
-                                              constants.deltaRN0 )**2 ) ))
-        rFactor = kwargs.pop('rFactor',1/Te(r))
-        ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
+        ddrFactor = kwargs.pop('ddrFactor',lambda r: -1)
+        drFactor = kwargs.pop('drFactor',lambda r: 0)
+        rFactor = kwargs.pop('rFactor',lambda r: 0)
+        ddqFactor = kwargs.pop('ddThetaFactor',lambda r: -1)
+        rhoFactor = kwargs.pop('rhoFactor',lambda r: 1)
         
         for name,value in kwargs.items():
-            warnings.warn("{0} is not a recognised parameter for setupCylindricalGrid".format(name))
+            warnings.warn("{0} is not a recognised parameter for PoissonSolver".format(name))
         
         # If the factors are vectors and the boundary is a dirichlet boundary
         # then the first value is not needed
@@ -448,12 +451,14 @@ class PoissonSolver:
     
     def getModes( self, rho: Grid ):
         """
-        Get the Fourier transform of the particle density
+        Get the Fourier transform of the right hand side of the
+        differential equation.
 
         Parameters
         ----------
         rho : Grid
-            A grid containing the values of the particle density
+            A grid containing the values of the right hand side of the
+            differential equation.
         
         """
         assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
@@ -466,7 +471,7 @@ class PoissonSolver:
     
     def solveEquation( self, phi: Grid, rho: Grid ):
         """
-        Solve the Poisson equation where the electric potential is unknown.
+        Solve the differential equation.
         The equation is solved in Fourier space. The application of the
         Fourier transform and inverse Fourier transform is not handled 
         by this function
@@ -475,11 +480,11 @@ class PoissonSolver:
         ----------
         phi : Grid
             The grid in which the calculated values of the Fourier transform
-            of the electric potential will be stored
+            of the unknown will be stored
         
         rho : Grid
-            A grid containing the values of the the Fourier transform of
-            the particle density
+            A grid containing the values of the the right hand side of the
+            differential equation.
         
         """
         
@@ -520,13 +525,13 @@ class PoissonSolver:
     
     def findPotential( self, phi: Grid ):
         """
-        Get the inverse Fourier transform of the electric potential
+        Get the inverse Fourier transform of the (solved) unknown
         
         Parameters
         ----------
         phi : Grid
             A grid containing the values of the Fourier transform of the
-            electric potential
+            (solved) unknown
         
         """
         
@@ -538,3 +543,4 @@ class PoissonSolver:
                 vec=phi.get1DSlice([i,j])
                 mode=ifft(vec,overwrite_x=True)
                 vec[:]=mode
+
