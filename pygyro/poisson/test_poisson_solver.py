@@ -10,10 +10,10 @@ from ..initialisation.setups        import setupCylindricalGrid
 from ..initialisation.initialiser   import Te
 from ..initialisation               import constants
 from ..                             import splines as spl
-from .poisson_solver                import DiffEqSolver, DensityFinder#, QuasiNeutralitySolver
+from .poisson_solver                import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
-
+"""
 @pytest.mark.serial
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
                                           (2,32,0.1),(3,9,0.03),(3,32,0.02),
@@ -587,15 +587,15 @@ def test_DiffEqSolver():
     
     df.getPerturbedRho(grid,rho)
     
-    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0))
+    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0),chi=0)
     
-    #~ psolver.getModes(rho)
+    qnSolver.getModes(rho)
     
-    #~ rho.setLayout('mode_solve')
+    rho.setLayout('mode_solve')
     
-    #~ psolver.solveEquation(phi,rho)
+    qnSolver.solveEquation(phi,rho)
     
-    #~ phi.setLayout('v_parallel')
+    phi.setLayout('v_parallel')
     
-    #~ psolver.findPotential(phi)
-"""
+    qnSolver.findPotential(phi)
+
