@@ -10,7 +10,7 @@ from ..initialisation.setups        import setupCylindricalGrid
 from ..initialisation.initialiser   import Te
 from ..initialisation               import constants
 from ..                             import splines as spl
-from .poisson_solver                import PoissonSolver, DensityFinder
+from .poisson_solver                import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 
@@ -36,7 +36,7 @@ def test_BasicPoissonEquation_Dirichlet_r(deg,npt,eps):
     layout_poisson = {'mode_solve': [1,2,0]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],drFactor=0,rFactor=0,ddThetaFactor=0)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddThetaFactor=0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -77,7 +77,7 @@ def test_BasicPoissonEquation_lNeumann(deg,npt,eps):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],lNeumannIdx=mVals,drFactor=0,rFactor=0,ddThetaFactor=0)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,ddThetaFactor=0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -118,7 +118,7 @@ def test_BasicPoissonEquation_rNeumann(deg,npt,eps):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],uNeumannIdx=mVals,drFactor=0,rFactor=0,ddThetaFactor=0)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,uNeumannIdx=mVals,drFactor=0,rFactor=0,ddThetaFactor=0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -160,7 +160,7 @@ def test_PoissonEquation_Dirichlet(deg,npt,eps):
     
     grid = setupCylindricalGrid(npts=[*npts,4],layout='v_parallel')
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],drFactor=0,rFactor=0,ddThetaFactor=-1)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -214,7 +214,7 @@ def test_grad(deg,npt,eps):
     
     a=2*pi/(domain[0][1]-domain[0][0])
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=1,rFactor=0,ddThetaFactor=0)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=0,drFactor=1,rFactor=0,ddThetaFactor=0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -259,7 +259,7 @@ def test_grad_r(deg,npt,eps):
     a=2*pi/(domain[0][1]-domain[0][0])
     r = eta_grid[0]
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=r,rFactor=0,ddThetaFactor=0)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=0,drFactor=r,rFactor=0,ddThetaFactor=0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -299,7 +299,7 @@ def test_grad_withFFT(deg,npt,eps):
     
     a=2*pi/(domain[0][1]-domain[0][0])
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=1,rFactor=0,ddThetaFactor=0)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=0,drFactor=1,rFactor=0,ddThetaFactor=0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -350,7 +350,7 @@ def test_Sin_r_Sin_theta(deg,npt,eps):
     
     a=2*pi/(domain[0][1]-domain[0][0])
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=1,drFactor=1,rFactor=0,ddThetaFactor=-a*a)
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=1,drFactor=1,rFactor=0,ddThetaFactor=-a*a)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -403,7 +403,7 @@ def test_ddTheta(deg,npt):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=0,
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=0,drFactor=0,
                         rFactor=1,ddThetaFactor=-1,lNeumannIdx=mVals,uNeumannIdx=mVals)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -459,7 +459,7 @@ def test_phi(deg,npt):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = PoissonSolver(eta_grid,2*deg,bsplines[0],ddrFactor=0,drFactor=0,rFactor=1,ddThetaFactor=0,
+    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=0,drFactor=0,rFactor=1,ddThetaFactor=0,
                         lNeumannIdx=mVals,uNeumannIdx=mVals)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -510,8 +510,13 @@ def test_quasiNeutrality():
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    #~ ps = PoissonSolver(eta_grid,6,bsplines[0],lBoundary='neumann')
-    ps = PoissonSolver(eta_grid,6,bsplines[0],lNeumannIdx=mVals)
+    r = eta_grid[0]
+    
+    ps = DiffEqSolver(6,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,
+                ddrFactor = -1,
+                drFactor = -( 1/r - constants.kN0 * (1 - np.tanh( (r - constants.rp ) / \
+                                              constants.deltaRN0 )**2 ) ),
+                rFactor = 1/Te(r),ddThetaFactor = -1/r**2)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -546,7 +551,7 @@ def test_quasiNeutrality():
     assert((np.abs(phi._f-phi_exact._f)<0.1).all())
 
 @pytest.mark.parallel
-def test_PoissonSolver():
+def test_DiffEqSolver():
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
     
@@ -576,16 +581,16 @@ def test_PoissonSolver():
     
     df = DensityFinder(3,grid.getSpline(3))
     
-    df.getRho(grid,rho)
+    df.getPerturbedRho(grid,rho)
     
-    psolver = PoissonSolver(grid.eta_grid,6,rho.getSpline(0))
+    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0))
     
-    psolver.getModes(rho)
+    #~ psolver.getModes(rho)
     
-    rho.setLayout('mode_solve')
+    #~ rho.setLayout('mode_solve')
     
-    psolver.solveEquation(phi,rho)
+    #~ psolver.solveEquation(phi,rho)
     
-    phi.setLayout('v_parallel')
+    #~ phi.setLayout('v_parallel')
     
-    psolver.findPotential(phi)
+    #~ psolver.findPotential(phi)
