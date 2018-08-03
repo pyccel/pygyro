@@ -9,7 +9,7 @@ import warnings
 
 from ..model.grid                   import Grid
 from ..initialisation               import constants
-from ..initialisation.initialiser   import fEq, Te, n0
+from ..initialisation               import initialiser
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 
@@ -73,7 +73,7 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-fEq(r,self._points)))
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-initialiser.fEq(r,self._points)))
     
 class DiffEqSolver:
     """
@@ -316,26 +316,29 @@ class DiffEqSolver:
             self._coeffs[0] = 0
             self._coeffs[-1] = 0
             
-            for j,z in rho.getCoords(1):
-                # Calculate the coefficients related to rho
-                self._interpolator.compute_interpolant(rho.get1DSlice([i,j]),self._spline)
-                
-                # Save the solution to the preprepared buffer
-                # The boundary values of this buffer are already set if
-                # dirichlet boundary conditions are used
-                self._coeffs[self._coeff_range[I]] = spsolve(stiffnessMatrix, \
-                                                            self._massMatrix[self._stiffness_range[I],self._stiffness_range[I]] @ \
-                                                            self._spline.coeffs[self._coeff_range[I]])
-                
-                # Find the values at the greville points by interpolating
-                # the real and imaginary parts of the coefficients individually
-                self._real_spline.coeffs[:] = np.real(self._coeffs)
-                reals = self._real_spline.eval(rho.getCoordVals(2))
-                
-                self._real_spline.coeffs[:] = np.imag(self._coeffs)
-                imags = self._real_spline.eval(rho.getCoordVals(2))
-                
-                phi.get1DSlice([i,j])[:] = reals+1j*imags
+            self._solveMode(phi,rho,stiffnessMatrix,i,I)
+            
+    def _solveMode(self, phi: Grid, rho: Grid, stiffnessMatrix: sparse.csc.csc_matrix, i: int, I: int):
+        for j,z in rho.getCoords(1):
+            # Calculate the coefficients related to rho
+            self._interpolator.compute_interpolant(rho.get1DSlice([i,j]),self._spline)
+            
+            # Save the solution to the preprepared buffer
+            # The boundary values of this buffer are already set if
+            # dirichlet boundary conditions are used
+            self._coeffs[self._coeff_range[I]] = spsolve(stiffnessMatrix, \
+                                                        self._massMatrix[self._stiffness_range[I],self._stiffness_range[I]] @ \
+                                                        self._spline.coeffs[self._coeff_range[I]])
+            
+            # Find the values at the greville points by interpolating
+            # the real and imaginary parts of the coefficients individually
+            self._real_spline.coeffs[:] = np.real(self._coeffs)
+            reals = self._real_spline.eval(rho.getCoordVals(2))
+            
+            self._real_spline.coeffs[:] = np.imag(self._coeffs)
+            imags = self._real_spline.eval(rho.getCoordVals(2))
+            
+            phi.get1DSlice([i,j])[:] = reals+1j*imags
     
     def findPotential( self, phi: Grid ):
         """
@@ -358,3 +361,137 @@ class DiffEqSolver:
                 mode=ifft(vec,overwrite_x=True)
                 vec[:]=mode
 
+class QuasiNeutralitySolver(DiffEqSolver):
+    """
+    QuasiNeutralitySolver: Class used to solve the equation resulting
+    from the quasi-neutrality equation. It contains
+    functions to handle the discrete Fourier transforms and a function
+    which uses the finite elements method to solve the equation in Fourier
+    space
+    
+    -[d_r^2+( 1/r+g'(r)/g(r) )d_r+1/r^2 d_\theta^2]\phi 
+    + 1/(g\lambda_D^2) [\phi-\chi \langle\phi\rangle_\theta]=rho/g
+    
+    Parameters
+    ----------
+    eta_grid : list of array_like
+        The coordinates of the grid points in each dimension
+    
+    degree : int
+        The degree of the highest degree polynomial function which will
+        be exactly integrated
+
+    rspline : BSplines
+        A spline along the r direction
+    
+    adiabaticElectrons : bool - optional
+        Indicates whether the electrons are considered to have an adiabatic
+        response. If this is false then it is assumed 1/\lambda_D^2=0,
+        the electrons are a kinetic species and their contribution will
+        appear in the perturbed density
+        Default is True
+    
+    chi: int
+        The parameter indicated in the equation.
+        Its value is either 0 or 1.
+        This parameter is required if adiabaticElectrons = True otherwise
+        it will be ignored.
+    
+    n0 : function handle - optional
+        The ion/electron density at equilibrium
+        Default is initialiser.n0
+    
+    B: float - optional
+        The intensity of the equilibrium magnetic field
+        Default is 1
+    
+    n0derivNormalised: function handle - optional
+        n_0'(r)/n_0(r) where n_0(r) is the ion/electron density at equilibrium
+        Default is initialiser.n0derivNormalised
+    
+    n0deriv: function handle - optional
+        n_0'(r) where n_0(r) is the ion/electron density at equilibrium
+        If n0derivNormalised is provided this will be ignored
+        Default is initialiser.n0derivNormalised*n0
+    
+    Te: function handle - optional
+        The temperature of the electrons
+        This parameter will be ignored if adiabaticElectrons = False.
+        Default is initialiser.Te
+
+    """
+    def __init__( self, eta_grid: list, degree: int, rspline: BSplines, adiabaticElectrons: bool = True,
+                    *args,**kwargs):
+        r = eta_grid[0]
+        
+        n0 = kwargs.pop('n0',initialiser.n0)
+        B = kwargs.pop('B',1.0)
+        if ('n0derivNormalised' in kwargs):
+            n0derivNormalised = kwargs.pop('n0derivNormalised',initialiser.n0derivNormalised)
+        elif ('n0deriv' in kwargs):
+            n0derivNormalised = lambda r:kwargs.pop('n0deriv')(r)/n0(r)
+        else:
+            n0derivNormalised = initialiser.n0derivNormalised
+        
+        if (not adiabaticElectrons):
+            DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
+                        drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
+                        ddThetaFactor = lambda r:-1/r**2,
+                        rhoFactor = lambda r:B*B/n0(r))
+            
+            self._stiffness0 = self._stiffnessMatrix
+        else:
+            assert('chi' in kwargs)
+            chi = kwargs.pop('chi')
+            Te = kwargs.pop('Te',initialiser.Te)
+            
+            DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
+                        drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
+                        ddThetaFactor = lambda r:-1/r**2,
+                        rFactor = lambda r: B*B/Te(r),
+                        rhoFactor = lambda r:B*B/n0(r))
+            
+            if (chi==0):
+                self._stiffness0 = self._stiffnessMatrix
+            elif (chi==1):
+                self._stiffness0 = self._dPhidPsi + self._dPhiPsi
+            else:
+                raise ValueError("The argument chi must be either 0 or 1")
+    
+    def solveEquation( self, phi: Grid, rho: Grid ):
+        """
+        Solve the differential equation.
+        The equation is solved in Fourier space. The application of the
+        Fourier transform and inverse Fourier transform is not handled 
+        by this function
+        
+        Parameters
+        ----------
+        phi : Grid
+            The grid in which the calculated values of the Fourier transform
+            of the unknown will be stored
+        
+        rho : Grid
+            A grid containing the values of the the right hand side of the
+            differential equation.
+        
+        """
+        
+        assert(rho.getLayout(rho.currentLayout).dims_order[-1]==0)
+        
+        for i,I in enumerate(rho.getGlobalIdxVals(0)):
+            #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
+            # For each mode on this process, create the necessary matrix
+            if (self._mVals[I]==0):
+                stiffnessMatrix = self._stiffness0
+            else:
+                stiffnessMatrix = (self._stiffnessMatrix - self._mVals[I]*self._k2PhiPsi) \
+                                    [self._stiffness_range[I],self._stiffness_range[I]]
+            
+            # Set Dirichlet boundary conditions
+            # In the case of Neumann boundary conditions these values
+            # will be overwritten
+            self._coeffs[0] = 0
+            self._coeffs[-1] = 0
+            
+            self._solveMode(phi,rho,stiffnessMatrix,i,I)
