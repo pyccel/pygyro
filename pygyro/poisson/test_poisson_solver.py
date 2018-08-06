@@ -2,6 +2,7 @@ from mpi4py                 import MPI
 import numpy                as np
 import pytest
 from math                   import pi
+from scipy.integrate        import trapz
 
 from ..model.process_grid           import compute_2d_process_grid
 from ..model.layout                 import LayoutSwapper, getLayoutHandler
@@ -599,3 +600,60 @@ def test_DiffEqSolver():
     
     qnSolver.findPotential(phi)
 
+@pytest.mark.serial
+@pytest.mark.parametrize( "deg", [2,3,4,5] )
+def test_BasicPoissonEquation_exact(deg):
+    npt = 16
+    
+    npts = [npt,8,4]
+    #~ domain = [[1,15],[0,2*pi],[0,1]]
+    domain = [[1,3],[0,2*pi],[0,1]]
+    degree = [deg,3,3]
+    period = [False,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'mode_solve': [1,2,0]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
+    
+    ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[1].size,drFactor=lambda r:0,
+                        rFactor=lambda r:0,ddThetaFactor=lambda r:0)
+    
+    phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
+    
+    x = eta_grid[0]
+    
+    coeffs = np.array([*np.random.randint(-9,10,size=deg-2),1])
+    C=np.sum(coeffs*np.power(domain[0][0],np.arange(2,deg+1)))
+    D=np.sum(coeffs*np.power(domain[0][1],np.arange(2,deg+1)))
+    coeff2=(D-C)/(domain[0][0]-domain[0][1])
+    coeff1=-D-coeff2*domain[0][1]
+    coeffs=np.array([coeff1,coeff2,*coeffs])
+    
+    for i,q in rho.getCoords(0):
+        plane = rho.get2DSlice([i])
+        plane[:]=np.sum(coeffs[2:]*np.power(np.atleast_2d(x).T,np.arange(deg-1))*np.arange(2,deg+1)*np.arange(1,deg),axis=1)
+        plane = phi_exact.get2DSlice([i])
+        plane[:] = -np.sum(coeffs*np.power(np.atleast_2d(x).T,np.arange(deg+1)),axis=1)
+    
+    ps.solveEquation(phi,rho)
+    
+    spline = Spline1D(bsplines[0])
+    interpolator = SplineInterpolator1D(bsplines[0])
+    
+    x = eta_grid[0]
+    
+    err=(phi._f-phi_exact._f)[0,0]
+    l2 = np.sqrt(trapz(np.real(err*err.conj()),x))
+    lInf = np.max(np.abs(phi._f-phi_exact._f))
+    
+    assert(l2<1e-10)
+    assert(lInf<1e-10)
