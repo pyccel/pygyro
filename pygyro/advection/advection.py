@@ -111,7 +111,7 @@ class ParallelGradient:
             for i,l in enumerate(self._shifts):
                 thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota,r)
     
-    def parallel_gradient( self, phi_r: np.ndarray, i : int ):
+    def parallel_gradient( self, phi_r: np.ndarray, i : int, der: np.ndarray ):
         """
         Get the gradient of a function in the direction parallel to the
         flux surface
@@ -132,7 +132,8 @@ class ParallelGradient:
         else:
             bz=self._bz
             thetaVals = self._thetaVals
-        der=np.zeros_like(phi_r)
+        assert(der.shape==phi_r.shape)
+        der[:]=0
         
         # For each value of z interpolate the spline along theta and add
         # the value multiplied by the corresponding coefficient to the
@@ -140,19 +141,19 @@ class ParallelGradient:
         # This is split into three steps to avoid unnecessary modulo operations
         
         for i in range(self._fwdSteps):
-            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[:,(i-s)%self._nz]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
-            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[:,(i-s)]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                der[(i-s),:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._nz-self._bkwdSteps,self._nz):
-            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[:,(i-s)%self._nz]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         der*= ( bz * self._inv_dz )
         

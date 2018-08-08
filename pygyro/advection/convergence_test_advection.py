@@ -9,7 +9,7 @@ from ..initialisation.initialiser   import fEq
 from .advection                     import *
 from ..                             import splines as spl
 from ..initialisation               import constants
-
+"""
 def gaussLike(x):
     return np.cos(pi*x*0.1)**4
 
@@ -416,7 +416,7 @@ def test_fluxAdvection():
         print(str.format('{0:.2f}',linf[i+1]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
         print("}$ & ",str.format('{0:.2f}',linfOrder[i])," \\\\")
         print("\\hline")
-
+"""
 def Phi(theta,z):
     #return np.cos(z*pi*0.1) + np.sin(theta)
     return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
@@ -450,13 +450,14 @@ def test_Phi_deriv_dtheta():
         bz = dz/np.sqrt(dz**2+dtheta**2)
         btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
-        phiVals = np.empty([npts[1],npts[2]])
-        phiVals[:] = Phi(np.atleast_2d(eta_grid[1]).T,eta_grid[2])
+        phiVals = np.empty([npts[2],npts[1]])
+        phiVals[:] = Phi(eta_grid[1][None,:],eta_grid[2][:,None])
         
         pGrad = ParallelGradient(spline_theta,eta_grid,iota)
         
-        approxGrad = pGrad.parallel_gradient(phiVals,0)
-        exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
+        approxGrad = np.empty([npts[2],npts[1]])
+        pGrad.parallel_gradient(phiVals,0,approxGrad)
+        exactGrad = dPhi(eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
         
         err = approxGrad-exactGrad
         
@@ -514,13 +515,14 @@ def test_Phi_deriv_dz():
         bz = dz/np.sqrt(dz**2+dtheta**2)
         btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
-        phiVals = np.empty([npts[1],npts[2]])
-        phiVals[:] = Phi(np.atleast_2d(eta_grid[1]).T,eta_grid[2])
+        phiVals = np.empty([npts[2],npts[1]])
+        phiVals[:] = Phi(eta_grid[1][None,:],eta_grid[2][:,None])
         
         pGrad = ParallelGradient(spline_theta,eta_grid,iota)
         
-        approxGrad = pGrad.parallel_gradient(phiVals,0)
-        exactGrad = dPhi(np.atleast_2d(eta_grid[1]).T,eta_grid[2],btheta,bz)
+        approxGrad = np.empty([npts[2],npts[1]])
+        pGrad.parallel_gradient(phiVals,0,approxGrad)
+        exactGrad = dPhi(eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
         
         err = approxGrad-exactGrad
         
