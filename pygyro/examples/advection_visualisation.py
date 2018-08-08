@@ -18,12 +18,13 @@ N=10
 
 if (rank!=drawRank):
     
-    fluxAdv = fluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline())
-    vParAdv = vParallelAdvection(grid.eta_grid, grid.getSpline(3))
-    polAdv = poloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
-    
     dt=1
     halfStep = dt*0.5
+    
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),
+                                grid.getLayout('flux_surface'),halfStep)
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
+    polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
     phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
@@ -40,7 +41,7 @@ if (plot.listen()==0):
 for n in range(N):
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
-            fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+            fluxAdv.step(grid.get2DSlice([i,j]),j)
     
     print("rank ",rank," has completed flux step 1")
         
@@ -74,7 +75,7 @@ for n in range(N):
     
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
-            fluxAdv.step(grid.get2DSlice([i,j]),halfStep,v)
+            fluxAdv.step(grid.get2DSlice([i,j]),j)
     
     print("rank ",rank," has completed flux step 2")
     
