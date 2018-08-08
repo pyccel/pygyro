@@ -65,8 +65,8 @@ class DensityFinder:
             density will be stored
         
         """
-        assert(grid.currentLayout=="v_parallel")
-        assert(rho.currentLayout=="v_parallel")
+        assert(grid.getLayout(grid.currentLayout).dims_order==[0,2,1,3])
+        assert(rho.getLayout(rho.currentLayout).dims_order==[0,2,1])
         
         for i,r in grid.getCoords(0):
             for j,z in grid.getCoords(1):
