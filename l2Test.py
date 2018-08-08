@@ -19,8 +19,8 @@ rank = comm.Get_rank()
 
 npts = [20,20,10,8]
 
-tEnd = 100
-tN = 10
+tEnd = 10
+tN = 1
 
 dt=tEnd/tN
 
@@ -165,7 +165,7 @@ pr.disable()
 s = io.StringIO()
 ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
 ps.print_stats()
-print(s.getvalue())
+print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
 
 
@@ -193,10 +193,14 @@ if (rank==0):
     
     t=np.linspace(0,tEnd,tN+1)
     
-    plt.figure()
-    plt.plot(t,l2Result)
-    plt.xlabel('time [s]')
-    plt.ylabel('$|\phi|_2$')
-    plt.show()
+    data = np.array([t,l2Result]).T
+    
+    print(data, file=open("l2Test.txt".format(rank), "w"))
+    
+    #~ plt.figure()
+    #~ plt.plot(t,l2Result)
+    #~ plt.xlabel('time [s]')
+    #~ plt.ylabel('$\|\phi\|_2$')
+    #~ plt.show()
 
 
