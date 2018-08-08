@@ -1,6 +1,9 @@
 from mpi4py import MPI
 
+import numpy    as np
+
 from pygyro.model.layout                import LayoutSwapper, getLayoutHandler
+from pygyro.model.grid                  import Grid
 from pygyro.initialisation.setups       import setupCylindricalGrid
 from pygyro.advection.advection         import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
 from pygyro.poisson.poisson_solver      import DensityFinder, QuasiNeutralitySolver
@@ -27,10 +30,12 @@ fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
 vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
 parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid)
+parGradVals = np.empty([npts[2],npts[1]])
 
 layout_poisson   = {'v_parallel_2d': [0,2,1],
                     'mode_solve'   : [1,2,0]}
 layout_advection = {'poloidal'     : [2,1,0],
+                    'intermediate' : [0,1,2],
                     'v_parallel_1d': [0,2,1]}
 
 nprocs = distribFunc.getLayout(distribFunc.currentLayout).nprocs[:-1]
@@ -47,7 +52,8 @@ rho = Grid(distribFunc.eta_grid[:3],distribFunc.getSpline(slice(0,3)),
 
 density = DensityFinder(6,distribFunc.getSpline(0))
 
-QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0))
+QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0),
+                                chi=0)
 
 l2Phi = np.zeros(tN+1)
 
@@ -67,6 +73,7 @@ for ti in range(tN):
     density.getPerturbedRho(distribFunc,rho)
     QNSolver.getModes(rho)
     rho.setLayout('mode_solve')
+    phi.setLayout('mode_solve')
     QNSolver.solveEquation(phi,rho)
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
@@ -84,10 +91,10 @@ for ti in range(tN):
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
-        der = parGrad.parallel_gradient(phi.get2DSlice([i]),i)
+        parGrad.parallel_gradient(phi.get2DSlice([i]),i,parGradVals)
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,der[j,k],r)
+                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
     distribFunc.setLayout('poloidal')
     for i,v in distribFunc.getCoords(0):
         for j,z in distribFunc.getCoords(1):
@@ -98,6 +105,7 @@ for ti in range(tN):
     density.getPerturbedRho(distribFunc,rho)
     QNSolver.getModes(rho)
     rho.setLayout('mode_solve')
+    phi.setLayout('mode_solve')
     QNSolver.solveEquation(phi,rho)
     phi.setLayout('v_parallel')
     rho.setLayout('v_parallel')
@@ -110,8 +118,8 @@ for ti in range(tN):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),halfStep,v)
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
-    
     for i,r in distribFunc.getCoords(0):
+        parGrad.parallel_gradient(phi.get2DSlice([i]),i,parGradVals)
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,0,r)
@@ -135,6 +143,7 @@ distribFunc.setLayout('v_parallel')
 density.getPerturbedRho(distribFunc,rho)
 QNSolver.getModes(rho)
 rho.setLayout('mode_solve')
+phi.setLayout('mode_solve')
 QNSolver.solveEquation(phi,rho)
 phi.setLayout('v_parallel_2d')
 rho.setLayout('v_parallel_2d')
