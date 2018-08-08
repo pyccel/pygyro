@@ -148,7 +148,7 @@ class Grid(object):
         assert(self.hasSaveMemory)
         assert(self.notSaved)
         
-        self._my_data[self._saveIdx] = self._f[:]
+        self._my_data[self._saveIdx][:self._layout.size] = self._f[:].flatten()
         self._savedLayout = self._current_layout_name
         
         self.notSaved = False
@@ -166,6 +166,7 @@ class Grid(object):
         """
         assert(self.hasSaveMemory)
         assert(not self.notSaved)
+        
         self._dataIdx, self._saveIdx = self._saveIdx, self._dataIdx
         self.notSaved = True
         self._current_layout_name = self._savedLayout
