@@ -1,6 +1,10 @@
-from mpi4py import MPI
+from mpi4py                 import MPI
+from matplotlib             import rc
 
-import numpy    as np
+import numpy                as np
+import matplotlib.pyplot    as plt
+
+import cProfile, pstats, io
 
 from pygyro.model.layout                    import LayoutSwapper, getLayoutHandler
 from pygyro.model.grid                      import Grid
@@ -15,7 +19,7 @@ rank = comm.Get_rank()
 
 npts = [20,20,10,8]
 
-tEnd = 10
+tEnd = 100
 tN = 10
 
 dt=tEnd/tN
@@ -71,7 +75,14 @@ dz = z[1]-z[0]
 rCalc = (r[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 drCalc = (dr[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 
+
+#Setup profiling tools
+pr = cProfile.Profile()
+pr.enable()
+
+
 for ti in range(tN):
+    print("t=",ti*dt)
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -82,7 +93,6 @@ for ti in range(tN):
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
-    print("done step 1")
     
     # Calculate diagnostic quantity |phi|_2
     l2Phi[ti]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
@@ -108,7 +118,6 @@ for ti in range(tN):
     for i,v in enumerate(distribFunc.getCoordVals(0)[1:],1):
         for j,z in distribFunc.getCoords(1):
             polAdv.step(distribFunc.get2DSlice([i,j]),halfStep,phiSplines[j],v)
-    print("done step 2")
     
     # Find phi from f^n+1/2 by solving QN eq again
     distribFunc.setLayout('v_parallel')
@@ -120,7 +129,6 @@ for ti in range(tN):
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
-    print("done step 3")
     
     # Compute f^n+1 using strang splitting
     distribFunc.restoreGridValues() # restored from flux_surface layout
@@ -130,15 +138,15 @@ for ti in range(tN):
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
-        parGrad.parallel_gradient(phi.get2DSlice([i]),i,parGradVals)
+        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals)
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,0,r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
     for j,z in distribFunc.getCoords(1):
-        interpolator.compute_interpolant(phi.get2DSlice([j]),phiSplines[j])
-        polAdv.step(distribFunc.get2DSlice([i,j]),halfStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
+        interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),phiSplines[j])
+        polAdv.step(distribFunc.get2DSlice([0,j]),halfStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
     for i,v in enumerate(distribFunc.getCoordVals(0)[1:],1):
         for j,z in distribFunc.getCoords(1):
             polAdv.step(distribFunc.get2DSlice([i,j]),halfStep,phiSplines[j],v)
@@ -151,7 +159,16 @@ for ti in range(tN):
     for i,r in distribFunc.getCoords(0):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
-    print("done step 4")
+
+#End profiling and print results
+pr.disable()
+s = io.StringIO()
+ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+ps.print_stats()
+print(s.getvalue())
+
+
+
 
 # Find phi from f^n by solving QN eq
 distribFunc.setLayout('v_parallel')
@@ -165,7 +182,7 @@ rho.setLayout('v_parallel_2d')
 QNSolver.findPotential(phi)
 
 # Calculate diagnostic quantity |phi|_2
-l2Phi[tN]=np.sum(phi._f**2*drCalc*dqCalc*dzCalc)
+l2Phi[tN]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
 
 l2Result=np.zeros(tN+1)
 
