@@ -15,9 +15,11 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     Setup using radial topology can be initialised using the following arguments:
     
     Compulsory arguments:
-    npts   -- number of points in each direction 
-              (radial, tangential, axial, v parallel)
-    layout -- parallel distribution start configuration
+    npts                -- number of points in each direction 
+                            (radial, tangential, axial, v parallel)
+    layout              -- parallel distribution start configuration
+    allocateSaveMemory  -- boolean indicating whether the grid can temporarily save a dataset
+    dtype               -- The data type used by the grid
     
     Optional arguments:
     rMin   -- minimum radius, a float. (default constants.rMin)
@@ -60,6 +62,8 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
+    allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
+    dtype=kwargs.pop('dtype',float)
     
     for name,value in kwargs.items():
         warnings.warn("{0} is not a recognised parameter for setupCylindricalGrid".format(name))
@@ -99,7 +103,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
     # Create grid
-    grid = Grid(eta_grids,bsplines,remapper,layout,comm)
+    grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
     
     if (layout=='flux_surface'):
         initialise_flux_surface(grid,m,n,eps)
