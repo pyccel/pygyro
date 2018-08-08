@@ -149,6 +149,7 @@ class Grid(object):
         assert(self.notSaved)
         
         self._my_data[self._saveIdx] = self._f[:]
+        self._savedLayout = self._current_layout_name
         
         self.notSaved = False
     
@@ -167,3 +168,6 @@ class Grid(object):
         assert(not self.notSaved)
         self._dataIdx, self._saveIdx = self._saveIdx, self._dataIdx
         self.notSaved = True
+        self._current_layout_name = self._savedLayout
+        self._layout = self._layout_manager.getLayout(self._current_layout_name)
+        self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
