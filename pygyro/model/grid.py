@@ -9,6 +9,7 @@ class Grid(object):
     def __init__( self, eta_grid: list, bsplines: list, layouts: LayoutManager,
                     chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD, **kwargs):
         dtype = kwargs.pop('dtype',float)
+        self.hasSaveMemory = kwargs.pop('allocateSaveMemory',False)
         
         # get MPI values
         self.global_comm = comm
@@ -19,10 +20,18 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
-                         np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+        if (self.hasSaveMemory):
+            self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+            self.notSaved = True
+        else:
+            self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+        
         self._dataIdx = 0
         self._buffIdx = 1
+        self._saveIdx = 2
         
         # Remember views on the data
         shapes = layouts.availableLayouts
@@ -132,130 +141,29 @@ class Grid(object):
         """
         return self._current_layout_name
     
-    ####################################################################
-    ####                   Functions for figures                    ####
-    ####################################################################
-    
-    
-    def getSliceFromDict(self,d : dict, comm: MPI.Comm, rank: int):
+    def saveGridValues( self ):
+        """ Save current values into a buffer.
+            This location is protected until it is freed or restored
         """
-        Utility function to access getSliceForFig without using 6 if statements
-        The function takes a dictionary which plots the fixed dimensions to the
-        index at which they are fixed
+        assert(self.hasSaveMemory)
+        assert(self.notSaved)
         
-        >>> getSliceFromDict({self.Dimension.ETA3: 5, self.Dimension.ETA4 : 2})
-        """
-        dim1 = d.get(self._layout.dims_order[0],None)
-        dim2 = d.get(self._layout.dims_order[1],None)
-        dim3 = d.get(self._layout.dims_order[2],None)
-        dim4 = d.get(self._layout.dims_order[3],None)
-        return self.getSliceForFig([dim1,dim2,dim3,dim4],comm,rank)
+        self._my_data[self._saveIdx] = self._f[:]
+        
+        self.notSaved = False
     
-    def getSliceForFig(self, dims: list, comm: MPI.Comm, rank: int):
+    def freeGridSave( self ):
+        """ Signal that the saved grid data is no longer needed and can
+            be overwritten
         """
-        Class to retrieve a 2D slice. Any values set to None will vary.
-        Any dimensions not set to None will be fixed at the global index provided
+        assert(self.hasSaveMemory)
+        assert(not self.notSaved)
+        self.notSaved = True
+    
+    def restoreGridValues( self ):
+        """ Restore the values from the saved grid data
         """
-        
-        # helper variables to correctly reshape the slice after gathering
-        dimSize=[]
-        dim_slices = []
-        shape = []
-        
-        # Get slices for each dimension (eta2_slice, eta1_slice, eta3_slice, eta4_slice)
-        # If value is None then all values along that dimension should be returned
-        # this means that the size and dimension index will be stored
-        # If value is not None then only values at that index should be returned
-        # if that index cannot be found on the current process then None will
-        # be stored
-        
-        for i,dim_i in enumerate(dims):
-            if (dim_i==None):
-                dim_slices.append(slice(0,self._layout.ends[i]-self._layout.starts[i]))
-                dimSize.append(self._layout.ends[i]-self._layout.starts[i])
-            else:
-                if (dim_i>=self._layout.starts[i] and dim_i<self._layout.ends[i]):
-                    dim_slices.append(dim_i-self._layout.starts[i])
-                    dimSize.append(1)
-                else:
-                    dim_slices.append(None)
-                    dimSize.append(None)
-        
-        # if the data is not on this process then at least one of the slices is equal to None
-        # in this case send something of size 0
-        sendInfo = self._layout_manager.mpiCoords
-        if (None in dim_slices):
-            toSend = np.ndarray(0)
-            sendInfo.append(0)
-        else:
-            # set sendSize and data to be sent
-            toSend = self._f[dim_slices].flatten()
-            sendInfo.append(toSend.size)
-        
-        mpi_data=comm.gather(sendInfo,root=rank)
-        
-        if (comm.Get_rank()==rank):
-            sizes = [coords.pop() for coords in mpi_data]
-            # use sizes to get start points
-            starts=np.zeros(len(sizes),int)
-            starts[1:]=np.cumsum(sizes[:comm.Get_size()-1])
-            
-            # save memory for gatherv to fill
-            sliceSize = np.sum(sizes)
-            mySlice = np.empty(sliceSize, dtype=float)
-            
-            # Gather information from all ranks to rank 0 in the
-            # direction of the comm
-            comm.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), rank)
-            return (self._layout,starts,mpi_data,mySlice)
-        else:
-            # Gather information from all ranks
-            comm.Gatherv(toSend,toSend, rank)
-    
-    def getMin(self,drawingRank,axis = None,fixValue = None):
-        
-        if (self._f.size==0):
-            return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
-        else:
-            # if we want the total of all points on the grid
-            if (axis==None and fixValue==None):
-                # return the min of the min found on each process
-                return self.global_comm.reduce(np.amin(self._f),op=MPI.MIN,root=drawingRank)
-            
-            # if we want the total of all points on a (N-1)D slice where the
-            # value of eta_i is fixed ensure that the required index is
-            # covered by this process
-            dim = self._layout.inv_dims_order[axis]
-            if (fixValue>=self._layout.starts[dim] and 
-                fixValue<self._layout.ends[dim]):
-                idx = (np.s_[:],) * dim + (fixValue-self._layout.starts[dim],)
-                return self.global_comm.reduce(np.amin(self._f[idx]),op=MPI.MIN,root=drawingRank)
-            
-            # if the data is not on this process then send the largest possible value of f
-            # this way min will always choose an alternative
-            else:
-                return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
-    
-    def getMax(self,drawingRank,axis = None,fixValue = None):
-        
-        if (self._f.size==0):
-            return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
-        else:
-            # if we want the total of all points on the grid
-            if (axis==None and fixValue==None):
-                # return the max of the max found on each process
-                return self.global_comm.reduce(np.amax(self._f),op=MPI.MAX,root=drawingRank)
-            
-            # if we want the total of all points on a (N-1)D slice where the
-            # value of eta_i is fixed ensure that the required index is
-            # covered by this process
-            dim = self._layout.inv_dims_order[axis]
-            if (fixValue>=self._layout.starts[dim] and 
-                fixValue<self._layout.ends[dim]):
-                idx = (np.s_[:],) * dim + (fixValue-self._layout.starts[dim],)
-                return self.global_comm.reduce(np.amax(self._f[idx]),op=MPI.MAX,root=drawingRank)
-            
-            # if the data is not on this process then send the smallest possible value of f
-            # this way max will always choose an alternative
-            else:
-                return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
+        assert(self.hasSaveMemory)
+        assert(not self.notSaved)
+        self._dataIdx, self._saveIdx = self._saveIdx, self._dataIdx
+        self.notSaved = True

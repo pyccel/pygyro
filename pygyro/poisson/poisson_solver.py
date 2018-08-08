@@ -5,10 +5,11 @@ import scipy.sparse                 as sparse
 from scipy.sparse.linalg            import spsolve
 import numpy                        as np
 from numpy.polynomial.legendre      import leggauss
+import warnings
 
 from ..model.grid                   import Grid
 from ..initialisation               import constants
-from ..initialisation.initialiser   import fEq, Te, n0
+from ..initialisation               import initialiser
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 
@@ -49,9 +50,9 @@ class DensityFinder:
         self._interpolator = SplineInterpolator1D(spline)
         self._spline = Spline1D(spline)
     
-    def getRho ( self, grid: Grid , rho: Grid ):
+    def getPerturbedRho ( self, grid: Grid , rho: Grid ):
         """
-        Get the particle density
+        Get the perturbed particle density
 
         Parameters
         ----------
@@ -60,8 +61,8 @@ class DensityFinder:
             function
         
         rho : Grid
-            The grid in which the values of the particle density will be
-            stored
+            The grid in which the values of the perturbed particle
+            density will be stored
         
         """
         assert(grid.currentLayout=="v_parallel")
@@ -72,21 +73,21 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-fEq(r,self._points)))
-                rho_qv/=n0(r)
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-initialiser.fEq(r,self._points)))
     
-class PoissonSolver:
+class DiffEqSolver:
     """
-    PoissonSolver: Class used to solve a poisson equation. It contains
-    functions to handle the discrete Fourier transforms and a function
-    which uses the finite elements method to solve the equation in Fourier
-    space
+    DiffEqSolver: Class used to solve a differential equation of the form:
+    
+        A \partial_r^2 \phi + B \partial_r \phi + C \phi
+        + D \partial_\theta^2 \phi = E \rho
+    
+    It contains functions to handle the discrete Fourier transforms and
+    a function which uses the finite elements method to solve the equation
+    in Fourier space
 
     Parameters
     ----------
-    eta_grid : list of array_like
-        The coordinates of the grid points in each dimension
-    
     degree : int
         The degree of the highest degree polynomial function which will
         be exactly integrated
@@ -94,45 +95,48 @@ class PoissonSolver:
     rspline : BSplines
         A spline along the r direction
     
-    lBoundary : str - optional
-        The type of boundary condition on the lower boundary.
-        This should be either 'dirichlet' or 'neumann'. The value
-        associated with the condition is always 0.
-        Default is 'dirichlet'
+    nTheta : int
+        The number of points in the periodic direction
     
-    uBoundary : str - optional
-        The type of boundary condition on the upper boundary.
-        This should be either 'dirichlet' or 'neumann'. The value
-        associated with the condition is always 0.
-        Default is 'dirichlet'
+    lNeumannIdx : list - optional
+        The modes for which the boundary condition on the lower boundary
+        should be Neumann rather than Dirichlet.
+        Default is []
     
-    ddrFactor : float or array_like - optional
-        The factor in front of the double derivative of the electric
-        potential with respect to r.
-        Default is -1
+    uNeumannIdx : list - optional
+        The modes for which the boundary condition on the upper boundary
+        should be Neumann rather than Dirichlet.
+        Default is []
     
-    drFactor : float or array_like - optional
-        The factor in front of the derivative of the electric potential
-        with respect to r.
-        Default is kN0 * ( 1 + tanh( (r - rp)/deltaRN0 )**2 ) - 1/r
+    ddrFactor : function handle - optional
+        The factor in front of the double derivative of the unknown with
+        respect to r. (A in the expression above)
+        Default is: lambda r: -1
     
-    rFactor : float or array_like - optional
-        The factor in front of the electric potential
-        Default is 1/Te(r)
+    drFactor : function handle - optional
+        The factor in front of the derivative of the unknown with respect
+        to r. (B in the expression above)
+        Default is: lambda r: 0
     
-    ddThetaFactor : float or array_like - optional
-        The factor in front of the double derivative of the electric
-        potential with respect to theta.
-        Default is -1/r**2
+    rFactor : function handle - optional
+        The factor in front of the unknown. (C in the expression above)
+        Default is: lambda r: 0
+    
+    ddThetaFactor : function handle - optional
+        The factor in front of the double derivative of the unknown with
+        respect to theta. (D in the expression above)
+        Default is: lambda r: -1
+    
+    rhoFactor : 
 
     """
-    def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                  lBoundary: str = 'dirichlet', uBoundary: str = 'dirichlet',*args,**kwargs):
+    def __init__( self, degree: int, rspline: BSplines, nTheta: int,
+                  lNeumannIdx: list = [], uNeumannIdx: list = [],*args,**kwargs):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
         
-        self._mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)**2
+        self._mVals = np.fft.fftfreq(nTheta,1/nTheta)
         
         # Calculate the points and weights required for the Gauss-Legendre
         # quadrature over the required domain
@@ -146,289 +150,120 @@ class PoissonSolver:
         
         # If dirichlet boundary conditions are used then assign the
         # required value on the boundary
-        if (lBoundary=='dirichlet'):
+        if (lNeumannIdx==[]):
             start_range = 1
-            self._coeffs[0] = 0
+            lBoundary = 'dirichlet'
         else:
             start_range = 0
-        if (uBoundary=='dirichlet'):
+            lBoundary = 'neumann'
+        if (uNeumannIdx==[]):
             end_range = rspline.nbasis-1
-            self._coeffs[end_range] = 0
+            excluded_end_pts = 1
+            uBoundary = 'dirichlet'
         else:
             end_range = rspline.nbasis
-        
-        # Save the access pattern for the calculated result.
-        # This ensures that the boundary conditions remain intact
-        self._coeff_range = slice(start_range,end_range)
+            excluded_end_pts = 0
+            uBoundary = 'neumann'
         
         # Calculate the size of the matrices required
         self._nUnknowns = end_range-start_range
         
-        if (rspline.nbasis > 4*rspline.degree):
-            maxEnd = self._nUnknowns-1
-            
-            # If there is a spline basis function which only overlaps with
-            # other spline basis functions of the same shape (i.e. no border
-            # spline basis functions) then the construction can be optimised
-            # by finding the values for that function then repeating those
-            # values along the diagonals
-            
-            # Create the storage for the diagonal values
-            massCoeffs = np.zeros((2*rspline.degree+1,))
-            dPhidPsiCoeffs = np.zeros((2*rspline.degree+1,))
-            dPhiPsiCoeffs = np.zeros((2*rspline.degree+1,))
-            
-            # Find the reference spline basis function
-            refSpline = rspline[2*rspline.degree]
-            
-            # Find the domain of this spline
-            start = rspline.degree
-            end = 2*rspline.degree+1
-            
-            # Evaluate the spline and the derivative of the spline at
-            # the points required for integration between each break point
-            vals = refSpline.eval(self._evalPts[start:end].flatten())
-            derivs = refSpline.eval(self._evalPts[start:end].flatten(),1)
-            
-            # Find the central diagonal
-            massCoeffs[rspline.degree] = np.sum( np.tile(self._weights,rspline.degree+1) * \
-                                                 multFactor * vals**2 )
-            
-            dPhidPsiCoeffs[rspline.degree] = np.sum( np.tile(self._weights,rspline.degree+1) * \
-                                                 multFactor * derivs**2 )
-            
-            dPhiPsiCoeffs[rspline.degree] = np.sum( np.tile(self._weights,rspline.degree+1) * \
-                                                 multFactor * derivs * vals )
-            
-            nPts = n*(rspline.degree+1)
-            for i in range(1,rspline.degree+1):
-                start_i = start + i
-                
-                diff=i*n
-                
-                # Find the i-th upper diagonal
-                massCoeffs[rspline.degree+i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
-                        vals[:nPts-diff] * vals[diff:] )
-                dPhidPsiCoeffs[rspline.degree+i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
-                        derivs[:nPts-diff] * derivs[diff:] )
-                dPhiPsiCoeffs[rspline.degree+i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
-                        vals[diff:] * derivs[:nPts-diff] )
-                
-                # Find the i-th lower diagonal
-                dPhiPsiCoeffs[rspline.degree-i]=np.sum( np.tile(self._weights,end-start_i) * multFactor * \
-                        vals[:nPts-diff] * derivs[diff:] )
-                # Find the i-th lower diagonal (for the symmetric matrices)
-                massCoeffs[rspline.degree-i]=massCoeffs[rspline.degree+i]
-                dPhidPsiCoeffs[rspline.degree-i]=dPhidPsiCoeffs[rspline.degree+i]
-            
-            # Create the diagonal matrices
-            # Diagonal matrices contain many 0 valued points so sparse
-            # matrices can be used to reduce storage
-            # Lil format is used to facilitate modifying the edge values
-            self._massMatrix = sparse.diags(massCoeffs,range(-rspline.degree,rspline.degree+1),
-                                         (self._nUnknowns,self._nUnknowns),'lil')
-            self._dPhidPsi = sparse.diags(dPhidPsiCoeffs,range(-rspline.degree,rspline.degree+1),
-                                         (self._nUnknowns,self._nUnknowns),'lil')
-            self._dPhiPsi = sparse.diags(dPhiPsiCoeffs,range(-rspline.degree,rspline.degree+1),
-                                         (self._nUnknowns,self._nUnknowns),'lil')
-            
-            # The values near the boundaries are not the same and must be handled separately
-            
-            # The first and last spline basis functions should only be
-            # included if the associated boundary condition is a neumann
-            # boundary condition
-            start_range=1
-            start_enum=0
-            if (lBoundary!=uBoundary):
-                # If only one boundary condition is neumann then the loop
-                # for that spline is carried out separately
-                if (lBoundary=='neumann'):
-                    i=0
-                    spline = rspline[i]
-                    
-                    for j in range(i,i+rspline.degree+1):
-                        # Calculate the required values
-                        self._massMatrix[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten()) * \
-                                    spline.eval(self._evalPts[:j+1].flatten()) )
-                        self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
-                                    spline.eval(self._evalPts[:j+1].flatten(),1) )
-                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten(),1) * \
-                                    spline.eval(self._evalPts[:j+1].flatten()) )
-                        self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,j+1) * multFactor * \
-                                rspline[j].eval(self._evalPts[:j+1].flatten()) * \
-                                    spline.eval(self._evalPts[:j+1].flatten(),1) )
-                        
-                        # Save the symmetric values
-                        self._massMatrix[j,i]=self._massMatrix[i,j]
-                        self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
-                    start_enum=1
-                    maxEnd=maxEnd+1
-                else:
-                    idx_i=0
-                    i=maxEnd
-                    spline = rspline[idx_i]
-                    
-                    for idx_j in range(idx_i,idx_i+rspline.degree+1):
-                        j=maxEnd-idx_j
-                        # Calculate the required values
-                        self._massMatrix[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
-                                    spline.eval(self._evalPts[:idx_j+1].flatten()) )
-                        self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
-                                    spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
-                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
-                                    spline.eval(self._evalPts[:idx_j+1].flatten()) )
-                        self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                                rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
-                                    spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
-                        
-                        # Save the symmetric values
-                        self._massMatrix[j,i]=self._massMatrix[i,j]
-                        self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
-                    maxEnd=maxEnd-1
-            elif (lBoundary=='neumann'):
-                # If both boundary conditions are neumann then the first
-                # and last basis spline can be handled in the same way
-                # as the other splines
-                start_range=0
-            
-            for i,idx_i in enumerate(range(start_range,rspline.degree+1+start_range),start_enum):
-                spline = rspline[idx_i]
-                
-                for j,idx_j in enumerate(range(idx_i,idx_i+rspline.degree+1),i):
-                    # Calculate the required values
-                    self._massMatrix[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
-                                spline.eval(self._evalPts[:idx_j+1].flatten()) )
-                    self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
-                                spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
-                    self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten(),1) * \
-                                spline.eval(self._evalPts[:idx_j+1].flatten()) )
-                    self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,idx_j+1) * multFactor * \
-                            rspline[idx_j].eval(self._evalPts[:idx_j+1].flatten()) * \
-                                spline.eval(self._evalPts[:idx_j+1].flatten(),1) )
-                    
-                    # Save the symmetric values
-                    self._massMatrix[j,i]=self._massMatrix[i,j]
-                    self._massMatrix[maxEnd-i,maxEnd-j]=self._massMatrix[i,j]
-                    self._massMatrix[maxEnd-j,maxEnd-i]=self._massMatrix[i,j]
-                    
-                    self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
-                    self._dPhidPsi[maxEnd-i,maxEnd-j]=self._dPhidPsi[i,j]
-                    self._dPhidPsi[maxEnd-j,maxEnd-i]=self._dPhidPsi[i,j]
-                    
-                    self._dPhiPsi[maxEnd-i,maxEnd-j]=self._dPhiPsi[j,i]
-                    self._dPhiPsi[maxEnd-j,maxEnd-i]=self._dPhiPsi[i,j]
-            
-            # Convert the matrices to diagonal storage for better
-            # addition/multiplication etc operations
-            self._massMatrix=self._massMatrix.todia()
-            self._dPhidPsi=self._dPhidPsi.todia()
-            self._dPhidPsi=self._dPhidPsi.todia()
-        else:
-            # Create the storage for the values
-            self._massMatrix = np.zeros((self._nUnknowns,self._nUnknowns))
-            self._dPhidPsi = np.zeros((self._nUnknowns,self._nUnknowns))
-            self._dPhiPsi = np.zeros((self._nUnknowns,self._nUnknowns))
-            
-            for i,s_i in enumerate(range(start_range,end_range)):
-                # For each spline, find the spline and its domain
-                spline = rspline[s_i]
-                start_i = max(0,s_i-rspline.degree)
-                end_i = min(rspline.ncells,s_i+1)
-                
-                for j,s_j in enumerate(range(s_i,end_range),i):
-                    # Verify if it overlaps with any other splines
-                    start_j = max(0,s_j-rspline.degree)
-                    
-                    if (start_j<end_i):
-                        # For overlapping splines find the domain of the overlap
-                        end_j = min(rspline.ncells,s_j+1)
-                        start = max(start_i,start_j)
-                        end = min(end_i,end_j)
-                        
-                        # Find the integral of the multiplication of these splines and
-                        # save the value in the appropriate place in the matrix
-                        self._massMatrix[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[s_j].eval(self._evalPts[start:end].flatten()) * \
-                                    spline.eval(self._evalPts[start:end].flatten()) )
-                        
-                        self._dPhidPsi[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[s_j].eval(self._evalPts[start:end].flatten(),1) * \
-                                    spline.eval(self._evalPts[start:end].flatten(),1) )
-                        
-                        self._dPhiPsi[i,j]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[s_j].eval(self._evalPts[start:end].flatten(),1) * \
-                                    spline.eval(self._evalPts[start:end].flatten()) )
-                        self._dPhiPsi[j,i]=np.sum( np.tile(self._weights,end-start) * multFactor * \
-                                rspline[s_j].eval(self._evalPts[start:end].flatten()) * \
-                                    spline.eval(self._evalPts[start:end].flatten(),1) )
-                        
-                        # Save the symmetric values
-                        self._massMatrix[j,i]=self._massMatrix[i,j]
-                        self._dPhidPsi[j,i]=self._dPhidPsi[i,j]
-            
-            # It is supposed that the matrices will usually be larger and
-            # will therefore not be created by this command. The method
-            # used elsewhere means that sparse diagonal matrices are
-            # initialised here so the sparse commands don't throw errors
-            self._massMatrix = sparse.dia_matrix(self._massMatrix)
-            self._dPhidPsi = sparse.dia_matrix(self._dPhidPsi)
-            self._dPhiPsi = sparse.dia_matrix(self._dPhiPsi)
+        # Save the access pattern for the calculated result.
+        # This ensures that the boundary conditions remain intact
+        self._coeff_range = [slice(                  0 if i in lNeumannIdx else 1,
+                                   rspline.nbasis - (0 if i in uNeumannIdx else 1))
+                             for i in self._mVals]
+        
+        self._stiffness_range = [slice(0 if i in lNeumannIdx else (1-start_range),
+                                   self._nUnknowns - (0 if i in uNeumannIdx else (1-excluded_end_pts)))
+                             for i in self._mVals]
+        
+        self._mVals*=self._mVals
         
         # Collect the factors in front of each element of the equation
-        r = eta_grid[0]
-        ddrFactor = kwargs.pop('ddrFactor',-1)
-        drFactor = kwargs.pop('drFactor',-( 1/r - constants.kN0 * \
-                                (1 - np.tanh( (r - constants.rp ) / \
-                                              constants.deltaRN0 )**2 ) ))
-        rFactor = kwargs.pop('rFactor',1/Te(r))
-        ddqFactor = kwargs.pop('ddThetaFactor',-1/r**2)
+        ddrFactor = kwargs.pop('ddrFactor',lambda r: -1)
+        drFactor = kwargs.pop('drFactor',lambda r: 0)
+        rFactor = kwargs.pop('rFactor',lambda r: 0)
+        ddqFactor = kwargs.pop('ddThetaFactor',lambda r: -1)
+        rhoFactor = kwargs.pop('rhoFactor',lambda r: 1)
+        
+        # The matrices are diagonal so the storage can be reduced if
+        # they are not stored in a full matrix.
+        # Create the storage for the diagonal values
+        massCoeffs = [np.zeros(rspline.nbasis-np.abs(i)) for i in range(-rspline.degree,1)]
+        # By extending with references to the lower diagonals the symmetrical
+        # nature of the matrix will be programatically ensured which
+        # allows the matrix to be built while only referring to upper diagonals
+        massCoeffs.extend(massCoeffs[-2::-1])
+        k2PhiPsiCoeffs = [np.zeros(rspline.nbasis-np.abs(i)) for i in range(-rspline.degree,1)]
+        k2PhiPsiCoeffs.extend(k2PhiPsiCoeffs[-2::-1])
+        PhiPsiCoeffs = [np.zeros(rspline.nbasis-np.abs(i)) for i in range(-rspline.degree,1)]
+        PhiPsiCoeffs.extend(PhiPsiCoeffs[-2::-1])
+        dPhidPsiCoeffs = [np.zeros(rspline.nbasis-np.abs(i)) for i in range(-rspline.degree,rspline.degree+1)]
+        dPhiPsiCoeffs = [np.zeros(rspline.nbasis-np.abs(i)) for i in range(-rspline.degree,rspline.degree+1)]
+        
+        for i in range(rspline.nbasis):
+            # For each spline, find the spline and its domain
+            spline = rspline[i]
+            start_i = max(0,i-rspline.degree)
+            end_i = min(rspline.ncells,i+1)
+            
+            for j,s_j in enumerate(range(i,min(i+rspline.degree+1,rspline.nbasis)),rspline.degree):
+                # For overlapping splines find the domain of the overlap
+                start_j = max(0,s_j-rspline.degree)
+                end_j = min(rspline.ncells,s_j+1)
+                start = max(start_i,start_j)
+                end = min(end_i,end_j)
+                
+                evalPts=self._evalPts[start:end].flatten()
+                
+                # Find the integral of the multiplication of these splines
+                # and their coefficients and save the value in the
+                # appropriate place for the matrix
+                massCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        rhoFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
+                k2PhiPsiCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        ddqFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
+                PhiPsiCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        rFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
+                dPhidPsi = np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        -ddrFactor(evalPts) * rspline[s_j].eval(evalPts,1) * spline.eval(evalPts,1) * evalPts )
+                dPhidPsiCoeffs[j][i] = dPhidPsi + \
+                        np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        -ddrFactor(evalPts) * rspline[s_j].eval(evalPts,1) * spline.eval(evalPts) )
+                dPhidPsiCoeffs[rspline.degree*2-j][i] = dPhidPsi + \
+                        np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        -ddrFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts,1) )
+                dPhiPsiCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        drFactor(evalPts) * rspline[s_j].eval(evalPts,1) * spline.eval(evalPts) * evalPts )
+                dPhiPsiCoeffs[rspline.degree*2-j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
+                        drFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts,1) * evalPts )
+        
+        # Create the diagonal matrices
+        # Diagonal matrices contain many 0 valued points so sparse
+        # matrices can be used to reduce storage
+        # Csc format is used to allow slicing
+        self._massMatrix = sparse.diags(massCoeffs,range(-rspline.degree,rspline.degree+1),
+                                     (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,:]
+        self._k2PhiPsi = sparse.diags(k2PhiPsiCoeffs,range(-rspline.degree,rspline.degree+1),
+                                     (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,start_range:end_range]
+        self._PhiPsi = sparse.diags(PhiPsiCoeffs,range(-rspline.degree,rspline.degree+1),
+                                     (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,start_range:end_range]
+        self._dPhidPsi = sparse.diags(dPhidPsiCoeffs,range(-rspline.degree,rspline.degree+1),
+                                     (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,start_range:end_range]
+        self._dPhiPsi = sparse.diags(dPhiPsiCoeffs,range(-rspline.degree,rspline.degree+1),
+                                     (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,start_range:end_range]
         
         for name,value in kwargs.items():
-            warnings.warn("{0} is not a recognised parameter for setupCylindricalGrid".format(name))
-        
-        # If the factors are vectors and the boundary is a dirichlet boundary
-        # then the first value is not needed
-        if (lBoundary=='dirichlet'):
-            if (hasattr(ddrFactor,'__len__')):
-                ddrFactor = ddrFactor[1:]
-            if (hasattr(drFactor,'__len__')):
-                drFactor = drFactor[1:]
-            if (hasattr(rFactor,'__len__')):
-                rFactor = rFactor[1:]
-            if (hasattr(ddqFactor,'__len__')):
-                ddqFactor = ddqFactor[1:]
-        
-        if (uBoundary=='dirichlet'):
-            if (hasattr(ddrFactor,'__len__')):
-                ddrFactor = ddrFactor[:-1]
-            if (hasattr(drFactor,'__len__')):
-                drFactor = drFactor[:-1]
-            if (hasattr(rFactor,'__len__')):
-                rFactor = rFactor[:-1]
-            if (hasattr(ddqFactor,'__len__')):
-                ddqFactor = ddqFactor[:-1]
+            warnings.warn("{0} is not a recognised parameter for DiffEqSolver".format(name))
         
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
-        self._stiffnessMatrix = sparse.dia_matrix(self._dPhidPsi.multiply(np.atleast_2d(-ddrFactor).T) \
-                                + self._dPhiPsi.multiply(np.atleast_2d(drFactor).T) \
-                                + self._massMatrix.multiply(np.atleast_2d(rFactor).T))
+        self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
         
-        assert(np.linalg.cond(self._stiffnessMatrix.todense())<1e10)
-        
-        # The part of the stiffness matrix relating to the double derivative
-        # with respect to theta must be constructed separately as it will
-        # be multiplied by the different modes
-        self._stiffnessM = sparse.dia_matrix(self._massMatrix.multiply(np.atleast_2d(ddqFactor).T))
+        if (np.linalg.cond(self._stiffnessMatrix.todense())>1e10):
+            raise UserWarning("Condition of stiffness matrix is too high. \
+                                This warning may be able to be ignored if different boundary conditions are used at different boundaries")
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(rspline)
@@ -437,12 +272,14 @@ class PoissonSolver:
     
     def getModes( self, rho: Grid ):
         """
-        Get the Fourier transform of the particle density
+        Get the Fourier transform of the right hand side of the
+        differential equation.
 
         Parameters
         ----------
         rho : Grid
-            A grid containing the values of the particle density
+            A grid containing the values of the right hand side of the
+            differential equation.
         
         """
         assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
@@ -455,60 +292,127 @@ class PoissonSolver:
     
     def solveEquation( self, phi: Grid, rho: Grid ):
         """
-        Solve the Poisson equation where the electric potential is unknown.
-        The equation should be solved using the Fourier transform. The
-        application of the Fourier transform and inverse Fourier transform
-        is not handled by this function
+        Solve the differential equation.
+        The equation is solved in Fourier space. The application of the
+        Fourier transform and inverse Fourier transform is not handled 
+        by this function
         
         Parameters
         ----------
         phi : Grid
             The grid in which the calculated values of the Fourier transform
-            of the electric potential will be stored
+            of the unknown will be stored
         
         rho : Grid
-            A grid containing the values of the the Fourier transform of
-            the particle density
+            A grid containing the values of the the right hand side of the
+            differential equation.
         
         """
         
         assert(rho.getLayout(rho.currentLayout).dims_order[-1]==0)
         
         for i,I in enumerate(rho.getGlobalIdxVals(0)):
-            #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
             # For each mode on this process, create the necessary matrix
-            stiffnessMatrix = self._stiffnessMatrix - self._mVals[I]*self._stiffnessM
+            stiffnessMatrix = (self._stiffnessMatrix - self._mVals[I]*self._k2PhiPsi) \
+                                    [self._stiffness_range[I],self._stiffness_range[I]]
             
-            for j,z in rho.getCoords(1):
-                # Calculate the coefficients related to rho
-                self._interpolator.compute_interpolant(rho.get1DSlice([i,j]),self._spline)
-                
-                # Save the solution to the preprepared buffer
-                # The boundary values of this buffer are already set if
-                # dirichlet boundary conditions are used
-                self._coeffs[self._coeff_range] = spsolve(stiffnessMatrix, \
-                                                            self._massMatrix @ \
-                                                            self._spline.coeffs[self._coeff_range])
-                
-                # Find the values at the greville points by interpolating
-                # the real and imaginary parts of the coefficients individually
-                self._real_spline.coeffs[:] = np.real(self._coeffs)
-                reals = self._real_spline.eval(rho.getCoordVals(2))
-                
-                self._real_spline.coeffs[:] = np.imag(self._coeffs)
-                imags = self._real_spline.eval(rho.getCoordVals(2))
-                
-                phi.get1DSlice([i,j])[:] = reals+1j*imags
+            # Set Dirichlet boundary conditions
+            # In the case of Neumann boundary conditions these values
+            # will be overwritten
+            self._coeffs[0] = 0
+            self._coeffs[-1] = 0
+            
+            self._solveMode(phi,rho,stiffnessMatrix,i,I)
+    
+    def solveEquationForFunction( self, phi: Grid, rho ):
+        """
+        Solve the differential equation.
+        The equation is solved in Fourier space. The application of the
+        Fourier transform and inverse Fourier transform is not handled 
+        by this function
+        
+        Parameters
+        ----------
+        phi : Grid
+            The grid in which the calculated values of the Fourier transform
+            of the unknown will be stored
+        
+        rho : function handle
+            A function returning the values on the the right hand side of the
+            differential equation.
+        
+        """
+        
+        for i,I in enumerate(phi.getGlobalIdxVals(0)):
+            # For each mode on this process, create the necessary matrix
+            stiffnessMatrix = (self._stiffnessMatrix - self._mVals[I]*self._k2PhiPsi) \
+                                    [self._stiffness_range[I],self._stiffness_range[I]]
+            
+            # Set Dirichlet boundary conditions
+            # In the case of Neumann boundary conditions these values
+            # will be overwritten
+            self._coeffs[0] = 0
+            self._coeffs[-1] = 0
+            
+            self._solveModeFunc(phi,rho,stiffnessMatrix,i,I)
+    
+    def _solveMode(self, phi: Grid, rho: Grid, stiffnessMatrix: sparse.csc.csc_matrix, i: int, I: int):
+        massMat = self._massMatrix[self._stiffness_range[I],:]
+        coeffs= self._coeffs[self._coeff_range[I]]
+        for j,z in rho.getCoords(1):
+            # Calculate the coefficients related to rho
+            self._interpolator.compute_interpolant(rho.get1DSlice([i,j]),self._spline)
+            
+            # Save the solution to the preprepared buffer
+            # The boundary values of this buffer are already set if
+            # dirichlet boundary conditions are used
+            coeffs[:] = spsolve(stiffnessMatrix, massMat.dot(self._spline.coeffs))
+            
+            # Find the values at the greville points by interpolating
+            # the real and imaginary parts of the coefficients individually
+            self._real_spline.coeffs[:] = np.real(self._coeffs)
+            reals = self._real_spline.eval(rho.getCoordVals(2))
+            
+            self._real_spline.coeffs[:] = np.imag(self._coeffs)
+            imags = self._real_spline.eval(rho.getCoordVals(2))
+            
+            phi.get1DSlice([i,j])[:] = reals+1j*imags
+    
+    def _solveModeFunc(self, phi: Grid, rho, stiffnessMatrix: sparse.csc.csc_matrix, i: int, I: int):
+        coeffs  = self._coeffs[self._coeff_range[I]]
+        
+        rhoVec = np.zeros(self._rspline.greville.size)
+        
+        for j in range(self._rspline.nbasis):
+            rhoVec[j]=np.sum(np.tile(self._weights,len(self._evalPts))*self._multFactor \
+                            * self._rspline[j].eval(self._evalPts.flatten()) \
+                            * rho(self._evalPts.flatten()))
+        
+        for j,z in phi.getCoords(1):
+            # Save the solution to the preprepared buffer
+            # The boundary values of this buffer are already set if
+            # dirichlet boundary conditions are used
+            coeffs[:] = spsolve(stiffnessMatrix, rhoVec[1:-1])
+            
+            # Find the values at the greville points by interpolating
+            # the real and imaginary parts of the coefficients individually
+            self._real_spline.coeffs[:] = np.real(self._coeffs)
+            reals = self._real_spline.eval(phi.getCoordVals(2))
+            
+            self._real_spline.coeffs[:] = np.imag(self._coeffs)
+            imags = self._real_spline.eval(phi.getCoordVals(2))
+            
+            phi.get1DSlice([i,j])[:] = reals+1j*imags
     
     def findPotential( self, phi: Grid ):
         """
-        Get the inverse Fourier transform of the electric potential
+        Get the inverse Fourier transform of the (solved) unknown
         
         Parameters
         ----------
         phi : Grid
             A grid containing the values of the Fourier transform of the
-            electric potential
+            (solved) unknown
         
         """
         
@@ -520,3 +424,140 @@ class PoissonSolver:
                 vec=phi.get1DSlice([i,j])
                 mode=ifft(vec,overwrite_x=True)
                 vec[:]=mode
+
+class QuasiNeutralitySolver(DiffEqSolver):
+    """
+    QuasiNeutralitySolver: Class used to solve the equation resulting
+    from the quasi-neutrality equation. It contains
+    functions to handle the discrete Fourier transforms and a function
+    which uses the finite elements method to solve the equation in Fourier
+    space
+    
+    -[d_r^2+( 1/r+g'(r)/g(r) )d_r+1/r^2 d_\theta^2]\phi 
+    + 1/(g\lambda_D^2) [\phi-\chi \langle\phi\rangle_\theta]=rho/g
+    
+    Parameters
+    ----------
+    eta_grid : list of array_like
+        The coordinates of the grid points in each dimension
+    
+    degree : int
+        The degree of the highest degree polynomial function which will
+        be exactly integrated
+
+    rspline : BSplines
+        A spline along the r direction
+    
+    adiabaticElectrons : bool - optional
+        Indicates whether the electrons are considered to have an adiabatic
+        response. If this is false then it is assumed 1/\lambda_D^2=0,
+        the electrons are a kinetic species and their contribution will
+        appear in the perturbed density
+        Default is True
+    
+    chi: int
+        The parameter indicated in the equation.
+        Its value is either 0 or 1.
+        This parameter is required if adiabaticElectrons = True otherwise
+        it will be ignored.
+    
+    n0 : function handle - optional
+        The ion/electron density at equilibrium
+        Default is initialiser.n0
+    
+    B: float - optional
+        The intensity of the equilibrium magnetic field
+        Default is 1
+    
+    n0derivNormalised: function handle - optional
+        n_0'(r)/n_0(r) where n_0(r) is the ion/electron density at equilibrium
+        Default is initialiser.n0derivNormalised
+    
+    n0deriv: function handle - optional
+        n_0'(r) where n_0(r) is the ion/electron density at equilibrium
+        If n0derivNormalised is provided this will be ignored
+        Default is initialiser.n0derivNormalised*n0
+    
+    Te: function handle - optional
+        The temperature of the electrons
+        This parameter will be ignored if adiabaticElectrons = False.
+        Default is initialiser.Te
+
+    """
+    def __init__( self, eta_grid: list, degree: int, rspline: BSplines, adiabaticElectrons: bool = True,
+                    *args,**kwargs):
+        r = eta_grid[0]
+        
+        n0 = kwargs.pop('n0',initialiser.n0)
+        B = kwargs.pop('B',1.0)
+        if ('n0derivNormalised' in kwargs):
+            n0derivNormalised = kwargs.pop('n0derivNormalised',initialiser.n0derivNormalised)
+        elif ('n0deriv' in kwargs):
+            n0derivNormalised = lambda r:kwargs.pop('n0deriv')(r)/n0(r)
+        else:
+            n0derivNormalised = initialiser.n0derivNormalised
+        
+        if (not adiabaticElectrons):
+            DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
+                        drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
+                        ddThetaFactor = lambda r:-1/r**2,
+                        rhoFactor = lambda r:B*B/n0(r),
+                        lNeumannIdx=[0])
+            
+            self._stiffness0 = self._stiffnessMatrix
+        else:
+            assert('chi' in kwargs)
+            chi = kwargs.pop('chi')
+            Te = kwargs.pop('Te',initialiser.Te)
+            
+            DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
+                        drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
+                        ddThetaFactor = lambda r:-1/r**2,
+                        rFactor = lambda r: B*B/Te(r),
+                        rhoFactor = lambda r:B*B/n0(r),
+                        lNeumannIdx=[0])
+            
+            if (chi==0):
+                self._stiffness0 = self._stiffnessMatrix
+            elif (chi==1):
+                self._stiffness0 = self._dPhidPsi + self._dPhiPsi
+            else:
+                raise ValueError("The argument chi must be either 0 or 1")
+    
+    def solveEquation( self, phi: Grid, rho: Grid ):
+        """
+        Solve the differential equation.
+        The equation is solved in Fourier space. The application of the
+        Fourier transform and inverse Fourier transform is not handled 
+        by this function
+        
+        Parameters
+        ----------
+        phi : Grid
+            The grid in which the calculated values of the Fourier transform
+            of the unknown will be stored
+        
+        rho : Grid
+            A grid containing the values of the the right hand side of the
+            differential equation.
+        
+        """
+        
+        assert(rho.getLayout(rho.currentLayout).dims_order[-1]==0)
+        
+        for i,I in enumerate(rho.getGlobalIdxVals(0)):
+            #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
+            # For each mode on this process, create the necessary matrix
+            if (self._mVals[I]==0):
+                stiffnessMatrix = self._stiffness0
+            else:
+                stiffnessMatrix = (self._stiffnessMatrix - self._mVals[I]*self._k2PhiPsi) \
+                                    [self._stiffness_range[I],self._stiffness_range[I]]
+            
+            # Set Dirichlet boundary conditions
+            # In the case of Neumann boundary conditions these values
+            # will be overwritten
+            self._coeffs[0] = 0
+            self._coeffs[-1] = 0
+            
+            self._solveMode(phi,rho,stiffnessMatrix,i,I)

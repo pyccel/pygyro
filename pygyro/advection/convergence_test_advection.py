@@ -20,16 +20,16 @@ def test_vParallelAdvection():
     nconvpts = 7
     
     N=100
-    
     dt=0.01
     c=2.0
     
-    l2 = [[npts*(2**(i+1)),0] for i in range(nconvpts)]
-    linf = [[npts*(2**(i+1)),0] for i in range(nconvpts)]
+    l2 = np.ndarray(nconvpts)
+    linf = np.ndarray(nconvpts)
     
     for j in range(nconvpts):
         npts*=2
         dt/=2
+        N*=2
         print(npts)
         f = np.empty(npts)
         
@@ -57,34 +57,41 @@ def test_vParallelAdvection():
             else:
                 fEnd[i]=gaussLike(x[i]-c*dt*N)
         
-        l2[j][1]=np.sqrt(trapz((f-fEnd).flatten()**2,x))
-        linf[j][1]=np.linalg.norm((f-fEnd).flatten(),np.inf)
+        l2[j]=np.sqrt(trapz((f-fEnd).flatten()**2,x))
+        linf[j]=np.linalg.norm((f-fEnd).flatten(),np.inf)
     
-    print(l2)
-    print(linf)
-    l2Imp = np.ndarray(nconvpts-1)
-    l2Order = np.ndarray(nconvpts-1)
-    linfImp = np.ndarray(nconvpts-1)
-    linfOrder = np.ndarray(nconvpts-1)
+    print("l2:",l2)
+    print("linf:",linf)
+    
+    print("l2 order:",l2[:-1]/l2[1:])
+    print("linf order:",linf[:-1]/linf[1:])
+    l2order = np.log2(l2[:-1]/l2[1:])
+    linforder = np.log2(linf[:-1]/linf[1:])
+    print("l2 order:",l2order)
+    print("linf order:",linforder)
+    
+    print(64,"    & & $",end=' ')
+    mag2Order = np.floor(np.log10(l2[0]))
+    maginfOrder = np.floor(np.log10(linf[0]))
+    print(str.format('{0:.2f}',l2[0]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
+    print("}$ &       & $",str.format('{0:.2f}',linf[0]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
+    print("}$ &  \\\\")
+    print("\\hline")
     for i in range(nconvpts-1):
-        l2Imp[i]=l2[i][1]/l2[i+1][1]
-        l2Order[i]=np.log2(l2Imp[i])
-        linfImp[i]=linf[i][1]/linf[i+1][1]
-        linfOrder[i]=np.log2(linfImp[i])
-    print(l2Imp)
-    print(linfImp)
-    print(l2Order)
-    print(linfOrder)
-    print(np.mean(l2Imp))
-    print(np.mean(linfImp))
-    print(np.mean(l2Order))
-    print(np.mean(linfOrder))
+        n=2**(i+7)
+        mag2Order = np.floor(np.log10(l2[i+1]))
+        maginfOrder = np.floor(np.log10(linf[i+1]))
+        print(n,"    & & $",end=' ')
+        print(str.format('{0:.2f}',l2[i+1]*10**-mag2Order),"\\cdot 10^{", str.format('{0:n}',mag2Order),end=' ')
+        print("}$ & ",str.format('{0:.2f}',l2order[i])," & $",end=' ')
+        print(str.format('{0:.2f}',linf[i+1]*10**-maginfOrder),"\\cdot 10^{", str.format('{0:n}',maginfOrder),end=' ')
+        print("}$ & ",str.format('{0:.2f}',linforder[i])," \\\\")
+        print("\\hline")
 
 def Phi_adv(r,theta):
     return - 5 * r**2 + np.sin(theta)
 
-"""
-def initConditions(r,theta):
+def initConditions2(r,theta):
     a=6
     factor = pi/a/2
     x=r*np.cos(theta)
@@ -97,9 +104,9 @@ def initConditions(r,theta):
     if (R2<=a):
         result+=0.5*np.cos(R2*factor)**4
     return result
-"""
 
-def initConditions(r,theta):
+
+def initConditions1(r,theta):
     a=4
     factor = pi/a/2
     r=np.sqrt((r-7)**2+2*(theta-pi)**2)
@@ -109,14 +116,16 @@ def initConditions(r,theta):
     else:
         return 0.0
 
-initConds = np.vectorize(initConditions, otypes=[np.float])
-
 @pytest.mark.serial
-def test_poloidalAdvection_constantAdv():
-    npts = [32,32]
-    dt=0.1
+@pytest.mark.parametrize( "initConditions", [initConditions1,initConditions2] )
+def test_poloidalAdvection_constantAdv(initConditions):
+    initConds = np.vectorize(initConditions, otypes=[np.float])
     
-    nconvpts = 4
+    npts = [32,32]
+    dt=0.01
+    N=10
+    
+    nconvpts = 5
     
     l2 = np.ndarray(nconvpts)
     linf = np.ndarray(nconvpts)
@@ -125,8 +134,6 @@ def test_poloidalAdvection_constantAdv():
         print(npts)
         eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                     np.linspace(0,1,4),np.linspace(0,1,4)]
-        
-        N=10
         
         v=0
         
@@ -178,6 +185,7 @@ def test_poloidalAdvection_constantAdv():
         npts[0]*=2
         npts[1]*=2
         dt/=2
+        N*=2
     
     print("l2:",l2)
     print("linf:",linf)
@@ -303,7 +311,7 @@ def initConditionsFlux(theta,z):
     a=4
     factor = pi/a/2
     r=np.sqrt((z-10)**2+2*(theta-pi)**2)
-    if (r<=4):
+    if (r<=a):
         return np.cos(r*factor)**6
     else:
         return 0.0
@@ -420,6 +428,7 @@ def dPhi(theta,z,btheta,bz):
 def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
+@pytest.mark.serial
 def test_Phi_deriv_dtheta():
     nconvpts = 7
     npts = [128,8,1024]
@@ -483,6 +492,7 @@ def test_Phi_deriv_dtheta():
         print("}$ & ",str.format('{0:.2f}',linfOrder[i-1])," \\\\")
         print("\\hline")
 
+@pytest.mark.serial
 def test_Phi_deriv_dz():
     nconvpts = 7
     npts = [128,1024,8]

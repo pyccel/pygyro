@@ -15,6 +15,9 @@ def fEq(r,vPar):
 def n0(r):
     return constants.CN0*np.exp(-constants.kN0*constants.deltaRN0*np.tanh((r-constants.rp)/constants.deltaRN0))
 
+def n0derivNormalised(r):
+    return -constants.kN0 * (1 - np.tanh( (r - constants.rp ) / constants.deltaRN0 )**2)
+
 def Ti(r):
     return constants.CTi*np.exp(-constants.kTi*constants.deltaRTi*np.tanh((r-constants.rp)/constants.deltaRTi))
 
