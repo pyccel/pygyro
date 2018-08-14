@@ -112,3 +112,80 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     elif (layout=='poloidal'):
         initialise_poloidal(grid,m,n,eps)
     return grid
+
+def setupFromFile(save_file, layout: str, **kwargs):
+    group = save_file['constants']
+    for i in group.attrs:
+        constants.i = group.attrs[i]
+    constants.rp = 0.5*(constants.rMin + constants.rMax)
+    
+    rMin=constants.rMin
+    rMax=constants.rMax
+    zMin=constants.zMin
+    zMax=constants.zMax
+    vMax=constants.vMax
+    vMin=constants.vMin
+    m=constants.m
+    n=constants.n
+    eps=constants.eps
+    
+    group = save_file['degrees']
+    rDegree=int(group.attrs['r'])
+    qDegree=int(group.attrs['theta'])
+    zDegree=int(group.attrs['z'])
+    vDegree=int(group.attrs['v'])
+    
+    npts = save_file.attrs['npts']
+    
+    comm=kwargs.pop('comm',MPI.COMM_WORLD)
+    plotThread=kwargs.pop('plotThread',False)
+    drawRank=kwargs.pop('drawRank',0)
+    allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
+    
+    for name,value in kwargs.items():
+        warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
+    
+    rank=comm.Get_rank()
+    
+    if (plotThread):
+        layout_comm = comm.Split(rank==drawRank,comm.Get_rank())
+    else:
+        layout_comm = comm
+    
+    mpi_size = layout_comm.Get_size()
+    
+    domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
+    degree = [rDegree, qDegree, zDegree, vDegree]
+    period = [False, True, True, False]
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines  = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+
+    # Compute 2D grid of processes for the two distributed dimensions in each layout
+    nprocs = compute_2d_process_grid( npts, mpi_size )
+    
+    # Create dictionary describing layouts
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+
+    # Create layout manager
+    if (plotThread and rank==drawRank):
+        remapper = getLayoutHandler( layout_comm, layouts, nprocs, [[],[],[],[]] )
+    else:
+        remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
+    
+    # Create grid
+    grid = Grid(eta_grids,bsplines,remapper,layout,comm,allocateSaveMemory=allocateSaveMemory)
+    
+    if (layout=='flux_surface'):
+        initialise_flux_surface(grid,m,n,eps)
+    elif (layout=='v_parallel'):
+        initialise_v_parallel(grid,m,n,eps)
+    elif (layout=='poloidal'):
+        initialise_poloidal(grid,m,n,eps)
+    return grid
