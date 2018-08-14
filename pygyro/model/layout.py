@@ -95,6 +95,7 @@ class Layout:
         self._size = np.prod(self._shape)
         self._max_size = np.prod(self._max_shape)
         
+        self._full_shape=tuple([len(eta_grids[i]) for i in dims_order])
         self._shape=tuple(self._shape)
         self._mpi_starts=tuple(self._mpi_starts)
         self._mpi_lengths=tuple(self._mpi_lengths)
@@ -140,6 +141,12 @@ class Layout:
         """ Get shape of data chunk in this layout.
         """
         return self._shape
+    
+    @property
+    def fullShape( self ):
+        """ Get shape of all data in this layout.
+        """
+        return self._full_shape
     
     @property
     def max_block_shape( self ):
