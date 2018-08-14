@@ -970,6 +970,9 @@ class LayoutSwapper(LayoutManager):
         
         # Remember the current LayoutHandler to help the properties
         self._current_manager = self._managers[self._handlers[start]]
+        
+        # Save the names and shapes of possible layouts
+        self._shapes = [l for manager in self._managers for l in manager.availableLayouts]
     
     def _compatible( self, layout1: dict, layout2: dict ):
         # The LayoutHandlers are compatible if they both contain a layout where
@@ -1021,12 +1024,6 @@ class LayoutSwapper(LayoutManager):
         """ The number of distributed directions
         """
         return self._current_manager.nDistributedDirections
-    
-    @property
-    def availableLayouts( self ):
-        """ The names of possible layouts
-        """
-        return self._layouts
     
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
