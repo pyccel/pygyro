@@ -19,10 +19,10 @@ rank = comm.Get_rank()
 
 npts = [20,20,10,8]
 
-tEnd = 10
-tN = 1
+tEnd = 2000
+dt=2
 
-dt=tEnd/tN
+tN = tEnd//dt
 
 halfStep = dt*0.5
 
