@@ -2,6 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 from math import pi
+import h5py
 
 from .grid          import Grid
 from .layout        import getLayoutHandler, LayoutSwapper
@@ -209,3 +210,30 @@ def test_PhiLayoutSwap():
     phi.setLayout('poloidal')
     
     compare_phi(phi)
+
+@pytest.mark.parallel
+def test_h5py():
+    comm = MPI.COMM_WORLD
+    npts = [3,4,5,6]
+    nprocs = compute_2d_process_grid( npts , comm.Get_size() )
+    
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    fsLayout = remapper.getLayout('flux_surface')
+    vLayout = remapper.getLayout('v_parallel')
+    
+    grid = Grid(eta_grids,[],remapper,'flux_surface')
+    
+    define_f(grid)
+    
+    test_file = h5py.File('test_grid.h5','w',driver='mpio',comm=comm)
+    grid.getH5Dataset(test_file)
+    test_file.close()
