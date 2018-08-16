@@ -2,6 +2,7 @@ from mpi4py import MPI
 import numpy as np
 from math import pi
 import h5py
+import glob
 
 from ..                 import splines as spl
 from .layout            import LayoutManager
@@ -183,4 +184,18 @@ class Grid(object):
         dset[slices]=self._f[:]
         attr_data = np.array(self._layout.dims_order)
         dset.attrs.create("Layout", attr_data, (self._nDims,), h5py.h5t.STD_I32BE)
+        file.close()
+    
+    def loadFromFile( self, foldername, time: int = None ):
+        if (time==None):
+            list_of_files = glob.glob("{0}/grid_*".format(foldername))
+            filename = max(list_of_files)
+        else:
+            filename = "{0}/grid_{1:06}.h5".format(foldername,time)
+            assert(os.exists(filename))
+        file = h5py.File(filename,'r')
+        dataset=file['/dset']
+        order = np.array(dataset.attrs['Layout'])
+        assert((order==self._layout.dims_order).all())
+        self._f[:]=dataset
         file.close()
