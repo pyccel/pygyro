@@ -9,6 +9,7 @@ testimony:
     - module load anaconda/3
     - module load impi
     - pip show numpy
+    - h5cc-3 -showconfig
     - export I_MPI_SHM_LMT=shm
   script:
     - py.test pygyro -m serial
