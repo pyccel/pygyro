@@ -1,7 +1,8 @@
-from mpi4py import MPI
-import numpy as np
-from math import pi
+from mpi4py         import MPI
+import numpy        as np
+from math           import pi
 import h5py
+from glob           import glob
 
 from ..                 import splines as spl
 from .layout            import LayoutManager
@@ -173,11 +174,29 @@ class Grid(object):
         self._layout = self._layout_manager.getLayout(self._current_layout_name)
         self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
     
-    def getH5Dataset( self, file ):
+    def getH5Dataset( self, foldername, t ):
         """ Create a hdf5 dataset containing all points in the current layout
         """
+        filename = "{0}/grid_{1:06}.h5".format(foldername,t)
+        file = h5py.File(filename,'w',driver='mpio',comm=self.global_comm)
         dset = file.create_dataset("dset",self._layout.fullShape, dtype = self._f.dtype)
         slices = tuple([slice(s,e) for s,e in zip(self._layout.starts,self._layout.ends)])
         dset[slices]=self._f[:]
         attr_data = np.array(self._layout.dims_order)
         dset.attrs.create("Layout", attr_data, (self._nDims,), h5py.h5t.STD_I32BE)
+        file.close()
+    
+    def loadFromFile( self, foldername, time: int = None ):
+        if (time==None):
+            list_of_files = glob("{0}/grid_*".format(foldername))
+            filename = max(list_of_files)
+        else:
+            filename = "{0}/grid_{1:06}.h5".format(foldername,time)
+            assert(os.exists(filename))
+        file = h5py.File(filename,'r')
+        dataset=file['/dset']
+        order = np.array(dataset.attrs['Layout'])
+        assert((order==self._layout.dims_order).all())
+        slices = tuple([slice(s,e) for s,e in zip(self._layout.starts,self._layout.ends)])
+        self._f[:]=dataset[slices]
+        file.close()

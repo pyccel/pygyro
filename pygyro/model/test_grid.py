@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from math import pi
 import h5py
+import os
 
 from .grid          import Grid
 from .layout        import getLayoutHandler, LayoutSwapper
@@ -214,7 +215,7 @@ def test_PhiLayoutSwap():
 @pytest.mark.parallel
 def test_h5py():
     comm = MPI.COMM_WORLD
-    npts = [3,4,5,6]
+    npts = [10,20,10,10]
     nprocs = compute_2d_process_grid( npts , comm.Get_size() )
     
     eta_grids=[np.linspace(0,1,npts[0]),
@@ -234,6 +235,13 @@ def test_h5py():
     
     define_f(grid)
     
-    test_file = h5py.File('test_grid.h5','w',driver='mpio',comm=comm)
-    grid.getH5Dataset(test_file)
-    test_file.close()
+    if (comm.Get_rank()==0):
+        if (not os.path.isdir('testValues')):
+            os.mkdir('testValues')
+    
+    grid.getH5Dataset('testValues',20)
+    grid.getH5Dataset('testValues',40)
+    grid.getH5Dataset('testValues',80)
+    grid.getH5Dataset('testValues',100)
+    grid.loadFromFile('testValues')
+    

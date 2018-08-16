@@ -9,6 +9,7 @@ rMax = 14.5
 zMin = 0.0
 zMax = 80.0
 vMax = 5.0
+vMin = -vMax
 rp = 0.5*(rMin + rMax)
 eps = 1e-6
 eps0 = 8.854187817e-12
@@ -23,9 +24,10 @@ CTi = 1.0
 CTe = float(CTi)
 m = 15
 n = -11
+iotaVal = 0.0
 
 def iota(r = rp):
-    return np.full_like(r,0.0,dtype=float)
+    return np.full_like(r,iotaVal,dtype=float)
 
 def normalisingFunc(r):
     return exp(-kN0*deltaRN0*tanh((r-rp)/deltaRN0))
