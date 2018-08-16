@@ -185,8 +185,12 @@ def setupFromFile(foldername, **kwargs):
     else:
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
-    list_of_files = glob("{0}/grid_*".format(foldername))
-    filename = max(list_of_files)
+    if ('timepoint' in kwargs):
+        filename = "{0}/grid_{1:06}.h5".format(foldername,kwargs['timepoint'])
+        assert(os.exists(filename))
+    else:
+        list_of_files = glob("{0}/grid_*".format(foldername))
+        filename = max(list_of_files)
     file = h5py.File(filename,'r')
     dataset=file['/dset']
     order = np.array(dataset.attrs['Layout'])
