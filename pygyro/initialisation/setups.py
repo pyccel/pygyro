@@ -117,6 +117,23 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     return grid
 
 def setupFromFile(foldername, **kwargs):
+    """
+    Setup using information from a previous simulation:
+    
+    Compulsory arguments:
+    foldername -- The folder in which the results of the previous simulation
+                  are stored
+    
+    Optional arguments:
+    comm        -- MPI communicator. (default MPI.COMM_WORLD)
+    plotThread  -- whether there is a thread to be used only for plotting (default False)
+    drawRank    -- Thread to be used for plotting (default 0)
+    
+    timepoint   -- Point in time from which the simulation should resume
+                   (default is latest possible)
+    
+    >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
+    """
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     filename = "{0}/initParams.h5".format(foldername)
     save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
