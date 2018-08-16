@@ -121,11 +121,19 @@ class Grid(object):
         return self._splines[self._layout.dims_order[-1]]
     
     def setLayout(self,new_layout: str):
-        self._layout_manager.transpose(
-                        self._my_data[self._dataIdx],
-                        self._my_data[self._buffIdx],
-                        self._current_layout_name,
-                        new_layout)
+        if (self.hasSaveMemory and self.notSaved):
+            self._layout_manager.transpose(
+                            self._my_data[self._dataIdx],
+                            self._my_data[self._buffIdx],
+                            self._current_layout_name,
+                            new_layout,
+                            self._my_data[self._saveIdx])
+        else:
+            self._layout_manager.transpose(
+                            self._my_data[self._dataIdx],
+                            self._my_data[self._buffIdx],
+                            self._current_layout_name,
+                            new_layout)
         self._dataIdx, self._buffIdx = self._buffIdx, self._dataIdx
         self._layout = self._layout_manager.getLayout(new_layout)
         self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
@@ -192,7 +200,7 @@ class Grid(object):
             filename = max(list_of_files)
         else:
             filename = "{0}/grid_{1:06}.h5".format(foldername,time)
-            assert(os.exists(filename))
+            assert(os.path.exists(filename))
         file = h5py.File(filename,'r')
         dataset=file['/dset']
         order = np.array(dataset.attrs['Layout'])
