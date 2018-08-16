@@ -4,6 +4,7 @@ from glob       import glob
 import numpy    as np
 import warnings
 import h5py
+import os
 
 from ..                     import splines as spl
 from ..model.layout         import getLayoutHandler
@@ -187,7 +188,7 @@ def setupFromFile(foldername, **kwargs):
     
     if ('timepoint' in kwargs):
         filename = "{0}/grid_{1:06}.h5".format(foldername,kwargs['timepoint'])
-        assert(os.exists(filename))
+        assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
         filename = max(list_of_files)
@@ -205,7 +206,9 @@ def setupFromFile(foldername, **kwargs):
     # Create grid
     grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
     
-    grid._f[:] = dataset[:]
+    layout = grid.getLayout(my_layout)
+    slices = tuple([slice(s,e) for s,e in zip(layout.starts,layout.ends)])
+    grid._f[:] = dataset[slices]
     
     file.close()
     
