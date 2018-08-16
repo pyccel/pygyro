@@ -16,9 +16,12 @@ from pygyro.advection.advection             import FluxSurfaceAdvection, VParall
 from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralitySolver
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
+from pygyro.utilities.savingTools           import setupSave
 
 
 parser = argparse.ArgumentParser(description='Process foldername')
+parser.add_argument('tEnd', metavar='tEnd',nargs=1,type=int,
+                   help='end time')
 parser.add_argument('-f', dest='foldername',nargs=1,type=str,
                     default=[""],
                    help='the name of the folder from which to load and in which to save')
@@ -34,8 +37,6 @@ parser.add_argument('-z', dest='zDegree',nargs=1,type=int,
 parser.add_argument('-v', dest='vDegree',nargs=1,type=int,
                     default=[3],
                    help='Degree of spline in v')
-parser.add_argument('te', metavar='tEnd',nargs=1,type=int,
-                   help='end time')
 
 args = parser.parse_args()
 foldername = args.foldername[0]
@@ -96,7 +97,8 @@ else:
                                 comm   = comm,
                                 allocateSaveMemory = True)
     
-    setupSave(rDegree,qDegree,zDegree,vDegree,npts,dt,foldername)
+    foldername = setupSave(rDegree,qDegree,zDegree,vDegree,npts,dt,foldername)
+    print("Saving in ",foldername)
     t = 0
 
 fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
@@ -131,7 +133,11 @@ density = DensityFinder(6,distribFunc.getSpline(3))
 QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0),
                                 chi=0)
 
-l2Phi = np.zeros(tN+1)
+
+saveStep = 5
+
+l2Phi = np.zeros([2,saveStep])
+l2Result=np.zeros(saveStep)
 
 r = phi.eta_grid[0]
 q = phi.eta_grid[1]
@@ -144,20 +150,16 @@ rCalc = (r[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d
 drCalc = (dr[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 
 phi_filename = "{0}/phiDat.dat".format(foldername)
+if (not os.path.exists(phi_filename)):
+    phiFile = h5py.File(phi_filename,'w',driver='mpio',comm=comm)
+    dset = phiFile.create_dataset("dset",(tN+1, 2), float)
+    phiFile.close()
 
 #Setup profiling tools
 #~ pr = cProfile.Profile()
 #~ pr.enable()
 
-
-for ti in range(tN):
-    if (ti%5==0):
-        distribFunc.getH5Dataset(foldername,t)
-        phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
-        dset = phiFile['/dset']
-        phiFile.close()
-    t+=dt
-    print("t=",t)
+for ti in range(tN+1):
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -169,8 +171,26 @@ for ti in range(tN):
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
     
+    if (ti%saveStep==0 and ti!=0):
+        distribFunc.getH5Dataset(foldername,t)
+        
+        comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
+        l2Result = np.sqrt(l2Result)
+        phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
+        if (rank == 0):
+            n = int(t/dt)
+            dset = phiFile['/dset']
+            dset[n-saveStep:n,0]=l2Phi[0,:]
+            dset[n-saveStep:n,1]=l2Result
+        phiFile.close()
+    
     # Calculate diagnostic quantity |phi|_2
-    l2Phi[ti]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
+    l2Phi[0,ti%saveStep]=t
+    l2Phi[1,ti%saveStep]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
+    
+    print("t=",t)
+    
+    t+=dt
     
     # Compute f^n+1/2 using lie splitting
     distribFunc.setLayout('flux_surface')
@@ -235,47 +255,27 @@ for ti in range(tN):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
 
+distribFunc.getH5Dataset(foldername,t)
+        
+comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
+l2Result = np.sqrt(l2Result)
+phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
+if (rank == 0):
+    nE = int(tEnd/dt+1)
+    nS = int(nE-1-(tEnd/dt)%saveStep)
+    print(nS,nE)
+    dset = phiFile['/dset']
+    dset[nS:nE,0]=l2Phi[0,:(nE-nS)]
+    print(l2Result)
+    dset[nS:nE,1]=l2Result[:(nE-nS)]
+    print(dset[nS:nE,1])
+phiFile.close()
+
 #End profiling and print results
 #~ pr.disable()
 #~ s = io.StringIO()
 #~ ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
 #~ ps.print_stats()
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
-
-
-
-
-# Find phi from f^n by solving QN eq
-distribFunc.setLayout('v_parallel')
-density.getPerturbedRho(distribFunc,rho)
-QNSolver.getModes(rho)
-rho.setLayout('mode_solve')
-phi.setLayout('mode_solve')
-QNSolver.solveEquation(phi,rho)
-phi.setLayout('v_parallel_2d')
-rho.setLayout('v_parallel_2d')
-QNSolver.findPotential(phi)
-
-# Calculate diagnostic quantity |phi|_2
-l2Phi[tN]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
-
-l2Result=np.zeros(tN+1)
-
-comm.Reduce(l2Phi,l2Result,op=MPI.SUM, root=0)
-
-if (rank==0):
-    l2Result=np.sqrt(l2Result)
-    
-    t=np.linspace(0,tEnd,tN+1)
-    
-    data = np.array([t,l2Result]).T
-    
-    print(data, file=open("l2Test.txt".format(rank), "w"))
-    
-    #~ plt.figure()
-    #~ plt.plot(t,l2Result)
-    #~ plt.xlabel('time [s]')
-    #~ plt.ylabel('$\|\phi\|_2$')
-    #~ plt.show()
 
 
