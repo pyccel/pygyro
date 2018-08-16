@@ -1,8 +1,8 @@
-from mpi4py import MPI
-import numpy as np
-from math import pi
+from mpi4py         import MPI
+import numpy        as np
+from math           import pi
 import h5py
-import glob
+from glob           import glob
 
 from ..                 import splines as spl
 from .layout            import LayoutManager
@@ -188,7 +188,7 @@ class Grid(object):
     
     def loadFromFile( self, foldername, time: int = None ):
         if (time==None):
-            list_of_files = glob.glob("{0}/grid_*".format(foldername))
+            list_of_files = glob("{0}/grid_*".format(foldername))
             filename = max(list_of_files)
         else:
             filename = "{0}/grid_{1:06}.h5".format(foldername,time)
