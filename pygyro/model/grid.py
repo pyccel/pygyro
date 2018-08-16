@@ -178,7 +178,7 @@ class Grid(object):
         """ Create a hdf5 dataset containing all points in the current layout
         """
         filename = "{0}/grid_{1:06}.h5".format(foldername,t)
-        file = h5py.File(filename,'w',driver='mpio',comm=MPI.COMM_WORLD)
+        file = h5py.File(filename,'w',driver='mpio',comm=self.global_comm)
         dset = file.create_dataset("dset",self._layout.fullShape, dtype = self._f.dtype)
         slices = tuple([slice(s,e) for s,e in zip(self._layout.starts,self._layout.ends)])
         dset[slices]=self._f[:]
@@ -197,5 +197,6 @@ class Grid(object):
         dataset=file['/dset']
         order = np.array(dataset.attrs['Layout'])
         assert((order==self._layout.dims_order).all())
-        self._f[:]=dataset
+        slices = tuple([slice(s,e) for s,e in zip(self._layout.starts,self._layout.ends)])
+        self._f[:]=dataset[slices]
         file.close()
