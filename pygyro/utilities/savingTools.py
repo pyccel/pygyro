@@ -8,7 +8,7 @@ from glob import glob
 from ..initialisation          import constants
 
 def setupSave(rDegree,qDegree,zDegree,vDegree,npts,dt,foldername: str = None,
-                comm: MPI.Comm = MPI.COMM_WORLD, root: int = 0,test: bool = False):
+                comm: MPI.Comm = MPI.COMM_WORLD, root: int = 0):
     if (comm.Get_rank()==root):
         if (foldername==None):
             i=0
