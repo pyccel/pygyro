@@ -1,7 +1,9 @@
-from mpi4py import MPI
-from math import pi
-import numpy as np
+from mpi4py     import MPI
+from math       import pi
+from glob       import glob
+import numpy    as np
 import warnings
+import h5py
 
 from ..                     import splines as spl
 from ..model.layout         import getLayoutHandler
@@ -113,7 +115,10 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
         initialise_poloidal(grid,m,n,eps)
     return grid
 
-def setupFromFile(save_file, layout: str, **kwargs):
+def setupFromFile(foldername, **kwargs):
+    comm=kwargs.pop('comm',MPI.COMM_WORLD)
+    filename = "{0}/initParams.h5".format(foldername)
+    save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
     group = save_file['constants']
     for i in group.attrs:
         constants.i = group.attrs[i]
@@ -137,7 +142,8 @@ def setupFromFile(save_file, layout: str, **kwargs):
     
     npts = save_file.attrs['npts']
     
-    comm=kwargs.pop('comm',MPI.COMM_WORLD)
+    save_file.close()
+    
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
     allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
@@ -179,13 +185,24 @@ def setupFromFile(save_file, layout: str, **kwargs):
     else:
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
-    # Create grid
-    grid = Grid(eta_grids,bsplines,remapper,layout,comm,allocateSaveMemory=allocateSaveMemory)
+    list_of_files = glob("{0}/grid_*".format(foldername))
+    filename = max(list_of_files)
+    file = h5py.File(filename,'r')
+    dataset=file['/dset']
+    order = np.array(dataset.attrs['Layout'])
+    my_layout = None
+    for name, dims_order in layouts.items():
+        if ((dims_order==order).all()):
+            my_layout=name
     
-    if (layout=='flux_surface'):
-        initialise_flux_surface(grid,m,n,eps)
-    elif (layout=='v_parallel'):
-        initialise_v_parallel(grid,m,n,eps)
-    elif (layout=='poloidal'):
-        initialise_poloidal(grid,m,n,eps)
+    if (my_layout==None):
+        raise ArgumentError("The stored layout is not a standard layout")
+    
+    # Create grid
+    grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
+    
+    grid._f[:] = dataset[:]
+    
+    file.close()
+    
     return grid
