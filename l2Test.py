@@ -1,35 +1,103 @@
 from mpi4py                 import MPI
 from matplotlib             import rc
+from glob                   import glob
 
 import numpy                as np
 import matplotlib.pyplot    as plt
-
-import cProfile, pstats, io
+import argparse
+import os
+import h5py
+#~ import cProfile, pstats, io
 
 from pygyro.model.layout                    import LayoutSwapper, getLayoutHandler
 from pygyro.model.grid                      import Grid
-from pygyro.initialisation.setups           import setupCylindricalGrid
+from pygyro.initialisation.setups           import setupCylindricalGrid, setupFromFile
 from pygyro.advection.advection             import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
 from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralitySolver
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
 
-npts = [20,20,10,8]
+parser = argparse.ArgumentParser(description='Process foldername')
+parser.add_argument('-f', dest='foldername',nargs=1,type=str,
+                    default=[""],
+                   help='the name of the folder from which to load and in which to save')
+parser.add_argument('-r', dest='rDegree',nargs=1,type=int,
+                    default=[3],
+                   help='Degree of spline in r')
+parser.add_argument('-q', dest='qDegree',nargs=1,type=int,
+                    default=[3],
+                   help='Degree of spline in theta')
+parser.add_argument('-z', dest='zDegree',nargs=1,type=int,
+                    default=[3],
+                   help='Degree of spline in z')
+parser.add_argument('-v', dest='vDegree',nargs=1,type=int,
+                    default=[3],
+                   help='Degree of spline in v')
+parser.add_argument('te', metavar='tEnd',nargs=1,type=int,
+                   help='end time')
 
-tEnd = 2000
-dt=2
+args = parser.parse_args()
+foldername = args.foldername[0]
 
-tN = tEnd//dt
+loadable = False
 
-halfStep = dt*0.5
+rDegree = args.rDegree[0]
+qDegree = args.qDegree[0]
+zDegree = args.zDegree[0]
+vDegree = args.vDegree[0]
 
-distribFunc = setupCylindricalGrid(npts   = npts,
-                            layout = 'v_parallel',
-                            comm   = comm,
-                            allocateSaveMemory = True)
+tEnd = args.tEnd[0]
+
+if (len(foldername)>0):
+    print("To load from ",foldername)
+    if (os.path.isdir(foldername)):
+        loadable = True
+else:
+    foldername = None
+
+if (loadable):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    
+    filename = "{0}/initParams.h5".format(foldername)
+    save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
+    group = save_file['constants']
+    
+    npts = save_file.attrs['npts']
+    dt = save_file.attrs['dt']
+    
+    save_file.close()
+    
+    list_of_files = glob("{0}/grid_*".format(foldername))
+    filename = max(list_of_files)
+    tStart = int(filename.split('_')[-1].split('.')[0])
+    
+    tN = int((tEnd-tStart)//dt)
+
+    halfStep = dt*0.5
+    distribFunc = setupFromFile(foldername,comm=comm,
+                                allocateSaveMemory = True)
+    t = tStart
+else:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    npts = [20,20,10,8]
+
+    dt=2
+
+    tN = int(tEnd//dt)
+
+    halfStep = dt*0.5
+
+    distribFunc = setupCylindricalGrid(npts   = npts,
+                                layout = 'v_parallel',
+                                comm   = comm,
+                                allocateSaveMemory = True)
+    
+    setupSave(rDegree,qDegree,zDegree,vDegree,npts,dt,foldername)
+    t = 0
 
 fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
                                 distribFunc.getLayout('flux_surface'),halfStep)
@@ -75,14 +143,21 @@ dz = z[1]-z[0]
 rCalc = (r[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 drCalc = (dr[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 
+phi_filename = "{0}/phiDat.dat".format(foldername)
 
 #Setup profiling tools
-pr = cProfile.Profile()
-pr.enable()
+#~ pr = cProfile.Profile()
+#~ pr.enable()
 
 
 for ti in range(tN):
-    print("t=",ti*dt)
+    if (ti%5==0):
+        distribFunc.getH5Dataset(foldername,t)
+        phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
+        dset = phiFile['/dset']
+        phiFile.close()
+    t+=dt
+    print("t=",t)
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -161,11 +236,11 @@ for ti in range(tN):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
 
 #End profiling and print results
-pr.disable()
-s = io.StringIO()
-ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
-ps.print_stats()
-print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
+#~ pr.disable()
+#~ s = io.StringIO()
+#~ ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+#~ ps.print_stats()
+#~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
 
 
