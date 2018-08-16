@@ -214,7 +214,7 @@ def test_PhiLayoutSwap():
 @pytest.mark.parallel
 def test_h5py():
     comm = MPI.COMM_WORLD
-    npts = [3,4,5,6]
+    npts = [10,20,10,10]
     nprocs = compute_2d_process_grid( npts , comm.Get_size() )
     
     eta_grids=[np.linspace(0,1,npts[0]),
@@ -234,6 +234,9 @@ def test_h5py():
     
     define_f(grid)
     
-    test_file = h5py.File('test_grid.h5','w',driver='mpio',comm=comm)
-    grid.getH5Dataset(test_file)
-    test_file.close()
+    grid.getH5Dataset('__test__',20)
+    grid.getH5Dataset('__test__',40)
+    grid.getH5Dataset('__test__',80)
+    grid.getH5Dataset('__test__',100)
+    grid.loadFromFile('__test__')
+    
