@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from math import pi
 import h5py
+import os
 
 from .grid          import Grid
 from .layout        import getLayoutHandler, LayoutSwapper
@@ -234,9 +235,13 @@ def test_h5py():
     
     define_f(grid)
     
-    grid.getH5Dataset('__test__',20)
-    grid.getH5Dataset('__test__',40)
-    grid.getH5Dataset('__test__',80)
-    grid.getH5Dataset('__test__',100)
-    grid.loadFromFile('__test__')
+    if (comm.Get_rank()==0):
+        if (not os.path.isdir('testValues')):
+            os.mkdir('testValues')
+    
+    grid.getH5Dataset('testValues',20)
+    grid.getH5Dataset('testValues',40)
+    grid.getH5Dataset('testValues',80)
+    grid.getH5Dataset('testValues',100)
+    grid.loadFromFile('testValues')
     
