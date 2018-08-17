@@ -68,18 +68,23 @@ if (loadable):
     npts = save_file.attrs['npts']
     dt = save_file.attrs['dt']
     
+    halfStep = dt*0.5
+    
     save_file.close()
     
     list_of_files = glob("{0}/grid_*".format(foldername))
-    filename = max(list_of_files)
-    tStart = int(filename.split('_')[-1].split('.')[0])
-    
-    tN = int((tEnd-tStart)//dt)
-
-    halfStep = dt*0.5
+    if (len(list_of_files)==0):
+        tN = int(tEnd//dt)
+        t=0
+    else:
+        filename = max(list_of_files)
+        tStart = int(filename.split('_')[-1].split('.')[0])
+        
+        tN = int((tEnd-tStart)//dt)
+        t = tStart
+        
     distribFunc = setupFromFile(foldername,comm=comm,
                                 allocateSaveMemory = True)
-    t = tStart
 else:
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()

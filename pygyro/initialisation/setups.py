@@ -208,25 +208,39 @@ def setupFromFile(foldername, **kwargs):
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
-        filename = max(list_of_files)
-    file = h5py.File(filename,'r')
-    dataset=file['/dset']
-    order = np.array(dataset.attrs['Layout'])
-    my_layout = None
-    for name, dims_order in layouts.items():
-        if ((dims_order==order).all()):
-            my_layout=name
-    
-    if (my_layout==None):
-        raise ArgumentError("The stored layout is not a standard layout")
-    
-    # Create grid
-    grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
-    
-    layout = grid.getLayout(my_layout)
-    slices = tuple([slice(s,e) for s,e in zip(layout.starts,layout.ends)])
-    grid._f[:] = dataset[slices]
-    
-    file.close()
+        if (len(list_of_files)>1):
+            filename = max(list_of_files)
+        else:
+            filename = None
+    if (filename!=None):
+        file = h5py.File(filename,'r')
+        dataset=file['/dset']
+        order = np.array(dataset.attrs['Layout'])
+        my_layout = None
+        for name, dims_order in layouts.items():
+            if ((dims_order==order).all()):
+                my_layout=name
+        
+        if (my_layout==None):
+            raise ArgumentError("The stored layout is not a standard layout")
+        
+        # Create grid
+        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
+        
+        layout = grid.getLayout(my_layout)
+        slices = tuple([slice(s,e) for s,e in zip(layout.starts,layout.ends)])
+        grid._f[:] = dataset[slices]
+        
+        file.close()
+    else:
+        # Create grid
+        grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
+        
+        if (layout=='flux_surface'):
+            initialise_flux_surface(grid,m,n,eps)
+        elif (layout=='v_parallel'):
+            initialise_v_parallel(grid,m,n,eps)
+        elif (layout=='poloidal'):
+            initialise_poloidal(grid,m,n,eps)
     
     return grid
