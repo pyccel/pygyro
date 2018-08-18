@@ -644,7 +644,7 @@ class LayoutHandler(LayoutManager):
             
             # Use the list of slices to access the relevant elements on the block
             ranges[axis[1]]=slice(split_length)
-            arrView = arr[ranges]
+            arrView = arr[tuple(ranges)]
             assert(arrView.base is tobuffer)
             
             # Save the block into the buffer via the source
@@ -721,7 +721,7 @@ class LayoutHandler(LayoutManager):
             bufRanges[order[axis[0]]]=slice(layout_dest.shape[axis[0]])
             bufRanges[order[axis[1]]]=slice(layout_dest.shape[axis[1]])
             bufRanges[0]=slice(start,start+layout_source.mpi_lengths(axis[0])[r])
-            assert(bufView[bufRanges].base is buf)
+            assert(bufView[tuple(bufRanges)].base is buf)
             
             # Get a view on the block in the destination memory
             destRanges=[slice(x) for x in layout_dest.shape]
@@ -730,7 +730,7 @@ class LayoutHandler(LayoutManager):
             
             # Transpose the data. As the axes to be concatenated are the first dimension
             # the concatenation is done automatically
-            destView[destRanges] = np.transpose(bufView[bufRanges],order)
+            destView[tuple(destRanges)] = np.transpose(bufView[tuple(bufRanges)],order)
     
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -1161,7 +1161,7 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b,[blockSize])[0].reshape(blockShape)
                 
                 # Copy the block into the correct part of the memory
-                destView[slices]=block
+                destView[tuple(slices)]=block
             
             # The data now resides on the wrong memory chunk and must be copied
             dest[:]=source[:]
@@ -1240,7 +1240,7 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b,[blockSize])[0].reshape(blockShape)
                 
                 # Copy the block into the correct part of the memory
-                destView[slices]=block
+                destView[tuple(slices)]=block
         
     def _transposeRedirect(self,source,dest,source_name,dest_name):
         """
