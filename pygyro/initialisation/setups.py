@@ -201,7 +201,7 @@ def setupFromFile(foldername, **kwargs):
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
     if ('timepoint' in kwargs):
-        filename = "{0}/grid_{1:06}.h5".format(foldername,kwargs['timepoint'])
+        filename = "{0}/grid_{1:06}.h5".format(foldername,kwargs.pop('timepoint'))
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
