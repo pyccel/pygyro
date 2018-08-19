@@ -237,60 +237,43 @@ class LayoutManager(ABC):
         # The values are lists containing the steps that must be taken
         # to travel from the source to the destination
         MyMap = []
+        distanceMap = []
         for name1 in DirectConnections.keys():
             Routing = []
+            dist = []
             for name2 in DirectConnections.keys():
                 # Make a map of layout names to lists
-                Routing.append((name2,[]))
+                if (name1!=name2):
+                    Routing.append((name2,[]))
+                    dist.append((name2,len(DirectConnections)+1))
             MyMap.append((name1,dict(Routing)))
+            distanceMap.append((name1,dict(dist)))
         self._route_map = dict(MyMap)
+        distanceMap = dict(distanceMap)
         
-        # Create helpful arrays
-        visitedNodes   = []
-        remainingNodes = set(DirectConnections.keys())
-        nodesToVisit   = [list(DirectConnections.keys())[0]]
-        remainingNodes.remove(nodesToVisit[0])
+        for name in DirectConnections.keys():
+            for stepTo in DirectConnections[name]:
+                distanceMap[name][stepTo]=1
+                self._route_map[name][stepTo].append(stepTo)
         
-        # While there are still nodes connected to the nodes visited so far
-        while (len(nodesToVisit)>0):
-            # get node
-            currentNode = nodesToVisit.pop(0)
-            
-            # Add connected nodes that have not yet been considered to list of nodes to check
-            for name in DirectConnections[currentNode]:
-                if (name in remainingNodes):
-                    nodesToVisit.append(name)
-                    remainingNodes.remove(name)
-            
-            # Find a path to each node that has already been considered
-            for aim in visitedNodes:
-                if (aim in DirectConnections[currentNode]):
-                    # If the node is directly connected then save the path
-                    self._route_map[currentNode][aim].append(aim)
-                    self._route_map[aim][currentNode].append(currentNode)
-                else:
-                    # If the node is not directly connected, find the connected
-                    # node which has the shortest path to the node for which we
-                    # are aiming
-                    viaList = []
-                    winningVia = None
-                    shortestLength = len(DirectConnections)
-                    for via in DirectConnections[currentNode]:
-                        if (not via in visitedNodes):
-                            continue
-                        elif(len(self._route_map[via][aim])<shortestLength):
-                            viaList = self._route_map[via][aim]
-                            winningVia = via
-                    # Save the path via this node
-                    self._route_map[currentNode][aim].append(winningVia)
-                    self._route_map[currentNode][aim].extend(viaList)
-                    self._route_map[aim][currentNode].extend(self._route_map[aim][winningVia])
-                    self._route_map[aim][currentNode].append(currentNode)
-            # Remember that this node has now been visited
-            visitedNodes.append(currentNode)
-        
-        # Return unconnected nodes
-        return remainingNodes
+        for source in DirectConnections.keys():
+            unvisitedNodes = set(DirectConnections.keys())
+            unvisitedNodes.remove(source)
+            while (len(unvisitedNodes)>0):
+                via = min(unvisitedNodes, key=lambda x: distanceMap[source][x])
+                unvisitedNodes.remove(via)
+                for aim in DirectConnections[via]:
+                    if (aim in unvisitedNodes):
+                        if (distanceMap[source][via]+distanceMap[via][aim]<distanceMap[source][aim]):
+                            distanceMap[source][aim]=distanceMap[source][via]+distanceMap[via][aim]
+                            distanceMap[aim][source]=distanceMap[via][source]+distanceMap[aim][via]
+                            self._route_map[source][aim]=self._route_map[source][via]+self._route_map[via][aim]
+                            self._route_map[aim][source]=self._route_map[aim][via]+self._route_map[via][source]
+                        elif (distanceMap[source][via]+distanceMap[via][aim]==distanceMap[source][aim]):
+                            if (self._route_map[source][via]+self._route_map[via][aim]<self._route_map[source][aim]):
+                                self._route_map[source][aim]=self._route_map[source][via]+self._route_map[via][aim]
+                                self._route_map[aim][source]=self._route_map[aim][via]+self._route_map[via][source]
+        return max(max(distanceMap.values(),key=lambda x:max(x.values())).values())==len(DirectConnections)+1
 
 #===============================================================================
 
@@ -338,53 +321,6 @@ def getLayoutHandler(comm: MPI.Comm, layouts : dict, nprocs: list, eta_grids: li
     
     mpi_coords = topology.Get_coords(comm.Get_rank())
     return LayoutHandler(subcomms,mpi_coords,layouts,nprocs,eta_grids)
-
-
-def my_print(*args,**kwargs):
-    if (MPI.COMM_WORLD.Get_rank()==4):
-        print(*args,**kwargs)
-
-
-def compare_f(Eta1,Eta2,Eta3,Eta4,layout,F):
-    nEta1=len(Eta1)
-    nEta2=len(Eta2)
-    nEta3=len(Eta3)
-    nEta4=len(Eta4)
-    inv_dims=[0,0,0,0]
-    for i,j in enumerate(layout.dims_order):
-        inv_dims[j]=i
-    
-    f=np.split(F,[layout.size])[0].reshape(layout.shape)
-    
-    my_print(f)
-    
-    # The loop ordering for the tests is not optimal but allows all layouts to use the same function
-    
-    for i,eta1 in enumerate(Eta1[layout.starts[inv_dims[0]]:layout.ends[inv_dims[0]]]):
-        # get global index
-        I=i+layout.starts[inv_dims[0]]
-        for j,eta2 in enumerate(Eta2[layout.starts[inv_dims[1]]:layout.ends[inv_dims[1]]]):
-            # get global index
-            J=j+layout.starts[inv_dims[1]]
-            for k,eta3 in enumerate(Eta3[layout.starts[inv_dims[2]]:layout.ends[inv_dims[2]]]):
-                # get global index
-                K=k+layout.starts[inv_dims[2]]
-                for l,eta4 in enumerate(Eta4[layout.starts[inv_dims[3]]:layout.ends[inv_dims[3]]]):
-                    # get global index
-                    L=l+layout.starts[inv_dims[3]]
-                    indices=[0,0,0,0]
-                    indices[inv_dims[0]]=i
-                    indices[inv_dims[1]]=j
-                    indices[inv_dims[2]]=k
-                    indices[inv_dims[3]]=l
-                    
-                    my_print(I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L,end=' ')
-                    
-                    # ensure value is as expected from function define_f()
-                    assert(f[indices[0],indices[1],indices[2],indices[3]]== \
-                        float(I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L))
-    my_print("]")
-
 
 class LayoutHandler(LayoutManager):
     """
@@ -469,10 +405,10 @@ class LayoutHandler(LayoutManager):
         DirectConnections=dict(myMap)
         
         # Save all layout paths in a map and save any remaining unconnected layouts
-        unvisited = self._makeConnectionMap(DirectConnections)
+        full = self._makeConnectionMap(DirectConnections)
         
         # all layouts should have been found
-        if (unvisited!=set()):
+        if (not full):
             s=str()
             for name in unvisited:
                 s+=(" '"+name+"'")
@@ -558,6 +494,8 @@ class LayoutHandler(LayoutManager):
         steps = self._route_map[source_name][dest_name]
         nSteps = len(steps)
         
+        print(steps)
+        
         # warn about multiple steps
         warnings.warn("Changing from {0} layout to {1} layout requires {2} steps" \
                 .format(source_name,dest_name,nSteps))
@@ -572,11 +510,9 @@ class LayoutHandler(LayoutManager):
         for i in range(nSteps):
             nextLayoutKey=steps[i]
             nextLayout=self._layouts[nextLayoutKey]
-            my_print(fromBuf)
             self._transpose(fromBuf,toBuf,nowLayout,nextLayout)
             nowLayout=nextLayout
             nowLayoutKey=nextLayoutKey
-            my_print('---------------------')
             fromBuf, toBuf = toBuf, fromBuf
         
         # Ensure the result is found in the expected place
@@ -622,7 +558,6 @@ class LayoutHandler(LayoutManager):
             fromBuf, toBuf = toBuf, fromBuf
     
     def _transpose(self, source, dest, layout_source, layout_dest):
-        my_print(layout_source.name," to ",layout_dest.name)
         # get axis information
         axis = self._get_swap_axes(layout_source,layout_dest)
         
@@ -631,7 +566,6 @@ class LayoutHandler(LayoutManager):
         
         # If both axes being swapped are not distributed
         if (len(axis)==0):
-            my_print("no distrib")
             destView = np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
             assert(destView.base is dest)
             transposition = [layout_source.dims_order.index(i) for i in layout_dest.dims_order]
@@ -641,10 +575,9 @@ class LayoutHandler(LayoutManager):
         # carry out transpose
         comm = self._subcomms[axis[0]]
         self._extract_from_source(sourceView,dest,layout_source,layout_dest,axis,comm)
-        my_print("dest:",dest)
         self._rearrange_from_buffer(dest,source,layout_source,layout_dest,axis,comm)
         
-        compare_f(list(range(4)),list(range(3)),list(range(3)),list(range(4)),layout_dest,dest)
+        f=np.split(dest,[layout_dest.size])[0].reshape(layout_dest.shape)
     
     def _transpose_source_intact(self, source, dest, buf, layout_source, layout_dest):
         # get views of the important parts of the data
@@ -1033,10 +966,10 @@ class LayoutSwapper(LayoutManager):
         DirectConnections=dict(myMap)
         
         # Save all layout paths in a map and save any remaining unconnected layouts
-        unvisited = self._makeConnectionMap(DirectConnections)
+        full = self._makeConnectionMap(DirectConnections)
         
         # all layouts should have been found
-        if (unvisited!=set()):
+        if (not full):
             s=str()
             for name in unvisited:
                 s+=(" '"+name+"'")
