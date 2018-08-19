@@ -273,7 +273,8 @@ class LayoutManager(ABC):
                             if (self._route_map[source][via]+self._route_map[via][aim]<self._route_map[source][aim]):
                                 self._route_map[source][aim]=self._route_map[source][via]+self._route_map[via][aim]
                                 self._route_map[aim][source]=self._route_map[aim][via]+self._route_map[via][source]
-        return max(max(distanceMap.values(),key=lambda x:max(x.values())).values())==len(DirectConnections)+1
+        
+        return max(max(distanceMap.values(),key=lambda x:max(x.values())).values())!=len(DirectConnections)+1
 
 #===============================================================================
 
@@ -409,10 +410,7 @@ class LayoutHandler(LayoutManager):
         
         # all layouts should have been found
         if (not full):
-            s=str()
-            for name in unvisited:
-                s+=(" '"+name+"'")
-            raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
+            raise RuntimeError("Not all layouts could not be connected")
     
     @property
     def communicators( self ):
@@ -897,9 +895,6 @@ class LayoutSwapper(LayoutManager):
                     coords.append(mpi_coords[j])
                     availableSubcomms[j]=None
                     the_procs.append(nDistrib)
-                #~ else:
-                    #~ the_subcomms.append(None)
-                    #~ coords.append(0)
             # Create the LayoutHandler
             self._managers[idx] = LayoutHandler(the_subcomms,coords,layouts[idx],the_procs,eta_grids)
         
@@ -970,10 +965,7 @@ class LayoutSwapper(LayoutManager):
         
         # all layouts should have been found
         if (not full):
-            s=str()
-            for name in unvisited:
-                s+=(" '"+name+"'")
-            raise RuntimeError("The following layouts could not be connected to preceeding layouts :"+s)
+            raise RuntimeError("Not all layouts could not be connected")
         
         # Remember the current LayoutHandler to help the properties
         self._current_manager = self._managers[self._handlers[start]]
