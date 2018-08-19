@@ -90,10 +90,6 @@ def test_Layout_DimsOrder():
     assert(l.inv_dims_order==[2,1,0,3])
 """
 
-def my_print(*args,**kwargs):
-    if (MPI.COMM_WORLD.Get_rank()==4):
-        print(*args,**kwargs)
-
 @pytest.mark.parallel
 def test_OddLayoutPaths():
     #~ npts = [40,20,10,30]
@@ -170,41 +166,11 @@ def test_OddLayoutPaths():
     #~ f5 = np.split(fStart,[l5.size])[0].reshape(l5.shape)
     #~ compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_s)
     
-    fb = np.split(fBuf,[l1.size])[0].reshape(l1.shape)
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l1,fb)
-    
-    my_print("0123:",np.split(fBuf,[l1.size])[0])
-    
-    fb = np.split(fBuf,[l2.size])[0].reshape(l2.shape)
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l2,fb)
-    
-    my_print("0321:",np.split(fBuf,[l2.size])[0])
-    
-    fb = np.split(fBuf,[l3.size])[0].reshape(l3.shape)
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l3,fb)
-    
-    my_print("1320:",np.split(fBuf,[l3.size])[0])
-    
-    fb = np.split(fBuf,[l4.size])[0].reshape(l4.shape)
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l4,fb)
-    
-    my_print("1302:",np.split(fBuf,[l4.size])[0])
-    
-    fb = np.split(fBuf,[l5.size])[0].reshape(l5.shape)
-    define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l5,fb)
-    
-    my_print("1230:",np.split(fBuf,[l5.size])[0])
-    
-    my_print('===============================================================')
-    
     with pytest.warns(UserWarning):
         remapper.transpose(source=fStart,
                            dest  =fEnd,
                            source_name='0123',
                            dest_name='1230')
-    
-    my_print(fStart)
-    my_print(fEnd)
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
