@@ -69,7 +69,7 @@ def compare_f(Eta1,Eta2,Eta3,Eta4,layout,f):
                     # ensure value is as expected from function define_f()
                     assert(f[indices[0],indices[1],indices[2],indices[3]]== \
                         float(I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L))
-"""
+
 @pytest.mark.serial
 def test_Layout_DimsOrder():
     eta_grids=[np.linspace(0,1,40),
@@ -88,12 +88,10 @@ def test_Layout_DimsOrder():
     l = Layout('test', [2,3], [2,1,0,3], eta_grids, [0,0] )
     assert(l.dims_order==[2,1,0,3])
     assert(l.inv_dims_order==[2,1,0,3])
-"""
 
 @pytest.mark.parallel
 def test_OddLayoutPaths():
-    #~ npts = [40,20,10,30]
-    npts = [4,3,3,4]
+    npts = [40,20,10,30]
     comm = MPI.COMM_WORLD
     nprocs = compute_2d_process_grid( npts , comm.Get_size() )
     
@@ -134,53 +132,32 @@ def test_OddLayoutPaths():
     
     define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
     
-    #~ remapper.transpose(source=fStart,
-                       #~ dest  =fEnd,
-                       #~ source_name='0123',
-                       #~ dest_name='0321')
-    
-    #~ f2 = np.split(fEnd  ,[l2.size])[0].reshape(l2.shape)
-    #~ compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l2,f2)
-    
-    #~ remapper.transpose(source=fEnd,
-                       #~ dest  =fStart,
-                       #~ source_name='0321',
-                       #~ dest_name='1302')
-    
-    #~ f4 = np.split(fStart,[l4.size])[0].reshape(l4.shape)
-    #~ compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l4,f4)
-    
-    #~ remapper.transpose(source=fStart,
-                       #~ dest  =fEnd,
-                       #~ source_name='1302',
-                       #~ dest_name='1320')
-    
-    #~ f3 = np.split(fEnd,[l3.size])[0].reshape(l3.shape)
-    #~ compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],l3,f3)
-    
-    #~ remapper.transpose(source=fEnd,
-                       #~ dest  =fStart,
-                       #~ source_name='1320',
-                       #~ dest_name='1230')
-    
-    #~ f5 = np.split(fStart,[l5.size])[0].reshape(l5.shape)
-    #~ compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_s)
-    
-    with pytest.warns(UserWarning):
+    if (nprocs[1]==1):
         remapper.transpose(source=fStart,
                            dest  =fEnd,
                            source_name='0123',
                            dest_name='1230')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fStart,
+                               dest  =fEnd,
+                               source_name='0123',
+                               dest_name='1230')
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
-    """
     # Even number of steps
-    with pytest.warns(UserWarning):
+    if (nprocs[1]==1):
         remapper.transpose(source=fEnd,
                            dest  =fStart,
-                           source_name='1302',
+                           source_name='1230',
                            dest_name='0321')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fEnd,
+                               dest  =fStart,
+                               source_name='1230',
+                               dest_name='0321')
     
     layout = remapper.getLayout('0321')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -197,18 +174,22 @@ def test_OddLayoutPaths():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
     
     # Odd number of steps
-    with pytest.warns(UserWarning):
+    if (nprocs[1]==1):
         remapper.transpose(source=fEnd,
                            dest  =fStart,
                            source_name='0123',
                            dest_name='1302')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fEnd,
+                               dest  =fStart,
+                               source_name='0123',
+                               dest_name='1302')
     
     layout = remapper.getLayout('1302')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
-    """
 
-"""
 @pytest.mark.parallel
 def test_OddLayoutPaths_IntactSource():
     npts = [40,20,10,30]
@@ -249,12 +230,11 @@ def test_OddLayoutPaths_IntactSource():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
     # Even number of steps
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fEnd,
-                           dest  =fStart,
-                           buf   =fBuf,
-                           source_name='1302',
-                           dest_name='0321')
+    remapper.transpose(source=fEnd,
+                       dest  =fStart,
+                       buf   =fBuf,
+                       source_name='1302',
+                       dest_name='0321')
     
     layout = remapper.getLayout('0321')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -272,12 +252,19 @@ def test_OddLayoutPaths_IntactSource():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
     
     # Odd number of steps
-    with pytest.warns(UserWarning):
+    if (nprocs[0]==nprocs[1] or nprocs[1]==1):
         remapper.transpose(source=fEnd,
                            dest  =fStart,
                            buf   =fBuf,
                            source_name='0123',
                            dest_name='1302')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fEnd,
+                               dest  =fStart,
+                               buf   =fBuf,
+                               source_name='0123',
+                               dest_name='1302')
     
     layout = remapper.getLayout('1302')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -375,11 +362,19 @@ def test_LayoutSwap_IntactSource():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
     
-    remapper.transpose(source = f1,
-                       dest   = f2,
-                       buf    = f3,
-                       source_name='flux_surface',
-                       dest_name='test')
+    if (nprocs[0]==nprocs[1] or nprocs[1]==1):
+        remapper.transpose(source = f1,
+                           dest   = f2,
+                           buf    = f3,
+                           source_name='flux_surface',
+                           dest_name='test')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source = f1,
+                               dest   = f2,
+                               buf    = f3,
+                               source_name='flux_surface',
+                               dest_name='test')
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],tLayout,f_t_2)
@@ -884,4 +879,3 @@ def test_phiSwapper():
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],msLayout,f_ms_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
     
-"""
