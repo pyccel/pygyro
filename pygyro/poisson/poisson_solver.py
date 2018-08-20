@@ -157,7 +157,7 @@ class DiffEqSolver:
         # Ensure dirichlet boundaries are not used at both boundaries on
         # any mode
         poorlyDefined = [b for b in lNeumannIdx if b in uNeumannIdx]
-        if (len(poorlyDefined)!=0):
+        if (rFactor==(lambda r:0) and len(poorlyDefined)!=0):
             raise ValueError("Modes {0} are poorly defined as they use 0 Dirichlet boundary conditions".format(poorlyDefined))
         
         # If dirichlet boundary conditions are used then assign the
@@ -185,10 +185,9 @@ class DiffEqSolver:
         self._coeff_range = [slice(                  0 if i in lNeumannIdx else 1,
                                    rspline.nbasis - (0 if i in uNeumannIdx else 1))
                              for i in self._mVals]
-        
         self._stiffness_range = [slice(0 if i in lNeumannIdx else (1-start_range),
                                    self._nUnknowns - (0 if i in uNeumannIdx else (1-excluded_end_pts)))
-                             for i in self._mVals]
+                                 for i in self._mVals]
         
         self._mVals*=self._mVals
         
@@ -262,10 +261,6 @@ class DiffEqSolver:
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
         self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
-        
-        if (np.linalg.cond(self._stiffnessMatrix.todense())>1e10):
-            raise UserWarning("Condition of stiffness matrix is too high. \
-                                This warning may be able to be ignored if different boundary conditions are used at different boundaries")
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(rspline)
@@ -486,12 +481,11 @@ class QuasiNeutralitySolver(DiffEqSolver):
         Default is initialiser.Te
 
     """
-    def __init__( self, eta_grid: list, degree: int, rspline: BSplines, adiabaticElectrons: bool = True,
-                    *args,**kwargs):
+    def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
+                    adiabaticElectrons: bool = True,n0 = initialiser.n0,
+                    B: float = 1.0, Te = initialiser.Te, **kwargs):
         r = eta_grid[0]
         
-        n0 = kwargs.pop('n0',initialiser.n0)
-        B = kwargs.pop('B',1.0)
         if ('n0derivNormalised' in kwargs):
             n0derivNormalised = kwargs.pop('n0derivNormalised',initialiser.n0derivNormalised)
         elif ('n0deriv' in kwargs):
@@ -510,7 +504,6 @@ class QuasiNeutralitySolver(DiffEqSolver):
         else:
             assert('chi' in kwargs)
             chi = kwargs.pop('chi')
-            Te = kwargs.pop('Te',initialiser.Te)
             
             DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
                         drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
