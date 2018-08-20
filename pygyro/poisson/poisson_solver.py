@@ -487,11 +487,10 @@ class QuasiNeutralitySolver(DiffEqSolver):
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                    adiabaticElectrons: bool = True,**kwargs):
+                    adiabaticElectrons: bool = True,n0 = initialiser.n0,
+                    B: float = 1.0, Te = initialiser.Te, **kwargs):
         r = eta_grid[0]
         
-        n0 = kwargs.pop('n0',initialiser.n0)
-        B = kwargs.pop('B',1.0)
         if ('n0derivNormalised' in kwargs):
             n0derivNormalised = kwargs.pop('n0derivNormalised',initialiser.n0derivNormalised)
         elif ('n0deriv' in kwargs):
@@ -510,7 +509,6 @@ class QuasiNeutralitySolver(DiffEqSolver):
         else:
             assert('chi' in kwargs)
             chi = kwargs.pop('chi')
-            Te = kwargs.pop('Te',initialiser.Te)
             
             DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
                         drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
