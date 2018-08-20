@@ -154,6 +154,12 @@ class DiffEqSolver:
         # Initialise the memory used for the calculated result
         self._coeffs = np.empty([rspline.nbasis],np.complex128)
         
+        # Ensure dirichlet boundaries are not used at both boundaries on
+        # any mode
+        poorlyDefined = [b for b in lNeumannIdx if b in uNeumannIdx]
+        if (len(poorlyDefined)!=0):
+            raise ValueError("Modes {0} are poorly defined as they use 0 Dirichlet boundary conditions".format(poorlyDefined))
+        
         # If dirichlet boundary conditions are used then assign the
         # required value on the boundary
         if (lNeumannIdx==[]):
@@ -279,7 +285,7 @@ class DiffEqSolver:
         
         """
         assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
-        assert(rho.getLayout(rho.currentLayout).dims_order[-1]==1)
+        assert(rho.getLayout(rho.currentLayout).dims_order==[0,2,1])
         for i,r in rho.getCoords(0):
             for j,z in rho.getCoords(1):
                 vec=rho.get1DSlice([i,j])
@@ -413,7 +419,7 @@ class DiffEqSolver:
         """
         
         assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
-        assert(phi.getLayout(phi.currentLayout).dims_order[-1]==1)
+        assert(phi.getLayout(phi.currentLayout).dims_order==[0,2,1])
         
         for i,r in phi.getCoords(0):
             for j,z in phi.getCoords(1):
