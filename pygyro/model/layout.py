@@ -1054,7 +1054,7 @@ class LayoutSwapper(LayoutManager):
             # If the distribution is the same then the communicators should
             # also be the same
             if (nDim1==nDim2):
-                return [c in handler1.communicators for c in handler2.communicators].all()
+                return all([c in handler1.communicators for c in handler2.communicators])
             # Ensure that 2 is the larger handler to facilitate steps
             if (nDim1>nDim2):
                 handler1, handler2 = handler2, handler1
