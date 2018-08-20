@@ -18,5 +18,7 @@
 # Wall clock limit:
 #SBATCH --time=01:00:00
 
+module load anaconda/3 impi mpi4py h5py-mpi
+
 # Run the program:
 srun python3 Pygyro/l2Test.py 100 -f timeTest > prog.out
