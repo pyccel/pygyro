@@ -185,10 +185,9 @@ class DiffEqSolver:
         self._coeff_range = [slice(                  0 if i in lNeumannIdx else 1,
                                    rspline.nbasis - (0 if i in uNeumannIdx else 1))
                              for i in self._mVals]
-        
         self._stiffness_range = [slice(0 if i in lNeumannIdx else (1-start_range),
                                    self._nUnknowns - (0 if i in uNeumannIdx else (1-excluded_end_pts)))
-                             for i in self._mVals]
+                                 for i in self._mVals]
         
         self._mVals*=self._mVals
         
@@ -262,10 +261,6 @@ class DiffEqSolver:
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
         self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
-        
-        if (np.linalg.cond(self._stiffnessMatrix.todense())>1e10):
-            raise UserWarning("Condition of stiffness matrix is too high. \
-                                This warning may be able to be ignored if different boundary conditions are used at different boundaries")
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(rspline)
