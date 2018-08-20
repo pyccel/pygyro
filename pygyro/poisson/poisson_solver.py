@@ -154,6 +154,12 @@ class DiffEqSolver:
         # Initialise the memory used for the calculated result
         self._coeffs = np.empty([rspline.nbasis],np.complex128)
         
+        # Ensure dirichlet boundaries are not used at both boundaries on
+        # any mode
+        poorlyDefined = [b for b in lNeumannIdx if b in uNeumannIdx]
+        if (len(poorlyDefined)!=0):
+            raise ValueError("Modes {0} are poorly defined as they use 0 Dirichlet boundary conditions".format(poorlyDefined))
+        
         # If dirichlet boundary conditions are used then assign the
         # required value on the boundary
         if (lNeumannIdx==[]):
