@@ -464,12 +464,13 @@ def test_IncompatibleLayoutError():
                np.linspace(0,6.28318531,npts[1]),
                np.linspace(0,10,npts[2]),
                np.linspace(0,10,npts[3])]
-    with pytest.raises(RuntimeError):
-        layouts = {'flux_surface': [0,3,1,2],
-                   'v_parallel'  : [0,2,1,3],
-                   'poloidal'    : [3,2,1,0],
-                   'broken'      : [1,0,2,3]}
-        getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    if (nprocs!=(1,1)):
+        with pytest.raises(RuntimeError):
+            layouts = {'flux_surface': [0,3,1,2],
+                       'v_parallel'  : [0,2,1,3],
+                       'poloidal'    : [3,2,1,0],
+                       'broken'      : [1,0,2,3]}
+            getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
 @pytest.mark.parallel
 def test_CompatibleLayouts():
@@ -507,11 +508,12 @@ def test_BadStepWarning():
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source = f1,
-                           dest   = f2,
-                           source_name='flux_surface',
-                           dest_name='poloidal')
+    if (nprocs!=(1,1)):
+        with pytest.warns(UserWarning):
+            remapper.transpose(source = f1,
+                               dest   = f2,
+                               source_name='flux_surface',
+                               dest_name='poloidal')
 
 @pytest.mark.parallel
 def test_BadStepWarning_IntactSource():
@@ -550,13 +552,13 @@ def test_BadStepWarning_IntactSource():
     assert(not f_p_e.flags['OWNDATA'])
     
     
-    
-    with pytest.warns(UserWarning):
-        remapper.transpose(source = fStart,
-                           dest = fEnd,
-                           buf  = fBuf,
-                           source_name='flux_surface',
-                           dest_name='poloidal')
+    if (nprocs!=(1,1)):
+        with pytest.warns(UserWarning):
+            remapper.transpose(source = fStart,
+                               dest = fEnd,
+                               buf  = fBuf,
+                               source_name='flux_surface',
+                               dest_name='poloidal')
 
 @pytest.mark.parallel
 def test_copy():
