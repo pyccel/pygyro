@@ -127,7 +127,10 @@ class DiffEqSolver:
         respect to theta. (D in the expression above)
         Default is: lambda r: -1
     
-    rhoFactor : 
+    rhoFactor : function handle - optional
+        The factor in front of the right hand side (E in the expression
+        above)
+        Default is: lambda r: 1
 
     """
     def __init__( self, degree: int, rspline: BSplines, nTheta: int,
