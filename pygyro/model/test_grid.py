@@ -2,12 +2,14 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 from math import pi
+import h5py
+import os
 
 from .grid          import Grid
 from .layout        import getLayoutHandler, LayoutSwapper
 from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from_max
 
-def define_f(grid):
+def define_f(grid,t=0):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
     
     for i,x in grid.getCoords(0):
@@ -16,7 +18,7 @@ def define_f(grid):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
-                    Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
+                    Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t
 
 def define_phi(grid):
     [nEta1,nEta2,nEta3] = grid.nGlobalCoords
@@ -28,7 +30,7 @@ def define_phi(grid):
                 [I,J,K] = grid.getGlobalIndices([i,j,k])
                 Slice[k] = I*nEta3*nEta2+J*nEta3+K
 
-def compare_f(grid):
+def compare_f(grid,t=0):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
     
     for i,x in grid.getCoords(0):
@@ -37,7 +39,7 @@ def compare_f(grid):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
-                    assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L)
+                    assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
 
 def compare_phi(grid):
     [nEta1,nEta2,nEta3] = grid.nGlobalCoords
@@ -209,3 +211,41 @@ def test_PhiLayoutSwap():
     phi.setLayout('poloidal')
     
     compare_phi(phi)
+
+@pytest.mark.parallel
+def test_h5py():
+    comm = MPI.COMM_WORLD
+    npts = [10,20,10,10]
+    nprocs = compute_2d_process_grid( npts , comm.Get_size() )
+    
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    fsLayout = remapper.getLayout('flux_surface')
+    vLayout = remapper.getLayout('v_parallel')
+    
+    grid = Grid(eta_grids,[],remapper,'flux_surface')
+    
+    define_f(grid)
+    
+    if (comm.Get_rank()==0):
+        if (not os.path.isdir('testValues')):
+            os.mkdir('testValues')
+    
+    define_f(grid,20)
+    grid.writeH5Dataset('testValues',20)
+    define_f(grid,40)
+    grid.writeH5Dataset('testValues',40)
+    define_f(grid,80)
+    grid.writeH5Dataset('testValues',80)
+    define_f(grid,100)
+    grid.writeH5Dataset('testValues',100)
+    grid.loadFromFile('testValues')
+    compare_f(grid,100)

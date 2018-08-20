@@ -95,6 +95,7 @@ class Layout:
         self._size = np.prod(self._shape)
         self._max_size = np.prod(self._max_shape)
         
+        self._full_shape=tuple([len(eta_grids[i]) for i in dims_order])
         self._shape=tuple(self._shape)
         self._mpi_starts=tuple(self._mpi_starts)
         self._mpi_lengths=tuple(self._mpi_lengths)
@@ -140,6 +141,12 @@ class Layout:
         """ Get shape of data chunk in this layout.
         """
         return self._shape
+    
+    @property
+    def fullShape( self ):
+        """ Get shape of all data in this layout.
+        """
+        return self._full_shape
     
     @property
     def max_block_shape( self ):
@@ -963,6 +970,9 @@ class LayoutSwapper(LayoutManager):
         
         # Remember the current LayoutHandler to help the properties
         self._current_manager = self._managers[self._handlers[start]]
+        
+        # Save the names and shapes of possible layouts
+        self._shapes = [l for manager in self._managers for l in manager.availableLayouts]
     
     def _compatible( self, layout1: dict, layout2: dict ):
         # The LayoutHandlers are compatible if they both contain a layout where
@@ -1014,12 +1024,6 @@ class LayoutSwapper(LayoutManager):
         """ The number of distributed directions
         """
         return self._current_manager.nDistributedDirections
-    
-    @property
-    def availableLayouts( self ):
-        """ The names of possible layouts
-        """
-        return self._layouts
     
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
