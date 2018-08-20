@@ -78,16 +78,16 @@ def test_Layout_DimsOrder():
                np.linspace(0,10,30)]
     
     l = Layout('test', [2,3], [0,3,2,1], eta_grids, [0,0] )
-    assert(l.dims_order==[0,3,2,1])
-    assert(l.inv_dims_order==[0,3,2,1])
+    assert(l.dims_order==(0,3,2,1))
+    assert(l.inv_dims_order==(0,3,2,1))
     
     l = Layout('test', [2,3], [0,2,3,1], eta_grids, [0,0] )
-    assert(l.dims_order==[0,2,3,1])
-    assert(l.inv_dims_order==[0,3,1,2])
+    assert(l.dims_order==(0,2,3,1))
+    assert(l.inv_dims_order==(0,3,1,2))
     
     l = Layout('test', [2,3], [2,1,0,3], eta_grids, [0,0] )
-    assert(l.dims_order==[2,1,0,3])
-    assert(l.inv_dims_order==[2,1,0,3])
+    assert(l.dims_order==(2,1,0,3))
+    assert(l.inv_dims_order==(2,1,0,3))
 
 @pytest.mark.parallel
 def test_OddLayoutPaths():
