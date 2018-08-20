@@ -896,10 +896,8 @@ class LayoutSwapper(LayoutManager):
             the_subcomms=[]
             coords = []
             the_procs = []
-            for i,n in enumerate(self._nprocs[idx]):
+            for i,n in enumerate(np.atleast_1d(nprocs[idx])):
                 # For each distributed direction
-                if (n==1):
-                    break
                 if (availableSubcomms.count(n)==1):
                     # If there is only 1 possible communicator use that communicator
                     axis = availableSubcomms.index(n)
@@ -1045,8 +1043,8 @@ class LayoutSwapper(LayoutManager):
             handler2 = self._managers[i2]
             
             # Get the number of distributed directions
-            nDim1 = handler1.nDistributedDirections
-            nDim2 = handler2.nDistributedDirections
+            nDim1 = len(handler1.nProcs)
+            nDim2 = len(handler2.nProcs)
             
             # Only 1 distributed direction should change
             if (abs(nDim1-nDim2)>1):
@@ -1167,7 +1165,17 @@ class LayoutSwapper(LayoutManager):
         dest_nprocs = list(layout_dest.nprocs)
         dest_ndims = self._managers[self._handlers[layout_dest.name]].nDistributedDirections
         
-        if (dest_ndims>=source_ndims):
+        if (dest_ndims==source_ndims):
+            # If the source has the same number of dimensions then the
+            # distribution is not changed and it is a simple transpose
+            sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
+            destView   = np.split(dest  ,[  layout_dest.size])[0].reshape(  layout_dest.shape)
+            
+            transposition = [layout_source.dims_order.index(i) for i in layout_dest.dims_order]
+            
+            # Copy the relevant information
+            destView[:]=np.transpose(sourceView,transposition)
+        elif (dest_ndims>source_ndims):
             # If the source has fewer dimensions then the layout was not
             # distributed and all necessary information is already on the thread
             sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
@@ -1190,7 +1198,7 @@ class LayoutSwapper(LayoutManager):
             transposition = [layout_source.dims_order.index(i) for i in layout_dest.dims_order]
             
             # Copy the relevant information
-            destView[:layout_dest.size]=np.transpose(sourceView[tuple(sourceSlice)],transposition)
+            destView[:]=np.transpose(sourceView[tuple(sourceSlice)],transposition)
         else:
             # Find the axis which will be distributed
             idx_d, idx_s = self.getAxes(layout_dest,layout_source)
@@ -1247,7 +1255,17 @@ class LayoutSwapper(LayoutManager):
         dest_nprocs = list(layout_dest.nprocs)
         dest_ndims = self._managers[self._handlers[layout_dest.name]].nDistributedDirections
         
-        if (dest_ndims>=source_ndims):
+        if (dest_ndims==source_ndims):
+            # If the source has the same number of dimensions then the
+            # distribution is not changed and it is a simple transpose
+            sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
+            destView   = np.split(dest  ,[  layout_dest.size])[0].reshape(  layout_dest.shape)
+            
+            transposition = [layout_source.dims_order.index(i) for i in layout_dest.dims_order]
+            
+            # Copy the relevant information
+            destView[:]=np.transpose(sourceView,transposition)
+        elif (dest_ndims>source_ndims):
             # If the source has fewer dimensions then the layout was not
             # distributed and all necessary information is already on the thread
             sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
