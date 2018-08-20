@@ -222,7 +222,7 @@ class DiffEqSolver:
                 massCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
                         rhoFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
                 k2PhiPsiCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
-                        ddqFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
+                        ddThetaFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
                 PhiPsiCoeffs[j][i] = np.sum( np.tile(self._weights,end-start) * multFactor * \
                         rFactor(evalPts) * rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts )
                 dPhidPsi = np.sum( np.tile(self._weights,end-start) * multFactor * \
