@@ -166,9 +166,6 @@ def setupFromFile(foldername, **kwargs):
     drawRank=kwargs.pop('drawRank',0)
     allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
     
-    for name,value in kwargs.items():
-        warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
-    
     rank=comm.Get_rank()
     
     if (plotThread):
@@ -242,5 +239,8 @@ def setupFromFile(foldername, **kwargs):
             initialise_v_parallel(grid,m,n,eps)
         elif (layout=='poloidal'):
             initialise_poloidal(grid,m,n,eps)
+    
+    for name,value in kwargs.items():
+        warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
     
     return grid

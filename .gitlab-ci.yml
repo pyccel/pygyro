@@ -6,18 +6,17 @@ testimony:
   tags:
     - vm_linux
   before_script:
-    - module load anaconda/3
     - module load impi
-    - pip show numpy
-    - h5cc -showconfig
     - export I_MPI_SHM_LMT=shm
+    - source ~/python_virtualenv/bin/activate
+    - pip show numpy
   script:
-    - py.test pygyro -m serial
-    - py.test pygyro -m parallel
-    - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
-    - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 4"
-    - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
-    - python3 mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
+    - pytest pygyro -m serial
+    - pytest pygyro -m parallel
+    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
+    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 4"
+    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
+    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
   after_script:
-    - module unload anaconda
+    - deactivate
     - module unload impi
