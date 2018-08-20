@@ -425,7 +425,7 @@ class LayoutHandler(LayoutManager):
     def communicators( self ):
         """ The communicators used by the LayoutManager
         """
-        return self._subcomms
+        return tuple(self._subcomms)
     
     def getLayout( self, layout: str ):
         return self._layouts[layout]
@@ -1015,7 +1015,7 @@ class LayoutSwapper(LayoutManager):
                 nDim1, nDim2 = nDim2, nDim1
             
             # Find the axis which will be distributed
-            possComms = handler2.communicators.copy()
+            possComms = list(handler2.communicators)
             for c in handler1.communicators:
                 if c in possComms:
                     i=possComms.index(c)
@@ -1337,7 +1337,7 @@ class LayoutSwapper(LayoutManager):
     def getAxes( self, layout_gathered: Layout, layout_scattered: Layout):
         handlerG = self._managers[self._handlers[layout_gathered.name]]
         handlerS = self._managers[self._handlers[layout_scattered.name]]
-        possComms = handlerS.communicators.copy()
+        possComms = list(handlerS.communicators)
         for c in handlerG.communicators:
             if c in possComms:
                 i=possComms.index(c)
