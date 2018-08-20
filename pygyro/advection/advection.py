@@ -10,8 +10,8 @@ from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 from ..model.layout                 import Layout
 
-def fieldline(theta,z_diff,iota):
-    return np.mod(theta+iota(constants.R0)*z_diff/constants.R0,2*pi)
+def fieldline(theta,z_diff,iota,r):
+    return np.mod(theta+iota(r)*z_diff/constants.R0,2*pi)
 
 class ParallelGradient:
     """
@@ -23,7 +23,7 @@ class ParallelGradient:
     spline : BSplines
         A spline along the theta direction
 
-    eta_grids : list of array_like
+    eta_grid : list of array_like
         The coordinates of the grid points in each dimension
 
     iota : function handle - optional
@@ -32,6 +32,7 @@ class ParallelGradient:
     
     order : int - optional
         The order of the finite differences scheme that is used
+        Default is 6
 
     """
     def __init__( self, spline: BSplines, eta_grid: list, iota = constants.iota, order: int = 6 ):
@@ -74,7 +75,7 @@ class ParallelGradient:
         # They can therefore be calculated in advance
         if (self._variesInR):
             self._thetaVals = np.empty([eta_grid[0].size, eta_grid[1].size, eta_grid[2].size, order+1])
-            for i,r in enumerate(eta_gird[0]):
+            for i,r in enumerate(eta_grid[0]):
                 self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
         else:
             self._thetaVals = np.empty([eta_grid[1].size, eta_grid[2].size, order+1])
@@ -101,16 +102,16 @@ class ParallelGradient:
         # Solve the linear system to find the coefficients
         self._coeffs = solve(A,b)
     
-    def _getThetaVals( self, r: np.ndarray, thetaVals: np.ndarray, eta_grid: list, iota ):
+    def _getThetaVals( self, r: float, thetaVals: np.ndarray, eta_grid: list, iota ):
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         n = eta_grid[2].size
         
         for k,z in enumerate(eta_grid[2]):
             for i,l in enumerate(self._shifts):
-                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota)
+                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota,r)
     
-    def parallel_gradient( self, phi_r: np.ndarray, i : int ):
+    def parallel_gradient( self, phi_r: np.ndarray, i : int, der: np.ndarray ):
         """
         Get the gradient of a function in the direction parallel to the
         flux surface
@@ -131,7 +132,8 @@ class ParallelGradient:
         else:
             bz=self._bz
             thetaVals = self._thetaVals
-        der=np.zeros_like(phi_r)
+        assert(der.shape==phi_r.shape)
+        der[:]=0
         
         # For each value of z interpolate the spline along theta and add
         # the value multiplied by the corresponding coefficient to the
@@ -139,19 +141,19 @@ class ParallelGradient:
         # This is split into three steps to avoid unnecessary modulo operations
         
         for i in range(self._fwdSteps):
-            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[:,(i-s)%self._nz]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
-            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[:,(i-s)]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                der[(i-s),:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._nz-self._bkwdSteps,self._nz):
-            self._interpolator.compute_interpolant(phi_r[:,i],self._thetaSpline)
+            self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[:,(i-s)%self._nz]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         der*= ( bz * self._inv_dz )
         
@@ -170,8 +172,8 @@ class FluxSurfaceAdvection:
     splines: list of BSplines
         The spline approximations along theta and z
         
-    c: list of floats
-        Advection parameter d_tf + c d_xf=0
+    layout: Layout
+        The current layout
         
     dt: float
         Time-step
@@ -243,7 +245,7 @@ class FluxSurfaceAdvection:
         # The first barycentric formula is used to find the lagrange coefficients
         zDiff=zPos-zPts
         omega = np.prod(zDiff,axis=2)[:,:,None]
-        lambdas = 1/np.prod(zPts[:,:,None,:]-zPts[:,:,:,None]+np.eye(self._zLagrangePts)[None,None,:,:],axis=3)
+        lambdas = 1/np.prod(zPts[:,:,:,None]-zPts[:,:,None,:]+np.eye(self._zLagrangePts)[None,None,:,:],axis=3)
         
         # If the final position is one of the points then zDiff=0
         # The division by 0 must be avoided and the coefficients should
@@ -263,7 +265,7 @@ class FluxSurfaceAdvection:
             The result will be stored here
         
         cIdx: int
-            Advection parameter d_tf + c d_xf=0
+            Index of the advection parameter d_tf + c d_xf=0
         
         rIdx: int - optional
             The current index of r. Not necessary if iota does not depend on r

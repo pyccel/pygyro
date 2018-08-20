@@ -1,6 +1,7 @@
 from mpi4py import MPI
 from math import pi
 import numpy as np
+import warnings
 
 from ..                     import splines as spl
 from ..model.layout         import getLayoutHandler
@@ -14,9 +15,11 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     Setup using radial topology can be initialised using the following arguments:
     
     Compulsory arguments:
-    npts   -- number of points in each direction 
-              (radial, tangential, axial, v parallel)
-    layout -- parallel distribution start configuration
+    npts                -- number of points in each direction 
+                            (radial, tangential, axial, v parallel)
+    layout              -- parallel distribution start configuration
+    allocateSaveMemory  -- boolean indicating whether the grid can temporarily save a dataset
+    dtype               -- The data type used by the grid
     
     Optional arguments:
     rMin   -- minimum radius, a float. (default constants.rMin)
@@ -34,6 +37,8 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     zDegree     -- degree of splines in the axial direction. (default 3)
     vDegree     -- degree of splines in the v parallel direction. (default 3)
     
+    eps         -- perturbation size
+    
     comm        -- MPI communicator. (default MPI.COMM_WORLD)
     plotThread  -- whether there is a thread to be used only for plotting (default False)
     drawRank    -- Thread to be used for plotting (default 0)
@@ -42,6 +47,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     """
     rMin=kwargs.pop('rMin',constants.rMin)
     rMax=kwargs.pop('rMax',constants.rMax)
+    constants.rp = 0.5*(rMin + rMax)
     zMin=kwargs.pop('zMin',constants.zMin)
     zMax=kwargs.pop('zMax',constants.zMax)
     vMax=kwargs.pop('vMax',constants.vMax)
@@ -56,6 +62,11 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
+    allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
+    dtype=kwargs.pop('dtype',float)
+    
+    for name,value in kwargs.items():
+        warnings.warn("{0} is not a recognised parameter for setupCylindricalGrid".format(name))
     
     rank=comm.Get_rank()
     
@@ -92,7 +103,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
     # Create grid
-    grid = Grid(eta_grids,bsplines,remapper,layout,comm)
+    grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
     
     if (layout=='flux_surface'):
         initialise_flux_surface(grid,m,n,eps)

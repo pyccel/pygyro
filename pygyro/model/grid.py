@@ -7,7 +7,10 @@ from .layout            import LayoutManager
 
 class Grid(object):
     def __init__( self, eta_grid: list, bsplines: list, layouts: LayoutManager,
-                    chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD):
+                    chosenLayout: str, comm : MPI.Comm = MPI.COMM_WORLD, **kwargs):
+        dtype = kwargs.pop('dtype',float)
+        self.hasSaveMemory = kwargs.pop('allocateSaveMemory',False)
+        
         # get MPI values
         self.global_comm = comm
         self.rank = comm.Get_rank()
@@ -17,10 +20,18 @@ class Grid(object):
         self._layout_manager=layouts
         self._current_layout_name=chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-        self._my_data = [np.empty(self._layout_manager.bufferSize),
-                         np.empty(self._layout_manager.bufferSize)]
+        if (self.hasSaveMemory):
+            self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+            self.notSaved = True
+        else:
+            self._my_data = [np.empty(self._layout_manager.bufferSize,dtype=dtype),
+                             np.empty(self._layout_manager.bufferSize,dtype=dtype)]
+        
         self._dataIdx = 0
         self._buffIdx = 1
+        self._saveIdx = 2
         
         # Remember views on the data
         shapes = layouts.availableLayouts
@@ -63,6 +74,12 @@ class Grid(object):
         """
         return self._Vals[self._layout.dims_order[i]][self._layout.starts[i]:self._layout.ends[i]]
     
+    
+    def getGlobalIdxVals( self, i : int ):
+        """ get global indices of local coordinates along axis i
+        """
+        return range(self._layout.starts[i],self._layout.ends[i])
+    
     def getGlobalIndices( self, indices: list):
         """ convert local indices to global indices
         """
@@ -77,7 +94,7 @@ class Grid(object):
         assert(len(slices)==self._nDims-2)
         slices.extend([slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
                       slice(self._nGlobalCoords[self._layout.dims_order[-1]])])
-        return self._f[slices]
+        return self._f[tuple(slices)]
     
     def get2DSpline( self ):
         """ get the splines associated with the last 2 dimensions
@@ -95,7 +112,7 @@ class Grid(object):
         """
         assert(len(slices)==self._nDims-1)
         slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
-        return self._f[slices]
+        return self._f[tuple(slices)]
     
     def get1DSpline( self ):
         """ get the spline associated with the last dimension
@@ -117,3 +134,41 @@ class Grid(object):
         """ Return requested layout
         """
         return self._layout_manager.getLayout(name)
+    
+    @property
+    def currentLayout( self ):
+        """ Return name of current layout
+        """
+        return self._current_layout_name
+    
+    def saveGridValues( self ):
+        """ Save current values into a buffer.
+            This location is protected until it is freed or restored
+        """
+        assert(self.hasSaveMemory)
+        assert(self.notSaved)
+        
+        self._my_data[self._saveIdx][:self._layout.size] = self._f[:].flatten()
+        self._savedLayout = self._current_layout_name
+        
+        self.notSaved = False
+    
+    def freeGridSave( self ):
+        """ Signal that the saved grid data is no longer needed and can
+            be overwritten
+        """
+        assert(self.hasSaveMemory)
+        assert(not self.notSaved)
+        self.notSaved = True
+    
+    def restoreGridValues( self ):
+        """ Restore the values from the saved grid data
+        """
+        assert(self.hasSaveMemory)
+        assert(not self.notSaved)
+        
+        self._dataIdx, self._saveIdx = self._saveIdx, self._dataIdx
+        self.notSaved = True
+        self._current_layout_name = self._savedLayout
+        self._layout = self._layout_manager.getLayout(self._current_layout_name)
+        self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
