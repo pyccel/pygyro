@@ -486,8 +486,8 @@ class QuasiNeutralitySolver(DiffEqSolver):
         Default is initialiser.Te
 
     """
-    def __init__( self, eta_grid: list, degree: int, rspline: BSplines, adiabaticElectrons: bool = True,
-                    *args,**kwargs):
+    def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
+                    adiabaticElectrons: bool = True,**kwargs):
         r = eta_grid[0]
         
         n0 = kwargs.pop('n0',initialiser.n0)
