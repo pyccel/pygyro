@@ -177,7 +177,7 @@ class Layout:
     
     @property
     def ranks( self ):
-        """
+        """ Rank of the thread on each process associated with this layout
         """
         return self._ranks
     
@@ -200,7 +200,9 @@ class LayoutManager(ABC):
     This class is a super class and should never be instantiated
     """
     
-    def getLayout( self, name ):
+    def getLayout( self, name: str ):
+        """ Returns the requested layout
+        """
         return self._layouts[name]
     
     @property
@@ -245,6 +247,7 @@ class LayoutManager(ABC):
         # The keys of the resulting dictionary are the destination layout name
         # The values are lists containing the steps that must be taken
         # to travel from the source to the destination
+        # A similar map is created containing the number of steps between layouts
         MyMap = []
         distanceMap = []
         for name1 in DirectConnections.keys():
@@ -260,29 +263,46 @@ class LayoutManager(ABC):
         self._route_map = dict(MyMap)
         distanceMap = dict(distanceMap)
         
+        # Initialise the distances and routes where known
         for name in DirectConnections.keys():
             for stepTo in DirectConnections[name]:
                 distanceMap[name][stepTo]=1
                 self._route_map[name][stepTo].append(stepTo)
         
         for source in DirectConnections.keys():
+            # Use Dijkstra's algorithm to find the shortest path from a
+            # node 'source' to any other node
+            
+            # Create a set of all nodes which must be found
             unvisitedNodes = set(DirectConnections.keys())
             unvisitedNodes.remove(source)
             while (len(unvisitedNodes)>0):
+                # Chose a current node (the nearest node to the source which
+                # has not yet been visited
                 via = min(unvisitedNodes, key=lambda x: distanceMap[source][x])
                 unvisitedNodes.remove(via)
+                
+                # Check the path to each neighbour node via the current node
                 for aim in DirectConnections[via]:
-                    if (aim in unvisitedNodes):
-                        if (distanceMap[source][via]+distanceMap[via][aim]<distanceMap[source][aim]):
-                            distanceMap[source][aim]=distanceMap[source][via]+distanceMap[via][aim]
-                            distanceMap[aim][source]=distanceMap[via][source]+distanceMap[aim][via]
+                    if (aim not in unvisitedNodes):
+                        continue
+                    # If this route is shorter than any previously considered
+                    # route then save it
+                    if (distanceMap[source][via]+distanceMap[via][aim]<distanceMap[source][aim]):
+                        distanceMap[source][aim]=distanceMap[source][via]+distanceMap[via][aim]
+                        distanceMap[aim][source]=distanceMap[via][source]+distanceMap[aim][via]
+                        self._route_map[source][aim]=self._route_map[source][via]+self._route_map[via][aim]
+                        self._route_map[aim][source]=self._route_map[aim][via]+self._route_map[via][source]
+                    # If this route is the same length as the shortest previously
+                    # considered route:
+                    elif (distanceMap[source][via]+distanceMap[via][aim]==distanceMap[source][aim]):
+                        # Then save it if the route names are smaller
+                        # This ensures the algorithm is determinist
+                        if (self._route_map[source][via]+self._route_map[via][aim]<self._route_map[source][aim]):
                             self._route_map[source][aim]=self._route_map[source][via]+self._route_map[via][aim]
                             self._route_map[aim][source]=self._route_map[aim][via]+self._route_map[via][source]
-                        elif (distanceMap[source][via]+distanceMap[via][aim]==distanceMap[source][aim]):
-                            if (self._route_map[source][via]+self._route_map[via][aim]<self._route_map[source][aim]):
-                                self._route_map[source][aim]=self._route_map[source][via]+self._route_map[via][aim]
-                                self._route_map[aim][source]=self._route_map[aim][via]+self._route_map[via][source]
         
+        # Return true if all nodes are connected, false otherwise
         return max(max(distanceMap.values(),key=lambda x:max(x.values())).values())!=len(DirectConnections)+1
 
 #===============================================================================
@@ -428,6 +448,8 @@ class LayoutHandler(LayoutManager):
         return tuple(self._subcomms)
     
     def getLayout( self, layout: str ):
+        """ Return the requested layout
+        """
         return self._layouts[layout]
     
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
@@ -845,7 +867,7 @@ class LayoutSwapper(LayoutManager):
         self._maxProcs = np.max(self._nprocs,axis=0)
         
         # Find the order of the layout types so it is clear which transposes
-        # are valid
+        # are valid (all communicators should be used in 1 of the handlers
         sortOrder=sorted(range(len(self._nDims)), key=self._nDims.__getitem__,reverse=True)
         
         # Create the LayoutHandlers
@@ -875,29 +897,38 @@ class LayoutSwapper(LayoutManager):
             coords = []
             the_procs = []
             for i,n in enumerate(self._nprocs[idx]):
+                # For each distributed direction
                 if (n==1):
                     break
                 if (availableSubcomms.count(n)==1):
+                    # If there is only 1 possible communicator use that communicator
                     axis = availableSubcomms.index(n)
                 else:
+                    # If there are more than 1 possible communicators
+                    # Find the possiblities
                     poss = np.nonzero(np.array(availableSubcomms)==n)[0]
                     res = []
                     for axis in poss:
+                        # For each possibilty find how many direct transitions
+                        # this enables
                         DimInPos = [d[axis] for n,d in layouts[max_idx].items()]
                         DimToPos = [d[i] for n,d in layouts[idx].items()]
                         nPossTrans = sum([DimInPos.count(d) for d in DimToPos])
+                        # If there is at least one possiblity save the result
                         if (nPossTrans>0):
                             res.append((axis,nPossTrans))
+                    # Choose the communicator which allows the most direct
+                    # transitions
                     assert(len(res)>0)
                     axis=max(res,key=lambda x: x[1])[0]
+                # Save the communicator used and stop it being accidentally
+                # reused for a second dimension
                 the_subcomms.append(subcomms[axis])
                 coords.append(mpi_coords[axis])
                 availableSubcomms[axis]=None
                 the_procs.append(n)
             # Create the LayoutHandler
             self._managers[idx] = LayoutHandler(the_subcomms,coords,layouts[idx],the_procs,eta_grids)
-        
-        #~ assert(1==2)
         
         # Find the largest buffer required to ensure that enough memory
         # is allocated
@@ -918,12 +949,17 @@ class LayoutSwapper(LayoutManager):
             for i,name2 in enumerate(self._layouts[:n]):
                 if (not self._compatibleLayout(name1,name2)):
                     continue
+                # If the layouts are compatible then save the direct
+                # transition data to the map
                 myMap[i][1].append(name1)
                 myMap[n][1].append(name2)
                 
+                # Get the associated LayoutHandlers
                 h1 = self._managers[self._handlers[name1]]
                 h2 = self._managers[self._handlers[name2]]
                 
+                # If they are the same then the maximum block is dealt
+                # with by the Handler
                 if (h1==h2):
                     continue
                 
@@ -931,11 +967,14 @@ class LayoutSwapper(LayoutManager):
                 l1 = h1.getLayout(name1)
                 l2 = h2.getLayout(name2)
                 
+                # Find the number of distributed directions to order l1
+                # and l2 correctly for the getAxes function
                 n1 = h1.nDistributedDirections
                 n2 = h2.nDistributedDirections
-                
                 if (n1==n2):
-                    continue
+                    # If the number of distribution directions does not
+                    # change then this is secretly just a transpose
+                    return
                 elif (n1>n2):
                     idx_2, idx_1 = self.getAxes(l2,l1)
                 else:
@@ -993,25 +1032,32 @@ class LayoutSwapper(LayoutManager):
         i2 = self._handlers[layout2]
         
         if (i1==i2):
-            return self._managers[i1].compatible(self._managers[i1].getLayout(layout1),self._managers[i1].getLayout(layout2))
+            # If the LayoutHandler is the same then the Handler knows
+            # whether the layouts are compatible
+            l1=self._managers[i1].getLayout(layout1)
+            l2=self._managers[i1].getLayout(layout2)
+            return self._managers[i1].compatible(l1,l2)
         else:
+            # If different LayoutHandlers are used:
+            
+            # Get the handler
             handler1 = self._managers[i1]
             handler2 = self._managers[i2]
+            
+            # Get the number of distributed directions
             nDim1 = handler1.nDistributedDirections
             nDim2 = handler2.nDistributedDirections
             
-            nProcs1 = list(handler1.nProcs)
-            nProcs2 = list(handler2.nProcs)
-            
-            
+            # Only 1 distributed direction should change
             if (abs(nDim1-nDim2)>1):
                 return False
-            elif (nDim1==nDim2):
-                return handler1.communicators==handler2.communicators
+            # If the distribution is the same then the communicators should
+            # also be the same
+            if (nDim1==nDim2):
+                return [c in handler1.communicators for c in handler2.communicators].all()
+            # Ensure that 2 is the larger handler to facilitate steps
             if (nDim1>nDim2):
                 handler1, handler2 = handler2, handler1
-                layout1, layout2 = layout2, layout1
-                nProcs1, nProcs2 = nProcs2, nProcs1
                 nDim1, nDim2 = nDim2, nDim1
             
             # Find the axis which will be distributed
@@ -1022,6 +1068,8 @@ class LayoutSwapper(LayoutManager):
                     possComms[i]=None
             
             idx_s = np.nonzero(np.array(possComms)!=None)[0]
+            
+            # Ensure that there is only 1 possible axis which is modified
             return len(idx_s)==1
     
     def getLayout( self, name ):
@@ -1119,7 +1167,7 @@ class LayoutSwapper(LayoutManager):
         dest_nprocs = list(layout_dest.nprocs)
         dest_ndims = self._managers[self._handlers[layout_dest.name]].nDistributedDirections
         
-        if (dest_ndims>source_ndims):
+        if (dest_ndims>=source_ndims):
             # If the source has fewer dimensions then the layout was not
             # distributed and all necessary information is already on the thread
             sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
@@ -1199,7 +1247,7 @@ class LayoutSwapper(LayoutManager):
         dest_nprocs = list(layout_dest.nprocs)
         dest_ndims = self._managers[self._handlers[layout_dest.name]].nDistributedDirections
         
-        if (dest_ndims>source_ndims):
+        if (dest_ndims>=source_ndims):
             # If the source has fewer dimensions then the layout was not
             # distributed and all necessary information is already on the thread
             sourceView = np.split(source,[layout_source.size])[0].reshape(layout_source.shape)
@@ -1335,8 +1383,12 @@ class LayoutSwapper(LayoutManager):
             fromBuf, toBuf = toBuf, fromBuf
     
     def getAxes( self, layout_gathered: Layout, layout_scattered: Layout):
+        # Get handlers
         handlerG = self._managers[self._handlers[layout_gathered.name]]
         handlerS = self._managers[self._handlers[layout_scattered.name]]
+        
+        # Find the position of the communicator which appears in the
+        # scattered layout but not in the gathered layout
         possComms = list(handlerS.communicators)
         for c in handlerG.communicators:
             if c in possComms:
@@ -1344,5 +1396,7 @@ class LayoutSwapper(LayoutManager):
                 possComms[i]=None
         
         idx_s = np.nonzero(np.array(possComms)!=None)[0][0]
+        
+        # Find which axis in the gathered layout has the same dimension
         idx_g = layout_gathered.dims_order.index(layout_scattered.dims_order[idx_s])
         return (idx_g,idx_s)
