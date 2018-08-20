@@ -974,7 +974,7 @@ class LayoutSwapper(LayoutManager):
                 if (n1==n2):
                     # If the number of distribution directions does not
                     # change then this is secretly just a transpose
-                    return
+                    continue
                 elif (n1>n2):
                     idx_2, idx_1 = self.getAxes(l2,l1)
                 else:
