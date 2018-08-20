@@ -131,7 +131,10 @@ class DiffEqSolver:
 
     """
     def __init__( self, degree: int, rspline: BSplines, nTheta: int,
-                  lNeumannIdx: list = [], uNeumannIdx: list = [],*args,**kwargs):
+                  lNeumannIdx: list = [], uNeumannIdx: list = [],
+                  ddrFactor = lambda r: -1, drFactor = lambda r: 0,
+                  rFactor = lambda r: 0, ddThetaFactor = lambda r: -1,
+                  rhoFactor = lambda r: 1):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
@@ -179,13 +182,6 @@ class DiffEqSolver:
                              for i in self._mVals]
         
         self._mVals*=self._mVals
-        
-        # Collect the factors in front of each element of the equation
-        ddrFactor = kwargs.pop('ddrFactor',lambda r: -1)
-        drFactor = kwargs.pop('drFactor',lambda r: 0)
-        rFactor = kwargs.pop('rFactor',lambda r: 0)
-        ddqFactor = kwargs.pop('ddThetaFactor',lambda r: -1)
-        rhoFactor = kwargs.pop('rhoFactor',lambda r: 1)
         
         # The matrices are diagonal so the storage can be reduced if
         # they are not stored in a full matrix.
@@ -253,9 +249,6 @@ class DiffEqSolver:
                                      (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,start_range:end_range]
         self._dPhiPsi = sparse.diags(dPhiPsiCoeffs,range(-rspline.degree,rspline.degree+1),
                                      (rspline.nbasis,rspline.nbasis),'csc')[start_range:end_range,start_range:end_range]
-        
-        for name,value in kwargs.items():
-            warnings.warn("{0} is not a recognised parameter for DiffEqSolver".format(name))
         
         # Construct the part of the stiffness matrix which has no theta
         # dependencies
