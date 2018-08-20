@@ -65,8 +65,8 @@ class DensityFinder:
             density will be stored
         
         """
-        assert(grid.getLayout(grid.currentLayout).dims_order==[0,2,1,3])
-        assert(rho.getLayout(rho.currentLayout).dims_order==[0,2,1])
+        assert(grid.getLayout(grid.currentLayout).dims_order==(0,2,1,3))
+        assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         
         for i,r in grid.getCoords(0):
             for j,z in grid.getCoords(1):
@@ -154,6 +154,12 @@ class DiffEqSolver:
         # Initialise the memory used for the calculated result
         self._coeffs = np.empty([rspline.nbasis],np.complex128)
         
+        # Ensure dirichlet boundaries are not used at both boundaries on
+        # any mode
+        poorlyDefined = [b for b in lNeumannIdx if b in uNeumannIdx]
+        if (rFactor==(lambda r:0) and len(poorlyDefined)!=0):
+            raise ValueError("Modes {0} are poorly defined as they use 0 Dirichlet boundary conditions".format(poorlyDefined))
+        
         # If dirichlet boundary conditions are used then assign the
         # required value on the boundary
         if (lNeumannIdx==[]):
@@ -179,10 +185,9 @@ class DiffEqSolver:
         self._coeff_range = [slice(                  0 if i in lNeumannIdx else 1,
                                    rspline.nbasis - (0 if i in uNeumannIdx else 1))
                              for i in self._mVals]
-        
         self._stiffness_range = [slice(0 if i in lNeumannIdx else (1-start_range),
                                    self._nUnknowns - (0 if i in uNeumannIdx else (1-excluded_end_pts)))
-                             for i in self._mVals]
+                                 for i in self._mVals]
         
         self._mVals*=self._mVals
         
@@ -257,10 +262,6 @@ class DiffEqSolver:
         # dependencies
         self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
         
-        if (np.linalg.cond(self._stiffnessMatrix.todense())>1e10):
-            raise UserWarning("Condition of stiffness matrix is too high. \
-                                This warning may be able to be ignored if different boundary conditions are used at different boundaries")
-        
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(rspline)
         self._spline = Spline1D(rspline,np.complex128)
@@ -279,7 +280,7 @@ class DiffEqSolver:
         
         """
         assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
-        assert(rho.getLayout(rho.currentLayout).dims_order[-1]==1)
+        assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         for i,r in rho.getCoords(0):
             for j,z in rho.getCoords(1):
                 vec=rho.get1DSlice([i,j])
@@ -413,7 +414,7 @@ class DiffEqSolver:
         """
         
         assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
-        assert(phi.getLayout(phi.currentLayout).dims_order[-1]==1)
+        assert(phi.getLayout(phi.currentLayout).dims_order==(0,2,1))
         
         for i,r in phi.getCoords(0):
             for j,z in phi.getCoords(1):
@@ -480,12 +481,11 @@ class QuasiNeutralitySolver(DiffEqSolver):
         Default is initialiser.Te
 
     """
-    def __init__( self, eta_grid: list, degree: int, rspline: BSplines, adiabaticElectrons: bool = True,
-                    *args,**kwargs):
+    def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
+                    adiabaticElectrons: bool = True,n0 = initialiser.n0,
+                    B: float = 1.0, Te = initialiser.Te, **kwargs):
         r = eta_grid[0]
         
-        n0 = kwargs.pop('n0',initialiser.n0)
-        B = kwargs.pop('B',1.0)
         if ('n0derivNormalised' in kwargs):
             n0derivNormalised = kwargs.pop('n0derivNormalised',initialiser.n0derivNormalised)
         elif ('n0deriv' in kwargs):
@@ -504,7 +504,6 @@ class QuasiNeutralitySolver(DiffEqSolver):
         else:
             assert('chi' in kwargs)
             chi = kwargs.pop('chi')
-            Te = kwargs.pop('Te',initialiser.Te)
             
             DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
                         drFactor = lambda r: -(1/r+ n0derivNormalised(r)),

@@ -2,3 +2,26 @@ PyGyro
 ======
 
 PyGyro is a Python library for parallel gyro-kinetic simulations.
+
+
+Installation
+============
+
+This project requires parallel h5py. The commands to install this are as follows:
+
+```
+export CC=mpicc
+export HDF5_MPI="ON"
+export HDF5_DIR=$HDF5_HOME
+
+pip install --no-binary=h5py h5py
+```
+
+On a module based system the following modules must first be loaded:
+
+```
+module load impi
+module load anaconda/3
+module load mpi4py
+module load hdf5-mpi
+```
