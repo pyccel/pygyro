@@ -78,16 +78,16 @@ def test_Layout_DimsOrder():
                np.linspace(0,10,30)]
     
     l = Layout('test', [2,3], [0,3,2,1], eta_grids, [0,0] )
-    assert(l.dims_order==[0,3,2,1])
-    assert(l.inv_dims_order==[0,3,2,1])
+    assert(l.dims_order==(0,3,2,1))
+    assert(l.inv_dims_order==(0,3,2,1))
     
     l = Layout('test', [2,3], [0,2,3,1], eta_grids, [0,0] )
-    assert(l.dims_order==[0,2,3,1])
-    assert(l.inv_dims_order==[0,3,1,2])
+    assert(l.dims_order==(0,2,3,1))
+    assert(l.inv_dims_order==(0,3,1,2))
     
     l = Layout('test', [2,3], [2,1,0,3], eta_grids, [0,0] )
-    assert(l.dims_order==[2,1,0,3])
-    assert(l.inv_dims_order==[2,1,0,3])
+    assert(l.dims_order==(2,1,0,3))
+    assert(l.inv_dims_order==(2,1,0,3))
 
 @pytest.mark.parallel
 def test_OddLayoutPaths():
@@ -103,35 +103,61 @@ def test_OddLayoutPaths():
     layouts = {'0123': [0,1,2,3],
                '0321': [0,3,2,1],
                '1320': [1,3,2,0],
-               '1302': [1,3,0,2]}
+               '1302': [1,3,0,2],
+               '1230': [1,2,3,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
-    layout1=remapper.getLayout('1320')
-    assert(layout1.name=='1320')
-    layout2=remapper.getLayout('1302')
+    layout1=remapper.getLayout('0123')
+    assert(layout1.name=='0123')
+    layout2=remapper.getLayout('1230')
     
-    fStart = np.empty(remapper.bufferSize)
-    fEnd = np.empty(remapper.bufferSize)
+    l1=remapper.getLayout('0123')
+    l2=remapper.getLayout('0321')
+    l3=remapper.getLayout('1320')
+    l4=remapper.getLayout('1302')
+    l5=remapper.getLayout('1230')
+    
+    fStart = np.empty(remapper.bufferSize,int)
+    fStart[:] = -1
+    fEnd = np.empty(remapper.bufferSize,int)
+    fEnd[:] = -1
+    fBuf = np.empty(remapper.bufferSize,int)
+    fBuf[:] = -1
     f1_s = np.split(fStart,[layout1.size])[0].reshape(layout1.shape)
     f1_e = np.split(fEnd  ,[layout1.size])[0].reshape(layout1.shape)
+    f1_b = np.split(fBuf  ,[layout1.size])[0].reshape(layout1.shape)
     f2_s = np.split(fStart,[layout2.size])[0].reshape(layout2.shape)
     f2_e = np.split(fEnd  ,[layout2.size])[0].reshape(layout2.shape)
+    f2_b = np.split(fBuf  ,[layout2.size])[0].reshape(layout2.shape)
     
     define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
     
-    remapper.transpose(source=fStart,
-                       dest  =fEnd,
-                       source_name='1320',
-                       dest_name='1302')
+    if (nprocs[1]==1):
+        remapper.transpose(source=fStart,
+                           dest  =fEnd,
+                           source_name='0123',
+                           dest_name='1230')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fStart,
+                               dest  =fEnd,
+                               source_name='0123',
+                               dest_name='1230')
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
     # Even number of steps
-    with pytest.warns(UserWarning):
+    if (nprocs[1]==1):
         remapper.transpose(source=fEnd,
                            dest  =fStart,
-                           source_name='1302',
+                           source_name='1230',
                            dest_name='0321')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fEnd,
+                               dest  =fStart,
+                               source_name='1230',
+                               dest_name='0321')
     
     layout = remapper.getLayout('0321')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -148,11 +174,17 @@ def test_OddLayoutPaths():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
     
     # Odd number of steps
-    with pytest.warns(UserWarning):
+    if (nprocs[1]==1):
         remapper.transpose(source=fEnd,
                            dest  =fStart,
                            source_name='0123',
                            dest_name='1302')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fEnd,
+                               dest  =fStart,
+                               source_name='0123',
+                               dest_name='1302')
     
     layout = remapper.getLayout('1302')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -198,12 +230,11 @@ def test_OddLayoutPaths_IntactSource():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout2,f2_e)
     
     # Even number of steps
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fEnd,
-                           dest  =fStart,
-                           buf   =fBuf,
-                           source_name='1302',
-                           dest_name='0321')
+    remapper.transpose(source=fEnd,
+                       dest  =fStart,
+                       buf   =fBuf,
+                       source_name='1302',
+                       dest_name='0321')
     
     layout = remapper.getLayout('0321')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -221,12 +252,19 @@ def test_OddLayoutPaths_IntactSource():
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout,f)
     
     # Odd number of steps
-    with pytest.warns(UserWarning):
+    if (nprocs[0]==nprocs[1] or nprocs[1]==1):
         remapper.transpose(source=fEnd,
                            dest  =fStart,
                            buf   =fBuf,
                            source_name='0123',
                            dest_name='1302')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source=fEnd,
+                               dest  =fStart,
+                               buf   =fBuf,
+                               source_name='0123',
+                               dest_name='1302')
     
     layout = remapper.getLayout('1302')
     f = np.split(fStart  ,[layout.size])[0].reshape(layout.shape)
@@ -245,12 +283,14 @@ def test_LayoutSwap_IntactSource():
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
-               'poloidal'    : [3,2,1,0]}
+               'poloidal'    : [3,2,1,0],
+               'test'        : [3,1,2,0]}
     remapper = getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
     
     fsLayout = remapper.getLayout('flux_surface')
     vLayout = remapper.getLayout('v_parallel')
     pLayout = remapper.getLayout('poloidal')
+    tLayout = remapper.getLayout('test')
     
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
@@ -276,6 +316,13 @@ def test_LayoutSwap_IntactSource():
     assert(not f_p_1.flags['OWNDATA'])
     assert(not f_p_2.flags['OWNDATA'])
     assert(not f_p_3.flags['OWNDATA'])
+    
+    f_t_1  = np.split( f1, [ tLayout.size] )[0].reshape( tLayout.shape)
+    f_t_2  = np.split( f2, [ tLayout.size] )[0].reshape( tLayout.shape)
+    f_t_3  = np.split( f3, [ tLayout.size] )[0].reshape( tLayout.shape)
+    assert(not f_t_1.flags['OWNDATA'])
+    assert(not f_t_2.flags['OWNDATA'])
+    assert(not f_t_3.flags['OWNDATA'])
     
     define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
     
@@ -314,6 +361,23 @@ def test_LayoutSwap_IntactSource():
     
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],vLayout,f_v_2)
     compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
+    
+    if (nprocs[0]==nprocs[1] or nprocs[1]==1):
+        remapper.transpose(source = f1,
+                           dest   = f2,
+                           buf    = f3,
+                           source_name='flux_surface',
+                           dest_name='test')
+    else:
+        with pytest.warns(UserWarning):
+            remapper.transpose(source = f1,
+                               dest   = f2,
+                               buf    = f3,
+                               source_name='flux_surface',
+                               dest_name='test')
+    
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],fsLayout,f_fs_1)
+    compare_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],tLayout,f_t_2)
 
 @pytest.mark.parallel
 def test_LayoutSwap():
@@ -400,12 +464,13 @@ def test_IncompatibleLayoutError():
                np.linspace(0,6.28318531,npts[1]),
                np.linspace(0,10,npts[2]),
                np.linspace(0,10,npts[3])]
-    with pytest.raises(RuntimeError):
-        layouts = {'flux_surface': [0,3,1,2],
-                   'v_parallel'  : [0,2,1,3],
-                   'poloidal'    : [3,2,1,0],
-                   'broken'      : [1,0,2,3]}
-        getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
+    if (nprocs!=(1,1)):
+        with pytest.raises(RuntimeError):
+            layouts = {'flux_surface': [0,3,1,2],
+                       'v_parallel'  : [0,2,1,3],
+                       'poloidal'    : [3,2,1,0],
+                       'broken'      : [1,0,2,3]}
+            getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
 @pytest.mark.parallel
 def test_CompatibleLayouts():
@@ -443,11 +508,12 @@ def test_BadStepWarning():
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source = f1,
-                           dest   = f2,
-                           source_name='flux_surface',
-                           dest_name='poloidal')
+    if (nprocs!=(1,1)):
+        with pytest.warns(UserWarning):
+            remapper.transpose(source = f1,
+                               dest   = f2,
+                               source_name='flux_surface',
+                               dest_name='poloidal')
 
 @pytest.mark.parallel
 def test_BadStepWarning_IntactSource():
@@ -486,13 +552,13 @@ def test_BadStepWarning_IntactSource():
     assert(not f_p_e.flags['OWNDATA'])
     
     
-    
-    with pytest.warns(UserWarning):
-        remapper.transpose(source = fStart,
-                           dest = fEnd,
-                           buf  = fBuf,
-                           source_name='flux_surface',
-                           dest_name='poloidal')
+    if (nprocs!=(1,1)):
+        with pytest.warns(UserWarning):
+            remapper.transpose(source = fStart,
+                               dest = fEnd,
+                               buf  = fBuf,
+                               source_name='flux_surface',
+                               dest_name='poloidal')
 
 @pytest.mark.parallel
 def test_copy():
@@ -634,6 +700,7 @@ def compare_phi(Eta1,Eta2,Eta3,layout,f):
 @pytest.mark.parallel
 def test_phiSwapper():
     comm = MPI.COMM_WORLD
+    comm.Barrier()
     mpi_size = comm.Get_size()
     
     npts = [32, 64, 32]
@@ -646,30 +713,32 @@ def test_phiSwapper():
     nprocs = compute_2d_process_grid_from_max( n1 , n2 , mpi_size )
     
     # Create dictionary describing layouts
-    layout_poisson = {'mode_find' : [2,0,1],
-                      'mode_solve': [2,1,0]}
-    layout_advection = {'dphi'    : [0,1,2],
-                        'poloidal': [2,1,0]}
+    layout_poisson   = {'v_parallel_2d' : [0,2,1],
+                        'mode_solve'    : [1,2,0]}
+    layout_poloidal   = {'poloidal'     : [2,1,0],
+                         'poloidalTwist': [2,0,1]}
+    layout_v_parallel = {'v_parallel_1d': [0,2,1]}
     
-    nproc = nprocs[0]
+    remapper = LayoutSwapper( comm, [layout_poisson, layout_poloidal, layout_v_parallel],
+                            [nprocs,nprocs[1],nprocs[0]], eta_grids,
+                            'poloidal' )
     
-    remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], eta_grids, 'dphi' )
-    
-    mfLayout = remapper.getLayout('mode_find')
+    vp2Layout = remapper.getLayout('v_parallel_2d')
     msLayout = remapper.getLayout('mode_solve')
-    dpLayout = remapper.getLayout('dphi')
+    dpLayout = remapper.getLayout('v_parallel_1d')
     plLayout = remapper.getLayout('poloidal')
+    pTLayout = remapper.getLayout('poloidalTwist')
     
     fStart = np.empty(remapper.bufferSize)
     fEnd = np.empty(remapper.bufferSize)
     fBuf = np.empty(remapper.bufferSize)
     
-    f_mf_s = np.split(fStart,[mfLayout.size])[0].reshape(mfLayout.shape)
-    f_mf_e = np.split(fEnd  ,[mfLayout.size])[0].reshape(mfLayout.shape)
-    f_mf_b = np.split(fBuf  ,[mfLayout.size])[0].reshape(mfLayout.shape)
-    assert(not f_mf_s.flags['OWNDATA'])
-    assert(not f_mf_e.flags['OWNDATA'])
-    assert(not f_mf_b.flags['OWNDATA'])
+    f_vp2_s = np.split(fStart,[vp2Layout.size])[0].reshape(vp2Layout.shape)
+    f_vp2_e = np.split(fEnd  ,[vp2Layout.size])[0].reshape(vp2Layout.shape)
+    f_vp2_b = np.split(fBuf  ,[vp2Layout.size])[0].reshape(vp2Layout.shape)
+    assert(not f_vp2_s.flags['OWNDATA'])
+    assert(not f_vp2_e.flags['OWNDATA'])
+    assert(not f_vp2_b.flags['OWNDATA'])
     
     f_ms_s = np.split(fStart,[msLayout.size])[0].reshape(msLayout.shape)
     f_ms_e = np.split(fEnd  ,[msLayout.size])[0].reshape(msLayout.shape)
@@ -692,15 +761,47 @@ def test_phiSwapper():
     assert(not f_pl_e.flags['OWNDATA'])
     assert(not f_pl_b.flags['OWNDATA'])
     
-    define_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
+    f_pT_s = np.split(fStart,[pTLayout.size])[0].reshape(pTLayout.shape)
+    f_pT_e = np.split(fEnd  ,[pTLayout.size])[0].reshape(pTLayout.shape)
+    f_pT_b = np.split(fBuf  ,[pTLayout.size])[0].reshape(pTLayout.shape)
+    assert(not f_pT_s.flags['OWNDATA'])
+    assert(not f_pT_e.flags['OWNDATA'])
+    assert(not f_pT_b.flags['OWNDATA'])
+    
+    define_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_s)
     
     remapper.transpose(source=fStart,
                        dest=fEnd,
                        buf =fBuf,
-                       source_name='mode_find',
+                       source_name='poloidal',
+                       dest_name='poloidalTwist')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],pTLayout,f_pT_e)
+    
+    remapper.transpose(source=fEnd,
+                       dest=fBuf,
+                       source_name='poloidalTwist',
+                       dest_name='poloidal')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_b)
+    
+    remapper.transpose(source=fBuf,
+                       dest=fStart,
+                       buf =fEnd,
+                       source_name='poloidal',
+                       dest_name='v_parallel_2d')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_b)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp2Layout,f_vp2_s)
+    
+    remapper.transpose(source=fStart,
+                       dest=fEnd,
+                       buf =fBuf,
+                       source_name='v_parallel_2d',
                        dest_name='mode_solve')
     
-    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp2Layout,f_vp2_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],msLayout,f_ms_e)
     
     remapper.transpose(source=fEnd,
@@ -720,51 +821,46 @@ def test_phiSwapper():
     remapper.transpose(source=fEnd,
                        dest=fStart,
                        source_name='mode_solve',
-                       dest_name='mode_find')
+                       dest_name='v_parallel_2d')
     
-    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp2Layout,f_vp2_s)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fStart,
-                           dest=fEnd,
-                           buf=fBuf,
-                           source_name='mode_find',
-                           dest_name='dphi')
+    remapper.transpose(source=fStart,
+                       dest=fEnd,
+                       buf=fBuf,
+                       source_name='v_parallel_2d',
+                       dest_name='v_parallel_1d')
     
-    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp2Layout,f_vp2_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],dpLayout,f_dp_e)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fEnd,
-                           dest=fStart,
-                           source_name='dphi',
-                           dest_name='mode_find')
+    remapper.transpose(source=fEnd,
+                       dest=fStart,
+                       source_name='v_parallel_1d',
+                       dest_name='v_parallel_2d')
     
-    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp2Layout,f_vp2_s)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fStart,
-                           dest=fBuf,
-                           source_name='mode_find',
-                           dest_name='poloidal')
+    remapper.transpose(source=fStart,
+                       dest=fBuf,
+                       source_name='v_parallel_2d',
+                       dest_name='poloidal')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_b)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fBuf,
-                           dest=fStart,
-                           buf=fEnd,
-                           source_name='poloidal',
-                           dest_name='mode_find')
+    remapper.transpose(source=fBuf,
+                       dest=fStart,
+                       buf=fEnd,
+                       source_name='poloidal',
+                       dest_name='v_parallel_2d')
     
-    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],mfLayout,f_mf_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp2Layout,f_vp2_s)
     
-    with pytest.warns(UserWarning):
-        remapper.transpose(source=fStart,
-                           dest=fEnd,
-                           buf=fBuf,
-                           source_name='mode_find',
-                           dest_name='poloidal')
+    remapper.transpose(source=fStart,
+                       dest=fEnd,
+                       buf=fBuf,
+                       source_name='v_parallel_2d',
+                       dest_name='poloidal')
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
     
@@ -784,3 +880,4 @@ def test_phiSwapper():
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],msLayout,f_ms_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
+    

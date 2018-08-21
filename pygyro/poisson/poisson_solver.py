@@ -65,8 +65,8 @@ class DensityFinder:
             density will be stored
         
         """
-        assert(grid.getLayout(grid.currentLayout).dims_order==[0,2,1,3])
-        assert(rho.getLayout(rho.currentLayout).dims_order==[0,2,1])
+        assert(grid.getLayout(grid.currentLayout).dims_order==(0,2,1,3))
+        assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         
         for i,r in grid.getCoords(0):
             for j,z in grid.getCoords(1):
@@ -280,7 +280,7 @@ class DiffEqSolver:
         
         """
         assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
-        assert(rho.getLayout(rho.currentLayout).dims_order==[0,2,1])
+        assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         for i,r in rho.getCoords(0):
             for j,z in rho.getCoords(1):
                 vec=rho.get1DSlice([i,j])
@@ -414,7 +414,7 @@ class DiffEqSolver:
         """
         
         assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
-        assert(phi.getLayout(phi.currentLayout).dims_order==[0,2,1])
+        assert(phi.getLayout(phi.currentLayout).dims_order==(0,2,1))
         
         for i,r in phi.getCoords(0):
             for j,z in phi.getCoords(1):
