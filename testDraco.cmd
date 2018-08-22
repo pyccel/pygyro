@@ -18,7 +18,11 @@
 # Wall clock limit:
 #SBATCH --time=01:00:00
 
+
 module load anaconda/3 impi mpi4py h5py-mpi mkl
+
+
+
 
 # Run the program:
 time srun python3 l2Test.py 100 -f timeTest > prog.out

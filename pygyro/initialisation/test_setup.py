@@ -102,17 +102,17 @@ def test_setupFromFolder():
     
     setupSave(3,3,3,3,npts,0.1,'testValues')
     
-    grid.getH5Dataset('testValues',0)
+    grid.writeH5Dataset('testValues',0)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',20)
+    grid.writeH5Dataset('testValues',20)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',40)
+    grid.writeH5Dataset('testValues',40)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',60)
+    grid.writeH5Dataset('testValues',60)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',80)
+    grid.writeH5Dataset('testValues',80)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',100)
+    grid.writeH5Dataset('testValues',100)
     
     grid2 = setupFromFile('testValues')
     compare_f(grid2,100)
@@ -143,17 +143,17 @@ def test_setupFromFolderAtTime():
     
     setupSave(3,3,3,3,npts,0.1,'testValues')
     
-    grid.getH5Dataset('testValues',0)
+    grid.writeH5Dataset('testValues',0)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',20)
+    grid.writeH5Dataset('testValues',20)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',40)
+    grid.writeH5Dataset('testValues',40)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',60)
+    grid.writeH5Dataset('testValues',60)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',80)
+    grid.writeH5Dataset('testValues',80)
     grid._f[:]+=20
-    grid.getH5Dataset('testValues',100)
+    grid.writeH5Dataset('testValues',100)
     
     grid2 = setupFromFile('testValues',timepoint = 40)
     compare_f(grid2,40)

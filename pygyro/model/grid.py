@@ -182,10 +182,11 @@ class Grid(object):
         self._layout = self._layout_manager.getLayout(self._current_layout_name)
         self._f = np.split(self._my_data[self._dataIdx],[self._layout.size])[0].reshape(self._layout.shape)
     
-    def getH5Dataset( self, foldername, t ):
+    def writeH5Dataset( self, foldername, time ):
         """ Create a hdf5 dataset containing all points in the current layout
+            and write it to a file in the specified folder
         """
-        filename = "{0}/grid_{1:06}.h5".format(foldername,t)
+        filename = "{0}/grid_{1:06}.h5".format(foldername,time)
         file = h5py.File(filename,'w',driver='mpio',comm=self.global_comm)
         dset = file.create_dataset("dset",self._layout.fullShape, dtype = self._f.dtype)
         slices = tuple([slice(s,e) for s,e in zip(self._layout.starts,self._layout.ends)])
