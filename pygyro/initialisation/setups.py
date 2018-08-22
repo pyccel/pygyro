@@ -131,6 +131,7 @@ def setupFromFile(foldername, **kwargs):
     comm        -- MPI communicator. (default MPI.COMM_WORLD)
     plotThread  -- whether there is a thread to be used only for plotting (default False)
     drawRank    -- Thread to be used for plotting (default 0)
+    dtype       -- The data type used by the grid
     
     timepoint   -- Point in time from which the simulation should resume
                    (default is latest possible)
@@ -168,6 +169,7 @@ def setupFromFile(foldername, **kwargs):
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
     allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
+    dtype=kwargs.pop('dtype',float)
     
     rank=comm.Get_rank()
     
@@ -225,7 +227,7 @@ def setupFromFile(foldername, **kwargs):
             raise ArgumentError("The stored layout is not a standard layout")
         
         # Create grid
-        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
+        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
         layout = grid.getLayout(my_layout)
         slices = tuple([slice(s,e) for s,e in zip(layout.starts,layout.ends)])
