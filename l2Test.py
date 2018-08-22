@@ -177,7 +177,7 @@ for ti in range(tN+1):
     QNSolver.findPotential(phi)
     
     if (ti%saveStep==0 and ti!=0):
-        distribFunc.getH5Dataset(foldername,t)
+        distribFunc.writeH5Dataset(foldername,t)
         
         comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
         l2Result = np.sqrt(l2Result)
@@ -260,7 +260,7 @@ for ti in range(tN+1):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
 
-distribFunc.getH5Dataset(foldername,t)
+distribFunc.writeH5Dataset(foldername,t)
         
 comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
 l2Result = np.sqrt(l2Result)
