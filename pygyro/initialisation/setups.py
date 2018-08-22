@@ -123,6 +123,9 @@ def setupFromFile(foldername, **kwargs):
     Compulsory arguments:
     foldername -- The folder in which the results of the previous simulation
                   are stored
+    layout      -- parallel distribution start configuration
+                    (not required if a grid from the previous layout has been
+                    saved)
     
     Optional arguments:
     comm        -- MPI communicator. (default MPI.COMM_WORLD)
@@ -230,6 +233,8 @@ def setupFromFile(foldername, **kwargs):
         
         file.close()
     else:
+        assert('layout' in kwargs)
+        layout = kwargs.pop('layout')
         # Create grid
         grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
