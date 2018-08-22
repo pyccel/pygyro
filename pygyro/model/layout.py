@@ -1057,13 +1057,21 @@ class LayoutSwapper(LayoutManager):
             if (nDim1>nDim2):
                 handler1, handler2 = handler2, handler1
                 nDim1, nDim2 = nDim2, nDim1
+                layout1, layout2 = layout2, layout1
+            
+            l1=handler1.getLayout(layout1)
+            l2=handler2.getLayout(layout2)
+            
+            dims1 = l1.dims_order
+            dims2 = l2.dims_order
             
             # Find the axis which will be distributed
             possComms = list(handler2.communicators)
-            for c in handler1.communicators:
+            for i,c in enumerate(handler1.communicators):
                 if c in possComms:
-                    i=possComms.index(c)
-                    possComms[i]=None
+                    j=possComms.index(c)
+                    if (dims1[i]==dims2[j]):
+                        possComms[j]=None
             
             idx_s = np.nonzero(np.array(possComms)!=None)[0]
             
