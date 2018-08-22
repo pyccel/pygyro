@@ -84,7 +84,8 @@ if (loadable):
         t = tStart
         
     distribFunc = setupFromFile(foldername,comm=comm,
-                                allocateSaveMemory = True)
+                                allocateSaveMemory = True,
+                                layout = 'v_parallel')
 else:
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
