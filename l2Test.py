@@ -116,10 +116,10 @@ parGradVals = np.empty([npts[2],npts[1]])
 
 layout_poisson   = {'v_parallel_2d': [0,2,1],
                     'mode_solve'   : [1,2,0]}
-layout_poloidal  = {'poloidal'    : [2,1,0]}
 layout_vpar      = {'v_parallel_1d': [0,2,1]}
+layout_poloidal  = {'poloidal'     : [2,1,0]}
 
-nprocs = distribFunc.getLayout(distribFunc.currentLayout).nprocs[:-1]
+nprocs = distribFunc.getLayout(distribFunc.currentLayout).nprocs[:2]
 
 remapperPhi = LayoutSwapper( comm, [layout_poisson, layout_vpar, layout_poloidal],
                             [nprocs,nprocs[0],nprocs[1]], distribFunc.eta_grid[:3],
