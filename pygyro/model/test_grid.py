@@ -9,7 +9,7 @@ from .grid          import Grid
 from .layout        import getLayoutHandler, LayoutSwapper
 from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from_max
 
-def define_f(grid):
+def define_f(grid,t=0):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
     
     for i,x in grid.getCoords(0):
@@ -18,7 +18,7 @@ def define_f(grid):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
-                    Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
+                    Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t
 
 def define_phi(grid):
     [nEta1,nEta2,nEta3] = grid.nGlobalCoords
@@ -30,7 +30,7 @@ def define_phi(grid):
                 [I,J,K] = grid.getGlobalIndices([i,j,k])
                 Slice[k] = I*nEta3*nEta2+J*nEta3+K
 
-def compare_f(grid):
+def compare_f(grid,t=0):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
     
     for i,x in grid.getCoords(0):
@@ -39,7 +39,7 @@ def compare_f(grid):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
-                    assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L)
+                    assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
 
 def compare_phi(grid):
     [nEta1,nEta2,nEta3] = grid.nGlobalCoords
@@ -239,9 +239,13 @@ def test_h5py():
         if (not os.path.isdir('testValues')):
             os.mkdir('testValues')
     
-    grid.getH5Dataset('testValues',20)
-    grid.getH5Dataset('testValues',40)
-    grid.getH5Dataset('testValues',80)
-    grid.getH5Dataset('testValues',100)
+    define_f(grid,20)
+    grid.writeH5Dataset('testValues',20)
+    define_f(grid,40)
+    grid.writeH5Dataset('testValues',40)
+    define_f(grid,80)
+    grid.writeH5Dataset('testValues',80)
+    define_f(grid,100)
+    grid.writeH5Dataset('testValues',100)
     grid.loadFromFile('testValues')
-    
+    compare_f(grid,100)
