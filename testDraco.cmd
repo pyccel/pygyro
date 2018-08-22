@@ -12,11 +12,13 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=32
 #
-#SBATCH --mail-type=none
+#SBATCH --mail-type=end,fail
 #SBATCH --mail-user=emily.bourne@tum.de
 #
 # Wall clock limit:
 #SBATCH --time=01:00:00
 
+module load anaconda/3 impi mpi4py h5py-mpi mkl
+
 # Run the program:
-srun python3 Pygyro/l2Test.py 100 -f timeTest > prog.out
+time srun python3 l2Test.py 100 -f timeTest > prog.out
