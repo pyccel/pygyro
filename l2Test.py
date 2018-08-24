@@ -149,7 +149,7 @@ q = phi.eta_grid[1]
 z = phi.eta_grid[2]
 dr = np.array([r[0], *(r[:-1]+r[1:]), r[-1]])*0.5
 dq = q[1]-q[0]
-dz = z[1]-z[0]
+dz = z[2]-z[1]
 
 rCalc = (r[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 drCalc = (dr[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
@@ -159,12 +159,19 @@ if (not os.path.exists(phi_filename)):
     phiFile = h5py.File(phi_filename,'w',driver='mpio',comm=comm)
     dset = phiFile.create_dataset("dset",(tN+1, 2), float)
     phiFile.close()
+else:
+    phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
+    dset = phiFile['/dset']
+    assert(dset.size==(tEnd//dt+1)*2)
+    phiFile.close()
 
 #Setup profiling tools
 #~ pr = cProfile.Profile()
 #~ pr.enable()
 
-for ti in range(tN+1):
+print("ready")
+
+for ti in range(tN):
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -260,20 +267,43 @@ for ti in range(tN+1):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
 
+if (tN%saveStep==0):
+    comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
+    l2Result = np.sqrt(l2Result)
+    phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
+    if (rank == 0):
+        n = int(t/dt)
+        dset = phiFile['/dset']
+        dset[n-saveStep:n,0]=l2Phi[0,:]
+        dset[n-saveStep:n,1]=l2Result
+    phiFile.close()
+
+# Find phi from f^n by solving QN eq
+distribFunc.setLayout('v_parallel')
+density.getPerturbedRho(distribFunc,rho)
+QNSolver.getModes(rho)
+rho.setLayout('mode_solve')
+phi.setLayout('mode_solve')
+QNSolver.solveEquation(phi,rho)
+phi.setLayout('v_parallel_2d')
+rho.setLayout('v_parallel_2d')
+QNSolver.findPotential(phi)
+
+# Calculate diagnostic quantity |phi|_2
+l2Phi[0,tN%saveStep]=t
+l2Phi[1,tN%saveStep]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
+
 distribFunc.writeH5Dataset(foldername,t)
-        
+
 comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
 l2Result = np.sqrt(l2Result)
 phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
 if (rank == 0):
     nE = int(tEnd/dt+1)
     nS = int(nE-1-(tEnd/dt)%saveStep)
-    print(nS,nE)
     dset = phiFile['/dset']
     dset[nS:nE,0]=l2Phi[0,:(nE-nS)]
-    print(l2Result)
     dset[nS:nE,1]=l2Result[:(nE-nS)]
-    print(dset[nS:nE,1])
 phiFile.close()
 
 #End profiling and print results
