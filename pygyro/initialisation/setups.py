@@ -210,7 +210,7 @@ def setupFromFile(foldername, **kwargs):
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
-        if (len(list_of_files)>1):
+        if (len(list_of_files)>0):
             filename = max(list_of_files)
         else:
             filename = None
