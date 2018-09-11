@@ -16,13 +16,13 @@
 #SBATCH --mail-user=emily.bourne@tum.de
 #
 # Wall clock limit:
-#SBATCH --time=01:00:00
+#SBATCH --time=04:00:00
 
 
-module load anaconda/3 impi mpi4py h5py-mpi mkl
+module load mkl anaconda/3/5.0.0 impi mpi4py h5py-mpi
 
-
+module list
 
 
 # Run the program:
-time srun python3 l2Test.py 100 -f timeTest > prog.out
+time srun python3 l2Test.py 10 -f timeTest > prog.out
