@@ -2,7 +2,8 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.interpolate import splev, bisplev
+from scipy.interpolate  import splev, bisplev
+from .                  import bsplines
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
@@ -199,8 +200,11 @@ class Spline1D():
         return self._coeffs
 
     def eval( self, x, der=0 ):
-        result = np.empty_like(x)
-        bsplines.evalSpline1D(x,der,self._basis.knots,self._basis.degree,self._coeffs,result)
+        if (hasattr(x,'__len__')):
+            result = np.empty_like(x)
+            bsplines.eval_spline_1d_vector(x,der,self._basis.knots,self._basis.degree,self._coeffs,result)
+        else:
+            result = bsplines.eval_spline_1d_scalar(x,der,self._basis.knots,self._basis.degree,self._coeffs)
         return result
         """
         tck = (self._basis.knots, self._coeffs, self._basis.degree)
