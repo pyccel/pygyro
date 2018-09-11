@@ -149,13 +149,40 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
     ders[degree] = saved
 
 #$ header function evalSpline1D(double,int,double[:],int,double[:])
-def evalSpline1D(x,der,knots,degree,coeffs):
+def evalSpline1D_scalar(x,der,knots,degree,coeffs):
     span  =  find_span( knots, degree, x )
     basis  = empty( degree+1, dtype=float )
-    basis_funs( knots, degree, x, span, basis )
+    if (der==0):
+        basis_funs( knots, degree, x, span, basis )
+    elif (der==1):
+        basis_funs_1st_der( knots, degree, x, span, basis )
     
     y=0.0
     for j in range(degree+1):
         y+=coeffs[span-degree+j]*basis[j]
+    return y
+
+#$ header function evalSpline1D(double,int,double[:],int,double[:],double[:])
+def evalSpline1D_vector(x,der,knots,degree,coeffs,y):
+    if (der==0):
+        for i in range(len(x)):
+            span  =  find_span( knots, degree, x )
+            basis  = empty( degree+1, dtype=float )
+            basis_funs( knots, degree, x, span, basis )
+            
+            y[i]=0.0
+            for j in range(degree+1):
+                y[i]+=coeffs[span-degree+j]*basis[j]
+    elif (der==1):
+        for i in range(len(x)):
+            span  =  find_span( knots, degree, x )
+            basis  = empty( degree+1, dtype=float )
+            basis_funs( knots, degree, x, span, basis )
+            
+            basis_funs_1st_der( knots, degree, x, span, basis )
+            
+            y[i]=0.0
+            for j in range(degree+1):
+                y[i]+=coeffs[span-degree+j]*basis[j]
     return y
 
