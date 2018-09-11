@@ -6,13 +6,8 @@ from scipy.interpolate import splev, bisplev
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
-try:
-    from pyccel import epyccel
-    from . import bsplines
-
-    bsplines = epyccel(bsplines)
-except ImportError:
-    from . import bsplines
+if ('mod_bsplines' in dir(bsplines)):
+    bsplines = bsplines.mod_bsplines
 
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
