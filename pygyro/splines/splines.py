@@ -6,6 +6,14 @@ from scipy.interpolate import splev, bisplev
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
+try:
+    from pyccel import epyccel
+    from . import bsplines
+
+    bsplines = epyccel(bsplines)
+except ImportError:
+    from . import bsplines
+
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
     """
@@ -179,6 +187,7 @@ class BSplines():
         return int( np.searchsorted( self.breaks, x, side='right' ) - 1 )
 
 #===============================================================================
+
 class Spline1D():
 
     def __init__( self, basis, dtype = float ):
@@ -195,8 +204,13 @@ class Spline1D():
         return self._coeffs
 
     def eval( self, x, der=0 ):
+        result = np.empty_like(x)
+        bsplines.evalSpline1D(x,der,self._basis.knots,self._basis.degree,self._coeffs,result)
+        return result
+        """
         tck = (self._basis.knots, self._coeffs, self._basis.degree)
         return splev( x, tck, der )
+        """
 
 #===============================================================================
 class Spline2D():
