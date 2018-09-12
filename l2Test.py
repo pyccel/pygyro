@@ -90,7 +90,8 @@ else:
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
-    npts = [255,512,32,128]
+    #~ npts = [255,512,32,128]
+    npts = [10,10,10,10]
 
     dt=2
 
