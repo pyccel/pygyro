@@ -3,12 +3,14 @@ from numpy.linalg                   import solve
 from scipy.interpolate              import lagrange
 from scipy.integrate                import trapz
 from math                           import pi
+from numba                          import jit
 
 from ..splines.splines              import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 from ..model.layout                 import Layout
+from .                              import accelerated_advection_steps      as AAS
 
 def fieldline(theta,z_diff,iota,r):
     return np.mod(theta+iota(r)*z_diff/constants.R0,2*pi)
@@ -370,7 +372,7 @@ class PoloidalAdvection:
         The tolerance used for the implicit trapezoidal rule
 
     """
-    def __init__( self, eta_vals: list, splines: list, edgeFunc = fEq, 
+    def __init__( self, eta_vals: list, splines: list, nulEdge = False, 
                     explicitTrap: bool =  True, tol: float = 1e-10 ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
@@ -382,7 +384,11 @@ class PoloidalAdvection:
         self._TOL = tol
         
         self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
-        self._edge = edgeFunc
+        self._nulEdge=nulEdge
+        if (nulEdge):
+            self._edge = lambda r,v : 0
+        else:
+            self._edge = fEq
     
     def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
         """
@@ -407,6 +413,22 @@ class PoloidalAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
+        phiBases = phi.basis
+        polBases = self._spline.basis
+        if (self._explicit):
+            endPts_k2 = AAS.PoloidalAdvectionStepExpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
+                            self._nPoints, phiBases[0].knots, phiBases[1].knots,
+                            phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
+                            polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
+                            polBases[0].degree, polBases[1].degree,self._nulEdge)
+        else:
+            endPts_k2 = AAS.PoloidalAdvectionStepImpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
+                            self._nPoints, phiBases[0].knots, phiBases[1].knots,
+                            phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
+                            polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
+                            polBases[0].degree, polBases[1].degree,self._TOL,self._nulEdge)
+        
+        """
         multFactor = dt/constants.B0
         
         drPhi_0 = phi.eval(*self._points,0,1)/self._points[1]
@@ -469,6 +491,7 @@ class PoloidalAdvection:
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
                 f[i,j]=self.evalFunc(endPts_k2[0][i,j],endPts_k2[1][i,j],v)
+        """
     
     def exact_step( self, f, endPts, v ):
         assert(f.shape==self._nPoints)

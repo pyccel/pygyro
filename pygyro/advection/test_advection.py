@@ -127,7 +127,7 @@ def test_poloidalAdvection(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0)
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], True)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -175,7 +175,7 @@ def test_poloidalAdvectionImplicit(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0,False,1e-10)
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], True,False,1e-10)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
