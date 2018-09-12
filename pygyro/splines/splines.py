@@ -8,8 +8,8 @@ from .      import spline_eval_funcs as SEF
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
-if ('mod_bsplines' in dir(SEF)):
-    SEF = SEF.mod_bsplines
+if ('mod_spline_eval_funcs' in dir(SEF)):
+    SEF = SEF.mod_spline_eval_funcs
 
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
@@ -207,6 +207,7 @@ class Spline1D():
         else:
             result = SEF.eval_spline_1d_scalar(x,self._basis.knots,self._basis.degree,self._coeffs,der)
         return result
+        
         """
         tck = (self._basis.knots, self._coeffs, self._basis.degree)
         return splev( x, tck, der )
