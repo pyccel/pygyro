@@ -1,57 +1,297 @@
+from numba.pycc import CC
+from numpy      import empty
 
-def eval1d( self, x, kts, coeffs, deg, der=0 ):
-    tck = (kts, coeffs, deg)
-    return splev( x, tck, der )
+cc = CC('my_module')
 
-@jit(nopython=True,cache=True,nogil=True)
-def eval2d( x1, x2, kts1, kts2, coeffs, deg1, deg2, der1=0, der2=0 ):
+#==============================================================================
+@cc.export('find_span', 'i4(f8[:], i4,f8)')
+def find_span( knots, degree, x ):
+    """
+    Determine the knot span index at location x, given the
+    B-Splines' knot sequence and polynomial degree. See
+    Algorithm A2.1 in [1].
 
-    tck = (kts1, kts2, coeffs, deg1, deg2)
-    return bisplev( x1, x2, tck, der1, der2 )
-#--------------------------------------------------------------------------
-    # Abstract interface: evaluation methods
-    #--------------------------------------------------------------------------
-    def eval_field( self, field, *eta ):
+    For a degree p, the knot span index i identifies the
+    indices [i-p:i] of all p+1 non-zero basis functions at a
+    given location x.
 
-        assert isinstance( field, FemField )
-        assert field.space is self
-        assert len( eta ) == self.ldim
+    Parameters
+    ----------
+    knots : array_like
+        Knots sequence.
 
-        bases = []
-        index = []
+    degree : int
+        Polynomial degree of B-splines.
 
-        for (x, space) in zip( eta, self.spaces ):
+    x : float
+        Location of interest.
 
-            knots  = space.knots
-            degree = space.degree
-            span   =  find_span( knots, degree, x )
-            basis  = basis_funs( knots, degree, x, span )
+    Returns
+    -------
+    span : int
+        Knot span index.
 
-            bases.append( basis )
-            index.append( slice( span-degree, span+1 ) )
+    """
+    # Knot index at left/right boundary
+    low  = degree
+    high = 0
+    high = len(knots)-1-degree
 
-        # Get contiguous copy of the spline coefficients required for evaluation
-        index  = tuple( index )
-        coeffs = field.coeffs[index].copy()
+    # Check if point is exactly on left/right boundary, or outside domain
+    if x <= knots[low ]: returnVal = low
+    elif x >= knots[high]: returnVal = high-1
+    else:
+        # Perform binary search
+        span = (low+high)//2
+        while x < knots[span] or x >= knots[span+1]:
+            if x < knots[span]:
+               high = span
+            else:
+               low  = span
+            span = (low+high)//2
+        returnVal = span
 
-        # Evaluation of multi-dimensional spline
-        # TODO: optimize
+    return returnVal
 
-        # Option 1: contract indices one by one and store intermediate results
-        #   - Pros: small number of Python iterations = ldim
-        #   - Cons: we create ldim-1 temporary objects of decreasing size
-        #
-        res = coeffs
-        for basis in bases[::-1]:
-            res = np.dot( res, basis )
+#==============================================================================
+@cc.export('basis_funs', 'f8[:](f8[:], i4,f8,i4,f8[:])')
+def basis_funs( knots, degree, x, span, values ):
+    """
+    Compute the non-vanishing B-splines at location x,
+    given the knot sequence, polynomial degree and knot
+    span. See Algorithm A2.2 in [1].
 
-#        # Option 2: cycle over each element of 'coeffs' (touched only once)
-#        #   - Pros: no temporary objects are created
-#        #   - Cons: large number of Python iterations = number of elements in 'coeffs'
-#        #
-#        res = 0.0
-#        for idx,c in np.ndenumerate( coeffs ):
-#            ndbasis = np.prod( [b[i] for i,b in zip( idx, bases )] )
-#            res    += c * ndbasis
+    Parameters
+    ----------
+    knots : array_like
+        Knots sequence.
 
-        return res
+    degree : int
+        Polynomial degree of B-splines.
+
+    x : float
+        Evaluation point.
+
+    span : int
+        Knot span index.
+
+    Results
+    -------
+    values : numpy.ndarray
+        Values of p+1 non-vanishing B-Splines at location x.
+
+    Notes
+    -----
+    The original Algorithm A2.2 in The NURBS Book [1] is here
+    slightly improved by using 'left' and 'right' temporary
+    arrays that are one element shorter.
+
+    """
+    left   = empty( degree  )
+    right  = empty( degree  )
+
+    values[0] = 1.0
+    for j in range(0,degree):
+        left [j] = x - knots[span-j]
+        right[j] = knots[span+1+j] - x
+        saved    = 0.0
+        for r in range(0,j+1):
+            temp      = values[r] / (right[r] + left[j-r])
+            values[r] = saved + right[r] * temp
+            saved     = left[j-r] * temp
+        values[j+1] = saved
+
+@cc.export('basis_funs_1st_der', 'f8[:](f8[:], i4,f8,i4,f8[:])')
+def basis_funs_1st_der( knots, degree, x, span, ders ):
+    """
+    Compute the first derivative of the non-vanishing B-splines
+    at location x, given the knot sequence, polynomial degree
+    and knot span.
+
+    See function 's_bsplines_non_uniform__eval_deriv' in
+    Selalib's source file
+    'src/splines/sll_m_bsplines_non_uniform.F90'.
+
+    Parameters
+    ----------
+    knots : array_like
+        Knots sequence.
+
+    degree : int
+        Polynomial degree of B-splines.
+
+    x : float
+        Evaluation point.
+
+    span : int
+        Knot span index.
+
+    Results
+    -------
+    ders : numpy.ndarray
+        Derivatives of p+1 non-vanishing B-Splines at location x.
+
+    """
+    # Compute nonzero basis functions and knot differences for splines
+    # up to degree deg-1
+    values = empty(degree)
+    basis_funs( knots, degree-1, x, span, values )
+
+    # Compute derivatives at x using formula based on difference of
+    # splines of degree deg-1
+    # -------
+    # j = 0
+    saved = degree * values[0] / (knots[span+1]-knots[span+1-degree])
+    ders[0] = -saved
+    # j = 1,...,degree-1
+    for j in range(1,degree):
+        temp    = saved
+        saved   = degree * values[j] / (knots[span+j+1]-knots[span+j+1-degree])
+        ders[j] = temp - saved
+    # j = degree
+    ders[degree] = saved
+
+@cc.export('eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
+def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
+    span  =  find_span( knots, degree, x )
+    
+    basis  = empty( degree+1 )
+    if (der==0):
+        basis_funs( knots, degree, x, span, basis )
+    elif (der==1):
+        basis_funs_1st_der( knots, degree, x, span, basis )
+    
+    y=0.0
+    for j in range(degree+1):
+        y+=coeffs[span-degree+j]*basis[j]
+    return y
+
+@cc.export('eval_spline_1d_vector', 'f8[:](f8[:],f8[:],i4,f8[:],i4)')
+def eval_spline_1d_vector(x,knots,degree,coeffs,der=0):
+    y.empty(len(x))
+    if (der==0):
+        for i in range(len(x)):
+            span  =  find_span( knots, degree, x[i] )
+            basis  = empty( degree+1 )
+            basis_funs( knots, degree, x[i], span, basis )
+            
+            y[i]=0.0
+            for j in range(degree+1):
+                y[i]+=coeffs[span-degree+j]*basis[j]
+    elif (der==1):
+        for i in range(len(x)):
+            span  =  find_span( knots, degree, x[i] )
+            basis  = empty( degree+1 )
+            basis_funs( knots, degree, x[i], span, basis )
+            basis_funs_1st_der( knots, degree, x[i], span, basis )
+            
+            y[i]=0.0
+            for j in range(degree+1):
+                y[i]+=coeffs[span-degree+j]*basis[j]
+    return y
+
+@cc.export('eval_spline_2d_scalar', 'f8(f8,f8,f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
+    span1  =  find_span( kts1, deg1, x )
+    span2  =  find_span( kts2, deg2, y )
+    
+    from numpy      import empty
+    basis1  = empty( deg1+1 )
+    basis2  = empty( deg2+1 )
+    if (der1==0):
+        basis_funs( kts1, deg1, x, span1, basis1 )
+    elif (der1==1):
+        basis_funs_1st_der( kts1, deg1, x, span1, basis1 )
+    if (der2==0):
+        basis_funs( kts2, deg2, y, span2, basis2 )
+    elif (der2==1):
+        basis_funs_1st_der( kts2, deg2, y, span2, basis2 )
+    
+    theCoeffs = empty([deg1+1,deg2+1])
+    theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+    
+    z = 0.0
+    for i in range(deg1+1):
+        theCoeffs[i,0] = theCoeffs[i,0]*basis2[0]
+        for j in range(1,deg2+1):
+            theCoeffs[i,0] += theCoeffs[i,j]*basis2[j]
+        z+=theCoeffs[i,0]*basis1[i]
+    return z
+
+@cc.export('eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
+    z = empty_like(len(x))
+    if (der1==0):
+        if (der2==0):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs( kts1, deg1, x[i], span1, basis1 )
+                basis_funs( kts2, deg2, y[i], span2, basis2 )
+                
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
+                
+                z[i] = 0.0
+                for j in range(deg1+1):
+                    theCoeffs[j,0] = theCoeffs[j,0]*basis2[0]
+                    for k in range(1,deg2+1):
+                        theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
+                    z[i]+=theCoeffs[j,0]*basis1[j]
+        elif(der2==1):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs( kts1, deg1, x[i], span1, basis1 )
+                basis_funs_1st_der( kts2, deg2, y[i], span2, basis2 )
+                
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
+                
+                z[i] = 0.0
+                for j in range(deg1+1):
+                    theCoeffs[j,0] = theCoeffs[j,0]*basis2[0]
+                    for k in range(1,deg2+1):
+                        theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
+                    z[i]+=theCoeffs[j,0]*basis1[j]
+    elif (der1==1):
+        if (der2==0):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs_1st_der( kts1, deg1, x[i], span1, basis1 )
+                basis_funs( kts2, deg2, y[i], span2, basis2 )
+                
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
+                
+                z[i] = 0.0
+                for j in range(deg1+1):
+                    theCoeffs[j,0] = theCoeffs[j,0]*basis2[0]
+                    for k in range(1,deg2+1):
+                        theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
+                    z[i]+=theCoeffs[j,0]*basis1[j]
+        elif(der2==1):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs_1st_der( kts1, deg1, x[i], span1, basis1 )
+                basis_funs_1st_der( kts2, deg2, y[i], span2, basis2 )
+                
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
+                
+                z[i] = 0.0
+                for j in range(deg1+1):
+                    theCoeffs[j,0] = theCoeffs[j,0]*basis2[0]
+                    for k in range(1,deg2+1):
+                        theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
+                    z[i]+=theCoeffs[j,0]*basis1[j]
+    return z
+
+if __name__ == "__main__":
+    cc.compile()
