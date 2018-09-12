@@ -1,4 +1,5 @@
-from pyccel.decorators import types
+from pyccel.decorators  import types
+from .mod_context_1     import *
 
 @types('double','double[:]','int','double[:]','int')
 def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
