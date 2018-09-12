@@ -251,9 +251,11 @@ for ti in range(tN):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,0,r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
+    # For v[0]
     for j,z in distribFunc.getCoords(1):
         interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),phiSplines[j])
         polAdv.step(distribFunc.get2DSlice([0,j]),halfStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
+    # For v[1:], splitting avoids calling interpolator more often than necessary
     for i,v in enumerate(distribFunc.getCoordVals(0)[1:],1):
         for j,z in distribFunc.getCoords(1):
             polAdv.step(distribFunc.get2DSlice([i,j]),halfStep,phiSplines[j],v)
