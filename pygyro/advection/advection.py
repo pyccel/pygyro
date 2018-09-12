@@ -398,7 +398,7 @@ class PoloidalAdvection:
                     explicitTrap: bool =  True, tol: float = 1e-10 ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
-        self._nPoints = (self._points[0].size,self._points[1].size)
+        self._nPoints = np.array([self._points[0].size,self._points[1].size],dtype=int)
         self._interpolator = SplineInterpolator2D(splines[0],splines[1])
         self._spline = Spline2D(splines[0],splines[1])
         
