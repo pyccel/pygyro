@@ -1,21 +1,34 @@
 import numpy            as np
 from numba              import jit
+from numba.pycc         import CC
 from scipy.interpolate  import splev, bisplev
 from math               import pi
 
-from ..initialisation.initialiser   import fEq
 from ..initialisation               import constants
 
-@jit
+cc = CC('my_module')
+
+@jit(nopython=True,cache=True,nogil=True)
+def Ti(r):
+    return constants.CTi*np.exp(-constants.kTi*constants.deltaRTi*np.tanh((r-constants.rp)/constants.deltaRTi))
+
+@jit(nopython=True,cache=True,nogil=True)
+def fEq(r,vPar):
+    return n0(r)*np.exp(-0.5*vPar*vPar/Ti(r))/np.sqrt(2*pi*Ti(r))
+
+@jit(nopython=True,cache=True,nogil=True)
 def eval2d( x1, x2, kts1, kts2, coeffs, deg1, deg2, der1=0, der2=0 ):
 
     tck = (kts1, kts2, coeffs, deg1, deg2)
     return bisplev( x1, x2, tck, der1, der2 )
 
-@jit
+@cc.export('PoloidalAdvectionStepExpl', '(f8[:],f8,f8,f8[:],f8[:],f8[:], \
+                                          i8[:],f8[:],f8[:],f8[:],i4,i4, \
+                                          f8[:],f8[:],f8[:],i4,i4,b1)')
+@jit(cache=True,nogil=True)
 def PoloidalAdvectionStepExpl( f: np.ndarray, dt: float, v: float,
                         rPts: np.ndarray, qPts: np.ndarray, qTPts: np.ndarray,
-                        nPts: list, kts1Phi: np.ndarray, kts2Phi: np.ndarray,
+                        nPts: np.ndarray, kts1Phi: np.ndarray, kts2Phi: np.ndarray,
                         coeffsPhi: np.ndarray, deg1Phi: int, deg2Phi: int,
                         kts1Pol: np.ndarray, kts2Pol: np.ndarray,
                         coeffsPol: np.ndarray, deg1Pol: int, deg2Pol: int,
@@ -219,3 +232,6 @@ def PoloidalAdvectionStepImpl( f: np.ndarray, dt: float, v: float,
                     while (endPts_k2[0][i,j]<0):
                         endPts_k2[0][i,j]+=2*pi
                     f[i,j]=eval2d(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol)
+
+if __name__ == "__main__":
+    cc.compile()
