@@ -313,4 +313,3 @@ phiFile.close()
 #~ ps.print_stats()
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
-
