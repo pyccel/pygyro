@@ -221,6 +221,81 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
         z+=theCoeffs[i,0]*basis1[i]
     return z
 
+
+@cc.export('eval_spline_2d_cross', 'f8[:,:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
+    basis1  = empty( deg1+1 )
+    basis2  = empty( deg2+1 )
+    theCoeffs = empty((deg1+1,deg2+1))
+    z = empty((len(X),len(Y)))
+    
+    if (der1==0 and der2==0):
+        for i,x in enumerate(X):
+            span1  =  find_span( kts1, deg1, x )
+            basis_funs( kts1, deg1, x, span1, basis1 )
+            for j,y in enumerate(Y):
+                span2  =  find_span( kts2, deg2, y )
+                basis_funs( kts2, deg2, y, span2, basis2 )
+                
+                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                
+                z[i,j] = 0.0
+                for k in range(deg1+1):
+                    theCoeffs[k,0] = theCoeffs[k,0]*basis2[0]
+                    for l in range(1,deg2+1):
+                        theCoeffs[k,0] += theCoeffs[k,l]*basis2[l]
+                    z[i,j]+=theCoeffs[k,0]*basis1[k]
+    elif (der1==0 and der2==1):
+        for i,x in enumerate(X):
+            span1  =  find_span( kts1, deg1, x )
+            basis_funs( kts1, deg1, x, span1, basis1 )
+            for j,y in enumerate(Y):
+                span2  =  find_span( kts2, deg2, y )
+                basis_funs_1st_der( kts2, deg2, y, span2, basis2 )
+                
+                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                
+                z[i,j] = 0.0
+                for k in range(deg1+1):
+                    theCoeffs[k,0] = theCoeffs[k,0]*basis2[0]
+                    for l in range(1,deg2+1):
+                        theCoeffs[k,0] += theCoeffs[k,l]*basis2[l]
+                    z[i,j]+=theCoeffs[k,0]*basis1[k]
+    elif (der1==1 and der2==0):
+        for i,x in enumerate(X):
+            span1  =  find_span( kts1, deg1, x )
+            basis_funs_1st_der( kts1, deg1, x, span1, basis1 )
+            for j,y in enumerate(Y):
+                span2  =  find_span( kts2, deg2, y )
+                basis_funs( kts2, deg2, y, span2, basis2 )
+                
+                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                
+                z[i,j] = 0.0
+                for k in range(deg1+1):
+                    theCoeffs[k,0] = theCoeffs[k,0]*basis2[0]
+                    for l in range(1,deg2+1):
+                        theCoeffs[k,0] += theCoeffs[k,l]*basis2[l]
+                    z[i,j]+=theCoeffs[k,0]*basis1[k]
+    elif (der1==1 and der2==1):
+        for i,x in enumerate(X):
+            span1  =  find_span( kts1, deg1, x )
+            basis_funs_1st_der( kts1, deg1, x, span1, basis1 )
+            for j,y in enumerate(Y):
+                span2  =  find_span( kts2, deg2, y )
+                basis_funs_1st_der( kts2, deg2, y, span2, basis2 )
+                
+                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                
+                z[i,j] = 0.0
+                for k in range(deg1+1):
+                    theCoeffs[k,0] = theCoeffs[k,0]*basis2[0]
+                    for l in range(1,deg2+1):
+                        theCoeffs[k,0] += theCoeffs[k,l]*basis2[l]
+                    z[i,j]+=theCoeffs[k,0]*basis1[k]
+    
+    return z
+
 @cc.export('eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
 def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     z = empty(len(x))
