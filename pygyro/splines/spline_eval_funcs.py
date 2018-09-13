@@ -1,7 +1,7 @@
 from numba.pycc import CC
 from numpy      import empty
 
-cc = CC('my_module')
+cc = CC('spline_eval_funcs')
 
 #==============================================================================
 @cc.export('find_span', 'i4(f8[:], i4,f8)')
@@ -54,7 +54,7 @@ def find_span( knots, degree, x ):
     return returnVal
 
 #==============================================================================
-@cc.export('basis_funs', 'f8[:](f8[:], i4,f8,i4,f8[:])')
+@cc.export('basis_funs', '(f8[:], i4,f8,i4,f8[:])')
 def basis_funs( knots, degree, x, span, values ):
     """
     Compute the non-vanishing B-splines at location x,
@@ -101,7 +101,7 @@ def basis_funs( knots, degree, x, span, values ):
             saved     = left[j-r] * temp
         values[j+1] = saved
 
-@cc.export('basis_funs_1st_der', 'f8[:](f8[:], i4,f8,i4,f8[:])')
+@cc.export('basis_funs_1st_der', '(f8[:], i4,f8,i4,f8[:])')
 def basis_funs_1st_der( knots, degree, x, span, ders ):
     """
     Compute the first derivative of the non-vanishing B-splines
@@ -150,7 +150,7 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
         ders[j] = temp - saved
     # j = degree
     ders[degree] = saved
-
+"""
 @cc.export('eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
 def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
     span  =  find_span( knots, degree, x )
@@ -292,6 +292,7 @@ def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
                         theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
                     z[i]+=theCoeffs[j,0]*basis1[j]
     return z
+"""
 
 if __name__ == "__main__":
     cc.compile()
