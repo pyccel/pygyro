@@ -432,25 +432,25 @@ class PoloidalAdvection:
             The parallel velocity coordinate
         
         """
-        assert(f.shape==self._nPoints)
+        assert((f.shape==self._nPoints).all())
         self._interpolator.compute_interpolant(f,self._spline)
         
         phiBases = phi.basis
         polBases = self._spline.basis
-        if (self._explicit):
-            endPts_k2 = AAS.PoloidalAdvectionStepExpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
-                            self._nPoints, phiBases[0].knots, phiBases[1].knots,
-                            phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
-                            polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
-                            polBases[0].degree, polBases[1].degree,self._nulEdge)
-        else:
-            endPts_k2 = AAS.PoloidalAdvectionStepImpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
-                            self._nPoints, phiBases[0].knots, phiBases[1].knots,
-                            phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
-                            polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
-                            polBases[0].degree, polBases[1].degree,self._TOL,self._nulEdge)
+        #~ if (self._explicit):
+            #~ endPts_k2 = AAS.PoloidalAdvectionStepExpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
+                            #~ self._nPoints, phiBases[0].knots, phiBases[1].knots,
+                            #~ phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
+                            #~ polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
+                            #~ polBases[0].degree, polBases[1].degree,self._nulEdge)
+        #~ else:
+            #~ endPts_k2 = AAS.PoloidalAdvectionStepImpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
+                            #~ self._nPoints, phiBases[0].knots, phiBases[1].knots,
+                            #~ phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
+                            #~ polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
+                            #~ polBases[0].degree, polBases[1].degree,self._TOL,self._nulEdge)
         
-        """
+        #~ """
         multFactor = dt/constants.B0
         
         drPhi_0 = phi.eval(*self._points,0,1)/self._points[1]
@@ -513,7 +513,7 @@ class PoloidalAdvection:
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
                 f[i,j]=self.evalFunc(endPts_k2[0][i,j],endPts_k2[1][i,j],v)
-        """
+        #~ """
     
     def exact_step( self, f, endPts, v ):
         assert(f.shape==self._nPoints)
