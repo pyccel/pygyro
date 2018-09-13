@@ -10,6 +10,9 @@ __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
 if ('mod_spline_eval_funcs' in dir(SEF)):
     SEF = SEF.mod_spline_eval_funcs
+    modFunc = np.transpose
+else:
+    raise Warning("Beware of unwanted transposes")
 
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
@@ -244,11 +247,11 @@ class Spline2D():
             result = np.empty_like(x1)
             SEF.eval_spline_2d_vector(x1,x2,self._basis1.knots,self._basis1.degree,
                                         self._basis2.knots,self._basis2.degree,
-                                  self._coeffs,result,der1,der2)
+                                        self._coeffs.T,result,der1,der2)
         else:
             result = SEF.eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
                                                  self._basis2.knots,self._basis2.degree,
-                                           self._coeffs,der1,der2)
+                                                 self._coeffs.T,der1,der2)
         return result
 
         """
