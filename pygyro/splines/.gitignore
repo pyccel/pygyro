@@ -2,4 +2,3 @@ mod_context_1.mod
 mod_context_1.f90
 mod_context_1.o
 spline_eval_funcs.f90
-spline_eval_funcs.cpython-35m-x86_64-linux-gnu.so
