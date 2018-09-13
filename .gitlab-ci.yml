@@ -19,6 +19,6 @@ testimony:
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
   after_script:
-    - rm pygyro/splines/spline_eval_funcs.cpython-35m-x86_64-linux-gnu.so
+    - rm pygyro/splines/*.so
     - deactivate
     - module unload impi
