@@ -11,6 +11,7 @@ testimony:
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
   script:
+    - python pygyro/splines/spline_eval_funcs.py
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
@@ -18,5 +19,6 @@ testimony:
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
   after_script:
+    - rm pygyro/splines/spline_eval_funcs.cpython-35m-x86_64-linux-gnu.so
     - deactivate
     - module unload impi
