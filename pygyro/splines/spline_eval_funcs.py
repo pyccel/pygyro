@@ -1,3 +1,4 @@
+from numba      import njit
 from numba.pycc import CC
 from numpy      import empty
 
@@ -5,6 +6,7 @@ cc = CC('spline_eval_funcs')
 
 #==============================================================================
 @cc.export('find_span', 'i4(f8[:], i4,f8)')
+@njit
 def find_span( knots, degree, x ):
     """
     Determine the knot span index at location x, given the
@@ -55,6 +57,7 @@ def find_span( knots, degree, x ):
 
 #==============================================================================
 @cc.export('basis_funs', '(f8[:], i4,f8,i4,f8[:])')
+@njit
 def basis_funs( knots, degree, x, span, values ):
     """
     Compute the non-vanishing B-splines at location x,
@@ -102,6 +105,7 @@ def basis_funs( knots, degree, x, span, values ):
         values[j+1] = saved
 
 @cc.export('basis_funs_1st_der', '(f8[:], i4,f8,i4,f8[:])')
+@njit
 def basis_funs_1st_der( knots, degree, x, span, ders ):
     """
     Compute the first derivative of the non-vanishing B-splines
@@ -150,7 +154,7 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
         ders[j] = temp - saved
     # j = degree
     ders[degree] = saved
-"""
+
 @cc.export('eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
 def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
     span  =  find_span( knots, degree, x )
@@ -168,7 +172,7 @@ def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
 
 @cc.export('eval_spline_1d_vector', 'f8[:](f8[:],f8[:],i4,f8[:],i4)')
 def eval_spline_1d_vector(x,knots,degree,coeffs,der=0):
-    y.empty(len(x))
+    y=empty(len(x))
     if (der==0):
         for i in range(len(x)):
             span  =  find_span( knots, degree, x[i] )
@@ -195,7 +199,6 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     span1  =  find_span( kts1, deg1, x )
     span2  =  find_span( kts2, deg2, y )
     
-    from numpy      import empty
     basis1  = empty( deg1+1 )
     basis2  = empty( deg2+1 )
     if (der1==0):
@@ -207,7 +210,7 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     elif (der2==1):
         basis_funs_1st_der( kts2, deg2, y, span2, basis2 )
     
-    theCoeffs = empty([deg1+1,deg2+1])
+    theCoeffs = empty((deg1+1,deg2+1))
     theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
     
     z = 0.0
@@ -219,8 +222,8 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     return z
 
 @cc.export('eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
-def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
-    z = empty_like(len(x))
+def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
+    z = empty(len(x))
     if (der1==0):
         if (der2==0):
             for i in range(len(x)):
@@ -292,7 +295,6 @@ def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
                         theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
                     z[i]+=theCoeffs[j,0]*basis1[j]
     return z
-"""
 
 if __name__ == "__main__":
     cc.compile()
