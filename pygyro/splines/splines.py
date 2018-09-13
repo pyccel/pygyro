@@ -236,8 +236,7 @@ class Spline2D():
 
     def eval( self, x1, x2, der1=0, der2=0 ):
         if (hasattr(x1,'__len__')):
-            assert(x1.shape==x2.shape)
-            result = SEF.eval_spline_2d_vector(x1,x2,self._basis1.knots,self._basis1.degree,
+            result = SEF.eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
                                         self._basis2.knots,self._basis2.degree,
                                         self._coeffs,der1,der2)
         else:
