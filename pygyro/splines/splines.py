@@ -2,7 +2,9 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.interpolate import splev, bisplev
+from scipy.interpolate  import splev, bisplev
+
+from .      import spline_eval_funcs as SEF
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
@@ -179,6 +181,7 @@ class BSplines():
         return int( np.searchsorted( self.breaks, x, side='right' ) - 1 )
 
 #===============================================================================
+
 class Spline1D():
 
     def __init__( self, basis, dtype = float ):
@@ -195,8 +198,16 @@ class Spline1D():
         return self._coeffs
 
     def eval( self, x, der=0 ):
+        if (hasattr(x,'__len__')):
+            result = SEF.eval_spline_1d_vector(x,self._basis.knots,self._basis.degree,self._coeffs,der)
+        else:
+            result = SEF.eval_spline_1d_scalar(x,self._basis.knots,self._basis.degree,self._coeffs,der)
+        return result
+        
+        """
         tck = (self._basis.knots, self._coeffs, self._basis.degree)
         return splev( x, tck, der )
+        """
 
 #===============================================================================
 class Spline2D():
@@ -224,7 +235,18 @@ class Spline2D():
         return self._coeffs
 
     def eval( self, x1, x2, der1=0, der2=0 ):
+        if (hasattr(x1,'__len__')):
+            assert(x1.shape==x2.shape)
+            result = SEF.eval_spline_2d_vector(x1,x2,self._basis1.knots,self._basis1.degree,
+                                        self._basis2.knots,self._basis2.degree,
+                                        self._coeffs,der1,der2)
+        else:
+            result = SEF.eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
+                                                self._basis2.knots,self._basis2.degree,
+                                                self._coeffs,der1,der2)
+        return result
 
+        """
         t1  = self._basis1.knots
         t2  = self._basis2.knots
         c   = self._coeffs.flat
@@ -233,3 +255,4 @@ class Spline2D():
 
         tck = (t1, t2, c, k1, k2)
         return bisplev( x1, x2, tck, der1, der2 )
+        """
