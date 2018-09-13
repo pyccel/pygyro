@@ -243,7 +243,7 @@ class Spline2D():
 
     def eval( self, x1, x2, der1=0, der2=0 ):
         if (hasattr(x1,'__len__')):
-            result = empty((len(x1),len(x2)))
+            result = np.empty((len(x1),len(x2)))
             SEF.eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
                                         self._basis2.knots,self._basis2.degree,
                                         self._coeffs.T,result.T,der1,der2)
