@@ -1,5 +1,5 @@
 from pyccel.decorators  import types
-from .mod_context_1     import *
+#~ from .mod_context_1     import *
 
 @types('double','double[:]','int','double[:]','int')
 def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
@@ -69,7 +69,6 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
         z+=theCoeffs[i,0]*basis1[i]
     return z
 
-
 @types('double[:]','double[:]','double[:]','int','double[:]','int','double[:,:]','double[:]','int','int')
 def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
     from numpy      import empty
@@ -85,19 +84,7 @@ def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
                 basis_funs( kts1, deg1, x[i], span1, basis1 )
                 basis_funs( kts2, deg2, y[i], span2, basis2 )
                 
-                if (deg1==2):
-                    print(coeffs)
-                    print(coeffs.shape)
-                    print(coeffs[0:3,0:2])
-                    print(coeffs[0,0])
-                
                 theCoeffs[:,:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
-                
-                if (deg1==2):
-                    print(span1-deg1,span1+1," ",span2-deg2,span2+1)
-                    print(coeffs[span1-deg1:span1+1,span2-deg2:span2+1])
-                    print(span1,span2,basis1,basis2)
-                    print(theCoeffs)
                 
                 z[i] = 0.0
                 for j in range(deg1+1):
@@ -105,8 +92,6 @@ def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
                     for k in range(1,deg2+1):
                         theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
                     z[i]+=theCoeffs[j,0]*basis1[j]
-                if (deg1==2):
-                    print(z[i])
         elif(der2==1):
             basis1  = empty( deg1+1, dtype=float )
             basis2  = empty( deg2+1, dtype=float )
@@ -159,6 +144,3 @@ def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
                     for k in range(1,deg2+1):
                         theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
                     z[i]+=theCoeffs[j,0]*basis1[j]
-    
-    if (deg1==2):
-        print(z)
