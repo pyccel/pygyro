@@ -1,9 +1,10 @@
 from mpi4py import MPI
 import pytest
 
-from  .setups                 import setupCylindricalGrid
-from  .initialiser            import fEq, perturbation
-from ..utilities.grid_plotter import SlicePlotter4d, SlicePlotter3d, Plotter2d
+from  .                         import constants
+from  .setups                   import setupCylindricalGrid
+from  .mod_initialiser_funcs    import fEq, perturbation
+from ..utilities.grid_plotter   import SlicePlotter4d, SlicePlotter3d, Plotter2d
 
 @pytest.mark.serial
 def test_Perturbation_FluxSurface():
@@ -24,7 +25,7 @@ def test_Perturbation_FluxSurface():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            FluxSurface[:]=perturbation(r,theta,z,m,n)
+            FluxSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
     Plotter2d(grid,'r','v').show()
 
@@ -47,7 +48,7 @@ def test_Perturbation_vPar():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            Surface[:]=perturbation(r,theta,z,m,n)
+            Surface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
     Plotter2d(grid,'r','v').show()
 
@@ -70,7 +71,7 @@ def test_Perturbation_Poloidal():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=perturbation(r,theta,z,m,n)
+            PoloidalSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
     Plotter2d(grid,'r','v').show()
 
@@ -93,7 +94,7 @@ def test_FieldPlot_FluxSurface():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            FluxSurface[:]=perturbation(r,theta,z,m,n)
+            FluxSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
     Plotter2d(grid,'q','z').show()
 
@@ -116,7 +117,7 @@ def test_FieldPlot_vPar():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            Surface[:]=perturbation(r,theta,z,m,n)
+            Surface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
     Plotter2d(grid,'q','z').show()
 
@@ -139,7 +140,7 @@ def test_FieldPlot_Poloidal():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=perturbation(r,theta,z,m,n)
+            PoloidalSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
     Plotter2d(grid,'q','z').show()
 
@@ -162,7 +163,10 @@ def test_Equilibrium_FluxSurface():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            FluxSurface[:]=fEq(r,v)
+            FluxSurface[:]=fEq(r,v,constants.CN0,constants.kN0,
+                                constants.deltaRN0,constants.rp,
+                                constants.CTi,constants.kTi,
+                                constants.deltaRTi)
     
     Plotter2d(grid,'r','v').show()
 
@@ -185,7 +189,10 @@ def test_Equilibrium_vPar():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            Surface[:]=fEq(r,v)
+            Surface[:]=fEq(r,v,constants.CN0,constants.kN0,
+                            constants.deltaRN0,constants.rp,
+                            constants.CTi,constants.kTi,
+                            constants.deltaRTi)
     
     Plotter2d(grid,'r','v').show()
 
@@ -208,7 +215,10 @@ def test_Equilibrium_Poloidal():
             
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=fEq(r,v)
+            PoloidalSurface[:]=fEq(r,v,constants.CN0,constants.kN0,
+                                    constants.deltaRN0,constants.rp,
+                                    constants.CTi,constants.kTi,
+                                    constants.deltaRTi)
     
     Plotter2d(grid,'r','v').show()
 
