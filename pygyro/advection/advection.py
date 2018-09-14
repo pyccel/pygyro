@@ -368,7 +368,7 @@ class VParallelAdvection:
         
         AAS.VParallelAdvectionEvalStep(f,self._points-c*dt,r,self._points[0],
                                         self._points[-1],self._spline.basis.knots,
-                                        self._spline.basis.degree,self._spline.coeffs,nulBound)
+                                        self._spline.basis.degree,self._spline.coeffs,self._nulEdge)
         #~ f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
