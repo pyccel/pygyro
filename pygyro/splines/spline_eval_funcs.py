@@ -156,6 +156,7 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
     ders[degree] = saved
 
 @cc.export('eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
+@njit
 def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
     span  =  find_span( knots, degree, x )
     
@@ -171,6 +172,7 @@ def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
     return y
 
 @cc.export('eval_spline_1d_vector', 'f8[:](f8[:],f8[:],i4,f8[:],i4)')
+@njit
 def eval_spline_1d_vector(x,knots,degree,coeffs,der=0):
     y=empty(len(x))
     if (der==0):
@@ -195,6 +197,7 @@ def eval_spline_1d_vector(x,knots,degree,coeffs,der=0):
     return y
 
 @cc.export('eval_spline_2d_scalar', 'f8(f8,f8,f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+@njit
 def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     span1  =  find_span( kts1, deg1, x )
     span2  =  find_span( kts2, deg2, y )
@@ -223,6 +226,7 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
 
 
 @cc.export('eval_spline_2d_cross', 'f8[:,:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+@njit
 def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     basis1  = empty( deg1+1 )
     basis2  = empty( deg2+1 )
@@ -237,7 +241,7 @@ def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
                 span2  =  find_span( kts2, deg2, y )
                 basis_funs( kts2, deg2, y, span2, basis2 )
                 
-                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                theCoeffs[:,:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
                 
                 z[i,j] = 0.0
                 for k in range(deg1+1):
@@ -253,7 +257,7 @@ def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
                 span2  =  find_span( kts2, deg2, y )
                 basis_funs_1st_der( kts2, deg2, y, span2, basis2 )
                 
-                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                theCoeffs[:,:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
                 
                 z[i,j] = 0.0
                 for k in range(deg1+1):
@@ -269,7 +273,7 @@ def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
                 span2  =  find_span( kts2, deg2, y )
                 basis_funs( kts2, deg2, y, span2, basis2 )
                 
-                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                theCoeffs[:,:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
                 
                 z[i,j] = 0.0
                 for k in range(deg1+1):
@@ -285,7 +289,7 @@ def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
                 span2  =  find_span( kts2, deg2, y )
                 basis_funs_1st_der( kts2, deg2, y, span2, basis2 )
                 
-                theCoeffs[:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
+                theCoeffs[:,:] = coeffs[span1-deg1:span1+1,span2-deg2:span2+1]
                 
                 z[i,j] = 0.0
                 for k in range(deg1+1):
@@ -297,6 +301,7 @@ def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     return z
 
 @cc.export('eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+@njit
 def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
     z = empty(len(x))
     if (der1==0):
