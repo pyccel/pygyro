@@ -328,14 +328,20 @@ class VParallelAdvection:
         Default is fEquilibrium
 
     """
-    def __init__( self, eta_vals: list, splines: BSplines, edgeFunc = fEq ):
+    def __init__( self, eta_vals: list, splines: BSplines, nulEdge: bool = False ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
         
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
-        self._edge = edgeFunc
+        
+        self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
+        self._nulEdge=nulEdge
+        if (nulEdge):
+            self._edge = lambda r,v : 0
+        else:
+            self._edge = fEq
     
     def step( self, f: np.ndarray, dt: float, c: float, r: float ):
         """
@@ -360,7 +366,10 @@ class VParallelAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        f[:]=self._evalFunc(self._points-c*dt, r)
+        AAS.VParallelAdvectionEvalStep(f,self._points-c*dt,r,self._points[0],
+                                        self._points[-1],self._spline.basis.knots,
+                                        self._spline.basis.degree,self._spline.coeffs,nulBound)
+        #~ f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
         if (v<self._points[0] or v>self._points[-1]):
