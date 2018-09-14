@@ -1,5 +1,5 @@
 from pyccel.decorators  import types
-from .mod_context_1     import find_span, basis_funs, basis_funs_1st_der
+#~ from .mod_context_1     import find_span, basis_funs, basis_funs_1st_der
 
 @types('double','double[:]','int','double[:]','int')
 def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
