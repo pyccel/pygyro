@@ -4,12 +4,12 @@ from numba.pycc         import CC
 from scipy.interpolate  import splev, bisplev
 from math               import pi
 import sys
-sys.path.insert(0,'..')
+sys.path.insert(0,'pygyro')
 
 from initialisation               import constants
 from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar
 
-cc = CC('my_module')
+cc = CC('accelerated_advection_steps')
 
 @cc.export('n0', 'f8(f8)')
 @njit
