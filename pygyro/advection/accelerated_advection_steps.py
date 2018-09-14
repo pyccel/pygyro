@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0,'pygyro')
 
 from initialisation               import constants
-from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar
+from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar,eval_spline_1d_scalar
 
 cc = CC('accelerated_advection_steps')
 
@@ -254,6 +254,24 @@ def PoloidalAdvectionStepImpl( f: np.ndarray, dt: float, v: float,
                     while (endPts_k2_q[i,j]<0):
                         endPts_k2_q[i,j]+=2*pi
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j], kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol)
+
+@cc.export('VParallelAdvectionEvalStep','(f8[:],f8[:],f8,f8,f8,f8[:],i4,f8[:],b1)')
+def VParallelAdvectionEvalStep( f: np.ndarray, vPts: np.ndarray, rPos: float,
+                        vMin: float, vMax: float,kts: np.ndarray, deg:int,
+                        coeffs: np.ndarray,nulBound: bool):
+    # Find value at the determined point
+    if (nulBound):
+        for i, v in enumerate(vPts):
+            if (v<vMin or v>vMax):
+                f[i]=0.0
+            else:
+                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs)
+    else:
+        for i, v in enumerate(vPts):
+            if (v<vMin or v>vMax):
+                f[i]=fEq(rPos,v)
+            else:
+                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs)
 
 if __name__ == "__main__":
     cc.compile()
