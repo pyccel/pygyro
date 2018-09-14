@@ -6,7 +6,7 @@ from math                           import pi
 
 from ..splines.splines              import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
-from ..initialisation.initialiser   import fEq
+from ..initialisation.mod_initialiser_funcs   import fEq
 from ..initialisation               import constants
 from ..model.layout                 import Layout
 
@@ -304,7 +304,11 @@ class VParallelAdvection:
         Default is fEquilibrium
 
     """
-    def __init__( self, eta_vals: list, splines: BSplines, edgeFunc = fEq ):
+    def __init__( self, eta_vals: list, splines: BSplines, 
+                edgeFunc = lambda x,y: fEq(x,y,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi) ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
@@ -370,7 +374,11 @@ class PoloidalAdvection:
         The tolerance used for the implicit trapezoidal rule
 
     """
-    def __init__( self, eta_vals: list, splines: list, edgeFunc = fEq, 
+    def __init__( self, eta_vals: list, splines: list,
+                    edgeFunc = lambda x,y: fEq(x,y,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi),
                     explicitTrap: bool =  True, tol: float = 1e-10 ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
