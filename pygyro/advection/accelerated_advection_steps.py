@@ -1,31 +1,34 @@
 import numpy            as np
-from numba              import jit
+from numba              import njit
 from numba.pycc         import CC
 from scipy.interpolate  import splev, bisplev
 from math               import pi
+import sys
+sys.path.insert(0,'..')
 
-from ..initialisation               import constants
+from initialisation               import constants
+from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar
 
 cc = CC('my_module')
 
-@jit(nopython=True,cache=True,nogil=True)
+@cc.export('n0', 'f8(f8)')
+@njit
+def n0(r):
+    return constants.CN0*np.exp(-constants.kN0*constants.deltaRN0*np.tanh((r-constants.rp)/constants.deltaRN0))
+
+@cc.export('Ti', 'f8(f8)')
+@njit
 def Ti(r):
     return constants.CTi*np.exp(-constants.kTi*constants.deltaRTi*np.tanh((r-constants.rp)/constants.deltaRTi))
 
-@jit(nopython=True,cache=True,nogil=True)
+@cc.export('fEq', 'f8(f8,f8)')
+@njit
 def fEq(r,vPar):
     return n0(r)*np.exp(-0.5*vPar*vPar/Ti(r))/np.sqrt(2*pi*Ti(r))
 
-@jit(nopython=True,cache=True,nogil=True)
-def eval2d( x1, x2, kts1, kts2, coeffs, deg1, deg2, der1=0, der2=0 ):
-
-    tck = (kts1, kts2, coeffs, deg1, deg2)
-    return bisplev( x1, x2, tck, der1, der2 )
-
-@cc.export('PoloidalAdvectionStepExpl', '(f8[:],f8,f8,f8[:],f8[:],f8[:], \
-                                          i8[:],f8[:],f8[:],f8[:],i4,i4, \
-                                          f8[:],f8[:],f8[:],i4,i4,b1)')
-@jit(cache=True,nogil=True)
+@cc.export('PoloidalAdvectionStepExpl', '(f8[:,:],f8,f8,f8[:],f8[:],f8[:,:], \
+                                          i8[:],f8[:],f8[:],f8[:,:],i4,i4, \
+                                          f8[:],f8[:],f8[:,:],i4,i4,b1)')
 def PoloidalAdvectionStepExpl( f: np.ndarray, dt: float, v: float,
                         rPts: np.ndarray, qPts: np.ndarray, qTPts: np.ndarray,
                         nPts: np.ndarray, kts1Phi: np.ndarray, kts2Phi: np.ndarray,
@@ -55,13 +58,13 @@ def PoloidalAdvectionStepExpl( f: np.ndarray, dt: float, v: float,
     
     multFactor = dt/constants.B0
     
-    drPhi_0 = eval2d(qPts,rPts, kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,0,1)/rPts
-    dthetaPhi_0 = eval2d(qPts,rPts, kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,1,0)/rPts
+    drPhi_0 = eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi, 0,1)/rPts
+    dthetaPhi_0 = eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi, 1,0)/rPts
     
     # Step one of Heun method
     # x' = x^n + f(x^n)
-    endPts_k1 = ( qTPts   -     drPhi_0*multFactor,
-                 rPts + dthetaPhi_0*multFactor )
+    endPts_k1_q = qTPts   -     drPhi_0*multFactor
+    endPts_k1_r = rPts + dthetaPhi_0*multFactor
     
     drPhi_k = np.empty_like(drPhi_0)
     dthetaPhi_k = np.empty_like(dthetaPhi_0)
@@ -71,18 +74,24 @@ def PoloidalAdvectionStepExpl( f: np.ndarray, dt: float, v: float,
     for i in range(nPts[0]):
         for j in range(nPts[1]):
             # Handle theta boundary conditions
-            while (endPts_k1[0][i,j]<0):
-                endPts_k1[0][i,j]+=2*pi
-            while (endPts_k1[0][i,j]>2*pi):
-                endPts_k1[0][i,j]-=2*pi
+            while (endPts_k1_q[i,j]<0):
+                endPts_k1_q[i,j]+=2*pi
+            while (endPts_k1_q[i,j]>2*pi):
+                endPts_k1_q[i,j]-=2*pi
             
-            if (not (endPts_k1[1][i,j]<rPts[0] or 
-                     endPts_k1[1][i,j]>rPts[-1])):
+            if (not (endPts_k1_r[i,j]<rPts[0] or 
+                     endPts_k1_r[i,j]>rPts[-1])):
                 # Add the new value of phi to the derivatives
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                 #                               ^^^^^^^^^^^^^^^
-                drPhi_k[i,j]     = eval2d(endPts_k1[0][i,j],endPts_k1[1][i,j], kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,0,1)/endPts_k1[1][i,j]
-                dthetaPhi_k[i,j] = eval2d(endPts_k1[0][i,j],endPts_k1[1][i,j], kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,1,0)/endPts_k1[1][i,j]
+                drPhi_k[i,j]     = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
+                                                        kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                                        coeffsPhi,0,1) \
+                                    / endPts_k1_r[i,j]
+                dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
+                                                        kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                                        coeffsPhi,1,0) \
+                                    / endPts_k1_r[i,j]
             else:
                 drPhi_k[i,j]     = 0.0
                 dthetaPhi_k[i,j] = 0.0
@@ -107,7 +116,7 @@ def PoloidalAdvectionStepExpl( f: np.ndarray, dt: float, v: float,
                         endPts_k2[0][i,j]-=2*pi
                     while (endPts_k2[0][i,j]<0):
                         endPts_k2[0][i,j]+=2*pi
-                    f[i,j]=eval2d(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol)
+                    f[i,j]=eval_spline_2d_scalar(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol)
     else:
         for i,theta in enumerate(qPts):
             for j,r in enumerate(rPts):
@@ -120,11 +129,12 @@ def PoloidalAdvectionStepExpl( f: np.ndarray, dt: float, v: float,
                         endPts_k2[0][i,j]-=2*pi
                     while (endPts_k2[0][i,j]<0):
                         endPts_k2[0][i,j]+=2*pi
-                    f[i,j]=eval2d(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol)
+                    f[i,j]=eval_spline_2d_scalar(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol)
 
 
-
-@jit
+@cc.export('PoloidalAdvectionStepImpl', '(f8[:,:],f8,f8,f8[:],f8[:],f8[:,:], \
+                                          i8[:],f8[:],f8[:],f8[:,:],i4,i4, \
+                                          f8[:],f8[:],f8[:,:],i4,i4,f8,b1)')
 def PoloidalAdvectionStepImpl( f: np.ndarray, dt: float, v: float,
                         rPts: np.ndarray, qPts: np.ndarray, qTPts: np.ndarray,
                         nPts: list, kts1Phi: np.ndarray, kts2Phi: np.ndarray,
@@ -154,13 +164,15 @@ def PoloidalAdvectionStepImpl( f: np.ndarray, dt: float, v: float,
     
     multFactor = dt/constants.B0
     
-    drPhi_0 = eval2d(qPts,rPts, kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,0,1)/rPts
-    dthetaPhi_0 = eval2d(qPts,rPts, kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,1,0)/rPts
+    drPhi_0 = eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,0,1)/rPts
+    dthetaPhi_0 = eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,1,0)/rPts
     
     # Step one of Heun method
     # x' = x^n + f(x^n)
-    endPts_k1 = ( qTPts   -     drPhi_0*multFactor,
-                 rPts + dthetaPhi_0*multFactor )
+    endPts_k1_q = qTPts   -     drPhi_0*multFactor
+    endPts_k1_r = rPts + dthetaPhi_0*multFactor
+    endPts_k2_q = np.empty_like(endPts_k1_r)
+    endPts_k2_r = np.empty_like(endPts_k1_r)
     
     drPhi_k = np.empty_like(drPhi_0)
     dthetaPhi_k = np.empty_like(dthetaPhi_0)
@@ -172,18 +184,24 @@ def PoloidalAdvectionStepImpl( f: np.ndarray, dt: float, v: float,
         for i in range(nPts[0]):
             for j in range(nPts[1]):
                 # Handle theta boundary conditions
-                while (endPts_k1[0][i,j]<0):
-                    endPts_k1[0][i,j]+=2*pi
-                while (endPts_k1[0][i,j]>2*pi):
-                    endPts_k1[0][i,j]-=2*pi
+                while (endPts_k1_q[i,j]<0):
+                    endPts_k1_q[i,j]+=2*pi
+                while (endPts_k1_q[i,j]>2*pi):
+                    endPts_k1_q[i,j]-=2*pi
                 
-                if (not (endPts_k1[1][i,j]<rPts[0] or 
-                         endPts_k1[1][i,j]>rPts[-1])):
+                if (not (endPts_k1_r[i,j]<rPts[0] or 
+                         endPts_k1_r[i,j]>rPts[-1])):
                     # Add the new value of phi to the derivatives
                     # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                     #                               ^^^^^^^^^^^^^^^
-                    drPhi_k[i,j]     = eval2d(endPts_k1[0][i,j],endPts_k1[1][i,j], kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,0,1)/endPts_k1[1][i,j]
-                    dthetaPhi_k[i,j] = eval2d(endPts_k1[0][i,j],endPts_k1[1][i,j], kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,1,0)/endPts_k1[1][i,j]
+                    drPhi_k[i,j]     = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
+                                                            kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                                            coeffsPhi,0,1) \
+                                        / endPts_k1_r[i,j]
+                    dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
+                                                            kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                                            coeffsPhi,1,0) \
+                                        / endPts_k1_r[i,j]
                 else:
                     drPhi_k[i,j]     = 0.0
                     dthetaPhi_k[i,j] = 0.0
@@ -193,45 +211,49 @@ def PoloidalAdvectionStepImpl( f: np.ndarray, dt: float, v: float,
 
         # Clipping is one method of avoiding infinite loops due to boundary conditions
         # Using the splines to extrapolate is not sufficient
-        endPts_k2 = ( np.mod(qTPts   - (drPhi_0     + drPhi_k)*multFactor,2*pi),
-                      np.clip(rPts + (dthetaPhi_0 + dthetaPhi_k)*multFactor,
-                              rPts[0], rPts[-1]) )
+        endPts_k2_q[:,:] = np.mod(qTPts   - (drPhi_0     + drPhi_k)*multFactor,2*pi)
+        for i in range(nPts[0]):
+            for j in range(nPts[1]):
+                endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor
+                if (endPts_k2_r[i,j]<rPts[0]):
+                    endPts_k2_r[i,j]=rPts[0]
+                elif (endPts_k2_r[i,j]>rPts[-1]):
+                    endPts_k2_r[i,j]=rPts[-1]
         
-        norm = max(np.linalg.norm((endPts_k2[0]-endPts_k1[0]).flatten(),np.inf),
-                   np.linalg.norm((endPts_k2[1]-endPts_k1[1]).flatten(),np.inf))
+        norm = max(np.linalg.norm((endPts_k2_q-endPts_k1_q).flatten(),np.inf),
+                   np.linalg.norm((endPts_k2_r-endPts_k1_r).flatten(),np.inf))
         if (norm<tol):
             break
-        endPts_k1=endPts_k2
-    
-    #~ return endPts_k2
+        endPts_k1_q[:,:]=endPts_k2_q[:,:]
+        endPts_k1_r[:,:]=endPts_k2_r[:,:]
     
     # Find value at the determined point
     if (nulBound):
         for i,theta in enumerate(qPts):
             for j,r in enumerate(rPts):
-                if (endPts_k2[1][i,j]<rPts[0]):
+                if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
-                elif (endPts_k2[1][i,j]>rPts[-1]):
+                elif (endPts_k2_r[i,j]>rPts[-1]):
                     f[i,j]=0.0
                 else:
-                    while (endPts_k2[0][i,j]>2*pi):
-                        endPts_k2[0][i,j]-=2*pi
-                    while (endPts_k2[0][i,j]<0):
-                        endPts_k2[0][i,j]+=2*pi
-                    f[i,j]=eval2d(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol)
+                    while (endPts_k2_q[i,j]>2*pi):
+                        endPts_k2_q[i,j]-=2*pi
+                    while (endPts_k2_q[i,j]<0):
+                        endPts_k2_q[i,j]+=2*pi
+                    f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j], kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol)
     else:
         for i,theta in enumerate(qPts):
             for j,r in enumerate(rPts):
-                if (endPts_k2[1][i,j]<rPts[0]):
+                if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=fEq(rPts[0],v)
-                elif (endPts_k2[1][i,j]>rPts[-1]):
-                    f[i,j]=fEq(endPts_k2[1][i,j],v)
+                elif (endPts_k2_r[i,j]>rPts[-1]):
+                    f[i,j]=fEq(endPts_k2_r[i,j],v)
                 else:
-                    while (endPts_k2[0][i,j]>2*pi):
-                        endPts_k2[0][i,j]-=2*pi
-                    while (endPts_k2[0][i,j]<0):
-                        endPts_k2[0][i,j]+=2*pi
-                    f[i,j]=eval2d(endPts_k2[0][i,j],endPts_k2[1][i,j], kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol)
+                    while (endPts_k2_q[i,j]>2*pi):
+                        endPts_k2_q[i,j]-=2*pi
+                    while (endPts_k2_q[i,j]<0):
+                        endPts_k2_q[i,j]+=2*pi
+                    f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j], kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol)
 
 if __name__ == "__main__":
     cc.compile()
