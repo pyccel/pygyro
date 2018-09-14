@@ -71,7 +71,7 @@ def test_vParallelAdvection(function,N):
     
     f = function(x)+fEdge
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, lambda r,v : 0)
+    vParAdv = VParallelAdvection([0,0,0,x], spline, True)
     
     for i in range(N):
         vParAdv.step(f,dt,c,r)
