@@ -440,14 +440,14 @@ class PoloidalAdvection:
         if (self._explicit):
             endPts_k2 = AAS.PoloidalAdvectionStepExpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
                             self._nPoints, phiBases[0].knots, phiBases[1].knots,
-                            phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
-                            polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
+                            phi.coeffs, phiBases[0].degree, phiBases[1].degree,
+                            polBases[0].knots, polBases[1].knots, self._spline.coeffs,
                             polBases[0].degree, polBases[1].degree,self._nulEdge)
         else:
             endPts_k2 = AAS.PoloidalAdvectionStepImpl(f,dt,v,self._points[1],self._points[0],self._shapedQ,
                             self._nPoints, phiBases[0].knots, phiBases[1].knots,
-                            phi.coeffs.flat, phiBases[0].degree, phiBases[1].degree,
-                            polBases[0].knots, polBases[1].knots, self._spline.coeffs.flat,
+                            phi.coeffs, phiBases[0].degree, phiBases[1].degree,
+                            polBases[0].knots, polBases[1].knots, self._spline.coeffs,
                             polBases[0].degree, polBases[1].degree,self._TOL,self._nulEdge)
         
         """
