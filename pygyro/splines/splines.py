@@ -12,7 +12,7 @@ if ('mod_spline_eval_funcs' in dir(SEF)):
     SEF = SEF.mod_spline_eval_funcs
     modFunc = np.transpose
 else:
-    raise Warning("Beware of unwanted transposes")
+    modFunc = lambda c: c
 
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
@@ -246,11 +246,11 @@ class Spline2D():
             result = np.empty((len(x1),len(x2)))
             SEF.eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
                                         self._basis2.knots,self._basis2.degree,
-                                        self._coeffs.T,result.T,der1,der2)
+                                        modFunc(self._coeffs),modFunc(result),der1,der2)
         else:
             result = SEF.eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
                                                  self._basis2.knots,self._basis2.degree,
-                                                 self._coeffs.T,der1,der2)
+                                                 modFunc(self._coeffs),der1,der2)
         return result
 
         """
