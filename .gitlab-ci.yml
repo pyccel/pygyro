@@ -11,8 +11,8 @@ testimony:
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
   script:
-    - python pygyro/splines/spline_eval_funcs.py
     - python pygyro/advection/accelerated_advection_steps.py
+    - python pygyro/splines/spline_eval_funcs.py
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
