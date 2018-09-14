@@ -14,6 +14,9 @@ testimony:
     - cd pygyro/splines
     - gfortran  -fPIC -O3  -c   mod_context_1.f90
     - f2py -c  --opt='-O3'  -m  spline_eval_funcs spline_eval_funcs.f90 mod_context_1.o
+    - cd ../initialisation
+    - gfortran  -fPIC -O3  -c   mod_initialiser_funcs.f90
+    - f2py -c  --opt='-O3'  -m  init_func_mod_creator init_func_mod_creator.f90 mod_initialiser_funcs.o
     - cd ../..
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
@@ -23,6 +26,10 @@ testimony:
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
   after_script:
     - rm pygyro/splines/*.so
-    - rm pygyro/splines/mod_context.o
+    - rm pygyro/splines/*.o
+    - rm pygyro/splines/*.mod
+    - rm pygyro/initialisation/*.so
+    - rm pygyro/initialisation/*.o
+    - rm pygyro/initialisation/*.mod
     - deactivate
     - module unload impi
