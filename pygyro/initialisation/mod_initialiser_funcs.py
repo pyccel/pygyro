@@ -1,9 +1,4 @@
-#~ from pyccel.decorators import types
-
-def types(*args):
-    def id(f):
-        return f
-    return id
+from pyccel.decorators import types
 
 @types('float','float','float','float','float')
 def n0(r,CN0,kN0,deltaRN0,rp):
