@@ -3,7 +3,7 @@
 
 import numpy as np
 from scipy.linalg        import solve_banded
-from scipy.linalg.lapack import dgbtrf, dgbtrs
+from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs
 from scipy.sparse        import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
 
@@ -18,7 +18,7 @@ __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 #===============================================================================
 class SplineInterpolator1D():
 
-    def __init__( self, basis ):
+    def __init__( self, basis, dtype = float ):
         assert isinstance( basis, BSplines )
         self._basis = basis
         self._imat = self.collocation_matrix(basis.knots,basis.degree,basis.greville,basis.periodic)
@@ -33,7 +33,12 @@ class SplineInterpolator1D():
             bmat = np.zeros( (1+self._u+2*self._l, cmat.shape[1]) )
             for i,j in zip( *cmat.nonzero() ):
                 bmat[self._u+self._l+i-j,j] = cmat[i,j]
-            self._bmat, self._ipiv, self._finfo = dgbtrf(bmat, self._l, self._u)
+            if (dtype==np.complex):
+                self._bmat, self._ipiv, self._finfo = zgbtrf(bmat, self._l, self._u)
+                self._solveFunc = zgbtrs
+            else:
+                self._bmat, self._ipiv, self._finfo = dgbtrf(bmat, self._l, self._u)
+                self._solveFunc = dgbtrs
             self._sinfo = None
 
     # ...
@@ -68,7 +73,7 @@ class SplineInterpolator1D():
         assert ug.shape[0] == self._bmat.shape[1]
 
         assert c.shape == ug.shape
-        c[:], self._sinfo = dgbtrs(self._bmat, self._l, self._u, ug, self._ipiv)
+        c[:], self._sinfo = self._solveFunc(self._bmat, self._l, self._u, ug, self._ipiv)
     
     @staticmethod
     def collocation_matrix( knots, degree, xgrid, periodic ):
@@ -125,17 +130,17 @@ class SplineInterpolator1D():
 #===============================================================================
 class SplineInterpolator2D():
 
-    def __init__( self, basis1, basis2 ):
+    def __init__( self, basis1, basis2, dtype=float ):
 
         assert isinstance( basis1, BSplines )
         assert isinstance( basis2, BSplines )
 
         self._basis1  = basis1
         self._basis2  = basis2
-        self._spline1 = Spline1D( basis1 )
-        self._spline2 = Spline1D( basis2 )
-        self._interp1 = SplineInterpolator1D( basis1 )
-        self._interp2 = SplineInterpolator1D( basis2 )
+        self._spline1 = Spline1D( basis1, dtype )
+        self._spline2 = Spline1D( basis2, dtype )
+        self._interp1 = SplineInterpolator1D( basis1, dtype )
+        self._interp2 = SplineInterpolator1D( basis2, dtype )
 
         n1,n2 = basis1.ncells, basis2.ncells
         p1,p2 = basis1.degree, basis2.degree
