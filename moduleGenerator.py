@@ -1,5 +1,3 @@
-import shutil
-
 from pyccel.epyccel import ContextPyccel
 from pyccel.epyccel import epyccel
 from pyccel.decorators import types
