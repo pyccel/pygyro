@@ -4,8 +4,8 @@ import numpy as np
 from . import constants
 from . import initialiser_func as IF_MOD
 
-if ('mod_initialiser_func' in dir(IF_MOD)):
-    IF_MOD = IF_MOD.mod_initialiser_func
+if ('mod_pygyro_initialisation_initialiser_func' in dir(IF_MOD)):
+    IF_MOD = IF_MOD.mod_pygyro_initialisation_initialiser_func
     modFunc = np.transpose
 else:
     modFunc = lambda c: c
