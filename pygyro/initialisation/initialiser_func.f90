@@ -1,4 +1,4 @@
-module mod_initialiser_func
+module mod_pygyro_initialisation_initialiser_func
 
 use mod_initialiser_funcs, only: fEq
 use mod_initialiser_funcs, only: perturbation
@@ -10,9 +10,10 @@ contains
 
 ! ........................................
 subroutine init_f(r, theta, z, vPar, m, n, eps, CN0, kN0, deltaRN0, rp, &
-      CTi, kTi, deltaRTi, deltaR, R0, result_3914)
+      CTi, kTi, deltaRTi, deltaR, R0, result_1786)
 
   implicit none
+  real(kind=8), intent(out)  :: result_1786
   real(kind=8), intent(in)  :: r
   real(kind=8), intent(in)  :: theta
   real(kind=8), intent(in)  :: z
@@ -29,9 +30,8 @@ subroutine init_f(r, theta, z, vPar, m, n, eps, CN0, kN0, deltaRN0, rp, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: deltaR
   real(kind=8), intent(in)  :: R0
-  real(kind=8), intent(out)  :: result_3914
 
-  result_3914 = (eps*perturbation(r, theta, z, m, n, rp, deltaR, R0) + 1 &
+  result_1786 = (eps*perturbation(r, theta, z, m, n, rp, deltaR, R0) + 1 &
       )*fEq(r, vPar, CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi)
   return
 
@@ -67,10 +67,10 @@ subroutine init_f_flux(n0_surface, n1_surface, surface, r, n0_theta, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: deltaR
   real(kind=8), intent(in)  :: R0
-  integer(kind=4) :: i
   real(kind=8) :: q
   integer(kind=4) :: j
   real(kind=8) :: z
+  integer(kind=4) :: i
 
   do i = 0, n0_theta - 1, 1
     q = theta(i)
@@ -115,10 +115,10 @@ subroutine init_f_pol(n0_surface, n1_surface, surface, n0_rVec, rVec, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: deltaR
   real(kind=8), intent(in)  :: R0
-  real(kind=8) :: r
-  integer(kind=4) :: i
   real(kind=8) :: q
+  real(kind=8) :: r
   integer(kind=4) :: j
+  integer(kind=4) :: i
 
   do i = 0, n0_theta - 1, 1
     q = theta(i)
@@ -163,9 +163,9 @@ subroutine init_f_vpar(n0_surface, n1_surface, surface, r, n0_theta, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: deltaR
   real(kind=8), intent(in)  :: R0
-  integer(kind=4) :: i
-  real(kind=8) :: q
   real(kind=8) :: v
+  real(kind=8) :: q
+  integer(kind=4) :: i
   integer(kind=4) :: j
 
   do i = 0, n0_theta - 1, 1
