@@ -94,6 +94,7 @@ class BSplines():
         self._periodic = periodic
         self._ncells   = len(knots)-2*degree-1
         self._nbasis   = self._ncells if periodic else self._ncells+degree
+        self._offset   = degree//2 if periodic else 0
 
     @property
     def degree( self ):
@@ -175,6 +176,10 @@ class BSplines():
         assert isinstance( i, int )
         spl = Spline1D( self )
         spl.coeffs[i] = 1.0
+        if spl.basis.periodic:
+            n = spl.basis.ncells
+            p = spl.basis.degree
+            spl.coeffs[n:n+p] = spl.coeffs[0:p]
         return spl
 
     # ...
