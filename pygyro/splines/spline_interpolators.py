@@ -58,7 +58,6 @@ class SplineInterpolator1D():
 
         n = self._basis.nbasis
         p = self._basis.degree
-        o = self._offset
 
         c[0:n  ] = self._splu.solve( ug )
         c[n:n+p] = c[0:p]
