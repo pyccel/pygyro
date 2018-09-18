@@ -8,8 +8,8 @@ from .      import spline_eval_funcs as SEF
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
-if ('mod_spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.mod_spline_eval_funcs
+if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
+    SEF = SEF.mod_pygyro_splines_spline_eval_funcs
     modFunc = np.transpose
 else:
     modFunc = lambda c: c
