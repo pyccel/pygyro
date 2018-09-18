@@ -1,5 +1,10 @@
 #~ from pyccel.decorators import types
 
+def types(*args):
+    def id(f):
+        return f
+    return id
+
 #==============================================================================
 @types('double[:]','int','double')
 def find_span( knots, degree, x ):
