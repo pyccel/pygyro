@@ -11,13 +11,12 @@ testimony:
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
   script:
-    - cd pygyro/splines
-    - gfortran  -fPIC -O3  -c   mod_context_1.f90
-    - f2py -c  --opt='-O3'  -m  spline_eval_funcs spline_eval_funcs.f90 mod_context_1.o
-    - cd ../initialisation
-    - gfortran  -fPIC -O3  -c   mod_initialiser_funcs.f90
-    - f2py -c  --opt='-O3'  -m  initialiser_func initialiser_func.f90 mod_initialiser_funcs.o
-    - cd ../..
+    - gfortran -O3 -fPIC -c pygyro/splines/mod_context_1.f90 -o pygyro/splines/mod_context_1.o  -J pygyro/splines/
+    - f2py -c  --opt='-O3'  -m  pygyro.splines.spline_eval_funcs pygyro/splines/spline_eval_funcs.f90 pygyro/splines/mod_context_1.o -Ipygyro/splines/
+    - gfortran -O3 -fPIC -c pygyro/initialisation/mod_initialiser_funcs.f90 -o pygyro/initialisation/mod_initialiser_funcs.o  -J pygyro/initialisation/
+    - f2py -c  --opt='-O3'  -m  pygyro.initialisation.initialiser_func pygyro/initialisation/initialiser_func.f90 pygyro/initialisation/mod_initialiser_funcs.o -Ipygyro/initialisation/
+    - gfortran -O3 -fPIC -c pygyro/splines/mod_spline_eval_funcs.f90 -o pygyro/splines/mod_spline_eval_funcs.o -J pygyro/splines/
+    - f2py -c  --opt='-O3'  -m  pygyro.advection.accelerated_advection_steps pygyro/advection/accelerated_advection_steps.f90 pygyro/initialisation/mod_initialiser_funcs.o -Ipygyro/initialisation/ pygyro/splines/mod_spline_eval_funcs.o -Ipygyro/splines/
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
