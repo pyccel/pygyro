@@ -1,5 +1,5 @@
 from pyccel.decorators          import types
-#~ from .mod_initialiser_funcs     import fEq,perturbation
+from .mod_initialiser_funcs     import fEq,perturbation
 
 @types('float','float','float','float','int','int','float','float','float','float','float','float','float','float','float','float')
 def init_f(r,theta,z,vPar,m,n, eps,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,deltaR,R0):
