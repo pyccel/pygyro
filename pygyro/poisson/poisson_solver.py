@@ -12,6 +12,15 @@ from ..initialisation               import constants
 from ..initialisation               import mod_initialiser_funcs    as initialiser
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
+from ..splines                      import spline_eval_funcs as SEF
+
+__all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
+
+if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
+    SEF = SEF.mod_pygyro_splines_spline_eval_funcs
+    modFunc = np.transpose
+else:
+    modFunc = lambda c: c
 
 class DensityFinder:
     """
@@ -49,6 +58,8 @@ class DensityFinder:
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(spline)
         self._spline = Spline1D(spline)
+        
+        self._splineMem = np.empty_like(self._points)
     
     def getPerturbedRho ( self, grid: Grid , rho: Grid ):
         """
@@ -73,7 +84,9 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)
+                    SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
+                            self._spline.coeffs,self._splineMem,0)
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
                                 -initialiser.fEq(r,self._points,constants.CN0,constants.kN0,
                                 constants.deltaRN0,constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)))
     
@@ -135,7 +148,7 @@ class DiffEqSolver:
         Default is: lambda r: 1
 
     """
-    def __init__( self, degree: int, rspline: BSplines, nTheta: int,
+    def __init__( self, degree: int, rspline: BSplines, nr: int, nTheta: int,
                   lNeumannIdx: list = [], uNeumannIdx: list = [],
                   ddrFactor = lambda r: -1, drFactor = lambda r: 0,
                   rFactor = lambda r: 0, ddThetaFactor = lambda r: -1,
@@ -146,10 +159,13 @@ class DiffEqSolver:
         
         self._mVals = np.fft.fftfreq(nTheta,1/nTheta)
         
+        self._rspline = rspline
+        
         # Calculate the points and weights required for the Gauss-Legendre
         # quadrature over the required domain
         points,self._weights = leggauss(n)
         multFactor = (rspline.breaks[1]-rspline.breaks[0])*0.5
+        self._multFactor = multFactor
         startPoints = (rspline.breaks[1:]+rspline.breaks[:-1])*0.5
         self._evalPts = startPoints[:,None]+points[None,:]*multFactor
         
@@ -268,6 +284,10 @@ class DiffEqSolver:
         self._interpolator = SplineInterpolator1D(rspline,dtype=np.complex)
         self._spline = Spline1D(rspline,np.complex128)
         self._real_spline = Spline1D(rspline)
+        
+        self._realMem = np.empty(nr)
+        self._imagMem = np.empty(nr)
+        self._evalRes = np.empty(self._evalPts.size)
     
     def getModes( self, rho: Grid ):
         """
@@ -370,12 +390,16 @@ class DiffEqSolver:
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
             self._real_spline.coeffs[:] = np.real(self._coeffs)
-            reals = self._real_spline.eval(rho.getCoordVals(2))
+            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+                                    self._real_spline.basis.degree,self._real_spline.coeffs,
+                                    self._realMem,0)
             
             self._real_spline.coeffs[:] = np.imag(self._coeffs)
-            imags = self._real_spline.eval(rho.getCoordVals(2))
+            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+                                    self._real_spline.basis.degree,self._real_spline.coeffs,
+                                    self._imagMem,0)
             
-            phi.get1DSlice([i,j])[:] = reals+1j*imags
+            phi.get1DSlice([i,j])[:] = self._realMem+1j*self._imagMem
     
     def _solveModeFunc(self, phi: Grid, rho, stiffnessMatrix: sparse.csc.csc_matrix, i: int, I: int):
         coeffs  = self._coeffs[self._coeff_range[I]]
@@ -383,8 +407,11 @@ class DiffEqSolver:
         rhoVec = np.zeros(self._rspline.greville.size)
         
         for j in range(self._rspline.nbasis):
+            SEF.eval_spline_1d_vector(self._evalPts.flatten(),self._rspline[j].basis.knots,
+                                    self._rspline[j].basis.degree,self._rspline[j].coeffs,
+                                    self._evalRes,0)
             rhoVec[j]=np.sum(np.tile(self._weights,len(self._evalPts))*self._multFactor \
-                            * self._rspline[j].eval(self._evalPts.flatten()) \
+                            * self._evalRes \
                             * rho(self._evalPts.flatten()))
         
         for j,z in phi.getCoords(1):
@@ -396,12 +423,16 @@ class DiffEqSolver:
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
             self._real_spline.coeffs[:] = np.real(self._coeffs)
-            reals = self._real_spline.eval(phi.getCoordVals(2))
+            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+                                    self._real_spline.basis.degree,self._real_spline.coeffs,
+                                    self._realMem,0)
             
             self._real_spline.coeffs[:] = np.imag(self._coeffs)
-            imags = self._real_spline.eval(phi.getCoordVals(2))
+            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+                                    self._real_spline.basis.degree,self._real_spline.coeffs,
+                                    self._imagMem,0)
             
-            phi.get1DSlice([i,j])[:] = reals+1j*imags
+            phi.get1DSlice([i,j])[:] = self._realMem+1j*self._imagMem
     
     def findPotential( self, phi: Grid ):
         """
@@ -504,7 +535,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
                                         constants.kN0,constants.rp,constants.deltaRN0)
         
         if (not adiabaticElectrons):
-            DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
+            DiffEqSolver.__init__(self,degree,rspline,eta_grid[0].size,eta_grid[1].size,
                         drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
                         ddThetaFactor = lambda r:-1/r**2,
                         rhoFactor = lambda r:B*B/n0(r),
@@ -515,7 +546,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
             assert('chi' in kwargs)
             chi = kwargs.pop('chi')
             
-            DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,
+            DiffEqSolver.__init__(self,degree,rspline,eta_grid[0].size,eta_grid[1].size,
                         drFactor = lambda r: -(1/r+ n0derivNormalised(r)),
                         ddThetaFactor = lambda r:-1/r**2,
                         rFactor = lambda r: B*B/Te(r),

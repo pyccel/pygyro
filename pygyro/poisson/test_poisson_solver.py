@@ -37,7 +37,7 @@ def test_BasicPoissonEquation_Dirichlet_r(deg,npt,eps):
     layout_poisson = {'mode_solve': [1,2,0]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddThetaFactor=lambda r: 0)
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddThetaFactor=lambda r: 0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -78,7 +78,7 @@ def test_BasicPoissonEquation_lNeumann(deg,npt,eps):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,ddThetaFactor=lambda r: 0)
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],lNeumannIdx=mVals,ddThetaFactor=lambda r: 0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -119,7 +119,7 @@ def test_BasicPoissonEquation_rNeumann(deg,npt,eps):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,uNeumannIdx=mVals,drFactor=lambda r:0,rFactor=lambda r:0,ddThetaFactor=lambda r:0)
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],uNeumannIdx=mVals,drFactor=lambda r:0,rFactor=lambda r:0,ddThetaFactor=lambda r:0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -161,7 +161,7 @@ def test_PoissonEquation_Dirichlet(deg,npt,eps):
     
     grid = setupCylindricalGrid(npts=[*npts,4],layout='v_parallel')
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size)
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1])
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -215,7 +215,7 @@ def test_grad(deg,npt,eps):
     
     a=2*pi/(domain[0][1]-domain[0][0])
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,drFactor=lambda r:1,rFactor=lambda r:0,ddThetaFactor=lambda r:0)
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddrFactor=lambda r:0,drFactor=lambda r:1,rFactor=lambda r:0,ddThetaFactor=lambda r:0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -260,7 +260,7 @@ def test_grad_r(deg,npt,eps):
     a=2*pi/(domain[0][1]-domain[0][0])
     r = eta_grid[0]
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0, \
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddrFactor=lambda r:0, \
                         drFactor=lambda r:r,rFactor=lambda r:0,ddThetaFactor=lambda r:0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -301,7 +301,7 @@ def test_grad_withFFT(deg,npt,eps):
     
     a=2*pi/(domain[0][1]-domain[0][0])
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0, \
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddrFactor=lambda r:0, \
                         drFactor=lambda r:1,rFactor=lambda r:0,ddThetaFactor=lambda r:0)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -353,7 +353,7 @@ def test_Sin_r_Sin_theta(deg,npt,eps):
     
     a=2*pi/(domain[0][1]-domain[0][0])
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:1, \
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddrFactor=lambda r:1, \
                         drFactor=lambda r:1,rFactor=lambda r:0,ddThetaFactor=lambda r:-a*a)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -407,7 +407,7 @@ def test_ddTheta(deg,npt):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,drFactor=lambda r:0,
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddrFactor=lambda r:0,drFactor=lambda r:0,
                         rFactor=lambda r:1,ddThetaFactor=lambda r:-1,lNeumannIdx=mVals,uNeumannIdx=mVals)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -463,7 +463,7 @@ def test_phi(deg,npt):
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = DiffEqSolver(2*deg,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,
+    ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1],ddrFactor=lambda r:0,
                         drFactor=lambda r:0,rFactor=lambda r:1,ddThetaFactor=lambda r:0,
                         lNeumannIdx=mVals,uNeumannIdx=mVals)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -517,7 +517,7 @@ def test_quasiNeutrality():
     
     r = eta_grid[0]
     
-    ps = DiffEqSolver(6,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,
+    ps = DiffEqSolver(6,bsplines[0],npts[0],npts[1],lNeumannIdx=mVals,
                 ddrFactor = lambda r:-1,
                 drFactor = lambda r:-( 1/r - constants.kN0 * (1 - np.tanh( (r - constants.rp ) / \
                                               constants.deltaRN0 )**2 ) ),
@@ -623,7 +623,7 @@ def test_BasicPoissonEquation_exact(deg):
     layout_poisson = {'mode_solve': [1,2,0]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
     
-    ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[1].size,drFactor=lambda r:0,
+    ps = DiffEqSolver(2*degree[0]+1,bsplines[0],npts[0],npts[1],drFactor=lambda r:0,
                         rFactor=lambda r:0,ddThetaFactor=lambda r:0)
     
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
