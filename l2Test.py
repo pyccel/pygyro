@@ -90,8 +90,9 @@ else:
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
-    #~ npts = [255,512,32,128]
-    npts = [10,10,10,10]
+    npts = [256,512,32,128]
+    # npts = [128,256,32,64]
+
 
     dt=2
 
@@ -170,7 +171,6 @@ else:
 #~ pr = cProfile.Profile()
 #~ pr.enable()
 
-print("ready")
 
 for ti in range(tN):
     # Find phi from f^n by solving QN eq
