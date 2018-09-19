@@ -458,7 +458,8 @@ class PoloidalAdvection:
         phiBases = phi.basis
         polBases = self._spline.basis
 
-        AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
+        if (self._explicit):
+            AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
                             modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
                             modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
@@ -472,6 +473,21 @@ class PoloidalAdvection:
                             constants.kN0,constants.deltaRN0,constants.rp,
                             constants.CTi,constants.kTi,constants.deltaRTi,
                             constants.B0,self._nulEdge)
+        else:
+            AAS.poloidal_advection_step_impl( modFunc(f), dt, v, self._points[1],
+                            self._points[0], self._nPoints, modFunc(self._drPhi_0),
+                            modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
+                            modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
+                            modFunc(self._endPts_k1_r), modFunc(self._endPts_k2_q),
+                            modFunc(self._endPts_k2_r), phiBases[0].knots,
+                            phiBases[1].knots, modFunc(phi.coeffs),
+                            phiBases[0].degree, phiBases[1].degree,
+                            polBases[0].knots, polBases[1].knots,
+                            modFunc(self._spline.coeffs),
+                            polBases[0].degree, polBases[1].degree,constants.CN0,
+                            constants.kN0,constants.deltaRN0,constants.rp,
+                            constants.CTi,constants.kTi,constants.deltaRTi,
+                            constants.B0,self._TOL,self._nulEdge)
         
         """
         multFactor = dt/constants.B0
