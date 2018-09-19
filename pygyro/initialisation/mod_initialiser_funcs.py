@@ -22,8 +22,8 @@ def perturbation(r,theta,z,m,n,rp,deltaR,R0):
 
 @types('double','double','double','double','double','double','double','double','double')
 def fEq(r,vPar,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi):
-    from numpy import exp,sqrt, pi
-    return n0(r,CN0,kN0,deltaRN0,rp)*exp(-0.5*vPar*vPar/Ti(r,CTi,kTi,deltaRTi,rp))/sqrt(2*pi*Ti(r,CTi,kTi,deltaRTi,rp))
+    from numpy import exp, sqrt, pi
+    return n0(r,CN0,kN0,deltaRN0,rp)*exp(-0.5*vPar*vPar/Ti(r,CTi,kTi,deltaRTi,rp))/sqrt(2.0*pi*Ti(r,CTi,kTi,deltaRTi,rp))
 
 @types('double','double','double','double')
 def n0derivNormalised(r,kN0,rp,deltaRN0):
