@@ -80,7 +80,7 @@ real(kind=8), intent(in)  :: kTi
 real(kind=8), intent(in)  :: deltaRTi
 
 
-result_6242 = ((0.707106781186547d0/sqrt(3.141592653589793*Ti(r, CTi, &
+result_6242 = ((0.707106781186547d0/sqrt(3.141592653589793d0*Ti(r, CTi, &
       kTi, deltaRTi, rp)))*exp(-0.5d0*vPar*vPar/Ti(r, CTi, kTi, &
       deltaRTi, rp)))*n0(r, CN0, kN0, deltaRN0, rp)
 return
