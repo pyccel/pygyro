@@ -1,5 +1,10 @@
-from pyccel.decorators          import types
+#~ from pyccel.decorators          import types
 from .mod_initialiser_funcs     import fEq,perturbation
+
+def types(*args):
+    def id(f):
+        return f
+    return id
 
 @types('double','double','double','double','int','int','double','double','double','double','double','double','double','double','double','double')
 def init_f(r,theta,z,vPar,m,n, eps,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,deltaR,R0):
