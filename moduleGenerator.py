@@ -1,6 +1,5 @@
 from pyccel.epyccel import ContextPyccel
 from pyccel.epyccel import epyccel
-from pyccel.decorators import types
 
 import pygyro.splines.spline_eval_funcs
 from pygyro.splines.mod_context_1 import find_span,basis_funs,basis_funs_1st_der
@@ -20,7 +19,6 @@ init_context.insert_function(fEq, ['double','double','double','double','double',
 init_context.insert_function(perturbation, ['double','double','double','int','int','double','double','double'])
 
 initialiser_func = epyccel(pygyro.initialisation.initialiser_func, context=init_context)
-
 
 import pygyro.advection.accelerated_advection_steps
 from pygyro.splines.mod_spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
