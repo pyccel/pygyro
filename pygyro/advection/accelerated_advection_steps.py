@@ -147,7 +147,7 @@ def flux_advection(nq,nr,f,coeffs,vals):
                     f[j,i] += coeffs[k]*vals[i,j,k]
 
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','double','bool')
-def PoloidalAdvectionStepImpl( f, dt, v, rPts, qPts, nPts,
+def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,

@@ -1,10 +1,10 @@
 module mod_pygyro_advection_accelerated_advection_steps
 
+use mod_initialiser_funcs, only: fEq
+
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_scalar
-
-use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -100,12 +100,12 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   logical(kind=1), intent(in)  :: nulBound
   real(kind=8) :: multFactor
   real(kind=8) :: rMax
-  integer(kind=4) :: j
-  real(kind=8) :: multFactor_half
-  integer(kind=4) :: i
-  real(kind=8) :: r
   integer(kind=4) :: idx
   real(kind=8) :: theta
+  real(kind=8) :: r
+  real(kind=8) :: multFactor_half
+  integer(kind=4) :: j
+  integer(kind=4) :: i
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -274,8 +274,8 @@ subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
   logical(kind=1), intent(in)  :: nulBound
-  integer(kind=4) :: i
   real(kind=8) :: v
+  integer(kind=4) :: i
 
   ! Find value at the determined point
   if (nulBound) then
@@ -328,9 +328,9 @@ subroutine get_lagrange_vals(i, nr, n0_shifts, shifts, n0_vals, n1_vals, &
   integer(kind=4), intent(in)  :: deg
   integer(kind=4), intent(in)  :: n0_coeffs
   real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
+  integer(kind=4) :: k
   integer(kind=4) :: s
   real(kind=8) :: q
-  integer(kind=4) :: k
   integer(kind=4) :: j
 
   do j = 0, size(shifts,1) - 1, 1
@@ -365,9 +365,9 @@ subroutine flux_advection(nq, nr, n0_f, n1_f, f, n0_coeffs, coeffs, &
   integer(kind=4), intent(in)  :: n2_vals
   real(kind=8), intent(in)  :: vals (0:n0_vals - 1,0:n1_vals - 1,0: &
       n2_vals - 1)
-  integer(kind=4) :: i
   integer(kind=4) :: k
   integer(kind=4) :: j
+  integer(kind=4) :: i
 
   do j = 0, nq - 1, 1
     do i = 0, nr - 1, 1
@@ -386,9 +386,9 @@ end subroutine
 ! ........................................
 
 ! ........................................
-subroutine PoloidalAdvectionStepImpl(n0_f, n1_f, f, dt, v, n0_rPts, rPts &
-      , n0_qPts, qPts, n0_nPts, nPts, n0_drPhi_0, n1_drPhi_0, drPhi_0, &
-      n0_dthetaPhi_0, n1_dthetaPhi_0, dthetaPhi_0, n0_drPhi_k, &
+subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
+      rPts, n0_qPts, qPts, n0_nPts, nPts, n0_drPhi_0, n1_drPhi_0, &
+      drPhi_0, n0_dthetaPhi_0, n1_dthetaPhi_0, dthetaPhi_0, n0_drPhi_k, &
       n1_drPhi_k, drPhi_k, n0_dthetaPhi_k, n1_dthetaPhi_k, dthetaPhi_k, &
       n0_endPts_k1_q, n1_endPts_k1_q, endPts_k1_q, n0_endPts_k1_r, &
       n1_endPts_k1_r, endPts_k1_r, n0_endPts_k2_q, n1_endPts_k2_q, &
@@ -474,14 +474,14 @@ subroutine PoloidalAdvectionStepImpl(n0_f, n1_f, f, dt, v, n0_rPts, rPts &
   real(kind=8), intent(in)  :: tol
   logical(kind=1), intent(in)  :: nulBound
   real(kind=8) :: multFactor
-  real(kind=8) :: diff
-  real(kind=8) :: norm
   real(kind=8) :: rMax
-  integer(kind=4) :: j
+  real(kind=8) :: diff
   integer(kind=4) :: i
+  real(kind=8) :: theta
   real(kind=8) :: r
   integer(kind=4) :: idx
-  real(kind=8) :: theta
+  integer(kind=4) :: j
+  real(kind=8) :: norm
 
   !_______________________CommentBlock_______________________!
   !                                                          !
