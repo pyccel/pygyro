@@ -15,7 +15,7 @@ if ('mod_pygyro_advection_accelerated_advection_steps' in dir(AAS)):
     AAS = AAS.mod_pygyro_advection_accelerated_advection_steps
     modFunc = np.transpose
 else:
-    mod_func = lambda x: x
+    modFunc = lambda x: x
 
 def fieldline(theta,z_diff,iota,r):
     return np.mod(theta+iota(r)*z_diff/constants.R0,2*pi)
