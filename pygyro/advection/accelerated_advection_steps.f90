@@ -1,9 +1,10 @@
 module mod_pygyro_advection_accelerated_advection_steps
 
-use mod_initialiser_funcs, only: fEq
-
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
+use mod_spline_eval_funcs, only: eval_spline_1d_scalar
+
+use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -97,14 +98,14 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: B0
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: multFactor
-  integer(kind=4) :: i
-  real(kind=8) :: r
-  real(kind=8) :: multFactor_half
-  integer(kind=4) :: j
-  real(kind=8) :: rMax
   real(kind=8) :: theta
+  real(kind=8) :: multFactor_half
+  real(kind=8) :: rMax
+  real(kind=8) :: r
+  integer(kind=4) :: j
+  real(kind=8) :: multFactor
   integer(kind=4) :: idx
+  integer(kind=4) :: i
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -241,6 +242,60 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
         end if
       end do
 
+    end do
+
+  end if
+end subroutine
+! ........................................
+
+! ........................................
+subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
+      vMin, vMax, n0_kts, kts, deg, n0_coeffs, coeffs, CN0, kN0, &
+      deltaRN0, rp, CTi, kTi, deltaRTi, nulBound)
+
+  implicit none
+  integer(kind=4), intent(in)  :: n0_f
+  real(kind=8), intent(inout)  :: f (0:n0_f - 1)
+  integer(kind=4), intent(in)  :: n0_vPts
+  real(kind=8), intent(in)  :: vPts (0:n0_vPts - 1)
+  real(kind=8), intent(in)  :: rPos
+  real(kind=8), intent(in)  :: vMin
+  real(kind=8), intent(in)  :: vMax
+  integer(kind=4), intent(in)  :: n0_kts
+  real(kind=8), intent(in)  :: kts (0:n0_kts - 1)
+  integer(kind=4), intent(in)  :: deg
+  integer(kind=4), intent(in)  :: n0_coeffs
+  real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
+  real(kind=8), intent(in)  :: CN0
+  real(kind=8), intent(in)  :: kN0
+  real(kind=8), intent(in)  :: deltaRN0
+  real(kind=8), intent(in)  :: rp
+  real(kind=8), intent(in)  :: CTi
+  real(kind=8), intent(in)  :: kTi
+  real(kind=8), intent(in)  :: deltaRTi
+  logical(kind=1), intent(in)  :: nulBound
+  integer(kind=4) :: i
+  real(kind=8) :: v
+
+  ! Find value at the determined point
+  if (nulBound) then
+    do i = 0, size(vPts,1) - 1, 1
+      v = vPts(i)
+      if (v > vMax .or. v < vMin) then
+        f(i) = 0.0d0
+      else
+        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, der=0)
+      end if
+    end do
+
+  else
+    do i = 0, size(vPts,1) - 1, 1
+      v = vPts(i)
+      if (v > vMax .or. v < vMin) then
+        f(i) = fEq(rPos, v, CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi)
+      else
+        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, der=0)
+      end if
     end do
 
   end if

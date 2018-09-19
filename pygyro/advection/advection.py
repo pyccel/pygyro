@@ -312,17 +312,21 @@ class VParallelAdvection:
 
     """
     def __init__( self, eta_vals: list, splines: BSplines, 
-                edgeFunc = lambda x,y: fEq(x,y,constants.CN0,constants.kN0,
-                                            constants.deltaRN0,constants.rp,
-                                            constants.CTi,constants.kTi,
-                                            constants.deltaRTi) ):
+                    nulEdge: bool = False ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
         
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
-        self._edge = edgeFunc
+        self._nulEdge=nulEdge
+        if (nulEdge):
+            self._edge = lambda r,v: 0.0
+        else:
+            self._edge = lambda r,v: fEq(x,y,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
     
     def step( self, f: np.ndarray, dt: float, c: float, r: float ):
         """
@@ -347,7 +351,14 @@ class VParallelAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        f[:]=self._evalFunc(self._points-c*dt, r)
+        AAS.v_parallel_advection_eval_step(f,self._points-c*dt,r,self._points[0],
+                                        self._points[-1],self._spline.basis.knots,
+                                        self._spline.basis.degree,self._spline.coeffs,
+                                        constants.CN0,constants.kN0,
+                                        constants.deltaRN0,constants.rp,
+                                        constants.CTi,constants.kTi,
+                                        constants.deltaRTi,self._nulEdge)
+        #~ f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
         if (v<self._points[0] or v>self._points[-1]):
