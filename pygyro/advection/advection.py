@@ -6,9 +6,16 @@ from math                           import pi
 
 from ..splines.splines              import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
-from ..initialisation.initialiser   import fEq
+from ..initialisation.mod_initialiser_funcs   import fEq
 from ..initialisation               import constants
 from ..model.layout                 import Layout
+from .                              import accelerated_advection_steps as AAS
+
+if ('mod_pygyro_advection_accelerated_advection_steps' in dir(AAS)):
+    AAS = AAS.mod_pygyro_advection_accelerated_advection_steps
+    modFunc = np.transpose
+else:
+    mod_func = lambda x: x
 
 def fieldline(theta,z_diff,iota,r):
     return np.mod(theta+iota(r)*z_diff/constants.R0,2*pi)
@@ -196,6 +203,7 @@ class FluxSurfaceAdvection:
         self._thetaSpline = Spline1D(splines[0])
         
         self._getLagrangePts(eta_grid,layout,dt,iota)
+        self._LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
     
     def _getLagrangePts( self, eta_grid: list, layout: Layout, dt: float, iota ):
         # Get z step
@@ -274,17 +282,26 @@ class FluxSurfaceAdvection:
         assert(f.shape==self._nPoints)
         
         # find the values of the function at each required point
-        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
-        
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
-            for j,s in enumerate(self._shifts[rIdx,cIdx]):
-                LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
-                        self._thetaSpline.eval(self._points[0]+self._thetaShifts[rIdx,cIdx,j])
+            
+            AAS.get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
+                                modFunc(self._LagrangeVals),self._points[0],
+                                self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
+                                self._thetaSpline.basis.degree,
+                                self._thetaSpline.coeffs)
+            
+            #~ for j,s in enumerate(self._shifts[rIdx,cIdx]):
+                #~ self._LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
+                        #~ self._thetaSpline.eval(self._points[0]+self._thetaShifts[rIdx,cIdx,j])
         
-        for j in range(self._nPoints[0]):
-            for i,z in enumerate(self._points[1]):
-                f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],LagrangeVals[i,j])
+        AAS.flux_advection(*self._nPoints,modFunc(f),
+                            self._lagrangeCoeffs[rIdx,cIdx],
+                            modFunc(self._LagrangeVals))
+        
+        #~ for j in range(self._nPoints[0]):
+            #~ for i in range(self._nPoints[1]):
+                #~ f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],self._LagrangeVals[i,j])
 
 class VParallelAdvection:
     """
@@ -304,14 +321,22 @@ class VParallelAdvection:
         Default is fEquilibrium
 
     """
-    def __init__( self, eta_vals: list, splines: BSplines, edgeFunc = fEq ):
+    def __init__( self, eta_vals: list, splines: BSplines, 
+                    nulEdge: bool = False ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
         
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
-        self._edge = edgeFunc
+        self._nulEdge=nulEdge
+        if (nulEdge):
+            self._edge = lambda r,v: 0.0
+        else:
+            self._edge = lambda r,v: fEq(x,y,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
     
     def step( self, f: np.ndarray, dt: float, c: float, r: float ):
         """
@@ -336,7 +361,14 @@ class VParallelAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
-        f[:]=self._evalFunc(self._points-c*dt, r)
+        AAS.v_parallel_advection_eval_step(f,self._points-c*dt,r,self._points[0],
+                                        self._points[-1],self._spline.basis.knots,
+                                        self._spline.basis.degree,self._spline.coeffs,
+                                        constants.CN0,constants.kN0,
+                                        constants.deltaRN0,constants.rp,
+                                        constants.CTi,constants.kTi,
+                                        constants.deltaRTi,self._nulEdge)
+        #~ f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
         if (v<self._points[0] or v>self._points[-1]):
@@ -370,7 +402,7 @@ class PoloidalAdvection:
         The tolerance used for the implicit trapezoidal rule
 
     """
-    def __init__( self, eta_vals: list, splines: list, edgeFunc = fEq, 
+    def __init__( self, eta_vals: list, splines: list, nulEdge = False,
                     explicitTrap: bool =  True, tol: float = 1e-10 ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
@@ -382,7 +414,23 @@ class PoloidalAdvection:
         self._TOL = tol
         
         self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
-        self._edge = edgeFunc
+        self._nulEdge=nulEdge
+        if (nulEdge):
+            self._edge = lambda r,v: 0.0
+        else:
+            self._edge = lambda r,v: fEq(x,y,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
+        
+        self._drPhi_0 = np.empty(self._nPoints)
+        self._dqPhi_0 = np.empty(self._nPoints)
+        self._drPhi_k = np.empty(self._nPoints)
+        self._dqPhi_k = np.empty(self._nPoints)
+        self._endPts_k1_q = np.empty(self._nPoints)
+        self._endPts_k1_r = np.empty(self._nPoints)
+        self._endPts_k2_q = np.empty(self._nPoints)
+        self._endPts_k2_r = np.empty(self._nPoints)
     
     def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
         """
@@ -407,6 +455,25 @@ class PoloidalAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
         
+        phiBases = phi.basis
+        polBases = self._spline.basis
+
+        AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
+                            self._points[0], self._nPoints, modFunc(self._drPhi_0),
+                            modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
+                            modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
+                            modFunc(self._endPts_k1_r), modFunc(self._endPts_k2_q),
+                            modFunc(self._endPts_k2_r), phiBases[0].knots,
+                            phiBases[1].knots, modFunc(phi.coeffs),
+                            phiBases[0].degree, phiBases[1].degree,
+                            polBases[0].knots, polBases[1].knots,
+                            modFunc(self._spline.coeffs),
+                            polBases[0].degree, polBases[1].degree,constants.CN0,
+                            constants.kN0,constants.deltaRN0,constants.rp,
+                            constants.CTi,constants.kTi,constants.deltaRTi,
+                            constants.B0,self._nulEdge)
+        
+        """
         multFactor = dt/constants.B0
         
         drPhi_0 = phi.eval(*self._points,0,1)/self._points[1]
@@ -469,6 +536,7 @@ class PoloidalAdvection:
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
                 f[i,j]=self.evalFunc(endPts_k2[0][i,j],endPts_k2[1][i,j],v)
+        """
     
     def exact_step( self, f, endPts, v ):
         assert(f.shape==self._nPoints)

@@ -5,3 +5,5 @@ __pycache__
 *.swp
 *.pyc
 *.so
+*.o
+*.mod

@@ -8,11 +8,11 @@ from .      import spline_eval_funcs as SEF
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
-if ('mod_spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.mod_spline_eval_funcs
+if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
+    SEF = SEF.mod_pygyro_splines_spline_eval_funcs
     modFunc = np.transpose
 else:
-    raise Warning("Beware of unwanted transposes")
+    modFunc = lambda c: c
 
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
@@ -94,6 +94,7 @@ class BSplines():
         self._periodic = periodic
         self._ncells   = len(knots)-2*degree-1
         self._nbasis   = self._ncells if periodic else self._ncells+degree
+        self._offset   = degree//2 if periodic else 0
 
     @property
     def degree( self ):
@@ -175,6 +176,10 @@ class BSplines():
         assert isinstance( i, int )
         spl = Spline1D( self )
         spl.coeffs[i] = 1.0
+        if spl.basis.periodic:
+            n = spl.basis.ncells
+            p = spl.basis.degree
+            spl.coeffs[n:n+p] = spl.coeffs[0:p]
         return spl
 
     # ...
@@ -246,11 +251,11 @@ class Spline2D():
             result = np.empty((len(x1),len(x2)))
             SEF.eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
                                         self._basis2.knots,self._basis2.degree,
-                                        self._coeffs.T,result.T,der1,der2)
+                                        modFunc(self._coeffs),modFunc(result),der1,der2)
         else:
             result = SEF.eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
                                                  self._basis2.knots,self._basis2.degree,
-                                                 self._coeffs.T,der1,der2)
+                                                 modFunc(self._coeffs),der1,der2)
         return result
 
         """

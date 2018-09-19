@@ -2,11 +2,11 @@ from mpi4py                 import MPI
 import pytest
 from scipy.integrate        import trapz
 
-from ..initialisation.setups        import setupCylindricalGrid
-from ..initialisation.initialiser   import fEq
-from .advection                     import *
-from ..                             import splines as spl
-from ..initialisation               import constants
+from ..initialisation.setups                    import setupCylindricalGrid
+from ..initialisation.mod_initialiser_funcs     import fEq
+from .advection                                 import *
+from ..                                         import splines as spl
+from ..initialisation                           import constants
 
 def gauss(x):
     return np.exp(-x**2/4)
@@ -66,8 +66,12 @@ def test_vParallelAdvection(function,N):
     x         = spline.greville
     
     r = 4
-    fEdge = fEq(r,x[0])
-    assert(fEq(r,x[0])==fEq(r,x[-1]))
+    fEdge = fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+    assert(fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+        == fEq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi))
     
     f = function(x)+fEdge
     
@@ -80,7 +84,8 @@ def test_vParallelAdvection(function,N):
     
     for i in range(npts):
         if ((x[i]-c*dt*N)<x[0]):
-            fEnd[i]=fEq(r,(x[i]-c*dt*N))
+            fEnd[i]=fEq(r,(x[i]-c*dt*N),constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
         else:
             fEnd[i]=fEdge+function(x[i]-c*dt*N)
     

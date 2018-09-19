@@ -1,4 +1,9 @@
-from pyccel.decorators import types
+#~ from pyccel.decorators import types
+
+def types(*args):
+    def id(f):
+        return f
+    return id
 
 #==============================================================================
 @types('double[:]','int','double')

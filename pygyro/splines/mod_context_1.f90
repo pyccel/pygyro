@@ -10,11 +10,11 @@ contains
 integer(kind=4) function find_span(knots, degree, x)  result(returnVal)
 
 implicit none
+real(kind=8), intent(in)  :: knots (0:)
 integer(kind=4), intent(in)  :: degree
 real(kind=8), intent(in)  :: x
-integer(kind=4) :: span
-real(kind=8), intent(in)  :: knots (0:)
 integer(kind=4) :: high
+integer(kind=4) :: span
 integer(kind=4) :: low
 
 !________________________CommentBlock________________________!
@@ -84,17 +84,17 @@ end function
 subroutine basis_funs(knots, degree, x, span, values)
 
 implicit none
-integer(kind=4) :: j
-real(kind=8), intent(inout)  :: values (0:)
-real(kind=8), allocatable :: left (:)
-real(kind=8) :: temp
-integer(kind=4), intent(in)  :: span
-real(kind=8), intent(in)  :: x
-integer(kind=4), intent(in)  :: degree
-real(kind=8), allocatable :: right (:)
-real(kind=8) :: saved
 real(kind=8), intent(in)  :: knots (0:)
+integer(kind=4), intent(in)  :: degree
+real(kind=8), intent(in)  :: x
+integer(kind=4), intent(in)  :: span
+real(kind=8), intent(inout)  :: values (0:)
+real(kind=8) :: saved
+real(kind=8), allocatable :: right (:)
+integer(kind=4) :: j
+real(kind=8), allocatable :: left (:)
 integer(kind=4) :: r
+real(kind=8) :: temp
 
 !________________________CommentBlock________________________!
 !                                                            !
@@ -158,15 +158,15 @@ end subroutine
 subroutine basis_funs_1st_der(knots, degree, x, span, ders)
 
 implicit none
-integer(kind=4) :: j
-real(kind=8), allocatable :: values (:)
-integer(kind=4), intent(in)  :: degree
-real(kind=8) :: temp
-integer(kind=4), intent(in)  :: span
-real(kind=8), intent(in)  :: x
-real(kind=8) :: saved
-real(kind=8), intent(inout)  :: ders (0:)
 real(kind=8), intent(in)  :: knots (0:)
+integer(kind=4), intent(in)  :: degree
+real(kind=8), intent(in)  :: x
+integer(kind=4), intent(in)  :: span
+real(kind=8), intent(inout)  :: ders (0:)
+real(kind=8), allocatable :: values (:)
+real(kind=8) :: saved
+integer(kind=4) :: j
+real(kind=8) :: temp
 
 !_________________________CommentBlock_________________________!
 !                                                              !

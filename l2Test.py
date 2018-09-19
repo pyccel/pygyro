@@ -90,7 +90,8 @@ else:
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
-    npts = [255,512,32,128]
+    #~ npts = [255,512,32,128]
+    npts = [10,10,10,10]
 
     dt=2
 
@@ -219,6 +220,7 @@ for ti in range(tN):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
+
     for j,z in distribFunc.getCoords(1):
         interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),phiSplines[j])
         polAdv.step(distribFunc.get2DSlice([0,j]),halfStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
@@ -311,8 +313,7 @@ phiFile.close()
 #End profiling and print results
 #~ pr.disable()
 #~ s = io.StringIO()
-#~ ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+#~ ps = pstats.Stats(pr, stream=s).sort_stats('time')
 #~ ps.print_stats()
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
-
 

@@ -9,7 +9,7 @@ import warnings
 
 from ..model.grid                   import Grid
 from ..initialisation               import constants
-from ..initialisation               import initialiser
+from ..initialisation               import mod_initialiser_funcs    as initialiser
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 
@@ -73,7 +73,9 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-initialiser.fEq(r,self._points)))
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)
+                                -initialiser.fEq(r,self._points,constants.CN0,constants.kN0,
+                                constants.deltaRN0,constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)))
     
 class DiffEqSolver:
     """
@@ -263,7 +265,7 @@ class DiffEqSolver:
         self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
         
         # Create the tools required for the interpolation
-        self._interpolator = SplineInterpolator1D(rspline)
+        self._interpolator = SplineInterpolator1D(rspline,dtype=np.complex)
         self._spline = Spline1D(rspline,np.complex128)
         self._real_spline = Spline1D(rspline)
     
@@ -482,16 +484,24 @@ class QuasiNeutralitySolver(DiffEqSolver):
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                    adiabaticElectrons: bool = True,n0 = initialiser.n0,
-                    B: float = 1.0, Te = initialiser.Te, **kwargs):
+                    adiabaticElectrons: bool = True,
+                    n0 = lambda r: initialiser.n0(r,constants.CN0,constants.kN0,
+                                                constants.deltaRN0,constants.rp),
+                    B: float = 1.0,
+                    Te = lambda r: initialiser.Te(r,constants.CTe,constants.kTe,
+                                                constants.deltaRTe,constants.rp),
+                    **kwargs):
         r = eta_grid[0]
         
         if ('n0derivNormalised' in kwargs):
-            n0derivNormalised = kwargs.pop('n0derivNormalised',initialiser.n0derivNormalised)
+            n0derivNormalised = kwargs.pop('n0derivNormalised',
+                                            lambda r:initialiser.n0derivNormalised(r,
+                                        constants.kN0,constants.rp,constants.deltaRN0))
         elif ('n0deriv' in kwargs):
             n0derivNormalised = lambda r:kwargs.pop('n0deriv')(r)/n0(r)
         else:
-            n0derivNormalised = initialiser.n0derivNormalised
+            n0derivNormalised = lambda r:initialiser.n0derivNormalised(r,
+                                        constants.kN0,constants.rp,constants.deltaRN0)
         
         if (not adiabaticElectrons):
             DiffEqSolver.__init__(self,degree,rspline,eta_grid[1].size,

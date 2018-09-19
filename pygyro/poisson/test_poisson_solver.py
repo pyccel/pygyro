@@ -4,16 +4,16 @@ import pytest
 from math                   import pi
 from scipy.integrate        import trapz
 
-from ..model.process_grid           import compute_2d_process_grid
-from ..model.layout                 import LayoutSwapper, getLayoutHandler
-from ..model.grid                   import Grid
-from ..initialisation.setups        import setupCylindricalGrid
-from ..initialisation.initialiser   import Te
-from ..initialisation               import constants
-from ..                             import splines as spl
-from .poisson_solver                import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
-from ..splines.splines              import BSplines, Spline1D
-from ..splines.spline_interpolators import SplineInterpolator1D
+from ..model.process_grid                   import compute_2d_process_grid
+from ..model.layout                         import LayoutSwapper, getLayoutHandler
+from ..model.grid                           import Grid
+from ..initialisation.setups                import setupCylindricalGrid
+from ..initialisation.mod_initialiser_funcs import Te
+from ..initialisation                       import constants
+from ..                                     import splines as spl
+from .poisson_solver                        import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
+from ..splines.splines                      import BSplines, Spline1D
+from ..splines.spline_interpolators         import SplineInterpolator1D
 
 @pytest.mark.serial
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
@@ -521,7 +521,8 @@ def test_quasiNeutrality():
                 ddrFactor = lambda r:-1,
                 drFactor = lambda r:-( 1/r - constants.kN0 * (1 - np.tanh( (r - constants.rp ) / \
                                               constants.deltaRN0 )**2 ) ),
-                rFactor = lambda r:1/Te(r),ddThetaFactor = lambda r:-1/r**2)
+                rFactor = lambda r:1/Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp),
+                ddThetaFactor = lambda r:-1/r**2)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -535,7 +536,7 @@ def test_quasiNeutrality():
                    + 4*np.cos(rArg)**4                *a*a*np.sin(q)**3 \
                    + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                    4 * np.cos(rArg)**3*np.sin(rArg)*a*np.sin(q)**3 \
-                   + np.cos(rArg)**4*np.sin(q)**3 / Te(r) \
+                   + np.cos(rArg)**4*np.sin(q)**3 / Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp) \
                    - 6 * np.cos(rArg)**4*np.sin(q)*np.cos(q)**2/r**2 \
                    + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
         plane = phi_exact.get2DSlice([i])

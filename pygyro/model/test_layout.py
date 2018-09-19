@@ -464,7 +464,7 @@ def test_IncompatibleLayoutError():
                np.linspace(0,6.28318531,npts[1]),
                np.linspace(0,10,npts[2]),
                np.linspace(0,10,npts[3])]
-    if (nprocs!=(1,1)):
+    if (not 1 in nprocs):
         with pytest.raises(RuntimeError):
             layouts = {'flux_surface': [0,3,1,2],
                        'v_parallel'  : [0,2,1,3],
@@ -508,7 +508,7 @@ def test_BadStepWarning():
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     
-    if (nprocs!=(1,1)):
+    if (not 1 in nprocs):
         with pytest.warns(UserWarning):
             remapper.transpose(source = f1,
                                dest   = f2,
@@ -552,7 +552,7 @@ def test_BadStepWarning_IntactSource():
     assert(not f_p_e.flags['OWNDATA'])
     
     
-    if (nprocs!=(1,1)):
+    if (not 1 in nprocs):
         with pytest.warns(UserWarning):
             remapper.transpose(source = fStart,
                                dest = fEnd,
