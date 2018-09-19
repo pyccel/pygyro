@@ -203,6 +203,7 @@ class FluxSurfaceAdvection:
         self._thetaSpline = Spline1D(splines[0])
         
         self._getLagrangePts(eta_grid,layout,dt,iota)
+        self._LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
     
     def _getLagrangePts( self, eta_grid: list, layout: Layout, dt: float, iota ):
         # Get z step
@@ -281,17 +282,26 @@ class FluxSurfaceAdvection:
         assert(f.shape==self._nPoints)
         
         # find the values of the function at each required point
-        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
-        
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
-            for j,s in enumerate(self._shifts[rIdx,cIdx]):
-                LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
-                        self._thetaSpline.eval(self._points[0]+self._thetaShifts[rIdx,cIdx,j])
+            
+            AAS.get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
+                                modFunc(self._LagrangeVals),self._points[0],
+                                self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
+                                self._thetaSpline.basis.degree,
+                                self._thetaSpline.coeffs)
+            
+            #~ for j,s in enumerate(self._shifts[rIdx,cIdx]):
+                #~ self._LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
+                        #~ self._thetaSpline.eval(self._points[0]+self._thetaShifts[rIdx,cIdx,j])
         
-        for j in range(self._nPoints[0]):
-            for i,z in enumerate(self._points[1]):
-                f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],LagrangeVals[i,j])
+        AAS.flux_advection(*self._nPoints,modFunc(f),
+                            self._lagrangeCoeffs[rIdx,cIdx],
+                            modFunc(self._LagrangeVals))
+        
+        #~ for j in range(self._nPoints[0]):
+            #~ for i in range(self._nPoints[1]):
+                #~ f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],self._LagrangeVals[i,j])
 
 class VParallelAdvection:
     """

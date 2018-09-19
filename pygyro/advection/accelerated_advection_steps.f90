@@ -1,10 +1,10 @@
 module mod_pygyro_advection_accelerated_advection_steps
 
+use mod_initialiser_funcs, only: fEq
+
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_scalar
-
-use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -98,14 +98,14 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: B0
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: theta
   real(kind=8) :: multFactor_half
-  real(kind=8) :: rMax
-  real(kind=8) :: r
-  integer(kind=4) :: j
   real(kind=8) :: multFactor
   integer(kind=4) :: idx
+  real(kind=8) :: rMax
+  real(kind=8) :: theta
+  real(kind=8) :: r
   integer(kind=4) :: i
+  integer(kind=4) :: j
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -180,8 +180,8 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
         ! Step two of Heun method
         ! x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
       end if
-      endPts_k2_q(j, i) = Mod(multFactor_half*(-drPhi_0(j, i) - drPhi_k( &
-      j, i)) + qPts(i), 2*3.141592653589793)
+      endPts_k2_q(j, i) = modulo(multFactor_half*(-drPhi_0(j, i) - &
+      drPhi_k(j, i)) + qPts(i),2*3.141592653589793)
       endPts_k2_r(j, i) = multFactor_half*(dthetaPhi_0(j, i) + &
       dthetaPhi_k(j, i)) + rPts(j)
 
@@ -195,9 +195,9 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   ! Handle theta boundary conditions
   ! Find value at the determined point
   if (nulBound) then
-    do i = 0, n0_qPts - 1, 1
+    do i = 0, size(qPts,1) - 1, 1
       theta = qPts(i)
-      do j = 0, n0_rPts - 1, 1
+      do j = 0, size(rPts,1) - 1, 1
         r = rPts(j)
         if (endPts_k2_r(j, i) < rPts(0)) then
           f(j, i) = 0.0d0
@@ -218,9 +218,9 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
     end do
 
   else
-    do i = 0, n0_qPts - 1, 1
+    do i = 0, size(qPts,1) - 1, 1
       theta = qPts(i)
-      do j = 0, n0_rPts - 1, 1
+      do j = 0, size(rPts,1) - 1, 1
         r = rPts(j)
         if (endPts_k2_r(j, i) < rPts(0)) then
           f(j, i) = fEq(rPts(0), v, CN0, kN0, deltaRN0, rp, CTi, kTi, &
@@ -274,8 +274,8 @@ subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
   logical(kind=1), intent(in)  :: nulBound
-  integer(kind=4) :: i
   real(kind=8) :: v
+  integer(kind=4) :: i
 
   ! Find value at the determined point
   if (nulBound) then
@@ -295,10 +295,95 @@ subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
         f(i) = fEq(rPos, v, CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi)
       else
         f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, der=0)
+
+
       end if
     end do
 
   end if
+end subroutine
+! ........................................
+
+! ........................................
+subroutine get_lagrange_vals(i, nr, n0_shifts, shifts, n0_vals, n1_vals, &
+      n2_vals, vals, n0_qVals, qVals, n0_thetaShifts, thetaShifts, &
+      n0_kts, kts, deg, n0_coeffs, coeffs)
+
+  implicit none
+  integer(kind=4), intent(in)  :: i
+  integer(kind=4), intent(in)  :: nr
+  integer(kind=4), intent(in)  :: n0_shifts
+  integer(kind=4), intent(in)  :: shifts (0:n0_shifts - 1)
+  integer(kind=4), intent(in)  :: n0_vals
+  integer(kind=4), intent(in)  :: n1_vals
+  integer(kind=4), intent(in)  :: n2_vals
+  real(kind=8), intent(inout)  :: vals (0:n0_vals - 1,0:n1_vals - 1,0: &
+      n2_vals - 1)
+  integer(kind=4), intent(in)  :: n0_qVals
+  real(kind=8), intent(in)  :: qVals (0:n0_qVals - 1)
+  integer(kind=4), intent(in)  :: n0_thetaShifts
+  real(kind=8), intent(in)  :: thetaShifts (0:n0_thetaShifts - 1)
+  integer(kind=4), intent(in)  :: n0_kts
+  real(kind=8), intent(in)  :: kts (0:n0_kts - 1)
+  integer(kind=4), intent(in)  :: deg
+  integer(kind=4), intent(in)  :: n0_coeffs
+  real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
+  integer(kind=4) :: s
+  integer(kind=4) :: k
+  real(kind=8) :: q
+  integer(kind=4) :: j
+
+  do j = 0, size(shifts,1) - 1, 1
+    s = shifts(j)
+    do k = 0, size(qVals,1) - 1, 1
+      q = qVals(k)
+      vals(j, k, modulo(i - s,nr)) = eval_spline_1d_scalar(q + &
+      thetaShifts(j), kts, deg, coeffs, 0)
+
+
+    end do
+
+  end do
+
+end subroutine
+! ........................................
+
+! ........................................
+subroutine flux_advection(nq, nr, n0_f, n1_f, f, n0_coeffs, coeffs, &
+      n0_vals, n1_vals, n2_vals, vals)
+
+  implicit none
+  integer(kind=4), intent(in)  :: nq
+  integer(kind=4), intent(in)  :: nr
+  integer(kind=4), intent(in)  :: n0_f
+  integer(kind=4), intent(in)  :: n1_f
+  real(kind=8), intent(inout)  :: f (0:n0_f - 1,0:n1_f - 1)
+  integer(kind=4), intent(in)  :: n0_coeffs
+  real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
+  integer(kind=4), intent(in)  :: n0_vals
+  integer(kind=4), intent(in)  :: n1_vals
+  integer(kind=4), intent(in)  :: n2_vals
+  real(kind=8), intent(in)  :: vals (0:n0_vals - 1,0:n1_vals - 1,0: &
+      n2_vals - 1)
+  integer(kind=4) :: i
+  integer(kind=4) :: j
+  integer(kind=4) :: k
+
+  do j = 0, nq - 1, 1
+    do i = 0, nr - 1, 1
+      f(i, j) = coeffs(0)*vals(0, j, i)
+      do k = 1, size(coeffs,1) - 1, 1
+        f(i, j) = coeffs(k)*vals(k, j, i) + f(i, j)
+
+
+
+
+      end do
+
+    end do
+
+  end do
+
 end subroutine
 ! ........................................
 
