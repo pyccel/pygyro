@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0,'pygyro')
 
 from initialisation               import constants
-from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar,eval_spline_1d_scalar
+from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar,eval_spline_1d_scalar, eval_spline_1d_vector
 
 cc = CC('accelerated_advection_steps')
 
@@ -286,6 +286,16 @@ def flux_advection(nq,nr,f,coeffs,vals):
                 f[j,i] = coeffs[0]*vals[i,j,0]
                 for k in range(1,len(coeffs)):
                     f[j,i] += coeffs[k]*vals[i,j,k]
+
+@cc.export('parallel_gradient_wrap','(i4,i4[:],f8[:],f8[:,:],i4,f8[:],i4,f8[:],f8[:,:,:])')
+def parallel_gradient_wrap(i,shifts,coeffs,der,nz,kts,deg,thetaCoeffs,thetaVals):
+    for j,(s,c) in enumerate(zip(shifts,coeffs)):
+        der[(i-s)%nz,:]+=c*eval_spline_1d_vector(thetaVals[:,i,j],kts,deg,thetaCoeffs,0)
+
+@cc.export('parallel_gradient','(i4,i4[:],f8[:],f8[:,:],f8[:],i4,f8[:],f8[:,:,:])')
+def parallel_gradient(i,shifts,coeffs,der,kts,deg,thetaCoeffs,thetaVals):
+    for j,(s,c) in enumerate(zip(shifts,coeffs)):
+        der[(i-s),:]+=c*eval_spline_1d_vector(thetaVals[:,i,j],kts,deg,thetaCoeffs,0)
 
 if __name__ == "__main__":
     cc.compile()
