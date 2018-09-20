@@ -263,7 +263,7 @@ class DiffEqSolver:
         self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
         
         # Create the tools required for the interpolation
-        self._interpolator = SplineInterpolator1D(rspline)
+        self._interpolator = SplineInterpolator1D(rspline,dtype=np.complex)
         self._spline = Spline1D(rspline,np.complex128)
         self._real_spline = Spline1D(rspline)
     
