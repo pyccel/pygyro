@@ -344,4 +344,4 @@ loop_time = sum(np.array(loop_time_ends)-np.array(loop_time_starts))
 print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {additional:16.10e}".
             format(loop=loop_time,output=output_time,setup=setup_time,
             additional=additional_calc_time),
-        file=open("timing/l2Test{}.txt".format(rank), "w"))
+        file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(),rank), "w"))
