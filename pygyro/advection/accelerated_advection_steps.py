@@ -64,12 +64,13 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                 #                               ^^^^^^^^^^^^^^^
                 drPhi_k[i,j]     = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
                                                         kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,0,1) \
-                                    / endPts_k1_r[i,j]
+                                                        coeffsPhi,0,1)
+                drPhi_k[i,j]     /= endPts_k1_r[i,j]
+                
                 dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
                                                         kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,1,0) \
-                                    / endPts_k1_r[i,j]
+                                                        coeffsPhi,1,0)
+                dthetaPhi_k[i,j] /= endPts_k1_r[i,j]
             else:
                 drPhi_k[i,j]     = 0.0
                 dthetaPhi_k[i,j] = 0.0
@@ -212,12 +213,12 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     #                               ^^^^^^^^^^^^^^^
                     drPhi_k[i,j]     = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
                                                         kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,0,1) \
-                                        / endPts_k1_r[i,j]
+                                                        coeffsPhi,0,1)
+                    drPhi_k[i,j]     /= endPts_k1_r[i,j]
                     dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
                                                         kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,1,0) \
-                                        / endPts_k1_r[i,j]
+                                                        coeffsPhi,1,0)
+                    dthetaPhi_k[i,j] /= endPts_k1_r[i,j]
                 else:
                     drPhi_k[i,j]     = 0.0
                     dthetaPhi_k[i,j] = 0.0
@@ -276,4 +277,20 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
 
+@types('int','int[:]','double[:]','double[:,:]','int','double[:]','int','double[:]','double[:,:,:]','int')
+def parallel_gradient_wrap(i,shifts,coeffs,der,nz,kts,deg,thetaCoeffs,thetaVals,nq):
+    from numpy import empty
+    tmp=empty(nq)
+    for j,s in enumerate(shifts):
+        c=coeffs[j]
+        eval_spline_1d_vector(thetaVals[:,i,j],kts,deg,thetaCoeffs,tmp,0)
+        der[(i-s)%nz,:]+=c*tmp
 
+@types('int','int[:]','double[:]','double[:,:]','double[:]','int','double[:]','double[:,:,:]','int')
+def parallel_gradient(i,shifts,coeffs,der,kts,deg,thetaCoeffs,thetaVals,nq):
+    from numpy import empty, shape
+    tmp=empty(nq)
+    for j,s in enumerate(shifts):
+        c=coeffs[j]
+        eval_spline_1d_vector(thetaVals[:,i,j],kts,deg,thetaCoeffs,tmp,0)
+        der[(i-s),:]+=c*tmp
