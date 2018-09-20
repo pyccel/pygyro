@@ -2,24 +2,41 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.linalg        import solve_banded
-from scipy.sparse        import lil_matrix, csr_matrix
-from scipy.sparse.linalg import splu
+from scipy.linalg           import solve_banded
+from scipy.linalg.lapack    import zgbtrf, zgbtrs, dgbtrf, dgbtrs
+from scipy.sparse           import csr_matrix, csc_matrix, dia_matrix
+from scipy.sparse.linalg    import splu
 
-from .splines import BSplines, Spline1D, Spline2D
+from .splines               import BSplines, Spline1D, Spline2D
+from .spline_eval_funcs     import find_span, basis_funs
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
 #===============================================================================
 class SplineInterpolator1D():
 
-    def __init__( self, basis ):
+    def __init__( self, basis, dtype = float ):
         assert isinstance( basis, BSplines )
         self._basis = basis
+        self._imat = self.collocation_matrix(basis.knots,basis.degree,basis.greville,basis.periodic)
         if basis.periodic:
-            self._build_system_periodic()
+            self._splu = splu( csc_matrix(self._imat) )
+            self._offset = self._basis.degree // 2
         else:
-            self._build_system_nonperiodic()
+            dmat = dia_matrix( self._imat )
+            self._l = abs( dmat.offsets.min() )
+            self._u =      dmat.offsets.max()
+            cmat = csr_matrix( dmat )
+            bmat = np.zeros( (1+self._u+2*self._l, cmat.shape[1]) )
+            for i,j in zip( *cmat.nonzero() ):
+                bmat[self._u+self._l+i-j,j] = cmat[i,j]
+            if (dtype==np.complex):
+                self._bmat, self._ipiv, self._finfo = zgbtrf(bmat, self._l, self._u)
+                self._solveFunc = zgbtrs
+            else:
+                self._bmat, self._ipiv, self._finfo = dgbtrf(bmat, self._l, self._u)
+                self._solveFunc = dgbtrs
+            self._sinfo = None
 
     # ...
     @property
@@ -39,84 +56,88 @@ class SplineInterpolator1D():
             self._solve_system_nonperiodic( ug, spl.coeffs )
 
     # ...
-    def _build_system_periodic( self ):
-
-        self._offset = self._basis.degree // 2
-
-        n  = self._basis.nbasis
-        p  = self._basis.degree
-        u  = self._basis.degree-1
-        xg = self._basis.greville
-        off= self._offset
-
-        imat = lil_matrix( (n,n) )
-
-        for i in range(n):
-            xi = xg[i]
-            jmin = self._basis.find_cell( xi )
-            for s in range(p+1):
-                j = (jmin-off+s) % n
-                imat[i,j] = self._basis[jmin+s].eval( xi )
-
-        self._splu = splu( imat.tocsc() )
-
-    # ...
     def _solve_system_periodic( self, ug, c ):
 
         n = self._basis.nbasis
         p = self._basis.degree
-        o = self._offset
 
-        c[o:n+o]   = self._splu.solve( ug )
-        c[:o]      = c[n:n+o]
-        c[n+o:n+p] = c[o:p]
-
-    # ...
-    def _build_system_nonperiodic( self ):
-
-        # TODO: compute number of diagonals in a more accurate way
-        #       (see Selalib!)
-        u  = self._basis.degree-1  # number of super-diagonals
-        n  = self._basis.nbasis
-        xg = self._basis.greville
-
-        imat = np.zeros( (2*u+1,n) ) # interpolation matrix
-
-        # TODO: clean the following two cycles
-        for i in range(n-u):
-            bspl_i = self._basis[i]
-            for j in range(2*u+1):
-                imat[j,i] = bspl_i.eval( xg[i+j-u] )
-
-        iend = 0
-        for i in range(n-u,n):
-            iend  += 1
-            bspl_i = self._basis[i]
-            for j in range(2*u+1-iend):
-                imat[j,i] = bspl_i.eval( xg[i+j-u] )
-
-        self._imat = imat
+        c[0:n  ] = self._splu.solve( ug )
+        c[n:n+p] = c[0:p]
 
     # ...
     def _solve_system_nonperiodic( self, ug, c ):
-        u = self._basis.degree-1
-        l = u
-        c[:] = solve_banded( (l,u), self._imat, ug )
+        
+        assert ug.shape[0] == self._bmat.shape[1]
+
+        assert c.shape == ug.shape
+        c[:], self._sinfo = self._solveFunc(self._bmat, self._l, self._u, ug, self._ipiv)
+    
+    @staticmethod
+    def collocation_matrix( knots, degree, xgrid, periodic ):
+        """
+        Compute the collocation matrix $C_ij = B_j(x_i)$, which contains the
+        values of each B-spline basis function $B_j$ at all locations $x_i$.
+
+        Parameters
+        ----------
+        knots : 1D array_like
+            Knots sequence.
+
+        degree : int
+            Polynomial degree of B-splines.
+
+        xgrid : 1D array_like
+            Evaluation points.
+
+        periodic : bool
+            True if domain is periodic, False otherwise.
+
+        Returns
+        -------
+        mat : 2D numpy.ndarray
+            Collocation matrix: values of all basis functions on each point in xgrid.
+
+        """
+        # Number of basis functions (in periodic case remove degree repeated elements)
+        nb = len(knots)-degree-1
+        if periodic:
+            nb -= degree
+
+        # Number of evaluation points
+        nx = len(xgrid)
+
+        # Collocation matrix as 2D Numpy array (dense storage)
+        mat = np.zeros( (nx,nb) )
+
+        # Indexing of basis functions (periodic or not) for a given span
+        if periodic:
+            js = lambda span: [(span-degree+s) % nb for s in range( degree+1 )]
+        else:
+            js = lambda span: slice( span-degree, span+1 )
+
+        basis = np.empty(degree+1)
+        # Fill in non-zero matrix values
+        for i,x in enumerate( xgrid ):
+            span  =  find_span( knots, degree, x )
+            basis_funs( knots, degree, x, span, basis )
+            mat[i,js(span)] = basis
+
+        return mat
 
 #===============================================================================
 class SplineInterpolator2D():
 
-    def __init__( self, basis1, basis2 ):
+    def __init__( self, basis1, basis2, dtype=float ):
 
         assert isinstance( basis1, BSplines )
         assert isinstance( basis2, BSplines )
 
         self._basis1  = basis1
         self._basis2  = basis2
-        self._spline1 = Spline1D( basis1 )
-        self._spline2 = Spline1D( basis2 )
-        self._interp1 = SplineInterpolator1D( basis1 )
-        self._interp2 = SplineInterpolator1D( basis2 )
+        self._spline1 = Spline1D( basis1, dtype )
+        self._spline2 = Spline1D( basis2, dtype )
+        self._interp1 = SplineInterpolator1D( basis1, dtype )
+        self._interp2 = SplineInterpolator1D( basis2, dtype )
 
         n1,n2 = basis1.ncells, basis2.ncells
         p1,p2 = basis1.degree, basis2.degree
