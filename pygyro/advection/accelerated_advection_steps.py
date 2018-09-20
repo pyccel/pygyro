@@ -273,5 +273,19 @@ def VParallelAdvectionEvalStep( f: np.ndarray, vPts: np.ndarray, rPos: float,
             else:
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs)
 
+@cc.export('get_lagrange_vals','(i4,i4,i4[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:])')
+def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+    for j,s in enumerate(shifts):
+        for k,q in enumerate(qVals):
+            vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(q+thetaShifts[j],kts,deg,coeffs,0)
+
+@cc.export('flux_advection','(i4,i4,f8[:,:],f8[:],f8[:,:,:])')
+def flux_advection(nq,nr,f,coeffs,vals):
+        for j in range(nq):
+            for i in range(nr):
+                f[j,i] = coeffs[0]*vals[i,j,0]
+                for k in range(1,len(coeffs)):
+                    f[j,i] += coeffs[k]*vals[i,j,k]
+
 if __name__ == "__main__":
     cc.compile()
