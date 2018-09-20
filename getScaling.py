@@ -32,7 +32,7 @@ file_object.close()
 results.sort()
 
 if (32 in results):
-    R0 = results.find(32)
+    R0 = results[results.index(32)]
 else:
     R0 = results[0]
 
