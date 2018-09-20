@@ -145,18 +145,30 @@ class ParallelGradient:
         
         for i in range(self._fwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
-            for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+            AAS.parallel_gradient_wrap(i,self._shifts,self._coeffs,der,self._nz,
+                                    self._thetaSpline.basis.knots,
+                                    self._thetaSpline.basis.degree,
+                                    self._thetaSpline.coeffs,thetaVals)
+            #~ for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
+                #~ der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
-            for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[(i-s),:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+            AAS.parallel_gradient(i,self._shifts,self._coeffs,der,
+                                    self._thetaSpline.basis.knots,
+                                    self._thetaSpline.basis.degree,
+                                    self._thetaSpline.coeffs,thetaVals)
+            #~ for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
+                #~ der[(i-s),:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._nz-self._bkwdSteps,self._nz):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
-            for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+            AAS.parallel_gradient_wrap(i,self._shifts,self._coeffs,der,self._nz,
+                                    self._thetaSpline.basis.knots,
+                                    self._thetaSpline.basis.degree,
+                                    self._thetaSpline.coeffs,thetaVals)
+            #~ for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
+                #~ der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         der*= ( bz * self._inv_dz )
         
