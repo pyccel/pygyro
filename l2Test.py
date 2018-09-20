@@ -1,4 +1,7 @@
 from mpi4py                 import MPI
+import time
+setup_time_start = time.clock()
+
 from matplotlib             import rc
 from glob                   import glob
 
@@ -18,6 +21,10 @@ from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
 
+loop_time_starts = []
+loop_time_ends = []
+output_time_starts = []
+output_time_ends = []
 
 parser = argparse.ArgumentParser(description='Process foldername')
 parser.add_argument('tEnd', metavar='tEnd',nargs=1,type=int,
@@ -171,6 +178,9 @@ else:
 #~ pr = cProfile.Profile()
 #~ pr.enable()
 
+setup_time = time.clock()-setup_time_start
+
+loop_time_starts.append(time.clock())
 
 for ti in range(tN):
     # Find phi from f^n by solving QN eq
@@ -185,6 +195,7 @@ for ti in range(tN):
     QNSolver.findPotential(phi)
     
     if (ti%saveStep==0 and ti!=0):
+        loop_time_ends.append(time.clock())
         distribFunc.writeH5Dataset(foldername,t)
         
         comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
@@ -196,6 +207,7 @@ for ti in range(tN):
             dset[n-saveStep:n,0]=l2Phi[0,:]
             dset[n-saveStep:n,1]=l2Result
         phiFile.close()
+        loop_time_starts.append(time.clock())
     
     # Calculate diagnostic quantity |phi|_2
     l2Phi[0,ti%saveStep]=t
@@ -271,7 +283,9 @@ for ti in range(tN):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
 
+loop_time_ends.append(time.clock())
 if (tN%saveStep==0):
+    output_time_starts.append(time.clock())
     comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
     l2Result = np.sqrt(l2Result)
     phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
@@ -281,6 +295,9 @@ if (tN%saveStep==0):
         dset[n-saveStep:n,0]=l2Phi[0,:]
         dset[n-saveStep:n,1]=l2Result
     phiFile.close()
+    output_time_ends.append(time.clock())
+
+additional_calc_start = time.clock()
 
 # Find phi from f^n by solving QN eq
 distribFunc.setLayout('v_parallel')
@@ -297,6 +314,9 @@ QNSolver.findPotential(phi)
 l2Phi[0,tN%saveStep]=t
 l2Phi[1,tN%saveStep]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
 
+additional_calc_time = time.clock()-additional_calc_start
+
+output_time_starts.append(time.clock())
 distribFunc.writeH5Dataset(foldername,t)
 
 comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
@@ -309,6 +329,7 @@ if (rank == 0):
     dset[nS:nE,0]=l2Phi[0,:(nE-nS)]
     dset[nS:nE,1]=l2Result[:(nE-nS)]
 phiFile.close()
+output_time_ends.append(time.clock())
 
 #End profiling and print results
 #~ pr.disable()
@@ -317,3 +338,10 @@ phiFile.close()
 #~ ps.print_stats()
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
+output_time = sum(np.array(output_time_ends)-np.array(output_time_starts))
+loop_time = sum(np.array(loop_time_ends)-np.array(loop_time_starts))
+
+print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {additional:16.10e}".
+            format(loop=loop_time,output=output_time,setup=setup_time,
+            additional=additional_calc_time),
+        file=open("timing/l2Test{}.txt".format(rank), "w"))
