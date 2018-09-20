@@ -196,6 +196,7 @@ for ti in range(tN):
     
     if (ti%saveStep==0 and ti!=0):
         loop_time_ends.append(time.clock())
+        output_time_starts.append(time.clock())
         distribFunc.writeH5Dataset(foldername,t)
         
         comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
@@ -207,6 +208,7 @@ for ti in range(tN):
             dset[n-saveStep:n,0]=l2Phi[0,:]
             dset[n-saveStep:n,1]=l2Result
         phiFile.close()
+        output_time_ends.append(time.clock())
         loop_time_starts.append(time.clock())
     
     # Calculate diagnostic quantity |phi|_2
