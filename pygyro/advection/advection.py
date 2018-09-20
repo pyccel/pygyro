@@ -288,27 +288,6 @@ class FluxSurfaceAdvection:
         for j in range(self._nPoints[0]):
             for i,z in enumerate(self._points[1]):
                 f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],LagrangeVals[i,j])
-    
-    def gridStep( self, grid: Grid, rIdx: int = 0 ):
-        """
-        Carry out an advection step for the flux parallel advection
-
-        Parameters
-        ----------
-        f: array_like
-            The current value of the function at the nodes.
-            The result will be stored here
-        
-        cIdx: int
-            Index of the advection parameter d_tf + c d_xf=0
-        
-        rIdx: int - optional
-            The current index of r. Not necessary if iota does not depend on r
-        
-        """
-        for i,r in distribFunc.getCoords(0):
-            for j,v in distribFunc.getCoords(1):
-                step(grid.get2DSlice([i,j]),j,rIdx)
 
 class VParallelAdvection:
     """
