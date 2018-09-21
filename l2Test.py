@@ -44,6 +44,9 @@ parser.add_argument('-z', dest='zDegree',nargs=1,type=int,
 parser.add_argument('-v', dest='vDegree',nargs=1,type=int,
                     default=[3],
                    help='Degree of spline in v')
+parser.add_argument('-s', dest='saveStep',nargs=1,type=int,
+                    default=[5],
+                   help='Number of time steps between writing output')
 
 args = parser.parse_args()
 foldername = args.foldername[0]
@@ -54,6 +57,8 @@ rDegree = args.rDegree[0]
 qDegree = args.qDegree[0]
 zDegree = args.zDegree[0]
 vDegree = args.vDegree[0]
+
+saveStep = args.saveStep[0]
 
 tEnd = args.tEnd[0]
 
@@ -147,8 +152,6 @@ density = DensityFinder(6,distribFunc.getSpline(3))
 QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0),
                                 chi=0)
 
-
-saveStep = 5
 
 l2Phi = np.zeros([2,saveStep])
 l2Result=np.zeros(saveStep)
