@@ -1,11 +1,11 @@
 module mod_pygyro_advection_accelerated_advection_steps
 
+use mod_initialiser_funcs, only: fEq
+
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_vector
-
-use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -99,14 +99,14 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: B0
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: multFactor
-  integer(kind=4) :: idx
-  real(kind=8) :: multFactor_half
-  real(kind=8) :: r
-  real(kind=8) :: theta
   integer(kind=4) :: j
   real(kind=8) :: rMax
+  real(kind=8) :: multFactor_half
+  real(kind=8) :: theta
   integer(kind=4) :: i
+  real(kind=8) :: r
+  integer(kind=4) :: idx
+  real(kind=8) :: multFactor
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -155,10 +155,11 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
 
 
       do while (endPts_k1_q(j, i) < 0)
-        endPts_k1_q(j, i) = 2.0d0*3.141592653589793 + endPts_k1_q(j, i)
+        endPts_k1_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k1_q(j, i)
       end do
-      do while (endPts_k1_q(j, i) > 2.0d0*3.141592653589793)
-        endPts_k1_q(j, i) = -2.0d0*3.141592653589793 + endPts_k1_q(j, i)
+      do while (endPts_k1_q(j, i) > 2.0d0*3.14159265358979d0)
+        endPts_k1_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k1_q(j, i &
+      )
 
 
       end do
@@ -187,7 +188,7 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
       end if
       endPts_k2_q(j, i) = modulo(1.0d0*multFactor_half*(-1.0d0*drPhi_0(j &
       , i) - 1.0d0*drPhi_k(j, i)) + 1.0d0*qPts(i),2.0d0* &
-      3.141592653589793)
+      3.14159265358979d0)
       endPts_k2_r(j, i) = multFactor_half*(dthetaPhi_0(j, i) + &
       dthetaPhi_k(j, i)) + rPts(j)
 
@@ -210,13 +211,13 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
         else if (endPts_k2_r(j, i) > rMax) then
           f(j, i) = 0.0d0
         else
-          do while (endPts_k2_q(j, i) > 2.0d0*3.141592653589793)
-            endPts_k2_q(j, i) = -2.0d0*3.141592653589793 + endPts_k2_q(j &
-      , i)
+          do while (endPts_k2_q(j, i) > 2.0d0*3.14159265358979d0)
+            endPts_k2_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k2_q( &
+      j, i)
           end do
           do while (endPts_k2_q(j, i) < 0)
-            endPts_k2_q(j, i) = 2.0d0*3.141592653589793 + endPts_k2_q(j, &
-      i)
+            endPts_k2_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k2_q(j &
+      , i)
           end do
           f(j, i) = eval_spline_2d_scalar(endPts_k2_q(j, i), endPts_k2_r &
       (j, i), kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
@@ -237,13 +238,13 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
           f(j, i) = fEq(endPts_k2_r(j, i), v, CN0, kN0, deltaRN0, rp, &
       CTi, kTi, deltaRTi)
         else
-          do while (endPts_k2_q(j, i) > 2.0d0*3.141592653589793)
-            endPts_k2_q(j, i) = -2.0d0*3.141592653589793 + endPts_k2_q(j &
-      , i)
+          do while (endPts_k2_q(j, i) > 2.0d0*3.14159265358979d0)
+            endPts_k2_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k2_q( &
+      j, i)
           end do
           do while (endPts_k2_q(j, i) < 0)
-            endPts_k2_q(j, i) = 2.0d0*3.141592653589793 + endPts_k2_q(j, &
-      i)
+            endPts_k2_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k2_q(j &
+      , i)
           end do
           f(j, i) = eval_spline_2d_scalar(endPts_k2_q(j, i), endPts_k2_r &
       (j, i), kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
@@ -338,9 +339,9 @@ subroutine get_lagrange_vals(i, nr, n0_shifts, shifts, n0_vals, n1_vals, &
   integer(kind=4), intent(in)  :: deg
   integer(kind=4), intent(in)  :: n0_coeffs
   real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
-  integer(kind=4) :: s
   integer(kind=4) :: k
   integer(kind=4) :: j
+  integer(kind=4) :: s
   real(kind=8) :: q
 
   do j = 0, size(shifts,1) - 1, 1
@@ -375,8 +376,8 @@ subroutine flux_advection(nq, nr, n0_f, n1_f, f, n0_coeffs, coeffs, &
   integer(kind=4), intent(in)  :: n2_vals
   real(kind=8), intent(in)  :: vals (0:n0_vals - 1,0:n1_vals - 1,0: &
       n2_vals - 1)
-  integer(kind=4) :: j
   integer(kind=4) :: k
+  integer(kind=4) :: j
   integer(kind=4) :: i
 
   do j = 0, nq - 1, 1
@@ -483,15 +484,15 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: B0
   real(kind=8), intent(in)  :: tol
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: multFactor
-  integer(kind=4) :: idx
-  real(kind=8) :: r
-  real(kind=8) :: norm
-  real(kind=8) :: theta
   integer(kind=4) :: j
   real(kind=8) :: rMax
-  integer(kind=4) :: i
+  real(kind=8) :: theta
   real(kind=8) :: diff
+  integer(kind=4) :: i
+  real(kind=8) :: r
+  real(kind=8) :: norm
+  integer(kind=4) :: idx
+  real(kind=8) :: multFactor
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -554,11 +555,11 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
       do j = 0, nPts(1) - 1, 1
         ! Handle theta boundary conditions
         do while (endPts_k1_q(j, i) < 0)
-          endPts_k1_q(j, i) = 2.0d0*3.141592653589793 + endPts_k1_q(j, i &
-      )
+          endPts_k1_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k1_q(j, &
+      i)
         end do
-        do while (endPts_k1_q(j, i) > 2.0d0*3.141592653589793)
-          endPts_k1_q(j, i) = -2.0d0*3.141592653589793 + endPts_k1_q(j, &
+        do while (endPts_k1_q(j, i) > 2.0d0*3.14159265358979d0)
+          endPts_k1_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k1_q(j, &
       i)
 
 
@@ -588,7 +589,8 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
           ! Using the splines to extrapolate is not sufficient
         end if
         endPts_k2_q(j, i) = modulo(1.0d0*multFactor*(-1.0d0*drPhi_0(j, i &
-      ) - 1.0d0*drPhi_k(j, i)) + 1.0d0*qPts(i),2.0d0*3.141592653589793)
+      ) - 1.0d0*drPhi_k(j, i)) + 1.0d0*qPts(i),2.0d0*3.14159265358979d0 &
+      )
         endPts_k2_r(j, i) = multFactor*(dthetaPhi_0(j, i) + dthetaPhi_k( &
       j, i)) + rPts(j)
         if (endPts_k2_r(j, i) < rPts(0)) then
@@ -626,13 +628,13 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
         else if (endPts_k2_r(j, i) > rMax) then
           f(j, i) = 0.0d0
         else
-          do while (endPts_k2_q(j, i) > 2.0d0*3.141592653589793)
-            endPts_k2_q(j, i) = -2.0d0*3.141592653589793 + endPts_k2_q(j &
-      , i)
+          do while (endPts_k2_q(j, i) > 2.0d0*3.14159265358979d0)
+            endPts_k2_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k2_q( &
+      j, i)
           end do
           do while (endPts_k2_q(j, i) < 0)
-            endPts_k2_q(j, i) = 2.0d0*3.141592653589793 + endPts_k2_q(j, &
-      i)
+            endPts_k2_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k2_q(j &
+      , i)
           end do
           f(j, i) = eval_spline_2d_scalar(endPts_k2_q(j, i), endPts_k2_r &
       (j, i), kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
@@ -653,16 +655,18 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
           f(j, i) = fEq(endPts_k2_r(j, i), v, CN0, kN0, deltaRN0, rp, &
       CTi, kTi, deltaRTi)
         else
-          do while (endPts_k2_q(j, i) > 2.0d0*3.141592653589793)
-            endPts_k2_q(j, i) = -2.0d0*3.141592653589793 + endPts_k2_q(j &
-      , i)
+          do while (endPts_k2_q(j, i) > 2.0d0*3.14159265358979d0)
+            endPts_k2_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k2_q( &
+      j, i)
           end do
           do while (endPts_k2_q(j, i) < 0)
-            endPts_k2_q(j, i) = 2.0d0*3.141592653589793 + endPts_k2_q(j, &
-      i)
+            endPts_k2_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k2_q(j &
+      , i)
           end do
           f(j, i) = eval_spline_2d_scalar(endPts_k2_q(j, i), endPts_k2_r &
       (j, i), kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
+
+
         end if
       end do
 

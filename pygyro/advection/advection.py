@@ -86,11 +86,11 @@ class ParallelGradient:
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         if (self._variesInR):
-            self._thetaVals = np.empty([eta_grid[0].size, self._nq, self._nz, order+1])
+            self._thetaVals = np.empty([eta_grid[0].size, self._nz, order+1, self._nq])
             for i,r in enumerate(eta_grid[0]):
                 self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
         else:
-            self._thetaVals = np.empty([self._nq, self._nz, order+1])
+            self._thetaVals = np.empty([self._nz, order+1, self._nq])
             self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
     
     def getCoeffsFirstDeriv( self, n: int):
@@ -121,7 +121,7 @@ class ParallelGradient:
         
         for k,z in enumerate(eta_grid[2]):
             for i,l in enumerate(self._shifts):
-                thetaVals[:,(k+l)%n,i]=fieldline(eta_grid[1],self._dz*l,iota,r)
+                thetaVals[(k+l)%n,i,:]=fieldline(eta_grid[1],self._dz*l,iota,r)
     
     def parallel_gradient( self, phi_r: np.ndarray, i : int, der: np.ndarray ):
         """
@@ -154,34 +154,22 @@ class ParallelGradient:
         tmp = np.empty(self._nq)
         for i in range(self._fwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
-            #~ AAS.parallel_gradient_wrap(i,self._shifts,self._coeffs,modFunc(der),self._nz,
-                                    #~ self._thetaSpline.basis.knots,
-                                    #~ self._thetaSpline.basis.degree,
-                                    #~ self._thetaSpline.coeffs,modFunc(thetaVals),self._nq)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[:,i,j],self._thetaSpline.basis.knots,
+                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
                                     self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
                 der[(i-s)%self._nz,:]+=c*tmp
         
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
-            #~ AAS.parallel_gradient(i,self._shifts,self._coeffs,modFunc(der),
-                                    #~ self._thetaSpline.basis.knots,
-                                    #~ self._thetaSpline.basis.degree,
-                                    #~ self._thetaSpline.coeffs,modFunc(thetaVals),self._nq)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[:,i,j],self._thetaSpline.basis.knots,
+                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
                                     self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
                 der[(i-s),:]+=c*tmp
         
         for i in range(self._nz-self._bkwdSteps,self._nz):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
-            #~ AAS.parallel_gradient_wrap(i,self._shifts,self._coeffs,modFunc(der),self._nz,
-                                    #~ self._thetaSpline.basis.knots,
-                                    #~ self._thetaSpline.basis.degree,
-                                    #~ self._thetaSpline.coeffs,modFunc(thetaVals),self._nq)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[:,i,j],self._thetaSpline.basis.knots,
+                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
                                     self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
                 der[(i-s)%self._nz,:]+=c*tmp
         
