@@ -1,7 +1,6 @@
 import numpy            as np
 from numba              import njit
 from numba.pycc         import CC
-from scipy.interpolate  import splev, bisplev
 from math               import pi
 import sys
 sys.path.insert(0,'pygyro')
