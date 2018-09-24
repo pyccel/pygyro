@@ -53,7 +53,7 @@ class DensityFinder:
         starts = (breaks[:-1]+breaks[1:])/2
         self._multFact = (breaks[1]-breaks[0])/2
         self._points = np.repeat(starts,n) + np.tile(self._multFact*points,len(starts))
-        self._weights = np.tile(points,len(starts))
+        self._weights = np.tile(weights,len(starts))
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(spline)
