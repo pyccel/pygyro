@@ -10,6 +10,7 @@ import warnings
 from ..model.grid                   import Grid
 from ..initialisation               import constants
 from ..initialisation               import mod_initialiser_funcs    as initialiser
+from ..initialisation               import initialiser_func as MOD_IF
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 from ..splines                      import spline_eval_funcs as SEF
@@ -21,6 +22,12 @@ if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
     modFunc = np.transpose
 else:
     modFunc = lambda c: c
+
+if ('mod_pygyro_initialisation_initialiser_func' in dir(MOD_IF)):
+    MOD_IF = MOD_IF.mod_pygyro_initialisation_initialiser_func
+    modFunc_init = np.transpose
+else:
+    modFunc_init = lambda c: c
 
 class DensityFinder:
     """
@@ -38,7 +45,7 @@ class DensityFinder:
         A spline along the v parallel direction
 
     """
-    def __init__ ( self, degree: int, spline: BSplines ):
+    def __init__ ( self, degree: int, spline: BSplines, eta_grid: list ):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
@@ -60,6 +67,10 @@ class DensityFinder:
         self._spline = Spline1D(spline)
         
         self._splineMem = np.empty_like(self._points)
+        
+        self._fEq = np.empty([eta_grid[0].size,self._points.size])
+        MOD_IF.fEq_vector(modFunc_init(self._fEq),eta_grid[0],self._points,constants.CN0,constants.kN0,
+                                constants.deltaRN0,constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
     
     def getPerturbedRho ( self, grid: Grid , rho: Grid ):
         """
@@ -87,8 +98,7 @@ class DensityFinder:
                     SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
                             self._spline.coeffs,self._splineMem,0)
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
-                                -initialiser.fEq(r,self._points,constants.CN0,constants.kN0,
-                                constants.deltaRN0,constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)))
+                                        -self._fEq[i]))
     
 class DiffEqSolver:
     """

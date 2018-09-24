@@ -176,7 +176,7 @@ def test_PoissonEquation_Dirichlet(deg,npt,eps):
     
     r = eta_grid[0]
     
-    df = DensityFinder(3,grid.getSpline(3))
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
     
     ps.getModes(rho)
     
@@ -585,7 +585,7 @@ def test_DiffEqSolver():
     rho = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     phi = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'mode_solve',comm,dtype=np.complex128)
     
-    df = DensityFinder(3,grid.getSpline(3))
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
     
     df.getPerturbedRho(grid,rho)
     
