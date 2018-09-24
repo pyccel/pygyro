@@ -166,7 +166,7 @@ dz = z[2]-z[1]
 rCalc = (r[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 drCalc = (dr[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
 
-phi_filename = "{0}/phiDat.dat".format(foldername)
+phi_filename = "{0}/phiDat.h5".format(foldername)
 if (not os.path.exists(phi_filename)):
     phiFile = h5py.File(phi_filename,'w',driver='mpio',comm=comm)
     dset = phiFile.create_dataset("dset",(tN+1, 2), float)
