@@ -44,11 +44,13 @@ class DensityFinder:
         starts = (breaks[:-1]+breaks[1:])/2
         self._multFact = (breaks[1]-breaks[0])/2
         self._points = np.repeat(starts,n) + np.tile(self._multFact*points,len(starts))
-        self._weights = np.tile(points,len(starts))
+        self._weights = np.tile(weights,len(starts))
         
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(spline)
         self._spline = Spline1D(spline)
+        
+        self._fEq = fEq(eta_grid[0][:,None],self._points[None,:])
     
     def getPerturbedRho ( self, grid: Grid , rho: Grid ):
         """
@@ -73,7 +75,7 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-initialiser.fEq(r,self._points)))
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._spline.eval(self._points)-self._fEq[i]))
     
 class DiffEqSolver:
     """
