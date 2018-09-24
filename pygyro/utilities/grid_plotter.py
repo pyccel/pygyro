@@ -359,8 +359,8 @@ class SlicePlotter3d(object):
         self.rank = self.comm.Get_rank()
         
         # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin(0,self.omit,self.omitVal)
-        self.maximum=grid.getMax(0,self.omit,self.omitVal)
+        self.minimum=grid.getMin(self.drawRank,self.omit,self.omitVal)
+        self.maximum=grid.getMax(self.drawRank,self.omit,self.omitVal)
         
         # on rank 0 set-up the graph
         if (self.rank==0):
