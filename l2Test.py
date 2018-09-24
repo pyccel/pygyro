@@ -147,7 +147,7 @@ rho = Grid(distribFunc.eta_grid[:3],distribFunc.getSpline(slice(0,3)),
 phiSplines = [Spline2D(*distribFunc.getSpline(slice(1,None,-1))) for i in range(phi.getLayout('poloidal').shape[0])]
 interpolator = SplineInterpolator2D(*distribFunc.getSpline(slice(1,None,-1)))
 
-density = DensityFinder(6,distribFunc.getSpline(3))
+density = DensityFinder(6,distribFunc.getSpline(3),distribFunc.eta_grid)
 
 QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0),
                                 chi=0)
