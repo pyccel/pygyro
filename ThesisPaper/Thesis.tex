@@ -1,0 +1,91 @@
+\documentclass[a4paper,10pt,openany]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{array}
+\usepackage{mathtools,trimclip,stackengine,scalerel,esvect}
+\usepackage[skins]{tcolorbox}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{enumitem}
+\usepackage[colorinlistoftodos,prependcaption]{todonotes}
+\usepackage{cite}
+\usepackage{tocbibind}
+\usepackage[colorlinks,bookmarks=true,bookmarksdepth=2,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+\usepackage{bookmark}
+\usepackage{dsfont}
+\usepackage{lipsum}
+
+\usepackage{accents}
+\newcommand{\hvv}[1]{\accentset{\rightharpoonup}{#1}}
+
+\renewcommand{\O}[1]{\ensuremath{\mathcal{O}\left(#1\right)}}
+\newcommand\smallO{
+  \mathchoice
+    {{\scriptstyle\mathcal{O}}}% \displaystyle
+    {{\scriptstyle\mathcal{O}}}% \textstyle
+    {{\scriptscriptstyle\mathcal{O}}}% \scriptstyle
+    {\scalebox{.7}{$\scriptscriptstyle\mathcal{O}$}}%\scriptscriptstyle
+  }
+\renewcommand{\o}[1]{\ensuremath{\smallO\left(#1\right)}}
+\newcommand{\Id}{\ensuremath{\mathds{1}}}
+\newcommand{\somme}[2]{\ensuremath{\underset{#1}{\overset{#2}{\sum}}}}
+\newcommand{\cross}{\ensuremath{\times}}
+\newcommand{\dd}[2]{\ensuremath{\frac{\partial #1}{\partial #2}}}
+\newcommand{\ddd}[3]{\ensuremath{\frac{\partial^{#1} #2}{\partial #3^{#1}}}}
+\newcommand{\reel}{\ensuremath{\mathds{R}}}
+\renewcommand{\vec}{\ensuremath{\boldsymbol}}
+\newcommand{\mat}{\ensuremath{\underline}}
+\newcommand{\rchapter}[1]{\chapter{#1}\label{chapter::#1}}
+
+% \newsavebox\tmpbox
+% \newcommand\hvv[1]{\ThisStyle{%
+%   \setbox0=\hbox{$\SavedStyle#1$}
+%   \setbox2=\hbox{$%
+%     \clipbox{0pt{} \dimexpr\ht0+2.2\LMpt{} 0pt -1pt}{%
+%       $\SavedStyle\vv{\phantom{\SavedStyle #1}}$}$}
+%     \ensurestackMath{\stackengine{1.7\LMpt}{\SavedStyle#1}{\copy2}{O}{c}{F}{F}{S}}
+% }}
+
+\newcommand{\grad}{\ensuremath{\hvv{\nabla}}}
+
+\floatstyle{ruled}
+\newfloat{Example}{tbp}{lop}[chapter]
+
+\title{Parallel gyrokinetic simulations with Python}
+\author{Emily Bourne}
+
+\begin{document}
+\frontmatter 
+
+\maketitle
+
+\tableofcontents
+%e.g. preface
+
+\mainmatter
+
+\include{Introduction}
+
+\include{Gyrokinetics}
+
+\include{AdvectionEquations}
+
+\include{Poisson}
+
+\include{ParallelSetup}
+
+\include{Pyccel}
+
+\include{Conclusion}
+
+%\bibliographystyle{IEEEtran}
+% argument is your BibTeX string definitions and bibliography database(s)
+\bibliographystyle{IEEEtran}
+\bibliography{Thesis}{}
+%\addcontentsline{toc}{chapter}{\refname}
+
+\end{document}
