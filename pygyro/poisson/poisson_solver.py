@@ -29,7 +29,7 @@ class DensityFinder:
         A spline along the v parallel direction
 
     """
-    def __init__ ( self, degree: int, spline: BSplines ):
+    def __init__ ( self, degree: int, spline: BSplines, eta_grid : list ):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
