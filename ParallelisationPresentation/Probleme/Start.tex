@@ -1,0 +1,77 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{patterns,decorations.markings}
+
+\begin{document}
+ \begin{tikzpicture}[scale=0.5]
+  \def\nx{8}
+\def\ny{6}
+\def\nz{6}
+
+\tikzset{myptr/.style={decoration={markings,mark=at position 1 with %
+    {\arrow[scale=3,>=stealth]{>}}},postaction={decorate}}}
+
+\fill[pattern=north west lines, pattern color=blue] (0,0,0) -- (\nx,0,0) -- (\nx,-\ny/3,0) -- (0,-\ny/3,0) -- (0,0,0);
+\fill[pattern=north west lines, pattern color=blue] (0,0,0) -- (\nx,0,0) -- (\nx,0,-\nz/2) -- (0,0,-\nz/2) -- (0,0,0);
+\fill[pattern=north west lines, pattern color=blue] (\nx,0,0) -- (\nx,-\ny/3,0) -- (\nx,-\ny/3,-\nz/2) -- (\nx,0,-\nz/2) -- (\nx,0,0);
+\fill[blue!70] (0,0,-\nz/2) -- (\nx,0,-\nz/2) -- (\nx,0,-\nz) -- (0,0,-\nz) -- (0,0,-\nz/2);
+\fill[blue!70] (\nx,0,-\nz/2) -- (\nx,-\ny/3,-\nz/2) -- (\nx,-\ny/3,-\nz) -- (\nx,0,-\nz) -- (\nx,0,-\nz/2);
+
+\fill[pattern=north west lines, pattern color=red] (0,-\ny/3,0) -- (\nx,-\ny/3,0) -- (\nx,-2*\ny/3,0) -- (0,-2*\ny/3,0) -- (0,-\ny/3,0);
+\fill[pattern=north west lines, pattern color=red] (\nx,-\ny/3,0) -- (\nx,-2*\ny/3,0) -- (\nx,-2*\ny/3,-\nz/2) -- (\nx,-\ny/3,-\nz/2) -- (\nx,-\ny/3,0);
+\fill[red!70] (\nx,-\ny/3,-\nz/2) -- (\nx,-2*\ny/3,-\nz/2) -- (\nx,-2*\ny/3,-\nz) -- (\nx,-\ny/3,-\nz) -- (\nx,-\ny/3,-\nz/2);
+
+\fill[pattern=north west lines, pattern color=green] (0,-2*\ny/3,0) -- (\nx,-2*\ny/3,0) -- (\nx,-\ny,0) -- (0,-\ny,0) -- (0,-2*\ny/3,0);
+\fill[pattern=north west lines, pattern color=green] (\nx,-2*\ny/3,0) -- (\nx,-\ny,0) -- (\nx,-\ny,-\nz/2) -- (\nx,-2*\ny/3,-\nz/2) -- (\nx,-2*\ny/3,0);
+\fill[green!70] (\nx,-2*\ny/3,-\nz/2) -- (\nx,-\ny,-\nz/2) -- (\nx,-\ny,-\nz) -- (\nx,-2*\ny/3,-\nz) -- (\nx,-2*\ny/3,-\nz/2);
+
+\foreach \y in{0,...,\ny}
+{
+    \draw (0,-\y ,0) -- (\nx,-\y ,0);
+    \draw (\nx,-\y ,-\nz) -- (\nx,-\y ,0);
+}
+\foreach \x in{0,...,\nx}
+{
+    \draw (\x ,0,0) -- (\x ,-\ny,0);
+    \draw (\x ,0,-\nz) -- (\x ,0,0);
+}
+
+\foreach \z in {0,...,\nz}
+{
+   \draw (\nx,0,-\z ) -- (\nx,-\ny,-\z );
+   \draw (0,0,-\z ) -- (\nx,0,-\z );
+}
+
+\pgfmathsetmacro\nxMax{\nx-1}
+ \pgfmathsetmacro\nyMax{\ny-1}
+ \pgfmathsetmacro\nzMax{\nz-1}
+ 
+ \pgfmathsetmacro\nySplitMax{\ny/3-1}
+ \pgfmathsetmacro\nzSplitMax{\nz/2-1}
+ 
+ 
+ \draw[line width=3pt] (0,-\ny*2/3,0) -- (\nx,-\ny*2/3,0);
+ \draw[line width=3pt] (\nx,-\ny*2/3,0) -- (\nx,-\ny*2/3,-\nz);
+ \draw[line width=3pt] (0,-\ny/3,0) -- (\nx,-\ny/3,0);
+ \draw[line width=3pt] (\nx,-\ny/3,0) -- (\nx,-\ny/3,-\nz);
+ \draw[line width=3pt] (0,0,-\nz/2) -- (\nx,0,-\nz/2);
+ \draw[line width=3pt] (\nx,0,-\nz/2) -- (\nx,-\ny,-\nz/2);
+
+\node[scale=2] at (\nx,-\ny/6,-\nz/4) {\bf 1};
+\node[scale=2] at (\nx,-\ny*3/6,-\nz/4) {\bf 3};
+\node[scale=2] at (\nx,-\ny*5/6,-\nz/4) {\bf 5};
+\node[scale=2] at (\nx,-\ny/6,-\nz*3/4) {\bf 2};
+\node[scale=2] at (\nx,-\ny*3/6,-\nz*3/4) {\bf 4};
+\node[scale=2] at (\nx,-\ny*5/6,-\nz*3/4) {\bf 6};
+
+\draw[myptr] (-.5,0,0) -- (-.5,-\ny,0);
+\node[left] at (-.5,-\ny/2,0) {$x_1$};
+
+\draw[myptr] (-.5,0,0) -- (-.5,0,-\nz);
+\node[left] at (-.5,.5,-\nz/2) {$x_2$};
+
+\draw[myptr] (-.5,-\ny-.5,0) -- (\nx,-\ny-.5,0);
+\node[below] at (\nx/2,-\ny-.5,0) {$x_3$};
+ \end{tikzpicture}
+\end{document}
