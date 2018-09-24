@@ -50,7 +50,7 @@ class DensityFinder:
         self._interpolator = SplineInterpolator1D(spline)
         self._spline = Spline1D(spline)
         
-        self._fEq = fEq(eta_grid[0][:,None],self._points[None,:])
+        self._fEq = initialiser.fEq(eta_grid[0][:,None],self._points[None,:])
     
     def getPerturbedRho ( self, grid: Grid , rho: Grid ):
         """
