@@ -69,7 +69,7 @@ class DensityFinder:
         self._splineMem = np.empty_like(self._points)
         
         self._fEq = np.empty([eta_grid[0].size,self._points.size])
-        MOD_IF.fEq_vector(modFunc_init(self._fEq),eta_grid[0],self._points,constants.CN0,constants.kN0,
+        MOD_IF.feq_vector(modFunc_init(self._fEq),eta_grid[0],self._points,constants.CN0,constants.kN0,
                                 constants.deltaRN0,constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
     
     def getPerturbedRho ( self, grid: Grid , rho: Grid ):

@@ -29,7 +29,7 @@ def init_f_vpar(surface,r,theta,z,vPar,m,n, eps,CN0,kN0,deltaRN0,rp,CTi,kTi,delt
             surface[i,j]=fEq(r,v,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi)*(1+eps*perturbation(r,q,z,m,n,rp,deltaR,R0))
 
 @types('double[:,:]','double[:]','double[:]','double','double','double','double','double','double','double')
-def fEq_vector(surface,r_vec,vPar,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi):
+def feq_vector(surface,r_vec,vPar,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi):
     for i,r in enumerate(r_vec):
         for j,v in enumerate(vPar):
             surface[i,j]=fEq(r,v,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi)
