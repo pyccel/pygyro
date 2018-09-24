@@ -183,6 +183,10 @@ else:
 
 setup_time = time.clock()-setup_time_start
 
+output_time_starts.append(time.clock())
+distribFunc.writeH5Dataset(foldername,t)
+output_time_ends.append(time.clock())
+
 loop_time_starts.append(time.clock())
 
 for ti in range(tN):
