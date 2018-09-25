@@ -109,7 +109,6 @@ def test_DensityFinder_cos(npts_v,tol):
     err = rho._f - vals
     assert((np.abs(err)<tol).all())
 
-"""
 @pytest.mark.serial
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
                                           (2,32,0.1),(3,9,0.03),(3,32,0.02),
@@ -753,5 +752,4 @@ def test_BasicPoissonEquation_exact(deg):
     
     assert(l2<1e-10)
     assert(lInf<1e-10)
-"""
 
