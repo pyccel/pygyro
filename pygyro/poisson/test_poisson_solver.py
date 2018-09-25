@@ -38,9 +38,13 @@ def test_DensityFinder_poly(npts_v, coeffs,tol):
     eta_grid = [bspl.greville                 for bspl       in bsplines]
     
     layout_poisson = {'v_parallel': [0,2,1]}
-    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid[:3])
     
     grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    
+    nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
+    
+    remapper = getLayoutHandler(comm,layout_poisson,[nprocs],eta_grid[:3])
+    
     rho=Grid(eta_grid[:3],bsplines[:3],remapper,'v_parallel',comm)
     
     for i,r in grid.getCoords(0):
@@ -78,9 +82,13 @@ def test_DensityFinder_cos(npts_v,tol):
     eta_grid = [bspl.greville                 for bspl       in bsplines]
     
     layout_poisson = {'v_parallel': [0,2,1]}
-    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid[:3])
     
     grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    
+    nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
+    
+    remapper = getLayoutHandler(comm,layout_poisson,[nprocs],eta_grid[:3])
+    
     rho=Grid(eta_grid[:3],bsplines[:3],remapper,'v_parallel',comm)
     
     for i,r in grid.getCoords(0):
