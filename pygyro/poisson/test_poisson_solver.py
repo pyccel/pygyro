@@ -8,13 +8,100 @@ from ..model.process_grid                   import compute_2d_process_grid
 from ..model.layout                         import LayoutSwapper, getLayoutHandler
 from ..model.grid                           import Grid
 from ..initialisation.setups                import setupCylindricalGrid
-from ..initialisation.mod_initialiser_funcs import Te
+from ..initialisation.mod_initialiser_funcs import Te, fEq
 from ..initialisation                       import constants
 from ..                                     import splines as spl
 from .poisson_solver                        import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
 from ..splines.splines                      import BSplines, Spline1D
 from ..splines.spline_interpolators         import SplineInterpolator1D
 
+def args_density_finder_poly():
+    for npts,tol in zip([10,20,50],[0.002,0.0003,2e-6]):
+        for i in range( 5 ):
+            coeffs = np.random.random(4)*3
+            yield (npts, coeffs,tol)
+
+@pytest.mark.parallel
+@pytest.mark.parametrize( "npts_v,coeffs,tol", args_density_finder_poly() )
+def test_DensityFinder_poly(npts_v, coeffs,tol):
+    npts = [30,4,4,npts_v]
+    domain = [[1,5],[0,2*pi],[0,1],[0,10]]
+    degree = [3,3,3,3]
+    period = [False,True,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'v_parallel': [0,2,1]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid[:3])
+    
+    grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    rho=Grid(eta_grid[:3],bsplines[:3],remapper,'v_parallel',comm)
+    
+    for i,r in grid.getCoords(0):
+        for j,z in grid.getCoords(1):
+            for k,q in grid.getCoords(2):
+                vec = grid.get1DSlice([i,j,k])
+                for l,v in grid.getCoords(3):
+                    vec[l] = fEq(r,v,constants.CN0,constants.kN0,constants.deltaRN0,
+                                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi) \
+                            + coeffs[0]*v**3 + coeffs[1]*v**2 + coeffs[2]*v + coeffs[3]
+    
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    
+    df.getPerturbedRho(grid,rho)
+    
+    vals = coeffs[0]*10**4/4 + coeffs[1]*10**3/3 + coeffs[2]*10**2/2 + coeffs[3]*10
+    
+    err = rho._f - vals
+    assert((np.abs(err)<tol).all())
+
+@pytest.mark.parallel
+@pytest.mark.parametrize( "npts_v,tol", [(10,0.005),(20,0.0004),(30,4e-5)] )
+def test_DensityFinder_cos(npts_v,tol):
+    npts = [30,4,4,npts_v]
+    domain = [[1,5],[0,2*pi],[0,1],[0,10]]
+    degree = [3,3,3,3]
+    period = [False,True,True,False]
+    comm = MPI.COMM_WORLD
+    
+    # Compute breakpoints, knots, spline space and grid points
+    nkts     = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
+    bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
+    eta_grid = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson = {'v_parallel': [0,2,1]}
+    remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid[:3])
+    
+    grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    rho=Grid(eta_grid[:3],bsplines[:3],remapper,'v_parallel',comm)
+    
+    for i,r in grid.getCoords(0):
+        for j,z in grid.getCoords(1):
+            for k,q in grid.getCoords(2):
+                vec = grid.get1DSlice([i,j,k])
+                for l,v in grid.getCoords(3):
+                    vec[l] = fEq(r,v,constants.CN0,constants.kN0,constants.deltaRN0,
+                                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi) \
+                            + np.cos(v)
+    
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    
+    df.getPerturbedRho(grid,rho)
+    
+    vals = np.sin(10)
+    
+    err = rho._f - vals
+    assert((np.abs(err)<tol).all())
+
+"""
 @pytest.mark.serial
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
                                           (2,32,0.1),(3,9,0.03),(3,32,0.02),
@@ -658,3 +745,5 @@ def test_BasicPoissonEquation_exact(deg):
     
     assert(l2<1e-10)
     assert(lInf<1e-10)
+"""
+
