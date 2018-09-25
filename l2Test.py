@@ -64,7 +64,7 @@ tEnd = args.tEnd[0]
 
 if (len(foldername)>0):
     print("To load from ",foldername)
-    if (os.path.isdir(foldername)):
+    if (os.path.isdir(foldername) and os.path.exists("{0}/initParams.h5".format(foldername))):
         loadable = True
 else:
     foldername = None
