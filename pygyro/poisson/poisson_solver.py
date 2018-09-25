@@ -90,6 +90,7 @@ class DensityFinder:
         assert(grid.getLayout(grid.currentLayout).dims_order==(0,2,1,3))
         assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         
+        rIndices = grid.getGlobalIdxVals(0)
         for i,(r,rIdx) in enumerate(zip(grid.getCoordVals(0),rIndices)):
             for j,z in grid.getCoords(1):
                 rho_qv = rho.get1DSlice([i,j])
