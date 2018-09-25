@@ -17,7 +17,7 @@
 \usepackage[colorlinks,bookmarks=true,bookmarksdepth=2,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
 \usepackage{bookmark}
 \usepackage{dsfont}
-\usepackage{lipsum}
+\usepackage{listings}
 
 \usepackage{accents}
 \newcommand{\hvv}[1]{\accentset{\rightharpoonup}{#1}}
@@ -52,16 +52,69 @@
 
 \newcommand{\grad}{\ensuremath{\hvv{\nabla}}}
 
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{mygreen}{RGB}{0, 153, 0}
+
+\lstdefinestyle{bashStyle}{
+    backgroundcolor=\color{backcolour},
+    basicstyle=\footnotesize,
+    breakatwhitespace=true,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\lstdefinestyle{pythonStyle}{
+    backgroundcolor=\color{backcolour},
+    stringstyle=\color{mygreen},
+    commentstyle=\color{red},
+    basicstyle=\footnotesize,
+    breakatwhitespace=true,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% page clearing
+\newcommand{\clearemptydoublepage}{%
+  \ifthenelse{\boolean{@twoside}}{\newpage{\pagestyle{empty}\cleardoublepage}}%
+  {\clearpage}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  
 \floatstyle{ruled}
 \newfloat{Example}{tbp}{lop}[chapter]
 
-\title{Parallel gyrokinetic simulations with Python}
-\author{Emily Bourne}
+\input{components/info}
 
 \begin{document}
+
 \frontmatter 
 
-\maketitle
+\include{components/cover}
+
+
+\clearemptydoublepage
+
+\input{components/titlepage}
+
+\input{components/disclaimer}
+
+%\input{components/acknowledgements}
+
+\input{components/abstract}
 
 \tableofcontents
 %e.g. preface
@@ -79,6 +132,8 @@
 \include{ParallelSetup}
 
 \include{Pyccel}
+
+\include{Simulation}
 
 \include{Conclusion}
 
