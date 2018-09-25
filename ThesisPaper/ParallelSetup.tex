@@ -415,6 +415,20 @@ In this case the solution proposed above would still be applicable but different
 
 \section{Comparison with literature}
 
+\begin{figure}
+\begin{subfigure}[t]{0.45\textwidth}
+ \includegraphics[width=\textwidth]{Figs/PythonScaling/Speedup}
+ \caption{\label{fig::Speedup}Speedup when increasing the number of nodes used}
+\end{subfigure}
+\hspace{.05\textwidth}
+\begin{subfigure}[t]{0.45\textwidth}
+ \includegraphics[width=\textwidth]{Figs/PythonScaling/Efficiency}
+ \caption{\label{fig::Efficiency}Efficiency with different numbers of nodes}
+\end{subfigure}
+\caption{\label{fig::Scaling results} Scaling results for the pyccelised version of the code using different compilers}
+\end{figure}
+
+
 \todo{Find more comparisons}
 
 A similar approach to the one described here was used by Latu et al. (2007) \cite{ParallelisationSemi-LagrangianVlasovCodes} with some success although parallel overhead led to limitations on the number of processes which could be used.
