@@ -90,7 +90,7 @@ class DensityFinder:
         assert(grid.getLayout(grid.currentLayout).dims_order==(0,2,1,3))
         assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         
-        for i,r in grid.getCoords(0):
+        for i,(r,rIdx) in enumerate(zip(grid.getCoordVals(0),rIndices)):
             for j,z in grid.getCoords(1):
                 rho_qv = rho.get1DSlice([i,j])
                 for k,theta in grid.getCoords(2):
@@ -98,7 +98,7 @@ class DensityFinder:
                     SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
                             self._spline.coeffs,self._splineMem,0)
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
-                                        -self._fEq[i]))
+                                        -self._fEq[rIdx]))
     
 class DiffEqSolver:
     """
