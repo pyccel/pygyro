@@ -43,7 +43,7 @@ def test_DensityFinder_poly(npts_v, coeffs,tol):
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
-    remapper = getLayoutHandler(comm,layout_poisson,[nprocs],eta_grid[:3])
+    remapper = getLayoutHandler(comm,layout_poisson,nprocs,eta_grid[:3])
     
     rho=Grid(eta_grid[:3],bsplines[:3],remapper,'v_parallel',comm)
     
@@ -87,7 +87,7 @@ def test_DensityFinder_cos(npts_v,tol):
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
-    remapper = getLayoutHandler(comm,layout_poisson,[nprocs],eta_grid[:3])
+    remapper = getLayoutHandler(comm,layout_poisson,nprocs,eta_grid[:3])
     
     rho=Grid(eta_grid[:3],bsplines[:3],remapper,'v_parallel',comm)
     
