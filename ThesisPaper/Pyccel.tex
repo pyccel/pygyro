@@ -2,13 +2,59 @@
 
 \section{Introduction}
 
+As mentioned in chapter \ref{chapter::Introduction} python runs much slower than compiled languages. Tests on the code produced thus far at first did not yield results. Once the total size of the simulation was reduced by a factor of eight, it was found that five time steps could be run on one node containing 32 processes in three hours. This means that the full simulation would take more than a year and a half to run on one node. Assuming perfect scaling, it would take nearly 5 days on the maximum number of processes (2048 processes, 128 nodes). These times are unreasonable, especially if the simulation must be rerun. It is therefore important to find a way to accelerate the code.
+
 
 
 \section{Using Pyccel}
 
 A function can be pyccelised if it contains only basic python and numpy methods\footnote{Not all methods are currently supported by pyccel}. As classes cannot be pyccelised, functions must be created containing the pyccelisable content. These can then be called from the class to mask the larger interface that this creates.
 
-Once the functions to be pyccelised have been selected the pyccelisation can begin. All functions which will be called directly should be placed in one file. All functions which are called by those functions are then placed in a second file whose name must have the form ``mod\_[XX].py'', where [XX] can be anything. 
+Once the functions to be pyccelised have been selected, the pyccelisation can begin. All functions which will be called directly should be placed in one file. All functions which are used by those functions are then placed in a second file whose name must have the form ``mod\_[XX].py'', where [XX] can be anything. The ``mod\_[XX].py'' is used by epyccel, the interactive version of pyccel, as a context, enabling it to generate a shared object file. All functions must also be given a header specifying the Fortran types of the arguments. The header can either take the form of a comment or a function decorator. Function decorators are preferable as they can be imported interactively with the function. The syntax is as follows:
+
+\begin{lstlisting}[language=python,style=pythonStyle]
+ #$ header function my_function(double,int,double[:],int[:,:])
+ @types('double','int','double[:]','int[:,:]')
+\end{lstlisting}
+
+Once the functions have been assembled in the correct files and given the appropriate headers, the context must be compiled. To do this one can use the command:
+
+\begin{lstlisting}[language=bash,style=bashStyle]
+ pyccel mod_[XX].py --fflags ' -O3 -fPIC'
+\end{lstlisting}
+
+The Fortran flags must be specified to ensure that the resulting files can be converted with f2py. If one wishes to generate the pyccel file from a different folder, then this can be done with the following command
+
+\begin{lstlisting}[language=bash,style=bashStyle]
+ pyccel folder1/folder2/mod_[XX].py --output folder1/folder2   --fflags ' -O3 -fPIC'
+\end{lstlisting}
+
+This allows all files to be generated simply from one location. This is the version which is used in this project.
+
+Alternatively if the generated Fortran code may be modified then the chosen pyccel command should be given the flag '-t'. The generated code must then be compiled. For example the following command must be used with the gfortran or intel compiler respectively:
+
+\begin{lstlisting}[language=bash,style=bashStyle]
+ gfortran -O3 -fPIC -c folder1/folder2/mod_[XX].f90 -o folder1/folder2/mod_[XX].o  -J folder1/folder2/
+ ifort -O3 -fPIC -c folder1/folder2/mod_[XX].f90 -o folder1/folder2/mod_[XX].o  -module folder1/folder2/
+\end{lstlisting}
+
+Once the context file is prepared then a shared object file can be generated using epyccel. In order to do this the module to be pyccelised and the functions from the context file must be imported. A ContextPyccel object should then be created containing all the functions required, and the types of their arguments. If the pyccelisation is carried out from a folder which does not contain the modules then the position of the module in the python hierarchy must be specified using the context\_folder keyword. The following code, showing the commands required to generate the shared object for the spline module, serves as an example:
+
+\begin{lstlisting}[language=python,style=pythonStyle]
+from pyccel.epyccel import ContextPyccel
+from pyccel.epyccel import epyccel
+
+import pygyro.splines.spline_eval_funcs
+from pygyro.splines.mod_context_1 import find_span,basis_funs,basis_funs_1st_der
+
+spline_context = ContextPyccel(name='context_1', context_folder='pygyro.splines')
+spline_context.insert_function(find_span, ['double[:]','int','double'])
+spline_context.insert_function(basis_funs, ['double[:]','int','double','int','double[:]'])
+spline_context.insert_function(basis_funs_1st_der, ['double[:]','int','double','int','double[:]'])
+
+spline_eval_funcs = epyccel(pygyro.splines.spline_eval_funcs, context=spline_context)
+\end{lstlisting}
+
 
 \section{Spline Acceleration}
 
@@ -116,7 +162,9 @@ As the accelerated functions are used in the initialisation which is not profile
 
 \section{Advection Acceleration}
 
-We are now able to accelerate the advection functions. We begin by accelerating the poloidal advection. The files written for the splines and the initialisation are used to provide a context for the accelerated advection file. Unfortunately a context cannot have its own context. Thus a file mod\_spline\_eval\_funcs.py must be created containing the contents of mod\_context\_1.py and spline\_eval\_funcs.py. 
+We are now able to accelerate the advection functions. We begin by accelerating the poloidal advection. The files written for the splines and the initialisation are used to provide a context for the accelerated advection file. Unfortunately a context cannot have its own context. Thus a file mod\_spline\_eval\_funcs.py must be created containing the contents of mod\_context\_1.py and spline\_eval\_funcs.py.
+
+Once this step has been accomplished successfully the pyccelisable parts of the v-parallel and flux surface advections can be added to the accelerated advection file very simply.
 
 \begin{table}[ht]
 \centering
@@ -146,5 +194,30 @@ We are now able to accelerate the advection functions. We begin by accelerating 
 \end{table}
 
 \section{Results}
-\section{Conclusion}
 
+\begin{table}[ht]
+\centering
+ \begin{tabular}{|m{.37\textwidth}|c|c|c|c|}
+  \hline
+          & Total time & Number & Time & Total \\
+  Function & excluding sub & of & per call & time \\
+          & functions [s] & calls & [s] & [s] \\
+  \hline
+  \hline
+  step in PoloidalAdvection &  &  &  &  \\
+  \hline
+  step in FluxSurfaceAdvection &  &  &  &  \\
+  \hline
+  getPerturbedRho in ParallelGradient &  &  &  & \\
+  \hline
+  method 'Alltoall' from mpi4py &  &  &  & \\
+  \hline
+  step in VParallelAdvection &  &  &  & \\
+  \hline
+  method 'solve' from scipy 'SuperLU' object &  &  &  & \\
+  \hline
+  \_solve\_system\_nonperiodic in SplineInterpolator1D &  &  &  & \\
+  \hline
+ \end{tabular}
+ \caption{\label{tab::draco profile} The results of profiling the implementation on the supercomputer after accelerating the functions}
+\end{table}
