@@ -1,6 +1,6 @@
-module mod_pygyro_splines_spline_eval_funcs_clean
+module mod_pygyro_splines_spline_eval_funcs
 
-use mod_context_1_opt, only: &
+use mod_context_1, only: &
   find_span, &
   basis_funs, &
   basis_funs_1st_der
