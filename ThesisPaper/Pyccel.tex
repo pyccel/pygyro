@@ -4,7 +4,7 @@
 
 As mentioned in chapter \ref{chapter::Introduction} python runs much slower than compiled languages. Tests on the code produced thus far at first did not yield results. Once the total size of the simulation was reduced by a factor of eight, it was found that five time steps could be run on one node containing 32 processes in three hours. This means that the full simulation would take more than a year and a half to run on one node. Assuming perfect scaling, it would take nearly 5 days on the maximum number of processes (2048 processes, 128 nodes). These times are unreasonable, especially if the simulation must be rerun. It is therefore important to find a way to accelerate the code.
 
-
+Pyccel \cite{Pyccel} is one tool that can be used to accelerate python code. It translates the python code into human readable Fortran code. This code can then be compiled and f2py can be used to allow the accelerated version to be called from python. This allows bottlenecks to be run at faster speeds without the code needing to be written in Fortran. It also means that the majority of the code is still written in python which can make it easier to understand. In addition the readability of the Fortran code allows the generated files to be easily modified to exploit any advantages of Fortran which cannot be mimicked in python.
 
 \section{Using Pyccel}
 
@@ -58,7 +58,7 @@ spline_eval_funcs = epyccel(pygyro.splines.spline_eval_funcs, context=spline_con
 
 \section{Spline Acceleration}
 
-In order to reap maximum benefits from the acceleration it is important to accelerate the functions which take the most time. These act as a bottleneck for the program. In order to determine which functions these are, the python profiler cProfile will be used on a personal laptop to examine the performance of the programme using a grid with 10 grid points in each dimension. The results for the pure python implementation are shown in table \ref{tab::pure python profile}.
+In order to reap maximum benefits from the acceleration it is important to accelerate the functions which take the most time. These act as a bottleneck for the program. In order to determine which functions these are, the python profiler cProfile will be used on a personal laptop to examine the performance of the program using a grid with 10 grid points in each dimension. Three processes are used and the results are averaged over each process. The results for the pure python implementation are shown in table \ref{tab::pure python profile}.
 
 \begin{table}[ht]
  \begin{tabular}{|m{.37\textwidth}|c|c|c|c|}
@@ -68,19 +68,19 @@ In order to reap maximum benefits from the acceleration it is important to accel
           & functions [s] & calls & [s] & [s] \\
   \hline
   \hline
-  method 'Alltoall' from mpi4py & 28.745 & 250 & 0.115 & 28.745 \\
+  method 'Alltoall' from mpi4py & 28.193 & 250 & 0.113 & 28.193 \\
   \hline
-  numpy.core.multiarray.array & 15.985 & 5143615 & 0.000 & 15.985 \\
+  numpy.core.multiarray.array & 16.070 & 5689347 & 0.000 & 16.070 \\
   \hline
-  bisplev from scipy & 10.089 & 906000 & 0.000 & 37.869\\
+  bisplev from scipy & 10.009 & 1006666 & 0.000 & 37.819\\
   \hline
-  method scipy.interpolate. \_fitpack.\_bispev & 8.370 & 906000 & 0.000 & 8.370\\
+  method scipy.interpolate. \_fitpack.\_bispev & 8.503 & 1006666 & 0.000 & 8.503\\
   \hline
-  atleast\_1d from numpy & 8.074 & 2630520 & 0.000 & 23.968\\
+  atleast\_1d from numpy & 7.990 & 2915166 & 0.000 & 23.820\\
   \hline
-  splev & 7.466 & 818520 & 0.000 & 19.090\\
+  splev & 7.334 & 901833 & 0.000 & 18.883\\
   \hline
-  reshape from numpy & 6.783 & 3065341 & 0.000 & 6.783\\
+  reshape from numpy & 6.590 & 3397927 & 0.000 & 6.590\\
   \hline
  \end{tabular}
 \caption{\label{tab::pure python profile} The results of profiling the pure python implementation}
@@ -94,7 +94,7 @@ The next four bottlenecks all arise due to the implementation of the splines. Bi
 
 In order to accelerate these two functions a mod\_context\_1.py file will be created. This file will contain the functions find\_span, basis\_funs, and basis\_funs\_1st\_der. These functions are obtained from the SPL library \cite{Python SPL}.  In addition a spline\_eval\_funcs.py file will be created. The file will contain the functions eval\_spline\_1d\_scalar, eval\_spline\_1d\_vector, eval\_spline\_2d\_scalar, and eval\_spline\_2d\_cross which mimic the behaviour of the scipy functions splev and bisplev. Furthermore a function eval\_spline\_2d\_vector will be added to help avoid unaccelerated Python loops. The scipy function calls will then be replaced by an if statement which verifies whether the input has a length, and a call to the necessary function. This implementation ensures that calls elsewhere in the program do not need to be modified. It may however slow the program somewhat as it adds additional function calls which are unnecessary if the type of the data is known.
 
-The results of the acceleration can be seen in table \ref{tab::spline profile}. It can be seen that although the spline calls remain some of the most costly function calls, the total time spent in each function is significantly reduced. For example in the case of the 2D spline evaluation, previously 37.9 seconds were spent in the function bisplev and its sub-functions, in contrast now only 11.6 seconds are spent in total. Similarly the 1D spline evaluation previously required 19.1 seconds and now takes only 6.1 seconds.
+The results of the acceleration can be seen in table \ref{tab::spline profile}. It can be seen that although the spline calls remain some of the most costly function calls, the total time spent in each function is significantly reduced. For example in the case of the 2D spline evaluation, previously 37.8 seconds were spent in the function bisplev and its sub-functions, in contrast now only 12.3 seconds are spent in eval in total. Similarly the 1D spline evaluation previously required 18.8 seconds and now takes only 6.3 seconds.
 
 \begin{table}[ht]
 \centering
@@ -105,19 +105,19 @@ The results of the acceleration can be seen in table \ref{tab::spline profile}. 
           & functions [s] & calls & [s] & [s] \\
   \hline
   \hline
-  method 'Alltoall' from mpi4py & 13.469 & 250 & 0.054 & 13.469 \\
+  method 'Alltoall' from mpi4py & 10.461 & 250 & 0.042 & 10.461 \\
   \hline
-  numpy.core.multiarray.array & 8.874 & 1471915 & 0.000 & 8.874 \\
+  numpy.core.multiarray.array & 9.340 & 1624947 & 0.000 & 9.340 \\
   \hline
-  eval in Spline2D & 6.758 & 906000 & 0.000 & 11.620\\
+  eval in Spline2D & 7.225 & 1006666 & 0.000 & 12.345\\
   \hline
-  step in PoloidalAdvection & 5.110 & 3000 & 0.002 & 33.292\\
+  step in PoloidalAdvection & 5.423 & 3333 & 0.002 & 35.266\\
   \hline
-  eval in Spline1D & 4.729 & 818520 & 0.000 & 6.070\\
+  eval in Spline1D & 4.948 & 901833 & 0.000 & 6.319\\
   \hline
-  step in FluxSurfaceAdvection & 4.548 & 4500 & 0.001 & 9.077\\
+  step in FluxSurfaceAdvection & 4.744 & 5000 & 0.001 & 9.527\\
   \hline
-  \_vectorize\_call & 4.195 & 345000 & 0.000 & 24.107\\
+  \_vectorize\_call & 4.403 & 383333 & 0.000 & 25.365\\
   \hline
  \end{tabular}
  \caption{\label{tab::spline profile} The results of profiling the implementation after the acceleration of the spline functions}
@@ -140,19 +140,19 @@ Unfortunately, unlike the splines, the initialisation cannot be accelerated whil
           & functions [s] & calls & [s] & [s] \\
   \hline
   \hline
-  method 'Alltoall' from mpi4py & 26.710 & 250 & 0.107 & 26.710 \\
+  method 'Alltoall' from mpi4py & 20.373 &  250 & 0.081 & 20.373 \\
   \hline
-  numpy.core.multiarray.array & 8.837 & 1694575 & 0.000 & 8.837 \\
+  numpy.core.multiarray.array & 9.581 &   1872347 & 0.000 & 9.581 \\
   \hline
-  eval in Spline2D & 6.759 & 906000 & 0.000 & 11.548\\
+  eval in Spline2D & 7.423 &   1006666 & 0.000 & 12.722\\
   \hline
-  step in PoloidalAdvection & 5.157 & 3000 & 0.002 & 38.472\\
+  step in PoloidalAdvection & 5.639 &      3333 & 0.002 & 42.126\\
   \hline
-  eval in Spline1D & 4.868 & 826360 & 0.000 & 6.223\\
+  eval in Spline1D & 5.211 & 910400 & 0.000 & 6.655\\
   \hline
-  step in FluxSurfaceAdvection & 4.550 & 4500 & 0.001 & 9.191\\
+  step in FluxSurfaceAdvection & 4.802 & 5000 & 0.001 & 9.772\\
   \hline
-  \_vectorize\_call & 4.225 & 345000 & 0.000 & 23.773\\
+  \_vectorize\_call & 4.538 & 383333 & 0.000 & 25.898\\
   \hline
  \end{tabular}
  \caption{\label{tab::init profile} The results of profiling the implementation after the acceleration of the spline and initialisation functions}
@@ -162,10 +162,6 @@ As the accelerated functions are used in the initialisation which is not profile
 
 \section{Advection Acceleration}
 
-We are now able to accelerate the advection functions. We begin by accelerating the poloidal advection. The files written for the splines and the initialisation are used to provide a context for the accelerated advection file. Unfortunately a context cannot have its own context. Thus a file mod\_spline\_eval\_funcs.py must be created containing the contents of mod\_context\_1.py and spline\_eval\_funcs.py.
-
-Once this step has been accomplished successfully the pyccelisable parts of the v-parallel and flux surface advections can be added to the accelerated advection file very simply.
-
 \begin{table}[ht]
 \centering
  \begin{tabular}{|m{.37\textwidth}|c|c|c|c|}
@@ -175,25 +171,31 @@ Once this step has been accomplished successfully the pyccelisable parts of the 
           & functions [s] & calls & [s] & [s] \\
   \hline
   \hline
-  method 'Alltoall' from mpi4py & 3.711 & 250 & 0.015 & 3.711 \\
+  method 'Alltoall' from mpi4py & 4.361 & 250 & 0.017 & 4.361 \\
   \hline
-  step in FluxSurfaceAdvection & 1.88 & 4500 & 0.000 & 3.469 \\
+  step in FluxSurfaceAdvection & 1.874 & 5000 & 0.000 & 3.428 \\
   \hline
-  step in PoloidalAdvection & 1.435 & 3000 & 0.000 & 3.066\\
+  step in PoloidalAdvection & 1.489 & 3333 & 0.000 & 3.135\\
   \hline
-  method 'solve' from scipy 'SuperLU' object & 1.353 & 88000 & 0.000 & 1.353\\
+  method 'solve' from scipy 'SuperLU' object & 1.330 & 96666 & 0.000 & 1.330\\
   \hline
-  parallel\_gradient in ParallelGradient & 1.348 & 1000 & 0.001 & 2.608\\
+  getPerturbedRho in ParallelGradient & 1.221 & 101 & 0.012 & 5.407\\
   \hline
-  getPerturbedRho in ParallelGradient & 1.222 & 1000 & 0.012 & 5.467\\
+  parallel\_gradient in ParallelGradient & 1.213 & 1000 & 0.001 & 2.348\\
   \hline
-  \_solve\_system\_nonperiodic in SplineInterpolator1D & 1.116 & 111330 & 0.000 & 1.116\\
+  \_solve\_system\_nonperiodic in SplineInterpolator1D & 1.109 & 123700 & 0.000 & 1.109\\
   \hline
  \end{tabular}
  \caption{\label{tab::adv profile} The results of profiling the implementation after the acceleration of the spline, initialisation, and advection functions}
 \end{table}
 
-\section{Results}
+We are now able to accelerate the advection functions. We begin by accelerating the poloidal advection. The files written for the splines and the initialisation are used to provide a context for the accelerated advection file. Unfortunately a context cannot have its own context. Thus a file mod\_spline\_eval\_funcs.py must be created containing the contents of mod\_context\_1.py and spline\_eval\_funcs.py.
+
+Once this step has been accomplished successfully the pyccelisable parts of the v-parallel and flux surface advections can be added to the accelerated advection file very simply.
+
+The results of the profiling after this pyccelisation can be seen in table \ref{tab::adv profile}. Although the advection steps are still the slowest steps we note that while previously 42.1 seconds were spent in the PoloidalAdvection step and its sub-function, now only 3.1 seconds are required. Similarly while previously 9.8 seconds were spent in the FluxSurfaceAdvection step and its sub-functions, now only 3.4 seconds are required.
+
+The remaining functions are harder to accelerate. They each contain very little code, but call 'eval' from Spline1D multiple times. This allows for a small improvement as it is possible to call the accelerated function directly without using Spline1D. This avoids the type check which decides whether to use the scalar or vector version of the accelerated function. An additional improvement was found in 'getPerturbedRho' by calculating the value of the distribution function at equilibrium in the initialisation, thus avoiding recalculating it at each step.
 
 \begin{table}[ht]
 \centering
@@ -204,20 +206,86 @@ Once this step has been accomplished successfully the pyccelisable parts of the 
           & functions [s] & calls & [s] & [s] \\
   \hline
   \hline
-  step in PoloidalAdvection &  &  &  &  \\
+  method 'Alltoall' from mpi4py & 2.735 & 250 & 0.011 & 2.735 \\
   \hline
-  step in FluxSurfaceAdvection &  &  &  &  \\
+  step in FluxSurfaceAdvection & 1.826 & 5000 & 0.000 & 3.355 \\
   \hline
-  getPerturbedRho in ParallelGradient &  &  &  & \\
+  parallel\_gradient in ParallelGradient & 1.492 & 1000 & 0.001 & 1.903\\
   \hline
-  method 'Alltoall' from mpi4py &  &  &  & \\
+  step in PoloidalAdvection object & 1.420 & 3333 & 0.000 & 3.004\\
   \hline
-  step in VParallelAdvection &  &  &  & \\
+  method 'solve' from scipy 'SuperLU' & 1.294 & 96666 & 0.000 & 1.294\\
   \hline
-  method 'solve' from scipy 'SuperLU' object &  &  &  & \\
+  getPerturbedRho in ParallelGradient & 1.022 & 101 & 0.010 & 2.307\\
   \hline
-  \_solve\_system\_nonperiodic in SplineInterpolator1D &  &  &  & \\
+  \_solve\_system\_nonperiodic in SplineInterpolator1D & 0.977 & 123700 & 0.000 & 0.977\\
   \hline
  \end{tabular}
- \caption{\label{tab::draco profile} The results of profiling the implementation on the supercomputer after accelerating the functions}
+ \caption{\label{tab::final profile} The results of profiling the implementation after the acceleration of the spline, initialisation, and advection functions}
 \end{table}
+
+The profile after these final improvements can be seen in table \ref{tab::final profile}. Note that the improvements have slowed the parallel\_gradient function as the calls are more complicated but the overall time spent in this function and its sub-functions is still greatly reduced.
+
+\section{Results}
+
+Having accelerated the functions on a personal laptop, it is important to verify that the results hold for the full grid on the supercomputer. Table \ref{tab::draco profile} show the averaged results of profiling the full 256x512x32x128 grid on one node with 32 processes. The results are very similar to those seen in table \ref{tab::adv profile}. This shows that this method was sufficient for finding the bottlenecks.
+
+\begin{table}[ht]
+\centering
+ \begin{tabular}{|m{.37\textwidth}|c|c|c|c|}
+  \hline
+          & Total time & Number & Time & Total \\
+  Function & excluding sub & of & per call & time \\
+          & functions [s] & calls & [s] & [s] \\
+  \hline
+  \hline
+  step in FluxSurfaceAdvection & 522.026 & 15360 & 0.034 & 579.579 \\
+  \hline
+  step in PoloidalAdvection & 510.948 & 1280 & 0.399 & 559.224 \\
+  \hline
+  getPerturbedRho in ParallelGradient & 184.991 & 11 & 16.817 & 231.574 \\
+  \hline
+  method 'Alltoall' from mpi4py & 108.146 & 78 & 1.386 & 108.146 \\
+  \hline
+  step in VParallelAdvection & 102.033 & 1966080 & 0.000 & 131.171 \\
+  \hline
+  method 'solve' from scipy 'SuperLU' object & 82.426 & 849920 & 0.000 & 82.426 \\
+  \hline
+  \_solve\_system\_nonperiodic in SplineInterpolator1D & 50.279 & 4109824 & 0.000 & 50.279 \\
+  \hline
+ \end{tabular}
+ \caption{\label{tab::draco profile} The results of profiling the implementation on one node of the supercomputer after accelerating the functions}
+\end{table}
+
+Note that the mpi 'Alltoall' command no longer dominates the simulation. This is due to better balancing and a better calculation to communication ratio. Instead the advection steps are by far the biggest bottleneck. If any further improvements are required, they would therefore ideally be found in these functions.
+
+The performance of the generated code depends on the compiler used. For the profiling, gfortran was always used, however on the supercomputer the results can also be tested using the intel compiler. The improvements obtained are shown in table \ref{tab::timings}.
+
+\begin{table}[h]
+\centering
+ \begin{tabular}{|c|c|c|}
+  \hline
+  Version & Time per step [s] & Improvement\\
+  \hline
+  Pure Python & 17748\footnotemark & - \\
+  \hline
+  Pyccel accelerated & 487.6 & 36.4 \\
+  (intel) & & \\
+  \hline
+  Pyccel accelerated & 342.5 & 51.8\\
+  (gfortran) & & \\
+  \hline
+  Pure Fortran & 122.7 & 144.7\\
+  \hline
+ \end{tabular}
+\caption{\label{tab::timings} Time required to carry out one calculation step on one node containing 32 processes for various versions of the simulation, and the improvement that this represents compared to the pure python version}
+\end{table}
+\footnotetext{Approximated from the timings using a smaller grid and only 5 timesteps}
+
+The pure Fortran implementation referenced is that used by Latu et al.\cite{YamanPaper} for their work on the same problem. Although the best pyccel version is still three times slower than the pure Fortran version, it still runs at an acceptable speed. The speed of development also makes this increase easily justifiable. In addition there is still scope for improvement. The generated code could be improved, for example by indicating which functions are 'pure', or by using more compiler flags. The algorithms could also be modified to increase the speed. For example the implementation of the spline evaluation is very general however the points are equidistant in all cases, except for points close to the boundary along an axis which does not have periodic boundary conditions. This knowledge can be exploited to produce faster code, as is done in the pure Fortran version. In addition the parallelisation method allows more processes to be used in the python version than in the original Fortran version. While the Fortran version is limited to 256 processes, the python version can use up to 4096 processes. Figure \ref{fig::Timing Comparison} shows the timings for the various versions and shows that this advantage means that the pyccel accelerated code, accelerated using gfortran can run faster than the Fortran code if it uses 1024 processes. Unfortunately results cannot be shown on more processes as the available supercomputers either did not have the required packages or did not allow programs running on more than 32 nodes.
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=.7\textwidth]{Figs/PythonScaling/Speeds}
+ \caption{\label{fig::Timing Comparison}Comparison of time required to carry out one calculation step on different numbers of nodes, each containing 32 processes }
+\end{figure}

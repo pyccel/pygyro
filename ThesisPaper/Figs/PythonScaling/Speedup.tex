@@ -6,13 +6,15 @@
 \pgfplotsset{compat=1.5}
 \usetikzlibrary{patterns,decorations.markings}
 
+\definecolor{mygreen}{RGB}{0, 153, 0}
+
 \begin{document}
 {
 \begin{tikzpicture}
 \begin{loglogaxis}[
 xlabel={Number of Nodes},
 ylabel={Speedup},
-legend entries={Perfect scaling,Gfortran,Intel},
+legend entries={Perfect scaling,Pure Fortran,Gfortran,Intel},
 legend pos=south east,
 xtick=data,
 xticklabels={1,2,4,8,16,32},
@@ -35,6 +37,7 @@ scatter,
 only marks,
 point meta=explicit symbolic,
 scatter/classes={
+0={mark=*,mygreen,scale=2},
 1={mark=triangle*,red,{scale=2}},
 2={mark=triangle*,black}
 },
