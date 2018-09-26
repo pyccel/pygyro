@@ -24,7 +24,9 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 .PHONY: all clean help
 
 # List of main targets
-ALL = spline_eval_funcs
+ALL = \
+	spline_eval_funcs \
+	initialiser_func
 
 #----------------------------------------------------------
 # Main targets

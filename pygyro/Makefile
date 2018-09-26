@@ -14,5 +14,9 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 spline_eval_funcs:
 	$(MAKE) -C splines $@
 
+initialiser_func:
+	$(MAKE) -C initialisation $@
+
 clean:
 	$(MAKE) -C splines $@
+	$(MAKE) -C initialisation $@
