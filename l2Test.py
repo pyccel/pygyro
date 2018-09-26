@@ -20,6 +20,7 @@ from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralit
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
+from l2Norm                                 import l2
 
 loop_time_starts = []
 loop_time_ends = []
@@ -156,15 +157,9 @@ QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSplin
 l2Phi = np.zeros([2,saveStep])
 l2Result=np.zeros(saveStep)
 
-r = phi.eta_grid[0]
-q = phi.eta_grid[1]
-z = phi.eta_grid[2]
-dr = np.array([r[0], *(r[:-1]+r[1:]), r[-1]])*0.5
-dq = q[1]-q[0]
-dz = z[2]-z[1]
+l2class = l2(phi.eta_grid,phi.getLayout('v_parallel_2d'))
 
-rCalc = (r[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
-drCalc = (dr[phi.getLayout('v_parallel_2d').starts[0]:phi.getLayout('v_parallel_2d').ends[0]])[:,None,None]
+
 
 phi_filename = "{0}/phiDat.h5".format(foldername)
 if (not os.path.exists(phi_filename)):
@@ -220,7 +215,7 @@ for ti in range(tN):
     
     # Calculate diagnostic quantity |phi|_2
     l2Phi[0,ti%saveStep]=t
-    l2Phi[1,ti%saveStep]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
+    l2Phi[1,ti%saveStep]=l2class.l2NormSquared(phi)
     
     print("t=",t)
     
@@ -321,7 +316,7 @@ QNSolver.findPotential(phi)
 
 # Calculate diagnostic quantity |phi|_2
 l2Phi[0,tN%saveStep]=t
-l2Phi[1,tN%saveStep]=np.sum(np.real(phi._f*phi._f.conj()*drCalc*dq*dz*rCalc))
+l2Phi[1,tN%saveStep]=l2class.l2NormSquared(phi)
 
 additional_calc_time = time.clock()-additional_calc_start
 
