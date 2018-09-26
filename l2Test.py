@@ -22,10 +22,12 @@ from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
 from l2Norm                                 import l2
 
-loop_time_starts = []
-loop_time_ends = []
-output_time_starts = []
-output_time_ends = []
+loop_start = 0
+loop_time = 0
+diagnostic_start = 0
+diagnostic_time = 0
+output_start = 0
+output_time = 0
 
 parser = argparse.ArgumentParser(description='Process foldername')
 parser.add_argument('tEnd', metavar='tEnd',nargs=1,type=int,
@@ -178,11 +180,11 @@ else:
 
 setup_time = time.clock()-setup_time_start
 
-output_time_starts.append(time.clock())
+output_start=time.clock()
 distribFunc.writeH5Dataset(foldername,t)
-output_time_ends.append(time.clock())
+output_time+=(time.clock()-output_start)
 
-loop_time_starts.append(time.clock())
+loop_start=time.clock()
 
 for ti in range(tN):
     # Find phi from f^n by solving QN eq
@@ -195,10 +197,10 @@ for ti in range(tN):
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
+    loop_time+=(time.clock()-loop_start)
     
     if (ti%saveStep==0 and ti!=0):
-        loop_time_ends.append(time.clock())
-        output_time_starts.append(time.clock())
+        output_start=time.clock()
         distribFunc.writeH5Dataset(foldername,t)
         
         comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
@@ -210,9 +212,9 @@ for ti in range(tN):
             dset[n-saveStep:n,0]=l2Phi[0,:]
             dset[n-saveStep:n,1]=l2Result
         phiFile.close()
-        output_time_ends.append(time.clock())
-        loop_time_starts.append(time.clock())
+        output_time+=(time.clock()-output_start)
     
+    diagnostic_start=time.clock()
     # Calculate diagnostic quantity |phi|_2
     l2Phi[0,ti%saveStep]=t
     l2Phi[1,ti%saveStep]=l2class.l2NormSquared(phi)
@@ -220,6 +222,8 @@ for ti in range(tN):
     print("t=",t)
     
     t+=dt
+    diagnostic_time+=(time.clock()-diagnostic_start)
+    loop_start=time.clock()
     
     # Compute f^n+1/2 using lie splitting
     distribFunc.setLayout('flux_surface')
@@ -287,9 +291,9 @@ for ti in range(tN):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
 
-loop_time_ends.append(time.clock())
+loop_time+=(time.clock()-loop_start)
 if (tN%saveStep==0):
-    output_time_starts.append(time.clock())
+    output_start=time.clock()
     comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
     l2Result = np.sqrt(l2Result)
     phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
@@ -299,7 +303,7 @@ if (tN%saveStep==0):
         dset[n-saveStep:n,0]=l2Phi[0,:]
         dset[n-saveStep:n,1]=l2Result
     phiFile.close()
-    output_time_ends.append(time.clock())
+    output_time+=(time.clock()-output_start)
 
 additional_calc_start = time.clock()
 
@@ -314,13 +318,16 @@ phi.setLayout('v_parallel_2d')
 rho.setLayout('v_parallel_2d')
 QNSolver.findPotential(phi)
 
+
+diagnostic_start=time.clock()
 # Calculate diagnostic quantity |phi|_2
 l2Phi[0,tN%saveStep]=t
 l2Phi[1,tN%saveStep]=l2class.l2NormSquared(phi)
+diagnostic_time+=(time.clock()-diagnostic_start)
 
 additional_calc_time = time.clock()-additional_calc_start
 
-output_time_starts.append(time.clock())
+output_start=time.clock()
 distribFunc.writeH5Dataset(foldername,t)
 
 comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
@@ -333,7 +340,7 @@ if (rank == 0):
     dset[nS:nE,0]=l2Phi[0,:(nE-nS)]
     dset[nS:nE,1]=l2Result[:(nE-nS)]
 phiFile.close()
-output_time_ends.append(time.clock())
+output_time+=(time.clock()-output_start)
 
 #End profiling and print results
 #~ pr.disable()
@@ -342,10 +349,8 @@ output_time_ends.append(time.clock())
 #~ ps.print_stats()
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
-output_time = sum(np.array(output_time_ends)-np.array(output_time_starts))
-loop_time = sum(np.array(loop_time_ends)-np.array(loop_time_starts))
 
-print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {additional:16.10e}".
+print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {additional:16.10e}   {diagnostic:16.10e}".
             format(loop=loop_time,output=output_time,setup=setup_time,
-            additional=additional_calc_time),
+            additional=additional_calc_time,diagnostic=diagnostic_time),
         file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(),rank), "w"))
