@@ -101,6 +101,33 @@ class DensityFinder:
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
                                         -self._fEq[rIdx]))
     
+    def getRho ( self, grid: Grid , rho: Grid ):
+        """
+        Get the perturbed particle density
+
+        Parameters
+        ----------
+        grid : Grid
+            A grid containing the values of the particle distribution
+            function
+        
+        rho : Grid
+            The grid in which the values of the perturbed particle
+            density will be stored
+        
+        """
+        assert(grid.getLayout(grid.currentLayout).dims_order==(0,2,1,3))
+        assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
+        
+        for i,r in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                rho_qv = rho.get1DSlice([i,j])
+                for k,theta in grid.getCoords(2):
+                    self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
+                    SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
+                            self._spline.coeffs,self._splineMem,0)
+                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem))
+    
 class DiffEqSolver:
     """
     DiffEqSolver: Class used to solve a differential equation of the form:
