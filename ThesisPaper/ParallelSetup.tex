@@ -1,4 +1,4 @@
-\rchapter{Parallel Setup}
+\rchapter{Parallel Set-up}
 
 \section{Introduction}
 
@@ -24,7 +24,7 @@ The arrangement of the data in memory depends on the requirements of the calcula
 
 Equation \ref{eq::Advection1} leads to an operator which acts on the particle distribution function f, along the flux surface. This surface is defined on $\eta_2$ and $\eta_3$ so the memory access for these variables ought to be contiguous for this operator. Equation \ref{eq::Advection2} leads to an operator which acts on the distribution function along the velocity or $\eta_4$. Therefore  the memory access for $\eta_4$ ought to be contiguous for this operator. Equation \ref{eq::Advection3} leads to an operator which acts on the distribution function along the poloidal surface. This surface is defined on $\eta_1$ and $\eta_2$ so the memory access for these variables ought to be contiguous for this operator.
 
-Evidently it is not possible to find a structure which is optimal for all three of these operators, however given the amount of calculation involved with each step it is reasonable to change layout between each operator. This has been done previously by Latu et al, 2007 \cite{Gysela5D}. A setup must therefore be found such that the following requirements are met:
+Evidently it is not possible to find a structure which is optimal for all three of these operators, however given the amount of calculation involved with each step it is reasonable to change layout between each operator. This has been done previously by Latu et al, 2007 \cite{Gysela5D}. A set-up must therefore be found such that the following requirements are met:
 
 \begin{tcolorbox} [enhanced,title=Requirements,attach boxed title to top left={xshift=10pt,yshift=-\tcboxedtitleheight/2},boxed title style={size=small}]
 
@@ -34,7 +34,7 @@ Evidently it is not possible to find a structure which is optimal for all three 
  \item The dimensions used by the operator are contiguous \label{Condition contiguous}
  \item The number of MPI messages sent and received is minimised \label{Condition MPI overhead}
  \item The memory required is minimised \label{Condition memory}
- \item After setup no memory is allocated \label{Condition allocation}
+ \item After set-up no memory is allocated \label{Condition allocation}
  \item As little copying of data as possible is used \label{Condition copying}
 \end{enumerate}
 
@@ -62,9 +62,9 @@ $$max\_procs = \min\{n_{\eta_1}\!\!\cdot n_{\eta_4},\, \, \, n_{\eta_1}\!\!\cdot
  \caption{\label{tab::Grid example} Example configuration of data points}
 \end{table}
 
-Using the example setup in table \ref{tab::Grid example}, it can be seen that in this situation the maximum number of processes would be $n_{\eta_3}\!\!\cdot n_{\eta_4} = 4096$. This shows that it does not make sense to distribute this example in more than two dimensions. Even if we tried to take advantage of being able to distribute in three dimensions for equation \ref{eq::Advection2}, it would be unlikely that this would significantly increase the total number of processes that could be used, as in general $n_{\eta_4}\ll n_{\eta_1}\cdot n_{\eta_2}$. In addition it is often the case that $n_{\eta_4}< n_{\eta_1}$ and $n_{\eta_4}<\cdot n_{\eta_2}$ which would mean that no gains in the total number of processes would be made. Thus the increase in complexity does not justify the possible gains. 
+Using the example set-up in table \ref{tab::Grid example}, it can be seen that in this situation the maximum number of processes would be $n_{\eta_3}\!\!\cdot n_{\eta_4} = 4096$. This shows that it does not make sense to distribute this example in more than two dimensions. Even if we tried to take advantage of being able to distribute in three dimensions for equation \ref{eq::Advection2}, it would be unlikely that this would significantly increase the total number of processes that could be used, as in general $n_{\eta_4}\ll n_{\eta_1}\cdot n_{\eta_2}$. In addition it is often the case that $n_{\eta_4}< n_{\eta_1}$ and $n_{\eta_4}<\cdot n_{\eta_2}$ which would mean that no gains in the total number of processes would be made. Thus the increase in complexity does not justify the possible gains. 
 
-The example setup in table \ref{tab::Grid example} also shows that it makes sense to aim for a distribution in two dimensions. The maximum number of processes that can be used in this case ($n_{\eta_3}\!\!\cdot n_{\eta_4} = 4096$) is significantly larger than the maximum number of processes that could be used if the data was only distributed in one dimension ($\eta_4=128$). Therefore the two dimensional distribution is optimal, unless it causes very large overhead thus violating requirement \ref{Condition MPI overhead}.
+The example set-up in table \ref{tab::Grid example} also shows that it makes sense to aim for a distribution in two dimensions. The maximum number of processes that can be used in this case ($n_{\eta_3}\!\!\cdot n_{\eta_4} = 4096$) is significantly larger than the maximum number of processes that could be used if the data was only distributed in one dimension ($\eta_4=128$). Therefore the two dimensional distribution is optimal, unless it causes very large overhead thus violating requirement \ref{Condition MPI overhead}.
 
 This therefore leaves us with the possible configurations shown in table \ref{tab::Possible Ordering}. This ordering is such that non-distributed dimensions are always in the final indices, thus satisfying requirement \ref{Condition contiguous}.
 
@@ -95,7 +95,7 @@ This therefore leaves us with the possible configurations shown in table \ref{ta
  \caption{\label{tab::Possible Ordering} Plausible orderings of dimensions in the three different layouts}
 \end{table}
 
-In order to simplify the problem, additional restrictions are placed on the setup. Firstly it is assumed that $\eta_2$ is never distributed, as in any case there is only one setup in which it could be distributed. This has no effect on the preceding discussion. In addition it is assumed that $\eta_2$ will always be in the same position in the ordering. As $\eta_4$ must be contiguous for the operator associated with equation \ref{eq::Advection2}, $\eta_2$ must therefore always be in the third position. This leaves two possible orderings. The choice between the two is arbitrary (the only difference is that the ordering in the first and second positions are exchanged). The choice made here can be seen in table \ref{tab::Ordering}.
+In order to simplify the problem, additional restrictions are placed on the set-up. Firstly it is assumed that $\eta_2$ is never distributed, as in any case there is only one set-up in which it could be distributed. This has no effect on the preceding discussion. In addition it is assumed that $\eta_2$ will always be in the same position in the ordering. As $\eta_4$ must be contiguous for the operator associated with equation \ref{eq::Advection2}, $\eta_2$ must therefore always be in the third position. This leaves two possible orderings. The choice between the two is arbitrary (the only difference is that the ordering in the first and second positions are exchanged). The choice made here can be seen in table \ref{tab::Ordering}.
 
 \begin{table}[ht]
 \centering
@@ -118,7 +118,6 @@ Using this ordering, it is important to find a method for changing layouts which
 \section{Moving between layouts}
 
 It is clear from the ordering in table \ref{tab::Ordering} that at each change of layout: $\eta_2$ is untouched, one dimension must become distributed, one dimension must become contiguous and one dimension must not be touched unless the number of processes along that axis changes. The problem can therefore be simplified further by assuming that this will not happen. In other words, in a given distribution direction, at any given moment, the data will be distributed over the same number of processes in that direction. The only difference will be which dimension is stored along that axis in memory (ie. for the ordering in table \ref{tab::Ordering}, $\eta_1$ or $\eta_4$ on the first storage axis will each be distributed over the same number of processes).
-%In other words, the number of processes available along each axis will remain constant throughout the simulation, and only which variable is represented by that axis will vary.
 As $\eta_2$ does not vary the problem can therefore be visualised in three dimensions as shown in figure \ref{fig::Cartesian}. It should be noted that these decisions have removed some flexibility from our system. In particular, it should be noted that it is impossible to move from a poloidal surface to a flux surface without either first changing to a $v_\parallel$ surface or changing the ordering of the variables in the flux surface.
 
 
@@ -144,13 +143,13 @@ As $\eta_2$ does not vary the problem can therefore be visualised in three dimen
 
 Figure \ref{fig::Cartesian} shows three different layouts and allows the viewer to visualise the movement of data between processes during a layout change. Consider the change from the flux-surface layout (figure \ref{fig::FluxSurface}) to the $v_\parallel$ surface layout (figure \ref{fig::VPar}). Process 1 and process 2 must exchange data with one another, however no data is required from any of the other processes. This is also the case for processes 3 and 4, and processes 5 and 6. Similarly when changing from the $v_\parallel$ surface layout to the poloidal surface layout (\ref{fig::Poloidal}) processes 1, 3, and 5 must exchange data only with one another. Indeed, with the conditions imposed each three dimensional layout change is equivalent to multiple independent two dimensional layout changes.
 
-This property can be exploited using an MPI Cartesian grid. This allows the number of messages sent to be greatly reduced thus fulfilling requirement \ref{Condition MPI overhead}. If all processes exchange data amongst themselves, then $p^2$ messages are exchanged,  where $p$ is the total number of processes. In the setup described here, for a grid distributed along a $n \times m$ grid of processes ($nm=p$), changing the variable represented by the first storage axis requires $m n^2$ messages, and changing the variable represented by the second storage axis requires $n m^2$ messages.
+This property can be exploited using an MPI Cartesian grid. This allows the number of messages sent to be greatly reduced thus fulfilling requirement \ref{Condition MPI overhead}. If all processes exchange data amongst themselves, then $p^2$ messages are exchanged,  where $p$ is the total number of processes. In the set-up described here, for a grid distributed along a $n \times m$ grid of processes ($nm=p$), changing the variable represented by the first storage axis requires $m n^2$ messages, and changing the variable represented by the second storage axis requires $n m^2$ messages.
 
 In addition the reduced problem can be expressed in one MPI collective command on a sub-communicator: Alltoall. This allows us to use the algorithms provided by MPI rather than relying on multiple point to point messages. This will almost always result in a better optimisation of the code as the MPI implementation can be optimised for hardware.
 
 \subsection{Practical Implementation}
 
-The different layouts each have different memory requirements. This would appear to mean that in order to fulfil requirement \ref{Condition allocation} (after setup no memory is allocated), one array must be allocated for each layout. However this is not ideal as indicated by requirement \ref{Condition memory}. In order to improve this situation, views on numpy arrays are used to access the data. Numpy arrays consists of a 1D array storage and a set of values representing the step-size between consecutive elements in the same dimension. A numpy view is a numpy array where the data has been stored by a different array. Using views therefore allows the allocation of a single one-dimensional array containing the maximum amount of memory required by any given layout. The view then points to a subset of this memory and allows it to be accessed as a multi-dimensional array.
+The different layouts each have different memory requirements. This would appear to mean that in order to fulfil requirement \ref{Condition allocation} (after set-up no memory is allocated), one array must be allocated for each layout. However this is not ideal as indicated by requirement \ref{Condition memory}. In order to improve this situation, views on numpy arrays are used to access the data. Numpy arrays consists of a 1D array storage and a set of values representing the step-size between consecutive elements in the same dimension. A numpy view is a numpy array where the data has been stored by a different array. Using views therefore allows the allocation of a single one-dimensional array containing the maximum amount of memory required by any given layout. The view then points to a subset of this memory and allows it to be accessed as a multi-dimensional array.
 
 \begin{figure}[ht]
  \begin{center}
@@ -408,12 +407,12 @@ $$max\_procs = n_{\eta_5} \cdot \min\{n_{\eta_1}\!\!\cdot n_{\eta_4},\, \, \, n_
 \end{center}
 \end{table}
 
-Unfortunately in a model in which collisions are considered the magnetic moment is no longer simply a parameter \todo{Find citation}.
-%\cite{}.   Helander P. and Sigmar D.J. 2002 Collisional Transport in Magnetized Plasmas (Cambridge: Cambridge University Press)?
+Unfortunately in a model in which collisions are considered the magnetic moment is no longer simply a parameter
 In this case the solution proposed above would still be applicable but different layouts would have to be determined.
-%eg ? Get eqs and find layouts?
 
-\section{Comparison with literature}
+\section{Scaling Results}
+
+The parallel set-up described in this chapter was tested using the simulation described in chapter \ref{chapter::Simulation}. The higher the ratio of calculation to communication the better the scaling will be. Therefore in order to effectively test the method described it is important to take the version of the code where the calculations can run as fast as possible. For this reason the results presented in figure \ref{fig::Scaling results} are not the results for a pure python code, but for the code which has been accelerated using pyccel as described in chapter \ref{chapter::Acceleration with Pyccel}. The scaling results are shown for the code compiled with two different compilers. They are compared with the pure python implementation used by Latu et al. for their paper \cite{YamanPaper}.
 
 \begin{figure}
 \begin{subfigure}[t]{0.45\textwidth}
@@ -428,13 +427,8 @@ In this case the solution proposed above would still be applicable but different
 \caption{\label{fig::Scaling results} Scaling results for the pyccelised version of the code using different compilers}
 \end{figure}
 
+The parallel implementations used in this project and by Latu et al are similar but not the same. Latu et al also use a system of layouts, however the layouts are only distributed in one dimension. This limits the number of processes that can be used to 256 (8 nodes) whereas the implementation described here can use 4096 (128 nodes).
 
-\todo{Find more comparisons}
+We note that the scaling for both implementations is very good. The size of the simulation means that the calculation time dominates. The implementation described here appears to be slightly better, however this is to be expected as the entire code runs three times slower, in the case of gfortran, or four times slower, in the case of intel, than the pure Fortran implementation. It would be more interesting to test this method using a code which runs at speeds more closely approaching those of the pure Fortran implementation. As discussed at the end of chapter \ref{chapter::Acceleration with Pyccel} this may be possible after improvements to pyccel or by manually improving the generated Fortran code.
 
-A similar approach to the one described here was used by Latu et al. (1998) \cite{ParallelisationSemi-LagrangianVlasovCodes} with some success although parallel overhead led to limitations on the number of processes which could be used.
-
-\todo{Compare efficiency / moment where overhead dominates}
-
-% 1d: $n^2$ messages
-% 
-% My 2d: $n_1\cdot n_2$ processes. $n_1n_2^2$ messages. or $n_1^2n_2$ messages.
+Furthermore it is difficult to compare the two implementations as the parallel overhead does not begin to dominate for the maximum number of processes possible on the pure Fortran implementation. It is possible that this point could be seen in this implementation, especially if it is tested using the code accelerated to speeds approaching that of the pure Fortran implementation, however this has not yet been tested due to time restrictions and restrictions on the maximum number of processes for the supercomputer used for these tests.

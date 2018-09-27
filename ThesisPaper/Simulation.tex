@@ -17,7 +17,7 @@ Once all the steps have been written the complete algorithm can be assembled. Me
   poloidal & $(v_\parallel,z,\theta,r)$\\
   \hline
  \end{tabular}
- \caption{\label{tab::Ordering f} The chosen ordering for $f$ (the distribution function)}
+ \caption{\label{tab::Ordering f} The chosen ordering for $f$ (the distribution function) with ($n_1$,$n_2$,1,1) processes used for the respective dimension}
 \end{table}
 
 The 3D grids have layouts that are distributed in both one and two dimensions. When the data is distributed in one dimension the data is copied across the processes. It is therefore simple to change from a layout distributed in one dimension to a similar layout distributed in two dimensions as it is simply a matter of restricting the data to the area of interest. In the opposite direction a MPI allgather command is required.
@@ -100,7 +100,6 @@ The resulting algorithm is as follows:
 \section{Numerical Results}
 
 The parameters used are the same as those in the paper by Latu et al. \cite{YamanPaper}, namely:
-
 \begin{align*}
  & B_0=1, && R_0 = 239.8081535, &&& r_{\min}=0.1, &&&& r_{\max}=14.5,\\
  & r_p = \frac{r_{\min}+r_{\max}}{2}, && \epsilon = 10^{-6}, &&& \kappa_{n_0}=0.055, &&&& \kappa_{T_i}=\kappa_{T_e}=0.27586,\\
@@ -111,3 +110,45 @@ The grid size is as follows:
 \begin{align*}
  & N_r = 256 && N_\theta = 512 &&& N_z = 32 &&&& N_{v_\parallel} = 128
 \end{align*}
+
+The simulation also uses the following parameters:
+\begin{align*}
+ &\iota=0 && m=15 &&& n=1
+%  &\iota=0.8 && m=15 &&& n=-11
+\end{align*}
+
+\begin{figure}[ht]
+ \begin{subfigure}[t]{.5\textwidth}
+  \includegraphics[width=\textwidth]{Figs/SimResults/t4000}
+  \caption{T=4000}
+ \end{subfigure}
+ \begin{subfigure}[t]{.5\textwidth}
+  \includegraphics[width=\textwidth]{Figs/SimResults/t6000}
+  \caption{T=6000}
+ \end{subfigure}
+ \caption{\label{fig::poloidal slice} Poloidal cut of the distribution function at different times at z=0 and $v_\parallel\approx0$}
+\end{figure}
+
+The equilibrium function as well as the radial profiles \{$T_i$ , $T_e$ , $n_0$ \} are defined in the paper by Latu et al. \cite{YamanPaper}.
+
+The simulation results can be seen in figure \ref{fig::poloidal slice}. 
+
+
+In addition to the poloidal slice the time evolution of the discrete L$^2$-norm of the electric potential is used as a diagnostic quantity. This norm is defined as follows:
+\begin{equation}
+ \left|\phi\right|_2(t):=\sqrt{\int_{r=r_{\min}}^{r=r_{\max}}\int_{\theta=0}^{\theta=2\pi}\int_{z=0}^{z=2\pi R_0}\phi(t,r,\theta,z)^2r\, dr\, d\theta\, dz}
+\end{equation}
+
+A trapezoidal rule is used to approximate the value. The results can be seen in figure \ref{fig::l2 phi}.
+
+\begin{figure}
+ \centering
+ \includegraphics[width=.7\textwidth]{Figs/SimResults/l2}
+ \caption{\label{fig::l2 phi}The time evolution of the discrete L$^2$-norm of the electric potential}
+\end{figure}
+
+We see that the L$^2$ norm demonstrates a linear phase as expected.
+Unfortunately the gradient seen in this region is not what is expected. In addition while the poloidal planes demonstrate a similar shape to those seen by Latu et al. there appears to be some missing turbulence. We therefore conclude that the code still requires some debugging. Unfortunately time restrictions did not allow this step to be completed in time. The results so far are however close enough to the expected result to imply that it is possible to generate an accurate scientific code using this method.
+% The gradient observed is in accordance with the dispersion relation as was the case for Latu et al. \cite{YamanPaper}. In addition the poloidal planes closely resemble those presented in their results. We therefore conclude that this code functions as expected and generates valid scientific results.
+
+

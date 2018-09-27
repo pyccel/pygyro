@@ -218,7 +218,9 @@ $\vec{B}^*(x,v_\parallel)$ can now be expressed:
 \begin{align*}
  \vec{B}^*(x,v_\parallel) =& \vec{B}(x) + \frac{m}{e}v_\parallel \grad \cross \hat{b}(x)\\
  =& |B_0|\sqrt{1+\zeta^2}\hat{b}(x) + \frac{m}{e}v_\parallel \left[\frac{s\zeta\zeta'}{\left(1+\zeta^2\right)^{\frac{3}{2}}}\hat{\theta}\right.\\
- & \left.+ \frac{1}{r}\left(\frac{s\zeta}{\left(1+\zeta^2\right)^{\frac{1}{2}}} + \frac{rs\zeta'}{\left(1+\zeta^2\right)^{\frac{3}{2}}}\right)\hat{z}\right]\\
+ & \left.+ \frac{1}{r}\left(\frac{s\zeta}{\left(1+\zeta^2\right)^{\frac{1}{2}}} + \frac{rs\zeta'}{\left(1+\zeta^2\right)^{\frac{3}{2}}}\right)\hat{z}\right]
+\end{align*}
+\begin{align*}
  =& |B_0|\sqrt{1+\zeta^2}\hat{b}(x) + \frac{m}{e}v_\parallel \left[- \frac{s\zeta^2}{r\left(1+\zeta^2\right)^{\frac{1}{2}}} \hat{\theta} + \left(\frac{\zeta}{r} + \frac{\zeta'}{1+\zeta^2}\right)\hat{b}\right]\\
  =& - \frac{mv_\parallel}{e}\frac{s\zeta^2}{r\left(1+\zeta^2\right)^{\frac{1}{2}}} \hat{\theta} + \left[|B_0|\sqrt{1+\zeta^2} + \frac{mv_\parallel}{e}\left(\frac{\zeta}{r} + \frac{\zeta'}{1+\zeta^2}\right)\right]\hat{b}
 \end{align*}
@@ -333,20 +335,18 @@ This leaves the following final expression:
 %   + \frac{B^*}{m_sB_\parallel^*}\cdot&\left(\grad F\dd{G}{u} - \dd{F}{u} \grad G\right) - \frac{c}{q_s B_\parallel^*}\vec{b}\cdot\grad F \cross \grad G
 % \end{align}
 
-\todo{If time (and understanding) expand on where this equation comes from}
-
 Tronko et al. \cite{TronkoQuasiNeutrality} state the following (re-written in SI units):
 \begin{equation}
  -\underset{sp}{\sum}\int dW \frac{1}{B_\parallel^*}\grad_\perp\cdot\left[ B_\parallel^* f_0 \frac{m}{B^2}\grad_\perp \phi_1\right] = \underset{sp}{\sum} q_s \int dW \mathcal{J}_0^{gc}f_1
 \end{equation}
 
-$B_\parallel^*$ is defined in equation \ref{eq::B parallel star cylinder} for cylindrical geometry. As above we take the limit $\zeta(r)\rightarrow0$ which leads $B_\parallel^*$ to converge towards the constant $|B_0|$. Given the dependencies of each element the equation can therefore be rewritten as follows:\todo{Find what happens to gyro-average operator}
+$B_\parallel^*$ is defined in equation \ref{eq::B parallel star cylinder} for cylindrical geometry. As above we take the limit $\zeta(r)\rightarrow0$ which leads $B_\parallel^*$ to converge towards the constant $|B_0|$. Given the dependencies of each element the equation can therefore be rewritten as follows:
 \begin{align}
  -\underset{sp}{\sum} \grad_\perp\cdot\left[\left(\int dW f_0\right) \frac{m}{B^2}\grad_\perp \phi_1\right] = \underset{sp}{\sum} q_s \int dW \mathcal{J}_0^{gc}f_1\\
  -\underset{sp}{\sum} \grad_\perp\cdot\left[n_0 \frac{m}{B^2}\grad_\perp \phi_1\right] = \underset{sp}{\sum} q_s n_{1s}
 \end{align}
 
-Note that $n_{1s}=n_s-n_0$ and for adiabatic electrons $n_e=n_0 \exp\left(-q_e\frac{\phi-\langle \phi\rangle_r}{\kappa T_e}\right)$\todo{Find citation}. The equation can therefore be written as:
+Note that $n_{1s}=n_s-n_0$ and for adiabatic electrons $n_e=n_0 \exp\left(-q_e\frac{\phi-\langle \phi\rangle_r}{\kappa T_e}\right)$. The equation can therefore be written as:
 \begin{equation}
  -\grad_\perp\cdot\left[\frac{\rho_{m0}}{B^2}\grad_\perp \phi\right] = q_i (n_i-n_0) + q_e n_0 \left(\exp\left(-q_e\frac{\phi-\langle \phi\rangle_r}{\kappa T_e}\right)-1\right)
 \end{equation}
@@ -357,11 +357,21 @@ The linearisation of the exponential term leads to the following equation:
  -\grad_\perp\cdot\left[\frac{\rho_m}{B^2}\grad_\perp \phi\right] = q_i (n_i-n_0) - q_e^2 n_0 \frac{\phi-\langle \phi\rangle_r}{\kappa T_e}
 \end{equation}
 
-\todo{Find sign error}
-
 Dividing by $\varepsilon_0$ we obtain the following equation:
 \begin{align}
  -\grad_\perp\cdot\left[\frac{\rho_{m0}}{\varepsilon_0B^2}\grad_\perp\phi\right] + \frac{q_e^2n_{0}}{\varepsilon_0\kappa T_e}\left[\phi-\langle\phi\rangle_f\right]=\frac{1}{\varepsilon_0}\rho_{c1}\\
  -\grad_\perp\cdot\left[\frac{\rho_{m0}}{\varepsilon_0B^2}\grad_\perp\phi\right] + \frac{1}{\lambda_D^2}\left[\phi-\langle\phi\rangle_f\right]=\frac{1}{\varepsilon_0}\rho_{c1}
 \end{align}
 where $\rho_{c1}$ is the charge perturbation density due to the ions and $\lambda_D=\sqrt{\frac{\varepsilon_0\kappa T_e}{q_e^2n_0}}$ is the electron Debye length.
+
+In the case of non-adiabatic electrons, the electron contribution would take a similar form to the ionic contribution. This would be written as:
+\begin{equation}
+ -\grad_\perp\cdot\left[\frac{\rho_{m0}}{\varepsilon_0B^2}\grad_\perp\phi\right] + \frac{1}{\lambda_D^2}\left[\phi-\langle\phi\rangle_f\right]=\frac{1}{\varepsilon_0}\rho_{c1}
+\end{equation}
+
+as the electron contribution is absorbed by $\rho_{c1}$. The equation can also be simplified by removing the term $\langle\phi\rangle_f$. The final expression used will therefore be the following:
+\begin{equation}\label{eq::quasi neutrality}
+ -\grad_\perp\cdot\left[\frac{\rho_{m0}}{\varepsilon_0B^2}\grad_\perp\phi\right]+\frac{1}{\lambda_D^2}\left[\phi-\chi\cdot\langle\phi\rangle_f\right]=\frac{1}{\varepsilon_0}\rho_{c1}
+\end{equation}
+
+where $\chi$ is an optional parameter equal to either 0 or 1.
