@@ -64,14 +64,13 @@ pure subroutine eval_spline_1d_vector( n0_x, x, n0_knots, knots, degree, &
   integer(kind=4), intent(in)  :: n0_coeffs
   real   (kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
   integer(kind=4), intent(in)  :: n0_y
-  real   (kind=8), intent(out) :: y (0:n0_y - 1)
+  real   (kind=8), intent(inout) :: y (0:n0_y - 1)
   integer(kind=4), intent(in)  :: der
 
   real   (kind=8) :: basis(0:degree)
   integer(kind=4) :: span
   integer(kind=4) :: i
   integer(kind=4) :: j
-
 
   if (der == 0 ) then
 
@@ -175,7 +174,7 @@ pure subroutine eval_spline_2d_cross(n0_xVec, xVec, n0_yVec, yVec, n0_kts1, &
   real   (kind=8), intent(in)  :: coeffs (0:n0_coeffs-1, 0:n1_coeffs-1)
   integer(kind=4), intent(in)  :: n0_z
   integer(kind=4), intent(in)  :: n1_z
-  real   (kind=8), intent(out) :: z (0:n0_z-1, 0:n1_z-1)
+  real   (kind=8), intent(inout) :: z (0:n0_z-1, 0:n1_z-1)
   integer(kind=4), intent(in)  :: der1
   integer(kind=4), intent(in)  :: der2
 
@@ -302,7 +301,7 @@ pure subroutine eval_spline_2d_vector( n0_x, x, n0_y, y, n0_kts1, kts1, deg1, &
   integer(kind=4), intent(in)  :: n1_coeffs
   real   (kind=8), intent(in)  :: coeffs (0:n0_coeffs-1, 0:n1_coeffs-1)
   integer(kind=4), intent(in)  :: n0_z
-  real   (kind=8), intent(out) :: z (0:n0_z-1)
+  real   (kind=8), intent(inout) :: z (0:n0_z-1)
   integer(kind=4), intent(in)  :: der1
   integer(kind=4), intent(in)  :: der2
 
