@@ -11,12 +11,7 @@ testimony:
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
   script:
-    - gfortran -O3 -fPIC -c pygyro/splines/mod_context_1.f90 -o pygyro/splines/mod_context_1.o  -J pygyro/splines/
-    - f2py -c  --opt='-O3'  -m  pygyro.splines.spline_eval_funcs pygyro/splines/spline_eval_funcs.f90 pygyro/splines/mod_context_1.o -Ipygyro/splines/
-    - gfortran -O3 -fPIC -c pygyro/initialisation/mod_initialiser_funcs.f90 -o pygyro/initialisation/mod_initialiser_funcs.o  -J pygyro/initialisation/
-    - f2py -c  --opt='-O3'  -m  pygyro.initialisation.initialiser_func pygyro/initialisation/initialiser_func.f90 pygyro/initialisation/mod_initialiser_funcs.o -Ipygyro/initialisation/
-    - gfortran -O3 -fPIC -c pygyro/splines/mod_spline_eval_funcs.f90 -o pygyro/splines/mod_spline_eval_funcs.o -J pygyro/splines/
-    - f2py -c  --opt='-O3'  -m  pygyro.advection.accelerated_advection_steps pygyro/advection/accelerated_advection_steps.f90 pygyro/initialisation/mod_initialiser_funcs.o -Ipygyro/initialisation/ pygyro/splines/mod_spline_eval_funcs.o -Ipygyro/splines/
+    - make
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
@@ -24,11 +19,6 @@ testimony:
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
     - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
   after_script:
-    - rm pygyro/splines/*.so
-    - rm pygyro/splines/*.o
-    - rm pygyro/splines/*.mod
-    - rm pygyro/initialisation/*.so
-    - rm pygyro/initialisation/*.o
-    - rm pygyro/initialisation/*.mod
+    - make clean
     - deactivate
     - module unload impi
