@@ -127,7 +127,7 @@ fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
 vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
 parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid)
-parGradVals = np.empty([npts[0],npts[2],npts[1]])
+parGradVals = np.empty([distribFunc.getLayout(distribFunc.currentLayout).shape[0],npts[2],npts[1]])
 
 layout_poisson   = {'v_parallel_2d': [0,2,1],
                     'mode_solve'   : [1,2,0]}
