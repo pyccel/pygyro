@@ -127,7 +127,7 @@ fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
 vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
 parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid)
-parGradVals = np.empty([npts[2],npts[1]])
+parGradVals = np.empty([npts[0],npts[2],npts[1]])
 
 layout_poisson   = {'v_parallel_2d': [0,2,1],
                     'mode_solve'   : [1,2,0]}
@@ -232,10 +232,10 @@ for ti in range(tN):
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
-        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals)
+        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[0])
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
+                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
 
@@ -265,10 +265,10 @@ for ti in range(tN):
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
-        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals)
+        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[i])
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
+                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
     # For v[0]
@@ -283,7 +283,7 @@ for ti in range(tN):
     for i,r in distribFunc.getCoords(0):
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
+                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
     distribFunc.setLayout('flux_surface')
     for i,r in distribFunc.getCoords(0):
         for j,v in distribFunc.getCoords(1):
