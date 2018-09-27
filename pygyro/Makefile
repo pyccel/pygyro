@@ -17,6 +17,10 @@ spline_eval_funcs:
 initialiser_func:
 	$(MAKE) -C initialisation $@
 
+accelerated_advection_steps:
+	$(MAKE) -C advection $@
+
 clean:
 	$(MAKE) -C splines $@
 	$(MAKE) -C initialisation $@
+	$(MAKE) -C advection $@

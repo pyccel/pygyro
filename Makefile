@@ -26,7 +26,8 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 # List of main targets
 ALL = \
 	spline_eval_funcs \
-	initialiser_func
+	initialiser_func  \
+	accelerated_advection_steps
 
 #----------------------------------------------------------
 # Main targets

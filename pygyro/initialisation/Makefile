@@ -8,15 +8,15 @@
 # Main targets
 #----------------------------------------------------------
 
-#initialiser_func: initaliser_func.so
+#initialiser_func: initialiser_func.so
 #
-#initialiser_func.so: initialiser_func.f90 mod_initialiser_funcs.o
+#initialiser_func.so: initialiser_func.f90 mod_initialiser_funcs_opt.o
 #	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func $^
 
-initialiser_func: initialiser_func.f90 mod_initialiser_funcs.o
+initialiser_func: initialiser_func.f90 mod_initialiser_funcs_opt.o
 	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func $^
 
-mod_initialiser_funcs.o: mod_initialiser_funcs.f90
+mod_initialiser_funcs_opt.o: mod_initialiser_funcs_opt.f90
 	$(FC) $(FC_FLAGS) -c $^ -o $@
 
 clean:
