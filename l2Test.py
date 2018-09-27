@@ -2,11 +2,9 @@ from mpi4py                 import MPI
 import time
 setup_time_start = time.clock()
 
-from matplotlib             import rc
 from glob                   import glob
 
 import numpy                as np
-import matplotlib.pyplot    as plt
 import argparse
 import os
 import h5py
