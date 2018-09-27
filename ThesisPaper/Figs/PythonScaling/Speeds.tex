@@ -14,7 +14,7 @@
 \begin{loglogaxis}[
 xlabel={Number of Nodes},
 ylabel={Duration of one time step [s]},
-legend entries={Pure Fortran,Gfortran,Intel},
+legend entries={Pure Fortran,Gfortran,Intel,Optimised},
 legend pos=north east,
 xtick={1,2,4,8,16,32},
 xticklabels={1,2,4,8,16,32},
@@ -52,9 +52,10 @@ point meta=explicit symbolic,
 scatter/classes={
 0={mark=*,mygreen,scale=2},
 1={mark=triangle*,red,{scale=2}},
-2={mark=triangle*,black,scale=2}
+2={mark=triangle*,black,scale=2},
+3={mark=square*,red,scale=2}
 },
-] table[x={nnodes},y={perloop},meta={type}] {Results.dat};
+] table[x={nnodes},y={perloop},meta={type}] {Results_withOptimised.dat};
 \end{loglogaxis}
 \end{tikzpicture}
 }
