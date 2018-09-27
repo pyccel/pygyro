@@ -270,7 +270,7 @@ for ti in range(tN):
         parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals)
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,0,r)
+                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
     # For v[0]
@@ -285,7 +285,7 @@ for ti in range(tN):
     for i,r in distribFunc.getCoords(0):
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,0,r)
+                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[j,k],r)
     distribFunc.setLayout('flux_surface')
     for i,r in distribFunc.getCoords(0):
         for j,v in distribFunc.getCoords(1):
