@@ -7,3 +7,5 @@ __pycache__
 *.so
 *.o
 *.mod
+results.txt
+scaling.txt
