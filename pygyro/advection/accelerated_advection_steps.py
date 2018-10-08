@@ -1,20 +1,20 @@
-#~ from pyccel.decorators  import types
+from pyccel.decorators  import types
 
-def types(*args):
-    def id(f):
-        return f
-    return id
+#~ def types(*args):
+    #~ def id(f):
+        #~ return f
+    #~ return id
 
-from ..splines  import spline_eval_funcs as SEF
+#~ from ..splines  import spline_eval_funcs as SEF
 
-if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
-    eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
-    eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
-    eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
-else:
-    print("oops",dir(SEF))
+#~ if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
+    #~ eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
+    #~ eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
+    #~ eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
+#~ else:
+    #~ print("oops",dir(SEF))
 
-from ..initialisation.mod_initialiser_funcs               import fEq
+#~ from ..initialisation.mod_initialiser_funcs               import fEq
 
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
@@ -54,6 +54,10 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     idx = nPts[1]-1
     rMax = rPts[idx]
     
+    TOL = 0.5
+    
+    errorVal = 0
+    
     for i in range(nPts[0]):
         for j in range(nPts[1]):
             # Step one of Heun method
@@ -64,11 +68,21 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
             
             # Handle theta boundary conditions
-            endPts_k1_q[i,j] = endPts_k1_q[i,j]%(2*pi)
+            #~ endPts_k1_q[i,j] = endPts_k1_q[i,j]%(2*pi)
             #~ while (endPts_k1_q[i,j]<0):
                 #~ endPts_k1_q[i,j]+=2*pi
             #~ while (endPts_k1_q[i,j]>2*pi):
                 #~ endPts_k1_q[i,j]-=2*pi
+            if (endPts_k1_q[i,j]<0):
+                endPts_k1_q[i,j]+=2*pi
+                if(endPts_k1_q[i,j]>-TOL*pi):
+                    errorVal = 1
+                    return errorVal
+            if (endPts_k1_q[i,j]>2*pi):
+                endPts_k1_q[i,j]-=2*pi
+                if (endPts_k1_q[i,j]>(2+TOL)*pi):
+                    errorVal = 2
+                    return errorVal
             
             if (not (endPts_k1_r[i,j]<rPts[0] or 
                      endPts_k1_r[i,j]>rMax)):
@@ -107,6 +121,16 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         #~ endPts_k2_q[i,j]-=2*pi
                     #~ while (endPts_k2_q[i,j]<0):
                         #~ endPts_k2_q[i,j]+=2*pi
+                    if (endPts_k1_q[i,j]<0):
+                        endPts_k1_q[i,j]+=2*pi
+                        if(endPts_k1_q[i,j]>-TOL*pi):
+                            errorVal = 1
+                            return errorVal
+                    if (endPts_k1_q[i,j]>2*pi):
+                        endPts_k1_q[i,j]-=2*pi
+                        if (endPts_k1_q[i,j]>(2+TOL)*pi):
+                            errorVal = 2
+                            return errorVal
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
@@ -125,8 +149,19 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         #~ endPts_k2_q[i,j]-=2*pi
                     #~ while (endPts_k2_q[i,j]<0):
                         #~ endPts_k2_q[i,j]+=2*pi
+                    if (endPts_k1_q[i,j]<0):
+                        endPts_k1_q[i,j]+=2*pi
+                        if(endPts_k1_q[i,j]>-TOL*pi):
+                            errorVal = 1
+                            return errorVal
+                    if (endPts_k1_q[i,j]>2*pi):
+                        endPts_k1_q[i,j]-=2*pi
+                        if (endPts_k1_q[i,j]>(2+TOL)*pi):
+                            errorVal = 2
+                            return errorVal
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
+    return errorVal
     
 @types('double[:]','double[:]','double','double','double','double[:]','int','double[:]','double','double','double','double','double','double','double','bool')
 def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
