@@ -1,11 +1,11 @@
 module mod_pygyro_advection_accelerated_advection_steps
 
-use mod_initialiser_funcs, only: fEq
-
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_vector
+
+use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -99,14 +99,14 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: B0
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: theta
-  real(kind=8) :: multFactor_half
-  integer(kind=4) :: i
   real(kind=8) :: multFactor
-  real(kind=8) :: rMax
   real(kind=8) :: r
   integer(kind=4) :: idx
   integer(kind=4) :: j
+  real(kind=8) :: theta
+  real(kind=8) :: rMax
+  real(kind=8) :: multFactor_half
+  integer(kind=4) :: i
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -146,9 +146,6 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   rMax = rPts(idx)
 
 
-  print *, "start loop"
-
-
   do i = 0, nPts(0) - 1, 1
     do j = 0, nPts(1) - 1, 1
       drPhi_0(j, i) = drPhi_0(j, i)/rPts(j)
@@ -157,15 +154,10 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
       endPts_k1_r(j, i) = multFactor*dthetaPhi_0(j, i) + rPts(j)
 
 
-      do while (endPts_k1_q(j, i) < 0)
-        endPts_k1_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k1_q(j, i)
-      end do
-      do while (endPts_k1_q(j, i) > 2.0d0*3.14159265358979d0)
-        endPts_k1_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k1_q(j, i &
-      )
+      endPts_k1_q(j, i) = modulo(1.0d0*endPts_k1_q(j, i),2.0d0* &
+      3.14159265358979d0)
 
 
-      end do
       if (.not. (endPts_k1_r(j, i) > rMax .or. endPts_k1_r(j, i) < rPts( &
       0))) then
         ! Add the new value of phi to the derivatives
@@ -203,9 +195,10 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   ! Step one of Heun method
   ! x' = x^n + f(x^n)
   ! Handle theta boundary conditions
-  print *, "trap rule ok"
-
-
+  ! ~ while (endPts_k1_q[i,j]<0):
+  ! ~ endPts_k1_q[i,j]+=2*pi
+  ! ~ while (endPts_k1_q[i,j]>2*pi):
+  ! ~ endPts_k1_q[i,j]-=2*pi
   ! Find value at the determined point
   if (nulBound) then
     do i = 0, size(qPts,1) - 1, 1
@@ -217,14 +210,12 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
         else if (endPts_k2_r(j, i) > rMax) then
           f(j, i) = 0.0d0
         else
-          do while (endPts_k2_q(j, i) > 2.0d0*3.14159265358979d0)
-            endPts_k2_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k2_q( &
-      j, i)
-          end do
-          do while (endPts_k2_q(j, i) < 0)
-            endPts_k2_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k2_q(j &
-      , i)
-          end do
+          endPts_k2_q(j, i) = modulo(1.0d0*endPts_k2_q(j, i),2.0d0* &
+      3.14159265358979d0)
+          ! ~ while (endPts_k2_q[i,j]>2*pi):
+          ! ~ endPts_k2_q[i,j]-=2*pi
+          ! ~ while (endPts_k2_q[i,j]<0):
+          ! ~ endPts_k2_q[i,j]+=2*pi
           f(j, i) = eval_spline_2d_scalar(endPts_k2_q(j, i), endPts_k2_r &
       (j, i), kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
         end if
@@ -244,14 +235,12 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
           f(j, i) = fEq(endPts_k2_r(j, i), v, CN0, kN0, deltaRN0, rp, &
       CTi, kTi, deltaRTi)
         else
-          do while (endPts_k2_q(j, i) > 2.0d0*3.14159265358979d0)
-            endPts_k2_q(j, i) = -2.0d0*3.14159265358979d0 + endPts_k2_q( &
-      j, i)
-          end do
-          do while (endPts_k2_q(j, i) < 0)
-            endPts_k2_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k2_q(j &
-      , i)
-          end do
+          endPts_k2_q(j, i) = modulo(1.0d0*endPts_k2_q(j, i),2.0d0* &
+      3.14159265358979d0)
+          ! ~ while (endPts_k2_q[i,j]>2*pi):
+          ! ~ endPts_k2_q[i,j]-=2*pi
+          ! ~ while (endPts_k2_q[i,j]<0):
+          ! ~ endPts_k2_q[i,j]+=2*pi
           f(j, i) = eval_spline_2d_scalar(endPts_k2_q(j, i), endPts_k2_r &
       (j, i), kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
 
@@ -291,8 +280,8 @@ subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: v
   integer(kind=4) :: i
+  real(kind=8) :: v
 
   ! Find value at the determined point
   if (nulBound) then
@@ -345,10 +334,10 @@ subroutine get_lagrange_vals(i, nr, n0_shifts, shifts, n0_vals, n1_vals, &
   integer(kind=4), intent(in)  :: deg
   integer(kind=4), intent(in)  :: n0_coeffs
   real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
-  integer(kind=4) :: k
-  integer(kind=4) :: j
-  real(kind=8) :: q
   integer(kind=4) :: s
+  real(kind=8) :: q
+  integer(kind=4) :: j
+  integer(kind=4) :: k
 
   do j = 0, size(shifts,1) - 1, 1
     s = shifts(j)
@@ -383,8 +372,8 @@ subroutine flux_advection(nq, nr, n0_f, n1_f, f, n0_coeffs, coeffs, &
   real(kind=8), intent(in)  :: vals (0:n0_vals - 1,0:n1_vals - 1,0: &
       n2_vals - 1)
   integer(kind=4) :: j
-  integer(kind=4) :: k
   integer(kind=4) :: i
+  integer(kind=4) :: k
 
   do j = 0, nq - 1, 1
     do i = 0, nr - 1, 1
@@ -490,15 +479,15 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: B0
   real(kind=8), intent(in)  :: tol
   logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: theta
-  integer(kind=4) :: i
-  real(kind=8) :: norm
   real(kind=8) :: multFactor
-  real(kind=8) :: rMax
+  real(kind=8) :: norm
   real(kind=8) :: r
   integer(kind=4) :: idx
   integer(kind=4) :: j
   real(kind=8) :: diff
+  real(kind=8) :: theta
+  real(kind=8) :: rMax
+  integer(kind=4) :: i
 
   !_______________________CommentBlock_______________________!
   !                                                          !
