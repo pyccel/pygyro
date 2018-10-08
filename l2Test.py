@@ -18,7 +18,7 @@ from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralit
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
-from l2Norm                                 import l2
+from diagnostics.l2Norm                     import l2
 
 loop_start = 0
 loop_time = 0
