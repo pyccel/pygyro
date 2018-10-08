@@ -1,8 +1,20 @@
-from pyccel.decorators  import types
+#~ from pyccel.decorators  import types
 
-#~ from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar
+def types(*args):
+    def id(f):
+        return f
+    return id
 
-#~ from ..initialisation.mod_initialiser_funcs               import fEq
+from ..splines  import spline_eval_funcs as SEF
+
+if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
+    eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
+    eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
+    eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
+else:
+    print("oops",dir(SEF))
+
+from ..initialisation.mod_initialiser_funcs               import fEq
 
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
@@ -123,7 +135,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
             if (v<vMin or v>vMax):
                 f[i]=0.0
             else:
-                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs)
+                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     else:
         for i in range(len(vPts)):
             v=vPts[i]
@@ -131,7 +143,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 f[i]=fEq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
             else:
-                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs)
+                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
 
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
 def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
