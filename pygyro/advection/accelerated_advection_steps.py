@@ -54,6 +54,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     idx = nPts[1]-1
     rMax = rPts[idx]
     
+    print("start loop")
+    
     for i in range(nPts[0]):
         for j in range(nPts[1]):
             # Step one of Heun method
@@ -91,6 +93,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
             endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % 2*pi
             endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
+    
+    print("trap rule ok")
     
     # Find value at the determined point
     if (nulBound):
