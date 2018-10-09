@@ -470,7 +470,7 @@ class PoloidalAdvection:
         polBases = self._spline.basis
 
         if (self._explicit):
-            e=AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
+            AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
                             modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
                             modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
@@ -484,8 +484,6 @@ class PoloidalAdvection:
                             constants.kN0,constants.deltaRN0,constants.rp,
                             constants.CTi,constants.kTi,constants.deltaRTi,
                             constants.B0,self._nulEdge)
-            print(e)
-            assert(e==0)
         else:
             AAS.poloidal_advection_step_impl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
