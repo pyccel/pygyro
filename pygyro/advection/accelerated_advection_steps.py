@@ -16,14 +16,14 @@ from pyccel.decorators  import types
 
 #~ from ..initialisation.mod_initialiser_funcs               import fEq
 
-@types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
+@types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','int','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
                         kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol,
                         CN0, kN0, deltaRN0, rp, CTi,
-                        kTi, deltaRTi, B0, nulBound = False ):
+                        kTi, deltaRTi, B0, rank,nulBound = False ):
     """
     Carry out an advection step for the poloidal advection
 
@@ -55,6 +55,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     rMax = rPts[idx]
     
     print("start loop")
+    maxLoops = 0
     
     for i in range(nPts[0]):
         for j in range(nPts[1]):
@@ -66,10 +67,14 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
             
             # Handle theta boundary conditions
+            loops = 0
             while (endPts_k1_q[i,j]<0):
                 endPts_k1_q[i,j]+=2*pi
+                loops+=1
             while (endPts_k1_q[i,j]>2*pi):
                 endPts_k1_q[i,j]-=2*pi
+                loops+=1
+            maxLoops=max(maxLoops,loops)
             
             if (not (endPts_k1_r[i,j]<rPts[0] or 
                      endPts_k1_r[i,j]>rMax)):
@@ -94,7 +99,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % 2*pi
             endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
     
-    print("trap rule ok")
+    print("trap rule ok on rank ",rank," with max ",maxLoops," loops")
     
     # Find value at the determined point
     if (nulBound):

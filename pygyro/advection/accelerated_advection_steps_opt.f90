@@ -157,12 +157,14 @@ pure subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
 
   do i = 0, nPts(0) - 1, 1
     do j = 0, nPts(1) - 1, 1
+      ! Step one of Heun method
+      ! x' = x^n + f(x^n)
       drPhi_0(j, i) = drPhi_0(j, i)/rPts(j)
       dthetaPhi_0(j, i) = dthetaPhi_0(j, i)/rPts(j)
       endPts_k1_q(j, i) = multFactor*(-1.0d0*drPhi_0(j, i)) + qPts(i)
       endPts_k1_r(j, i) = multFactor*dthetaPhi_0(j, i) + rPts(j)
 
-
+      ! Handle theta boundary conditions
       do while (endPts_k1_q(j, i) < 0)
         endPts_k1_q(j, i) = 2.0d0*3.14159265358979d0 + endPts_k1_q(j, i)
       end do
@@ -204,9 +206,6 @@ pure subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
     end do
   end do
 
-  ! Step one of Heun method
-  ! x' = x^n + f(x^n)
-  ! Handle theta boundary conditions
   ! Find value at the determined point
   if (nulBound) then
     do i = 0, size(qPts,1) - 1, 1
