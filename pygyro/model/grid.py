@@ -3,6 +3,7 @@ import numpy        as np
 from math           import pi
 import h5py
 from glob           import glob
+import os
 
 from ..                 import splines as spl
 from .layout            import LayoutManager
@@ -195,12 +196,12 @@ class Grid(object):
         dset.attrs.create("Layout", attr_data, (self._nDims,), h5py.h5t.STD_I32BE)
         file.close()
     
-    def loadFromFile( self, foldername, time: int = None ):
+    def loadFromFile( self, foldername, time: int = None, nameConvention = "grid" ):
         if (time==None):
-            list_of_files = glob("{0}/grid_*".format(foldername))
+            list_of_files = glob("{0}/{1}_*".format(foldername,nameConvention))
             filename = max(list_of_files)
         else:
-            filename = "{0}/grid_{1:06}.h5".format(foldername,time)
+            filename = "{0}/{1}_{2:06}.h5".format(foldername,nameConvention,time)
             assert(os.path.exists(filename))
         file = h5py.File(filename,'r')
         dataset=file['/dset']
