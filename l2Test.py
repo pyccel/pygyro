@@ -105,6 +105,7 @@ else:
 
     npts = [256,512,32,128]
     # npts = [128,256,32,64]
+    npts = [10,10,10,10]
 
 
     dt=2
@@ -161,16 +162,7 @@ l2class = l2(phi.eta_grid,phi.getLayout('v_parallel_2d'))
 
 
 
-phi_filename = "{0}/phiDat.h5".format(foldername)
-if (not os.path.exists(phi_filename)):
-    phiFile = h5py.File(phi_filename,'w',driver='mpio',comm=comm)
-    dset = phiFile.create_dataset("dset",(tN+1, 2), float)
-    phiFile.close()
-else:
-    phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
-    dset = phiFile['/dset']
-    assert(dset.size==(tEnd//dt+1)*2)
-    phiFile.close()
+phi_filename = "{0}/phiDat.txt".format(foldername)
 
 #Setup profiling tools
 #~ pr = cProfile.Profile()
@@ -203,13 +195,11 @@ for ti in range(tN):
         
         comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
         l2Result = np.sqrt(l2Result)
-        phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
         if (rank == 0):
-            n = int(t/dt)
-            dset = phiFile['/dset']
-            dset[n-saveStep:n,0]=l2Phi[0,:]
-            dset[n-saveStep:n,1]=l2Result
-        phiFile.close()
+            phiFile = open(phi_filename,"a")
+            for i in range(saveStep):
+                print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
+            phiFile.close()
         output_time+=(time.clock()-output_start)
     
     diagnostic_start=time.clock()
@@ -294,13 +284,12 @@ if (tN%saveStep==0):
     output_start=time.clock()
     comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
     l2Result = np.sqrt(l2Result)
-    phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
     if (rank == 0):
+        phiFile = open(phi_filename,"a")
         n = int(t/dt)
-        dset = phiFile['/dset']
-        dset[n-saveStep:n,0]=l2Phi[0,:]
-        dset[n-saveStep:n,1]=l2Result
-    phiFile.close()
+        for i in range(saveStep):
+            print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
+        phiFile.close()
     output_time+=(time.clock()-output_start)
 
 additional_calc_start = time.clock()
@@ -330,14 +319,11 @@ distribFunc.writeH5Dataset(foldername,t)
 
 comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
 l2Result = np.sqrt(l2Result)
-phiFile = h5py.File(phi_filename,'r+',driver='mpio',comm=comm)
 if (rank == 0):
-    nE = int(tEnd/dt+1)
-    nS = int(nE-1-(tEnd/dt)%saveStep)
-    dset = phiFile['/dset']
-    dset[nS:nE,0]=l2Phi[0,:(nE-nS)]
-    dset[nS:nE,1]=l2Result[:(nE-nS)]
-phiFile.close()
+    phiFile = open(phi_filename,"a")
+    for i in range((tEnd//dt)%saveStep):
+        print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
+    phiFile.close()
 output_time+=(time.clock()-output_start)
 
 #End profiling and print results
