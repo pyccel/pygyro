@@ -6,7 +6,7 @@
 COMP := gnu
 
 # Use manually optimized Fortran files? [1|0]
-MOPT := 1
+MOPT := 0
 
 #----------------------------------------------------------
 # Compiler options
