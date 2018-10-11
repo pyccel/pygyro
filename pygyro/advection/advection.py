@@ -1,3 +1,4 @@
+from mpi4py import MPI
 import numpy as np
 from numpy.linalg                   import solve
 from scipy.interpolate              import lagrange
@@ -483,7 +484,7 @@ class PoloidalAdvection:
                             polBases[0].degree, polBases[1].degree,constants.CN0,
                             constants.kN0,constants.deltaRN0,constants.rp,
                             constants.CTi,constants.kTi,constants.deltaRTi,
-                            constants.B0,rank,self._nulEdge)
+                            constants.B0,MPI.COMM_WORLD.Get_rank(),self._nulEdge)
         else:
             AAS.poloidal_advection_step_impl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
