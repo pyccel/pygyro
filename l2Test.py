@@ -60,6 +60,7 @@ zDegree = args.zDegree[0]
 vDegree = args.vDegree[0]
 
 saveStep = args.saveStep[0]
+saveIdx = saveStep-1
 
 tEnd = args.tEnd[0]
 
@@ -105,7 +106,6 @@ else:
 
     npts = [256,512,32,128]
     # npts = [128,256,32,64]
-    npts = [10,10,10,10]
 
 
     dt=2
@@ -170,28 +170,31 @@ phi_filename = "{0}/phiDat.txt".format(foldername)
 
 setup_time = time.clock()-setup_time_start
 
+# Find phi from f^n by solving QN eq
+distribFunc.setLayout('v_parallel')
+density.getPerturbedRho(distribFunc,rho)
+QNSolver.getModes(rho)
+rho.setLayout('mode_solve')
+phi.setLayout('mode_solve')
+QNSolver.solveEquation(phi,rho)
+phi.setLayout('v_parallel_2d')
+rho.setLayout('v_parallel_2d')
+QNSolver.findPotential(phi)
+
 output_start=time.clock()
 distribFunc.writeH5Dataset(foldername,t)
+phi.writeH5Dataset(foldername,t,"phi")
 output_time+=(time.clock()-output_start)
 
 loop_start=time.clock()
 
 for ti in range(tN):
-    # Find phi from f^n by solving QN eq
-    distribFunc.setLayout('v_parallel')
-    density.getPerturbedRho(distribFunc,rho)
-    QNSolver.getModes(rho)
-    rho.setLayout('mode_solve')
-    phi.setLayout('mode_solve')
-    QNSolver.solveEquation(phi,rho)
-    phi.setLayout('v_parallel_2d')
-    rho.setLayout('v_parallel_2d')
-    QNSolver.findPotential(phi)
-    loop_time+=(time.clock()-loop_start)
     
-    if (ti%saveStep==0 and ti!=0):
+    loop_time+=(time.clock()-loop_start)
+    if (ti%saveStep==saveIdx):
         output_start=time.clock()
         distribFunc.writeH5Dataset(foldername,t)
+        phi.writeH5Dataset(foldername,t,"phi")
         
         comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
         l2Result = np.sqrt(l2Result)
@@ -278,33 +281,19 @@ for ti in range(tN):
     for i,r in distribFunc.getCoords(0):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
+    
+    # Find phi from f^n by solving QN eq
+    distribFunc.setLayout('v_parallel')
+    density.getPerturbedRho(distribFunc,rho)
+    QNSolver.getModes(rho)
+    rho.setLayout('mode_solve')
+    phi.setLayout('mode_solve')
+    QNSolver.solveEquation(phi,rho)
+    phi.setLayout('v_parallel_2d')
+    rho.setLayout('v_parallel_2d')
+    QNSolver.findPotential(phi)
 
 loop_time+=(time.clock()-loop_start)
-if (tN%saveStep==0):
-    output_start=time.clock()
-    comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
-    l2Result = np.sqrt(l2Result)
-    if (rank == 0):
-        phiFile = open(phi_filename,"a")
-        n = int(t/dt)
-        for i in range(saveStep):
-            print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
-        phiFile.close()
-    output_time+=(time.clock()-output_start)
-
-additional_calc_start = time.clock()
-
-# Find phi from f^n by solving QN eq
-distribFunc.setLayout('v_parallel')
-density.getPerturbedRho(distribFunc,rho)
-QNSolver.getModes(rho)
-rho.setLayout('mode_solve')
-phi.setLayout('mode_solve')
-QNSolver.solveEquation(phi,rho)
-phi.setLayout('v_parallel_2d')
-rho.setLayout('v_parallel_2d')
-QNSolver.findPotential(phi)
-
 
 diagnostic_start=time.clock()
 # Calculate diagnostic quantity |phi|_2
@@ -312,16 +301,15 @@ l2Phi[0,tN%saveStep]=t
 l2Phi[1,tN%saveStep]=l2class.l2NormSquared(phi)
 diagnostic_time+=(time.clock()-diagnostic_start)
 
-additional_calc_time = time.clock()-additional_calc_start
-
 output_start=time.clock()
 distribFunc.writeH5Dataset(foldername,t)
+phi.writeH5Dataset(foldername,t,"phi")
 
 comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
 l2Result = np.sqrt(l2Result)
 if (rank == 0):
     phiFile = open(phi_filename,"a")
-    for i in range((tEnd//dt)%saveStep):
+    for i in range(tN%saveStep):
         print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
     phiFile.close()
 output_time+=(time.clock()-output_start)
@@ -334,7 +322,7 @@ output_time+=(time.clock()-output_start)
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
 
-print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {additional:16.10e}   {diagnostic:16.10e}".
+print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {diagnostic:16.10e}".
             format(loop=loop_time,output=output_time,setup=setup_time,
-            additional=additional_calc_time,diagnostic=diagnostic_time),
+            diagnostic=diagnostic_time),
         file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(),rank), "w"))
