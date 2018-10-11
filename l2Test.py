@@ -18,7 +18,7 @@ from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralit
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
-from diagnostics.l2Norm                     import l2
+from pygyro.diagnostics.l2Norm              import l2
 
 loop_start = 0
 loop_time = 0
@@ -60,7 +60,6 @@ zDegree = args.zDegree[0]
 vDegree = args.vDegree[0]
 
 saveStep = args.saveStep[0]
-saveIdx = saveStep-1
 
 tEnd = args.tEnd[0]
 
@@ -189,9 +188,10 @@ output_time+=(time.clock()-output_start)
 loop_start=time.clock()
 
 for ti in range(tN):
+    polAdv.reset_max_loop_counter()
     
     loop_time+=(time.clock()-loop_start)
-    if (ti%saveStep==saveIdx):
+    if (ti%saveStep==0 and ti!=0):
         output_start=time.clock()
         distribFunc.writeH5Dataset(foldername,t)
         phi.writeH5Dataset(foldername,t,"phi")
@@ -282,6 +282,8 @@ for ti in range(tN):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
     
+    polAdv.print_max_loops()
+    
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -309,7 +311,7 @@ comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
 l2Result = np.sqrt(l2Result)
 if (rank == 0):
     phiFile = open(phi_filename,"a")
-    for i in range(tN%saveStep):
+    for i in range(tN%saveStep+1):
         print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
     phiFile.close()
 output_time+=(time.clock()-output_start)
