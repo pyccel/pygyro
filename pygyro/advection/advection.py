@@ -475,7 +475,7 @@ class PoloidalAdvection:
         polBases = self._spline.basis
 
         if (self._explicit):
-            ml = AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
+            AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
                             modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
                             modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
@@ -488,8 +488,7 @@ class PoloidalAdvection:
                             polBases[0].degree, polBases[1].degree,constants.CN0,
                             constants.kN0,constants.deltaRN0,constants.rp,
                             constants.CTi,constants.kTi,constants.deltaRTi,
-                            constants.B0,MPI.COMM_WORLD.Get_rank(),self._nulEdge)
-            self._max_loops = max(self._max_loops, ml)
+                            constants.B0,self._nulEdge)
         else:
             AAS.poloidal_advection_step_impl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
@@ -591,8 +590,3 @@ class PoloidalAdvection:
                 theta+=2*pi
             return self._spline.eval(theta,r)
     
-    def reset_max_loop_counter(self):
-        self._max_loops = 0
-    
-    def print_max_loops(self):
-        print(self._max_loops,file=open("maxLoops_{}.txt".format(MPI.COMM_WORLD.Get_rank()),"a"))
