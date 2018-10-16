@@ -14,6 +14,9 @@ def gauss(x):
 def iota0():
     return 0.0
 
+def iota8():
+    return 0.8
+
 @pytest.mark.serial
 @pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1)] )
 def test_fluxSurfaceAdvection(fact,dt):
@@ -50,6 +53,47 @@ def test_fluxSurfaceAdvection(fact,dt):
     
     assert(np.max(np.abs(f_vals-f_end))<1e-4)
 
+@pytest.mark.serial
+@pytest.mark.parametrize( "nptZ,dt", [(32,47),(32,9),(32,10),(32,3),(32,2),(32,1),(32,0.1),(32,0.05),(32,0.025), (64,1)] )
+def test_fluxSurfaceAdvectionAligned(nptZ,dt):
+    npts = [nptZ,nptZ]
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
+                np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]
+    
+    N = 10
+    
+    f_vals = np.ndarray(npts)
+    
+    domain    = [ [0,2*pi], [0,2*pi*constants.R0] ]
+    nkts      = [n+1                           for n          in npts ]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,3,True )    for b          in breaks]
+    bsplines  = [spl.BSplines( k,3,True )      for k          in knots]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+    
+    c=2
+    
+    eta_vals[1]=eta_grids[0]
+    eta_vals[2]=eta_grids[1]
+    eta_vals[3][0]=c
+    
+    layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota8)
+    
+    m, n = (4, 5)
+    theta = eta_grids[0]
+    phi = eta_grids[1]*2*pi/domain[1][1]
+    f_vals[:,:] = np.sin( m*theta[:,None] + n*phi[None,:] )
+    
+    #~ f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
+    f_end = f_vals.copy()
+    
+    for n in range(N):
+        fluxAdv.step(f_vals,0)
+    print(np.max(np.abs(f_vals-f_end)))
+    #~ assert(np.max(np.abs(f_vals-f_end))<1e-4)
+"""
 @pytest.mark.serial
 @pytest.mark.parametrize( "function,N", [(gauss,10),(gauss,20),(gauss,30)] )
 def test_vParallelAdvection(function,N):
@@ -257,7 +301,7 @@ def test_poloidalAdvection_gridIntegration():
         for j,v in grid.getCoords(1):
             polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
 
-"""
+""
 # Tests are too slow
 @pytest.mark.parallel
 def test_equilibrium():
@@ -381,7 +425,7 @@ def test_perturbedEquilibrium():
     
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f)>1e-8)
-"""
+""
 
 @pytest.mark.serial
 def test_vParGrad():
@@ -458,3 +502,4 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
     linfOrder = np.log2(linf[0]/linf[1])
     
     assert(abs(linfOrder-zOrder)<0.1)
+"""
