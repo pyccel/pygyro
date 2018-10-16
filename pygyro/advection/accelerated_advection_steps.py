@@ -166,9 +166,15 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
 
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
 def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+    from numpy import pi
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
-            vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(q+thetaShifts[j],kts,deg,coeffs,0)
+            new_q = q+thetaShifts[j]
+            while (new_q<0):
+                new_q+=2*pi
+            while (new_q>2*pi):
+                new_q-=2*pi
+            vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
 @types('int','int','double[:,:]','double[:]','double[:,:,:]')
 def flux_advection(nq,nr,f,coeffs,vals):
