@@ -54,9 +54,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     idx = nPts[1]-1
     rMax = rPts[idx]
     
-    print("start loop")
-    maxLoops = 0
-    
     for i in range(nPts[0]):
         for j in range(nPts[1]):
             # Step one of Heun method
@@ -67,14 +64,10 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
             
             # Handle theta boundary conditions
-            loops = 0
             while (endPts_k1_q[i,j]<0):
                 endPts_k1_q[i,j]+=2*pi
-                loops+=1
             while (endPts_k1_q[i,j]>2*pi):
                 endPts_k1_q[i,j]-=2*pi
-                loops+=1
-            maxLoops=max(maxLoops,loops)
             
             if (not (endPts_k1_r[i,j]<rPts[0] or 
                      endPts_k1_r[i,j]>rMax)):
@@ -99,8 +92,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % 2*pi
             endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
     
-    print("trap rule ok on rank ",rank," with max ",maxLoops," loops")
-    
     # Find value at the determined point
     if (nulBound):
         for i,theta in enumerate(qPts):
@@ -110,14 +101,10 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                 elif (endPts_k2_r[i,j]>rMax):
                     f[i,j]=0.0
                 else:
-                    loops = 0
                     while (endPts_k2_q[i,j]>2*pi):
                         endPts_k2_q[i,j]-=2*pi
-                        loops+=1
                     while (endPts_k2_q[i,j]<0):
                         endPts_k2_q[i,j]+=2*pi
-                        loops+=1
-                    maxLoops=max(maxLoops,loops)
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
@@ -141,8 +128,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                     maxLoops=max(maxLoops,loops)
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
-    print("boundaries ok")
-    return maxLoops
     
 @types('double[:]','double[:]','double','double','double','double[:]','int','double[:]','double','double','double','double','double','double','double','bool')
 def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
