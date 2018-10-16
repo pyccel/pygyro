@@ -118,14 +118,10 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=fEq(endPts_k2_r[i,j],v,CN0,kN0,
                                     deltaRN0,rp,CTi,kTi,deltaRTi)
                 else:
-                    loops = 0
                     while (endPts_k2_q[i,j]>2*pi):
                         endPts_k2_q[i,j]-=2*pi
-                        loops+=1
                     while (endPts_k2_q[i,j]<0):
                         endPts_k2_q[i,j]+=2*pi
-                        loops+=1
-                    maxLoops=max(maxLoops,loops)
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
     
