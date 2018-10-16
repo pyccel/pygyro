@@ -350,14 +350,14 @@ pure subroutine get_lagrange_vals(i, nr, n0_shifts, shifts, n0_vals, n1_vals, &
     s = shifts(j)
     do k = 0, size(qVals,1) - 1, 1
       q = qVals(k)
-      new_q = q + thetaShifts(j)
-      do while (new_q < 0)
-        new_q = 2.0d0*3.14159265358979d0 + new_q
+      q = q + thetaShifts(j)
+      do while (q < 0)
+        q = 2.0d0*3.14159265358979d0 + new_q
       end do
-      do while (new_q > 2.0d0*3.14159265358979d0)
-        new_q = -2.0d0*3.14159265358979d0 + new_q
+      do while (q > 2.0d0*3.14159265358979d0)
+        q = -2.0d0*3.14159265358979d0 + new_q
       end do
-      vals(j, k, modulo(i - s,nr)) = eval_spline_1d_scalar(new_q, kts, &
+      vals(j, k, modulo(i - s,nr)) = eval_spline_1d_scalar(q, kts, &
       deg, coeffs, 0)
     end do
   end do
