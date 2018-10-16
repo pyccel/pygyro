@@ -9,7 +9,7 @@ from math                 import pi
 from ..                         import splines as spl
 from ..initialisation.setups    import setupCylindricalGrid
 from .advection                 import *
-"""
+
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
     npts = [30,20]
@@ -69,7 +69,7 @@ def test_fluxSurfaceAdvection():
         fig.canvas.flush_events()
     
     print(np.max(f_vals[:,:,N]-f_vals[:,:,0]))
-""
+
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
     npts = [30,20]
@@ -304,9 +304,10 @@ def test_vParallelAdvection():
         line1.set_ydata(f_vals[:,n])
         fig.canvas.draw()
         fig.canvas.flush_events()
-"""
+
 def Phi(r,theta,a,b,c,d):
     return - a * (r-b)**2 + c*np.sin(d*theta)
+
 """
 def initConditions(r,theta):
     a=6
@@ -334,7 +335,7 @@ def initConditions(r,theta):
         return 0.0
 
 initConds = np.vectorize(initConditions, otypes=[np.float])
-"""
+
 @pytest.mark.serial
 def test_poloidalAdvection():
     npts = [128,128]
@@ -429,7 +430,7 @@ def test_poloidalAdvection():
         line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
         fig.canvas.draw()
         fig.canvas.flush_events()
-"""
+
 def initConditionsFlux(theta,z):
     a=4
     factor = pi/a/2
@@ -446,7 +447,7 @@ def iota0(r = 6.0):
 
 def iota8(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
-"""
+
 @pytest.mark.serial
 def test_fluxAdvection_dz():
     dt=0.1
@@ -519,7 +520,7 @@ def test_fluxAdvection_dz():
         #~ line1 = ax.pcolormesh(y,x,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
-"""
+
 def test_flux_aligned():
     dt=0.1
     npts = [64,64]
@@ -535,7 +536,7 @@ def test_flux_aligned():
     
     c=2
     
-    f_vals = np.ndarray([npts[0],npts[1],N+1])
+    f_vals = np.ndarray([N+1,npts[0],npts[1]])
     
     domain    = [ [0,2*pi], [0,2*pi*constants.R0] ]
     nkts      = [n+1                           for n          in npts ]
@@ -551,20 +552,25 @@ def test_flux_aligned():
     layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota8)
     
-    m, n = (4, 5)
-    #~ m, n = (0, 5)
+    m, n = (5, 4)
     theta = eta_grids[0]
     phi = eta_grids[1]*2*pi/domain[1][1]
-    f_vals[:,:,0] = 0.5+ 0.5*np.sin( m*theta[:,None] + n*phi[None,:] )
+    f_vals[0,:,:] = 0.5 +  0.5 * np.sin( m*theta[:,None] - n*phi[None,:] )
+    
+    #~ m, n = (4, 5)
+    m, n = (0, 5)
+    #~ theta = eta_grids[0]
+    #~ phi = eta_grids[1]*2*pi/domain[1][1]
+    #~ f_vals[:,:,0] = 0.5+ 0.5*np.sin( m*theta[:,None] + n*phi[None,:] )
     
     for n in range(1,N+1):
-        f_vals[:,:,n]=f_vals[:,:,n-1]
-        fluxAdv.step(f_vals[:,:,n],0)
+        f_vals[n,:,:]=f_vals[n-1,:,:]
+        fluxAdv.step(f_vals[n,:,:],0)
     
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
-    e_min = np.min(f_vals-f_vals[:,:,0,None])
-    e_max = np.max(f_vals-f_vals[:,:,0,None])
+    e_min = np.min(f_vals-f_vals[0,None,:,:])
+    e_max = np.max(f_vals-f_vals[0,None,:,:])
     
     print(f_min,f_max)
     
@@ -585,8 +591,8 @@ def test_flux_aligned():
     
     #~ line1 = ax.pcolormesh(phi,theta,f_vals[:,:,0],vmin=f_min,vmax=f_max)
     #~ line1 = ax.pcolormesh(theta,phi,f_vals[:,:,0].T,vmin=f_min,vmax=f_max)
-    line1 = ax.pcolormesh(phi,theta,f_vals[:,:,0]-f_vals[:,:,0],vmin=e_min,vmax=e_max)
-    line2 = ax2.pcolormesh(phi,theta,f_vals[:,:,0],vmin=f_min,vmax=f_max)
+    line1 = ax.pcolormesh(phi,theta,f_vals[0,:,:]-f_vals[0,:,:],vmin=e_min,vmax=e_max)
+    line2 = ax2.pcolormesh(phi,theta,f_vals[0,:,:],vmin=f_min,vmax=f_max)
     #~ line1 = ax.pcolormesh(phi,theta,f_vals[:,:,0],vmin=f_min,vmax=f_max)
     ax.set_title('Values')
     ax2.set_title('Error')
@@ -604,8 +610,8 @@ def test_flux_aligned():
         #~ line1 = ax.pcolormesh(phi,theta,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         #~ line1 = ax.pcolormesh(phi,theta,f_vals[:,:,n],vmin=f_min,vmax=f_max)
         #~ line1 = ax.pcolormesh(theta,phi,f_vals[:,:,n].T,vmin=f_min,vmax=f_max)
-        line1 = ax.pcolormesh(phi,theta,f_vals[:,:,n]-f_vals[:,:,0],vmin=e_min,vmax=e_max)
-        line2 = ax2.pcolormesh(phi,theta,f_vals[:,:,n],vmin=f_min,vmax=f_max)
+        line1 = ax.pcolormesh(phi,theta,f_vals[n,:,:]-f_vals[0,:,:],vmin=e_min,vmax=e_max)
+        line2 = ax2.pcolormesh(phi,theta,f_vals[n,:,:],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
         fig2.canvas.draw()
