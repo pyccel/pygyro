@@ -219,7 +219,7 @@ class FluxSurfaceAdvection:
     
     def _getLagrangePts( self, eta_grid: list, layout: Layout, dt: float, iota ):
         # Get z step
-        dz = eta_grid[2][1]-eta_grid[2][0]
+        dz = eta_grid[2][2]-eta_grid[2][1]
         
         # Get theta step
         try:
@@ -239,6 +239,8 @@ class FluxSurfaceAdvection:
         zDist = -eta_grid[3][layout.starts[layout.inv_dims_order[3]] : \
                              layout.ends  [layout.inv_dims_order[3]]   ][None,:,None] * \
                 bz*dt
+        totDist = -eta_grid[3][layout.starts[layout.inv_dims_order[3]] : \
+                             layout.ends  [layout.inv_dims_order[3]]   ][None,:,None] * dt
         
         # Find the number of steps between the start point and the lines
         # around the end point
@@ -250,7 +252,7 @@ class FluxSurfaceAdvection:
         self._thetaShifts = dtheta*self._shifts
         
         # Find the distance to the points used for the interpolation
-        zPts = dz*self._shifts[:,:,:]
+        zPts = np.sqrt(dz*dz+dtheta**2)*self._shifts[:,:,:]
         
         # As we have a regular grid and constant advection the endpoint
         # from grid point z_i evaluated on the lagrangian basis spanning z_k:z_{k+6}
@@ -258,9 +260,9 @@ class FluxSurfaceAdvection:
         # lagrangian basis spanning z_{k+1}:z_{k+7}
         # Thus this evaluation only needs to be done once for each r value and v value
         # not for each z or phi values
-        z = eta_grid[2][0]
+        z = eta_grid[2][1]
         zPts = z+zPts
-        zPos = z+zDist
+        zPos = z+totDist
         
         # The first barycentric formula is used to find the lagrange coefficients
         zDiff=zPos-zPts
@@ -297,23 +299,23 @@ class FluxSurfaceAdvection:
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
             
-            AAS.get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
-                                modFunc(self._LagrangeVals),self._points[0],
-                                self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
-                                self._thetaSpline.basis.degree,
-                                self._thetaSpline.coeffs)
+            #~ AAS.get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
+                                #~ modFunc(self._LagrangeVals),self._points[0],
+                                #~ self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
+                                #~ self._thetaSpline.basis.degree,
+                                #~ self._thetaSpline.coeffs)
             
-            #~ for j,s in enumerate(self._shifts[rIdx,cIdx]):
-                #~ self._LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
-                        #~ self._thetaSpline.eval(self._points[0]+self._thetaShifts[rIdx,cIdx,j])
+            for j,s in enumerate(self._shifts[rIdx,cIdx]):
+                self._LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
+                        self._thetaSpline.eval(self._points[0]+self._thetaShifts[rIdx,cIdx,j])
         
-        AAS.flux_advection(*self._nPoints,modFunc(f),
-                            self._lagrangeCoeffs[rIdx,cIdx],
-                            modFunc(self._LagrangeVals))
+        #~ AAS.flux_advection(*self._nPoints,modFunc(f),
+                            #~ self._lagrangeCoeffs[rIdx,cIdx],
+                            #~ modFunc(self._LagrangeVals))
         
-        #~ for j in range(self._nPoints[0]):
-            #~ for i in range(self._nPoints[1]):
-                #~ f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],self._LagrangeVals[i,j])
+        for j in range(self._nPoints[0]):
+            for i in range(self._nPoints[1]):
+                f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],self._LagrangeVals[i,j])
 
 class VParallelAdvection:
     """
