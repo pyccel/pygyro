@@ -11,11 +11,11 @@ from ..initialisation                           import constants
 def gauss(x):
     return np.exp(-x**2/4)
 
-def iota0():
-    return 0.0
+def iota0(r):
+    return np.zeros_like(r)
 
-def iota8():
-    return 0.8
+def iota8(r):
+    return np.ones_like(r)*0.8
 
 @pytest.mark.serial
 @pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1)] )
@@ -93,7 +93,7 @@ def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
         fluxAdv.step(f_vals,0)
     #~ print(np.max(np.abs(f_vals-f_end)))
     assert(np.max(np.abs(f_vals-f_end))<err)
-"""
+
 @pytest.mark.serial
 @pytest.mark.parametrize( "function,N", [(gauss,10),(gauss,20),(gauss,30)] )
 def test_vParallelAdvection(function,N):
@@ -301,7 +301,7 @@ def test_poloidalAdvection_gridIntegration():
         for j,v in grid.getCoords(1):
             polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
 
-""
+"""
 # Tests are too slow
 @pytest.mark.parallel
 def test_equilibrium():
@@ -425,7 +425,7 @@ def test_perturbedEquilibrium():
     
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f)>1e-8)
-""
+"""
 
 @pytest.mark.serial
 def test_vParGrad():
@@ -439,7 +439,7 @@ def test_vParGrad():
     
     N=10
     
-    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid)
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout))
     
     phiVals = np.empty([npts[2],npts[1]])
     phiVals[:]=3
@@ -464,7 +464,7 @@ def iota(r = 6.0):
 @pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(3,6), (4,6)] )
 def test_Phi_deriv_dz(phiOrder,zOrder):
     nconvpts = 2
-    npts = [128,1024,128]
+    npts = [1,1024,128]
     
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
@@ -475,7 +475,7 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         breaks_z = np.linspace(0,20,npts[2]+1)
         spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
         
-        eta_grid = [[1], spline_theta.greville, spline_z.greville]
+        eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][1]-eta_grid[2][0]
         dtheta = iota()*dz/constants.R0
@@ -486,7 +486,9 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         phiVals = np.empty([npts[2],npts[1]])
         phiVals[:] = pg_Phi(eta_grid[1][None,:],eta_grid[2][:,None])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,iota,zOrder)
+        layout = Layout('par_grad',[1],[0,2,1],eta_grid,[0])
+        
+        pGrad = ParallelGradient(spline_theta,eta_grid,layout,iota,zOrder)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
@@ -502,4 +504,3 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
     linfOrder = np.log2(linf[0]/linf[1])
     
     assert(abs(linfOrder-zOrder)<0.1)
-"""
