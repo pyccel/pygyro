@@ -47,7 +47,7 @@ class ParallelGradient:
         Default is 6
 
     """
-    def __init__( self, spline: BSplines, eta_grid: list, iota = constants.iota, order: int = 6 ):
+    def __init__( self, spline: BSplines, eta_grid: list, layout: Layout, iota = constants.iota, order: int = 6 ):
         # Save z step
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         # Save size in z direction
@@ -65,14 +65,14 @@ class ParallelGradient:
         # Save the inverse as it is used multiple times
         self._inv_dz = 1.0/self._dz
         
-        r = eta_grid[layout.starts[layout.inv_dims_order[0]] : \
+        r = eta_grid[0][layout.starts[layout.inv_dims_order[0]] : \
                      layout.ends  [layout.inv_dims_order[0]]    ]
         
         # Save theta step.
         dtheta = np.atleast_2d(self._dz * iota(r) / constants.R0).T
         
         # Determine bz
-        self._bz = self._dz / np.sqrt(self._dz**2+r*dtheta**2)
+        self._bz = self._dz / np.sqrt(self._dz**2+r[:,None]*dtheta**2)
         
         # Save the necessary spline and interpolator
         self._interpolator = SplineInterpolator1D(spline)
@@ -207,13 +207,13 @@ class FluxSurfaceAdvection:
         # Get z step
         dz = eta_grid[2][2]-eta_grid[2][1]
         
-        r = eta_grid[layout.starts[layout.inv_dims_order[0]] : \
+        r = eta_grid[0][layout.starts[layout.inv_dims_order[0]] : \
                      layout.ends  [layout.inv_dims_order[0]]    ]
         
         # Get theta step
         dtheta = (dz * iota(r) / constants.R0)[:,None,None]
         
-        bz = dz / np.sqrt(dz**2 + r*dtheta**2)
+        bz = dz / np.sqrt(dz**2 + r[:,None,None]*dtheta**2)
         
         nR = len(dtheta)
         nV = layout.shape[layout.inv_dims_order[3]]
