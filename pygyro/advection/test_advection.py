@@ -54,7 +54,7 @@ def test_fluxSurfaceAdvection(fact,dt):
     assert(np.max(np.abs(f_vals-f_end))<1e-4)
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "nptZ,dt,err", [(32,1,0.7),(32,0.1,0.07),(64,0.5,0.4),(128,0.025,0.02)] )
+@pytest.mark.parametrize( "nptZ,dt,err", [(32,1.0,1.5e-2),(64,0.5,3e-4),(128,0.25,1e-5)] )
 def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
     npts = [nptZ,nptZ]
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
@@ -81,7 +81,7 @@ def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
     
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota8)
     
-    m, n = (4, 5)
+    m, n = (5,-4)
     theta = eta_grids[0]
     phi = eta_grids[1]*2*pi/domain[1][1]
     f_vals[:,:] = np.sin( m*theta[:,None] + n*phi[None,:] )
