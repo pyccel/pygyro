@@ -23,7 +23,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
                         kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol,
                         CN0, kN0, deltaRN0, rp, CTi,
-                        kTi, deltaRTi, B0, rank,nulBound = False ):
+                        kTi, deltaRTi, B0,nulBound = False ):
     """
     Carry out an advection step for the poloidal advection
 
