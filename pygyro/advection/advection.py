@@ -65,34 +65,24 @@ class ParallelGradient:
         # Save the inverse as it is used multiple times
         self._inv_dz = 1.0/self._dz
         
-        # Save theta step. If iota does not vary with the radius then this
-        # should be one value. Otherwise it is an array.
-        try:
-            dtheta =  np.atleast_2d(self._dz * iota() / constants.R0)
-        except:
-            # The result is transposed to allow it to be used with simply
-            # with dz
-            dtheta = np.atleast_2d(self._dz * iota(eta_grid[0]) / constants.R0).T
+        r = eta_grid[layout.starts[layout.inv_dims_order[0]] : \
+                     layout.ends  [layout.inv_dims_order[0]]    ]
+        
+        # Save theta step.
+        dtheta = np.atleast_2d(self._dz * iota(r) / constants.R0).T
         
         # Determine bz
-        self._bz = self._dz / np.sqrt(self._dz**2+dtheta**2)
+        self._bz = self._dz / np.sqrt(self._dz**2+r*dtheta**2)
         
         # Save the necessary spline and interpolator
         self._interpolator = SplineInterpolator1D(spline)
         self._thetaSpline = Spline1D(spline)
         
-        # Remember whether or not there are different values for iota
-        self._variesInR = self._bz.size!=1
-        
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
-        if (self._variesInR):
-            self._thetaVals = np.empty([eta_grid[0].size, self._nz, order+1, self._nq])
-            for i,r in enumerate(eta_grid[0]):
-                self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
-        else:
-            self._thetaVals = np.empty([self._nz, order+1, self._nq])
-            self._getThetaVals(eta_grid[0][0],self._thetaVals,eta_grid,iota)
+        self._thetaVals = np.empty([eta_grid[0].size, self._nz, order+1, self._nq])
+        for i,r in enumerate(eta_grid[0]):
+            self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
     
     def getCoeffsFirstDeriv( self, n: int):
         b=np.zeros(n)
@@ -139,12 +129,8 @@ class ParallelGradient:
         
         """
         # Get scalar values necessary for this slice
-        if (self._variesInR):
-            bz=self._bz[i]
-            thetaVals = self._thetaVals[i]
-        else:
-            bz=self._bz
-            thetaVals = self._thetaVals
+        bz=self._bz[i]
+        thetaVals = self._thetaVals[i]
         assert(der.shape==phi_r.shape)
         der[:]=0
         
@@ -221,16 +207,13 @@ class FluxSurfaceAdvection:
         # Get z step
         dz = eta_grid[2][2]-eta_grid[2][1]
         
-        # Get theta step
-        try:
-            # dtheta is a scalar if iota does not depend on r and a vector otherwise
-            dtheta =  np.array([dz * iota() / constants.R0])[:,None,None]
-        except:
-            dtheta = (dz * iota(eta_grid[layout.starts[layout.inv_dims_order[0]] : \
-                                                     layout.ends  [layout.inv_dims_order[0]]    ]) \
-                            / constants.R0)[:,None,None]
+        r = eta_grid[layout.starts[layout.inv_dims_order[0]] : \
+                     layout.ends  [layout.inv_dims_order[0]]    ]
         
-        bz = dz / np.sqrt(dz**2 + dtheta**2)
+        # Get theta step
+        dtheta = (dz * iota(r) / constants.R0)[:,None,None]
+        
+        bz = dz / np.sqrt(dz**2 + r*dtheta**2)
         
         nR = len(dtheta)
         nV = layout.shape[layout.inv_dims_order[3]]
@@ -239,8 +222,6 @@ class FluxSurfaceAdvection:
         zDist = -eta_grid[3][layout.starts[layout.inv_dims_order[3]] : \
                              layout.ends  [layout.inv_dims_order[3]]   ][None,:,None] * \
                 bz*dt
-        totDist = -eta_grid[3][layout.starts[layout.inv_dims_order[3]] : \
-                             layout.ends  [layout.inv_dims_order[3]]   ][None,:,None] * dt
         
         # Find the number of steps between the start point and the lines
         # around the end point
@@ -252,7 +233,7 @@ class FluxSurfaceAdvection:
         self._thetaShifts = dtheta*self._shifts
         
         # Find the distance to the points used for the interpolation
-        zPts = np.sqrt(dz*dz+dtheta**2)*self._shifts[:,:,:]
+        zPts = dz * self._shifts[:,:,:]
         
         # As we have a regular grid and constant advection the endpoint
         # from grid point z_i evaluated on the lagrangian basis spanning z_k:z_{k+6}
@@ -262,7 +243,7 @@ class FluxSurfaceAdvection:
         # not for each z or phi values
         z = eta_grid[2][1]
         zPts = z+zPts
-        zPos = z+totDist
+        zPos = z+zDist
         
         # The first barycentric formula is used to find the lagrange coefficients
         zDiff=zPos-zPts
