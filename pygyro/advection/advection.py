@@ -72,7 +72,7 @@ class ParallelGradient:
         dtheta = np.atleast_2d(self._dz * iota(r) / constants.R0).T
         
         # Determine bz
-        self._bz = self._dz / np.sqrt(self._dz**2+r[:,None]**2*dtheta**2)
+        self._bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)[:,None]**2)
         
         # Save the necessary spline and interpolator
         self._interpolator = SplineInterpolator1D(spline)
@@ -213,7 +213,7 @@ class FluxSurfaceAdvection:
         # Get theta step
         dtheta = (dz * iota(r) / constants.R0)[:,None,None]
         
-        bz = dz / np.sqrt(dz**2 + r[:,None,None]**2*dtheta**2)
+        bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)[:,None,None]**2)
         
         nR = len(dtheta)
         nV = layout.shape[layout.inv_dims_order[3]]
