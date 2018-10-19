@@ -69,7 +69,7 @@ def test_l2Norm_is_volume(layout,R0,rMin,rMax):
         
     
     if (rank==0):
-        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2))<1e-7)
+        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2))<5e-7)
 
 def args_norm_grid():
     for layout in ['poloidal']:#['v_parallel','flux_surface','poloidal']:
@@ -117,7 +117,7 @@ def test_l1Norm_phi_is_volume(layout,R0,rMin,rMax,vMax):
     
     if (rank==0):
         print(l1Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
-        assert(abs(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<1e-7)
+        assert(abs(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<5e-7)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize( "layout,R0,rMin,rMax,vMax", args_norm_grid() )
