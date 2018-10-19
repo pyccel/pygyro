@@ -27,9 +27,9 @@ class l2:
             
             self._factor1 = np.empty(shape)
             if (idx_r<idx_v):
-                self._factor1.flat = ((mydrMult*my_r)[:,None] * (mydvMult*my_v**2)[None,:]).flat
+                self._factor1.flat = ((mydrMult*my_r)[:,None] * mydvMult[None,:]).flat
             else:
-                self._factor1.flat = ((mydrMult*my_r)[None,:] * (mydvMult*my_v**2)[:,None]).flat
+                self._factor1.flat = ((mydrMult*my_r)[None,:] * mydvMult[:,None]).flat
         else:
             shape = [1,1,1]
             shape[idx_r] = mydrMult.size
@@ -76,9 +76,9 @@ class l1:
         
         self._factor1 = np.empty(shape)
         if (idx_r<idx_v):
-            self._factor1.flat = ((mydrMult*my_r)[:,None] * (mydvMult*my_v**2)[None,:]).flat
+            self._factor1.flat = ((mydrMult*my_r)[:,None] * mydvMult[None,:]).flat
         else:
-            self._factor1.flat = ((mydrMult*my_r)[None,:] * (mydvMult*my_v**2)[:,None]).flat
+            self._factor1.flat = ((mydrMult*my_r)[None,:] * mydvMult[:,None]).flat
         
         self._layout = layout.name
         
@@ -119,9 +119,9 @@ class nParticles:
         
         self._factor1 = np.empty(shape)
         if (idx_r<idx_v):
-            self._factor1.flat = ((mydrMult*my_r)[:,None] * (mydvMult*my_v**2)[None,:]).flat
+            self._factor1.flat = ((mydrMult*my_r)[:,None] * mydvMult[None,:]).flat
         else:
-            self._factor1.flat = ((mydrMult*my_r)[None,:] * (mydvMult*my_v**2)[:,None]).flat
+            self._factor1.flat = ((mydrMult*my_r)[None,:] * mydvMult[:,None]).flat
         
         self._layout = layout.name
         
