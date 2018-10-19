@@ -67,7 +67,7 @@ def test_l2Norm_is_volume(layout,R0,rMin,rMax):
         
     
     if (rank==0):
-        assert(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2)<1e-7)
+        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2))<1e-7)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize( "layout,R0,rMin,rMax", args_norm() )
@@ -118,4 +118,4 @@ def test_l1Norm_is_volume(layout,R0,rMin,rMax):
     
     if (rank==0):
         print(l1Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*2))
-        assert(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2)<1e-7)
+        assert(abs(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2))<1e-7)
