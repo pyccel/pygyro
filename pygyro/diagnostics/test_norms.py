@@ -1,0 +1,58 @@
+from mpi4py     import MPI
+import numpy    as np
+import pytest
+
+from .norms     import l2, l1
+from ..                                         import splines as spl
+from ..model.process_grid                       import compute_2d_process_grid_from_max
+from ..model.grid                       import Grid
+from ..model.layout                             import LayoutSwapper
+
+def args_l2():
+    for layout in ['v_parallel_2d','mode_solve','v_parallel_1d','poloidal']:
+        for i in range(5):
+            R0 = np.random.rand()*1000
+            for j in range(5):
+                rMin = np.random.rand()
+                for k in range(6):
+                    rMax = np.random.randint(10,200)/10
+                    yield (layout, R0, rMin,rMax)
+
+@pytest.mark.parametrize( "layout,R0,rMin,rMax", args_l2() )
+def test_l2Norm_is_volume(layout,R0,rMin,rMax):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+    npts = [10,11,12]
+    
+    domain    = [ [rMin,rMax], [0,2*np.pi], [0,R0*2*np.pi] ]
+    periodic  = [ False, True, True ]
+    nkts      = [n+1                           for n          in npts ]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,3,p )       for (b,p)      in zip(breaks,periodic)]
+    bsplines  = [spl.BSplines( k,3,p )         for (k,p)      in zip(knots,periodic)]
+    eta_grid  = [bspl.greville                 for bspl       in bsplines]
+    
+    layout_poisson   = {'v_parallel_2d': [0,2,1],
+                        'mode_solve'   : [1,2,0]}
+    layout_vpar      = {'v_parallel_1d': [0,2,1]}
+    layout_poloidal  = {'poloidal'     : [2,1,0]}
+
+    nprocs = compute_2d_process_grid_from_max(min(npts[0],npts[1]),npts[2],size)
+
+    remapperPhi = LayoutSwapper( comm, [layout_poisson, layout_vpar, layout_poloidal],
+                                [nprocs,nprocs[0],nprocs[1]], eta_grid,
+                                layout )
+    
+    norm = l2(eta_grid,remapperPhi.getLayout(layout))
+    
+    phi = Grid(eta_grid,bsplines,remapperPhi,layout,comm)
+    phi._f[:] = 1
+    
+    l2Val = norm.l2NormSquared(phi)
+    l2Result = comm.reduce(l2Val,op=MPI.SUM, root=0)
+    
+    if (rank==0):
+        print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*2))
+        assert(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2)<1e-7)
