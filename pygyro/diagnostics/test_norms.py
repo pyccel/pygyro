@@ -153,4 +153,4 @@ def test_l2Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     
     if (rank==0):
         print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
-        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<1e-7)
+        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<5e-7)
