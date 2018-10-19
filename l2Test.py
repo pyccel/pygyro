@@ -18,7 +18,8 @@ from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralit
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
-from pygyro.diagnostics.norms               import l2
+from pygyro.diagnostics.norms               import l2, l1
+from pygyro.diagnostics.energy              import KineticEnergy
 
 loop_start = 0
 loop_time = 0
@@ -60,6 +61,7 @@ zDegree = args.zDegree[0]
 vDegree = args.vDegree[0]
 
 saveStep = args.saveStep[0]
+saveStepCut = saveStep-1
 
 tEnd = args.tEnd[0]
 
@@ -105,7 +107,6 @@ else:
 
     npts = [256,512,32,128]
     # npts = [128,256,32,64]
-
 
     dt=2
 
@@ -153,12 +154,22 @@ QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSplin
                                 chi=0)
 parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid,remapperPhi.getLayout('v_parallel_1d'))
 
-
-l2Phi = np.zeros([2,saveStep])
+# 0 - time
+# 1 - l2
+# 2 - l1
+# 3 - min
+# 4 - max
+# 5 - KE
+diagnostics = np.zeros([6,saveStep])
 l2Result=np.zeros(saveStep)
+l1Result=np.zeros(saveStep)
+min_val=np.zeros(saveStep)
+max_val=np.zeros(saveStep)
+KE_val=np.zeros(saveStep)
 
 l2class = l2(phi.eta_grid,phi.getLayout('v_parallel_2d'))
-
+l1class = l1(phi.eta_grid,phi.getLayout('v_parallel_2d'))
+KEclass = KineticEnergy(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
 
 
 phi_filename = "{0}/phiDat.txt".format(foldername)
@@ -185,35 +196,48 @@ distribFunc.writeH5Dataset(foldername,t)
 phi.writeH5Dataset(foldername,t,"phi")
 output_time+=(time.clock()-output_start)
 
+print("t=",t)
+
 loop_start=time.clock()
 
 for ti in range(tN):
-    polAdv.reset_max_loop_counter()
     
     loop_time+=(time.clock()-loop_start)
-    if (ti%saveStep==0 and ti!=0):
+    
+    diagnostic_start=time.clock()
+    # Calculate diagnostic quantity |phi|_2
+    diagnostics[0,ti%saveStep]=t
+    diagnostics[1,ti%saveStep]=l2class.l2NormSquared(phi)
+    diagnostics[2,ti%saveStep]=l1class.l1Norm(phi)
+    diagnostics[3,ti%saveStep]=distribFunc.getMin()
+    diagnostics[4,ti%saveStep]=distribFunc.getMax()
+    diagnostics[5,ti%saveStep]=KEclass.getKE(distribFunc)
+    
+    t+=dt
+    diagnostic_time+=(time.clock()-diagnostic_start)
+    
+    if (ti%saveStep==saveStepCut):
         output_start=time.clock()
         distribFunc.writeH5Dataset(foldername,t)
         phi.writeH5Dataset(foldername,t,"phi")
         
-        comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
-        l2Result = np.sqrt(l2Result)
+        comm.Reduce(diagnostics[1,:],l2Result,op=MPI.SUM, root=0)
+        comm.Reduce(diagnostics[2,:],l1Result,op=MPI.SUM, root=0)
+        comm.Reduce(diagnostics[3,:],min_val,op=MPI.MIN, root=0)
+        comm.Reduce(diagnostics[4,:],max_val,op=MPI.MAX, root=0)
+        comm.Reduce(diagnostics[5,:],KE_val,op=MPI.SUM, root=0)
         if (rank == 0):
+            l2Result = np.sqrt(l2Result)
             phiFile = open(phi_filename,"a")
             for i in range(saveStep):
-                print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
+                print("{t:10g}   {l2:16.10e}   {l1:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}".
+                        format(t=diagnostics[0,i],l2=l2Result[i],l1=l1Result[i],
+                                minim=min_val[i],maxim=max_val[i],ke=KE_val[i]),
+                        file=phiFile)
             phiFile.close()
         output_time+=(time.clock()-output_start)
     
-    diagnostic_start=time.clock()
-    # Calculate diagnostic quantity |phi|_2
-    l2Phi[0,ti%saveStep]=t
-    l2Phi[1,ti%saveStep]=l2class.l2NormSquared(phi)
-    
     print("t=",t)
-    
-    t+=dt
-    diagnostic_time+=(time.clock()-diagnostic_start)
     loop_start=time.clock()
     
     # Compute f^n+1/2 using lie splitting
@@ -282,8 +306,6 @@ for ti in range(tN):
         for j,v in distribFunc.getCoords(1):
             fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
     
-    polAdv.print_max_loops()
-    
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -299,20 +321,31 @@ loop_time+=(time.clock()-loop_start)
 
 diagnostic_start=time.clock()
 # Calculate diagnostic quantity |phi|_2
-l2Phi[0,tN%saveStep]=t
-l2Phi[1,tN%saveStep]=l2class.l2NormSquared(phi)
+diagnostics[0,tN%saveStep]=t
+diagnostics[1,tN%saveStep]=l2class.l2NormSquared(phi)
+diagnostics[2,tN%saveStep]=l1class.l1Norm(phi)
+diagnostics[3,tN%saveStep]=distribFunc.getMin()
+diagnostics[4,tN%saveStep]=distribFunc.getMax()
+diagnostics[5,tN%saveStep]=KEclass.getKE(distribFunc)
 diagnostic_time+=(time.clock()-diagnostic_start)
 
 output_start=time.clock()
 distribFunc.writeH5Dataset(foldername,t)
 phi.writeH5Dataset(foldername,t,"phi")
 
-comm.Reduce(l2Phi[1,:],l2Result,op=MPI.SUM, root=0)
-l2Result = np.sqrt(l2Result)
+comm.Reduce(diagnostics[1,:],l2Result,op=MPI.SUM, root=0)
+comm.Reduce(diagnostics[2,:],l1Result,op=MPI.SUM, root=0)
+comm.Reduce(diagnostics[3,:],min_val,op=MPI.MIN, root=0)
+comm.Reduce(diagnostics[4,:],max_val,op=MPI.MAX, root=0)
+comm.Reduce(diagnostics[5,:],KE_val,op=MPI.SUM, root=0)
 if (rank == 0):
+    l2Result = np.sqrt(l2Result)
     phiFile = open(phi_filename,"a")
     for i in range(tN%saveStep+1):
-        print("{t:10g}   {l2:16.10e}".format(t=l2Phi[0,i],l2=l2Result[i]),file=phiFile)
+        print("{t:10g}   {l2:16.10e}   {l1:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}".
+                        format(t=diagnostics[0,i],l2=l2Result[i],l1=l1Result[i],
+                                minim=min_val[i],maxim=max_val[i],ke=KE_val[i]),
+                        file=phiFile)
     phiFile.close()
 output_time+=(time.clock()-output_start)
 
