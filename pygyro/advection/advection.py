@@ -68,9 +68,6 @@ class ParallelGradient:
         r = eta_grid[0][layout.starts[layout.inv_dims_order[0]] : \
                      layout.ends  [layout.inv_dims_order[0]]    ]
         
-        # Save theta step.
-        dtheta = np.atleast_2d(self._dz * iota(r) / constants.R0).T
-        
         # Determine bz
         self._bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)[:,None]**2)
         
