@@ -18,7 +18,7 @@ from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralit
 from pygyro.splines.splines                 import Spline2D
 from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
-from pygyro.diagnostics.l2Norm              import l2
+from pygyro.diagnostics.norms               import l2
 
 loop_start = 0
 loop_time = 0
@@ -126,7 +126,6 @@ fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
                                 distribFunc.getLayout('flux_surface'),halfStep)
 vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
-parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid)
 parGradVals = np.empty([distribFunc.getLayout(distribFunc.currentLayout).shape[0],npts[2],npts[1]])
 
 layout_poisson   = {'v_parallel_2d': [0,2,1],
@@ -152,6 +151,7 @@ density = DensityFinder(6,distribFunc.getSpline(3),distribFunc.eta_grid)
 
 QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0),
                                 chi=0)
+parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid,remapperPhi.getLayout('v_parallel_1d'))
 
 
 l2Phi = np.zeros([2,saveStep])
