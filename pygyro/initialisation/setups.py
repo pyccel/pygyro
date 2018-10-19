@@ -234,6 +234,11 @@ def setupFromFile(foldername, **kwargs):
         grid._f[:] = dataset[slices]
         
         file.close()
+        
+        if ('layout' in kwargs):
+            desired_layout = kwargs.pop('layout')
+            if (desired_layout!=my_layout):
+                grid.setLayout(desired_layout)
     else:
         assert('layout' in kwargs)
         layout = kwargs.pop('layout')
