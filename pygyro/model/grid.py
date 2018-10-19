@@ -294,50 +294,54 @@ class Grid(object):
             # Gather information from all ranks
             comm.Gatherv(toSend,toSend, rank)
     
-    def getMin(self,drawingRank,axis = None,fixValue = None):
-        
-        if (self._f.size==0):
-            return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
+    def getMin(self,drawingRank = None,axis = None,fixValue = None):
+        if (drawingRank == None):
+            return self._f.min()
         else:
-            # if we want the total of all points on the grid
-            if (axis==None and fixValue==None):
-                # return the min of the min found on each process
-                return self.global_comm.reduce(np.amin(np.real(self._f)),op=MPI.MIN,root=drawingRank)
-            
-            # if we want the total of all points on a (N-1)D slice where the
-            # value of eta_i is fixed ensure that the required index is
-            # covered by this process
-            dim = self._layout.inv_dims_order[axis]
-            if (fixValue>=self._layout.starts[dim] and 
-                fixValue<self._layout.ends[dim]):
-                idx = (np.s_[:],) * dim + (fixValue-self._layout.starts[dim],)
-                return self.global_comm.reduce(np.amin(np.real(self._f[idx])),op=MPI.MIN,root=drawingRank)
-            
-            # if the data is not on this process then send the largest possible value of f
-            # this way min will always choose an alternative
-            else:
+            if (self._f.size==0):
                 return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
-    
-    def getMax(self,drawingRank,axis = None,fixValue = None):
-        
-        if (self._f.size==0):
-            return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
-        else:
-            # if we want the total of all points on the grid
-            if (axis==None and fixValue==None):
-                # return the max of the max found on each process
-                return self.global_comm.reduce(np.amax(np.real(self._f)),op=MPI.MAX,root=drawingRank)
-            
-            # if we want the total of all points on a (N-1)D slice where the
-            # value of eta_i is fixed ensure that the required index is
-            # covered by this process
-            dim = self._layout.inv_dims_order[axis]
-            if (fixValue>=self._layout.starts[dim] and 
-                fixValue<self._layout.ends[dim]):
-                idx = (np.s_[:],) * dim + (fixValue-self._layout.starts[dim],)
-                return self.global_comm.reduce(np.amax(np.real(self._f[idx])),op=MPI.MAX,root=drawingRank)
-            
-            # if the data is not on this process then send the smallest possible value of f
-            # this way max will always choose an alternative
             else:
+                # if we want the total of all points on the grid
+                if (axis==None and fixValue==None):
+                    # return the min of the min found on each process
+                    return self.global_comm.reduce(np.amin(np.real(self._f)),op=MPI.MIN,root=drawingRank)
+                
+                # if we want the total of all points on a (N-1)D slice where the
+                # value of eta_i is fixed ensure that the required index is
+                # covered by this process
+                dim = self._layout.inv_dims_order[axis]
+                if (fixValue>=self._layout.starts[dim] and 
+                    fixValue<self._layout.ends[dim]):
+                    idx = (np.s_[:],) * dim + (fixValue-self._layout.starts[dim],)
+                    return self.global_comm.reduce(np.amin(np.real(self._f[idx])),op=MPI.MIN,root=drawingRank)
+                
+                # if the data is not on this process then send the largest possible value of f
+                # this way min will always choose an alternative
+                else:
+                    return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
+    
+    def getMax(self,drawingRank = None,axis = None,fixValue = None):
+        if (drawingRank == None):
+            return self._f.max()
+        else:
+            if (self._f.size==0):
                 return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
+            else:
+                # if we want the total of all points on the grid
+                if (axis==None and fixValue==None):
+                    # return the max of the max found on each process
+                    return self.global_comm.reduce(np.amax(np.real(self._f)),op=MPI.MAX,root=drawingRank)
+                
+                # if we want the total of all points on a (N-1)D slice where the
+                # value of eta_i is fixed ensure that the required index is
+                # covered by this process
+                dim = self._layout.inv_dims_order[axis]
+                if (fixValue>=self._layout.starts[dim] and 
+                    fixValue<self._layout.ends[dim]):
+                    idx = (np.s_[:],) * dim + (fixValue-self._layout.starts[dim],)
+                    return self.global_comm.reduce(np.amax(np.real(self._f[idx])),op=MPI.MAX,root=drawingRank)
+                
+                # if the data is not on this process then send the smallest possible value of f
+                # this way max will always choose an alternative
+                else:
+                    return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
