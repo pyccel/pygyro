@@ -14,10 +14,10 @@ testimony:
     - make
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 4"
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 1"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 4"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 6"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 20"
   after_script:
     - make clean
     - deactivate
