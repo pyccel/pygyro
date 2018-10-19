@@ -33,7 +33,7 @@ def test_KineticEnergy_NoVelocity():
     KEResult = comm.reduce(KE_val,op=MPI.SUM, root=0)
     
     if (rank==0):
-        assert(KEResult<1e-7)
+        assert(abs(KEResult)<1e-7)
 
 @pytest.mark.parallel
 def test_KineticEnergy_Positive():
@@ -46,7 +46,6 @@ def test_KineticEnergy_Positive():
                                 layout = 'poloidal',
                                 vMax = 4)
     grid._f[:]=0
-    print(grid.eta_grid[3])
     idx_v = np.where(grid.eta_grid[3]==-1)[0][0]
     glob_v_vals = grid.getGlobalIdxVals(0)
     if (idx_v in glob_v_vals):
@@ -60,4 +59,4 @@ def test_KineticEnergy_Positive():
     KEResult = comm.reduce(KE_val,op=MPI.SUM, root=0)
     
     if (rank==0):
-        assert(KEResult-((constants.rMax**2-constants.rMin**2)*np.pi*np.pi*constants.R0*2)<1e-7)
+        assert(abs(KEResult-0.5*((constants.rMax**2-constants.rMin**2)*np.pi*np.pi*constants.R0*2))<1e-7)
