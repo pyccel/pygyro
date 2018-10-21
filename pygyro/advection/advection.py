@@ -313,22 +313,29 @@ class VParallelAdvection:
         Default is fEquilibrium
 
     """
-    def __init__( self, eta_vals: list, splines: BSplines, 
-                    nulEdge: bool = False ):
+    def __init__( self, eta_vals: list, splines: BSplines, edge : str = 'fEq' ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
         
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
-        self._nulEdge=nulEdge
-        if (nulEdge):
-            self._edge = lambda r,v: 0.0
-        else:
+        if (edge=='fEq'):
+            self._edge = 0
             self._edge = lambda r,v: fEq(x,y,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
+        elif (edge=='null'):
+            self._edge = 1
+            self._edge = lambda r,v: 0.0
+        elif (edge=='periodic'):
+            self._edge = 2
+            minPt = self._points[0]
+            width = self._points[-1]-self._points[0]
+            self._edge = lambda r,v: self._spline.eval((v+minPt)%width - minPt)
+        else:
+            raise RuntimeError("V parallel boundary condition must be one of 'fEq', 'null', 'periodic'")
     
     def step( self, f: np.ndarray, dt: float, c: float, r: float ):
         """
