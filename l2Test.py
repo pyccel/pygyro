@@ -125,7 +125,7 @@ else:
 
 fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
                                 distribFunc.getLayout('flux_surface'),halfStep)
-vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
+vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3),'periodic')
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
 parGradVals = np.empty([distribFunc.getLayout(distribFunc.currentLayout).shape[0],npts[2],npts[1]])
 
