@@ -321,19 +321,19 @@ class VParallelAdvection:
         
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         if (edge=='fEq'):
-            self._edge = 0
-            self._edge = lambda r,v: fEq(x,y,constants.CN0,constants.kN0,
+            self._edgeType = 0
+            self._edge = lambda r,v: fEq(r,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
         elif (edge=='null'):
-            self._edge = 1
+            self._edgeType = 1
             self._edge = lambda r,v: 0.0
         elif (edge=='periodic'):
-            self._edge = 2
+            self._edgeType = 2
             minPt = self._points[0]
             width = self._points[-1]-self._points[0]
-            self._edge = lambda r,v: self._spline.eval((v+minPt)%width - minPt)
+            self._edge = lambda r,v: self._spline.eval((v-minPt)%width + minPt)
         else:
             raise RuntimeError("V parallel boundary condition must be one of 'fEq', 'null', 'periodic'")
     
@@ -366,7 +366,7 @@ class VParallelAdvection:
                                         constants.CN0,constants.kN0,
                                         constants.deltaRN0,constants.rp,
                                         constants.CTi,constants.kTi,
-                                        constants.deltaRTi,self._nulEdge)
+                                        constants.deltaRTi,self._edgeType)
         #~ f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
