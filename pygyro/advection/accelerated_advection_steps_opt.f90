@@ -288,6 +288,7 @@ pure subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
   integer(kind=4), intent(in)  :: bound
+  real(kind=8) :: vDiff
   real(kind=8) :: v
   integer(kind=4) :: i
 
