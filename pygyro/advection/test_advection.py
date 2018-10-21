@@ -135,6 +135,37 @@ def test_vParallelAdvection(function,N):
     
     assert(max(abs(f-fEnd))<2e-3)
 
+@pytest.mark.serial
+@pytest.mark.parametrize( "N", [10,20,30] )
+def test_vParallelAdvectionPeriodic(N):
+    npts = 50
+    f = np.empty(npts)
+    
+    dt=0.1
+    c=2.0
+    
+    nkts      = npts-2
+    breaks    = np.linspace( -5, 5, num=nkts )
+    knots     = spl.make_knots( breaks,3,False )
+    spline    = spl.BSplines( knots,3,False )
+    x         = spline.greville
+    
+    r = 4
+    
+    f = gauss(x)
+    
+    vParAdv = VParallelAdvection([0,0,0,x], spline, 'periodic')
+    
+    for i in range(N):
+        vParAdv.step(f,dt,c,r)
+    
+    fEnd = np.empty(npts)
+    
+    for i in range(npts):
+        fEnd[i]=gauss((x[i]-c*dt*N+5)%10 -5)
+    
+    assert(max(abs(f-fEnd))<2e-3)
+
 def Phi(r,theta):
     return - 5 * r**2 + np.sin(theta)
 
