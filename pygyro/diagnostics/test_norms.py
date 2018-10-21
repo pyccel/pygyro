@@ -12,11 +12,11 @@ from ..initialisation                           import constants
 
 def args_norm_phi():
     for layout in ['v_parallel_2d','mode_solve','v_parallel_1d','poloidal']:
-        for i in range(5):
+        for i in range(3):
             R0 = np.random.rand()*1000
-            for j in range(5):
+            for j in range(3):
                 rMin = np.random.rand()
-                for k in range(6):
+                for k in range(3):
                     rMax = np.random.randint(10,200)/10
                     yield (layout, R0, rMin,rMax)
 
@@ -73,13 +73,13 @@ def test_l2Norm_is_volume(layout,R0,rMin,rMax):
 
 def args_norm_grid():
     for layout in ['poloidal']:#['v_parallel','flux_surface','poloidal']:
-        for i in range(5):
+        for i in range(3):
             R0 = np.random.rand()*1000
-            for j in range(5):
+            for j in range(3):
                 rMin = np.random.rand()
-                for k in range(5):
+                for k in range(3):
                     rMax = np.random.randint(10,200)/10
-                    for l in range(5):
+                    for l in range(3):
                         vMax = np.random.randint(1,100)/10
                         yield (layout, R0, rMin,rMax,vMax)
 
