@@ -16,7 +16,7 @@ from pyccel.decorators  import types
 
 #~ from ..initialisation.mod_initialiser_funcs               import fEq
 
-@types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','int','bool')
+@types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
@@ -125,18 +125,11 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
     
-@types('double[:]','double[:]','double','double','double','double[:]','int','double[:]','double','double','double','double','double','double','double','bool')
+@types('double[:]','double[:]','double','double','double','double[:]','int','double[:]','double','double','double','double','double','double','double','int')
 def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
-                        coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,nulBound):
+                        coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
     # Find value at the determined point
-    if (nulBound):
-        for i in range(len(vPts)):
-            v=vPts[i]
-            if (v<vMin or v>vMax):
-                f[i]=0.0
-            else:
-                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
-    else:
+    if (bound==0):
         for i in range(len(vPts)):
             v=vPts[i]
             if (v<vMin or v>vMax):
@@ -144,6 +137,23 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                                     kTi,deltaRTi)
             else:
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
+    elif (bound==1):
+        for i in range(len(vPts)):
+            v=vPts[i]
+            if (v<vMin or v>vMax):
+                f[i]=0.0
+            else:
+                f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
+    elif (bound==2):
+        vDiff = vMax-vMin
+        for i in range(len(vPts)):
+            v=vPts[i]
+            while (v<vMin):
+                v+=vDiff
+            while (v>vMax):
+                v-=vDiff
+            f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
+        
 
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
 def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):

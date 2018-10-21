@@ -1,11 +1,11 @@
 module mod_pygyro_advection_accelerated_advection_steps
 
-use mod_initialiser_funcs, only: fEq
-
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_vector
+
+use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -98,15 +98,15 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
   real(kind=8), intent(in)  :: B0
-  logical(kind=4), intent(in)  :: nulBound
-  integer(kind=4) :: i
-  real(kind=8) :: multFactor
-  integer(kind=4) :: j
-  real(kind=8) :: rMax
+  logical(kind=1), intent(in)  :: nulBound
   integer(kind=4) :: idx
   real(kind=8) :: theta
-  real(kind=8) :: r
   real(kind=8) :: multFactor_half
+  real(kind=8) :: rMax
+  real(kind=8) :: r
+  real(kind=8) :: multFactor
+  integer(kind=4) :: j
+  integer(kind=4) :: i
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -262,7 +262,7 @@ end subroutine
 ! ........................................
 subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
       vMin, vMax, n0_kts, kts, deg, n0_coeffs, coeffs, CN0, kN0, &
-      deltaRN0, rp, CTi, kTi, deltaRTi, nulBound)
+      deltaRN0, rp, CTi, kTi, deltaRTi, bound)
 
   implicit none
   integer(kind=4), intent(in)  :: n0_f
@@ -284,12 +284,23 @@ subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
   real(kind=8), intent(in)  :: CTi
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
-  logical(kind=1), intent(in)  :: nulBound
-  real(kind=8) :: v
+  integer(kind=4), intent(in)  :: bound
+  real(kind=8) :: vDiff
   integer(kind=4) :: i
+  real(kind=8) :: v
 
   ! Find value at the determined point
-  if (nulBound) then
+  if (bound == 0 ) then
+    do i = 0, size(vPts,1) - 1, 1
+      v = vPts(i)
+      if (v > vMax .or. v < vMin) then
+        f(i) = fEq(rPos, v, CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi)
+      else
+        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
+      end if
+    end do
+
+  else if (bound == 1 ) then
     do i = 0, size(vPts,1) - 1, 1
       v = vPts(i)
       if (v > vMax .or. v < vMin) then
@@ -299,16 +310,21 @@ subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
       end if
     end do
 
-  else
+  else if (bound == 2 ) then
+    vDiff = vMax - 1.0d0*vMin
     do i = 0, size(vPts,1) - 1, 1
       v = vPts(i)
-      if (v > vMax .or. v < vMin) then
-        f(i) = fEq(rPos, v, CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi)
-      else
-        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
+      do while (v < vMin)
+        v = v + vDiff
+      end do
+      do while (v > vMax)
+        v = v - vDiff
+      end do
+      f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
 
 
-      end if
+
+
     end do
 
   end if
@@ -339,10 +355,10 @@ subroutine get_lagrange_vals(i, nr, n0_shifts, shifts, n0_vals, n1_vals, &
   integer(kind=4), intent(in)  :: deg
   integer(kind=4), intent(in)  :: n0_coeffs
   real(kind=8), intent(in)  :: coeffs (0:n0_coeffs - 1)
-  real(kind=8) :: new_q
-  real(kind=8) :: q
   integer(kind=4) :: j
+  real(kind=8) :: new_q
   integer(kind=4) :: k
+  real(kind=8) :: q
   integer(kind=4) :: s
 
 
@@ -385,9 +401,9 @@ subroutine flux_advection(nq, nr, n0_f, n1_f, f, n0_coeffs, coeffs, &
   integer(kind=4), intent(in)  :: n2_vals
   real(kind=8), intent(in)  :: vals (0:n0_vals - 1,0:n1_vals - 1,0: &
       n2_vals - 1)
+  integer(kind=4) :: k
   integer(kind=4) :: j
   integer(kind=4) :: i
-  integer(kind=4) :: k
 
   do j = 0, nq - 1, 1
     do i = 0, nr - 1, 1
@@ -493,15 +509,15 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8), intent(in)  :: B0
   real(kind=8), intent(in)  :: tol
   logical(kind=1), intent(in)  :: nulBound
+  integer(kind=4) :: idx
+  real(kind=8) :: norm
+  real(kind=8) :: theta
+  real(kind=8) :: rMax
+  real(kind=8) :: r
+  real(kind=8) :: multFactor
+  integer(kind=4) :: j
   real(kind=8) :: diff
   integer(kind=4) :: i
-  real(kind=8) :: multFactor
-  real(kind=8) :: norm
-  integer(kind=4) :: j
-  real(kind=8) :: rMax
-  integer(kind=4) :: idx
-  real(kind=8) :: theta
-  real(kind=8) :: r
 
   !_______________________CommentBlock_______________________!
   !                                                          !
