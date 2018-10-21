@@ -266,7 +266,7 @@ end subroutine
 !==============================================================================
 pure subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
       vMin, vMax, n0_kts, kts, deg, n0_coeffs, coeffs, CN0, kN0, &
-      deltaRN0, rp, CTi, kTi, deltaRTi, nulBound)
+      deltaRN0, rp, CTi, kTi, deltaRTi, bound)
 
   integer(kind=4), intent(in)  :: n0_f
   real(kind=8), intent(inout)  :: f (0:n0_f - 1)
@@ -287,31 +287,42 @@ pure subroutine v_parallel_advection_eval_step(n0_f, f, n0_vPts, vPts, rPos, &
   real(kind=8), intent(in)  :: CTi
   real(kind=8), intent(in)  :: kTi
   real(kind=8), intent(in)  :: deltaRTi
-  logical(kind=1), intent(in)  :: nulBound
+  integer(kind=4), intent(in)  :: bound
   real(kind=8) :: v
   integer(kind=4) :: i
 
   ! Find value at the determined point
-  if (nulBound) then
-
-    do i = 0, size(vPts,1) - 1, 1
-      v = vPts(i)
-      if (v > vMax .or. v < vMin) then
-        f(i) = 0.0d0
-      else
-        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, der=0)
-      end if
-    end do
-
-  else
-
+  if (bound == 0 ) then
     do i = 0, size(vPts,1) - 1, 1
       v = vPts(i)
       if (v > vMax .or. v < vMin) then
         f(i) = fEq(rPos, v, CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi)
       else
-        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, der=0)
+        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
       end if
+    end do
+
+  else if (bound == 1 ) then
+    do i = 0, size(vPts,1) - 1, 1
+      v = vPts(i)
+      if (v > vMax .or. v < vMin) then
+        f(i) = 0.0d0
+      else
+        f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
+      end if
+    end do
+
+  else if (bound == 2 ) then
+    vDiff = vMax - 1.0d0*vMin
+    do i = 0, size(vPts,1) - 1, 1
+      v = vPts(i)
+      do while (v < vMin)
+        v = v + vDiff
+      end do
+      do while (v > vMax)
+        v = v - vDiff
+      end do
+      f(i) = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
     end do
 
   end if
