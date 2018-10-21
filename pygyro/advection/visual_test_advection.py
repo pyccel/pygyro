@@ -106,8 +106,15 @@ def test_poloidalAdvection_invariantPhi():
     
     interp.compute_interpolant(phiVals,phi)
     
-    #f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 + fEq(0.1,v)
-    f_vals[:,:,0] = phiVals + fEq(0.1,v)
+    #~ f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+                        #~ + fEq(0.1,v,constants.CN0,constants.kN0,
+                                            #~ constants.deltaRN0,constants.rp,
+                                            #~ constants.CTi,constants.kTi,
+                                            #~ constants.deltaRTi)
+    f_vals[:,:,0] = phiVals + fEq(0.1,v,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
     
     for n in range(N):
         f_vals[:,:,n+1]=f_vals[:,:,n]
@@ -174,7 +181,11 @@ def test_poloidalAdvection_vortex():
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 + fEq(0.1,v)
+    f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+                        + fEq(0.1,v,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
     
     for n in range(N):
         f_vals[:,:,n+1]=f_vals[:,:,n]
@@ -241,7 +252,11 @@ def test_poloidalAdvection_constantAdv():
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 + fEq(0.1,v)
+    f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+                        + fEq(0.1,v,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
     
     for n in range(N):
         f_vals[:,:,n+1]=f_vals[:,:,n]
@@ -287,7 +302,7 @@ def test_vParallelAdvection():
     
     f_vals = np.ndarray([npts[3],N])
 
-    vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline())
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline(),'periodic')
     
     for n in range(N):
         for i,r in grid.getCoords(0):
@@ -616,3 +631,4 @@ def test_flux_aligned():
         fig.canvas.flush_events()
         fig2.canvas.draw()
         fig2.canvas.flush_events()
+
