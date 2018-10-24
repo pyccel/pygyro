@@ -14,7 +14,7 @@
 #	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func $^
 
 initialiser_func: initialiser_func.f90 mod_initialiser_funcs$(_OPT).o
-	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func $^
+	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func --fcompiler=$(FF_COMP) $^
 
 mod_initialiser_funcs$(_OPT).o: mod_initialiser_funcs$(_OPT).f90
 	$(FC) $(FC_FLAGS) -c $^ -o $@

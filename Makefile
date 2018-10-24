@@ -3,7 +3,7 @@
 #----------------------------------------------------------
 
 # Use GNU or intel compilers? [gnu|intel]
-COMP := gnu
+COMP := intel
 
 # Use manually optimized Fortran files? [1|0]
 MOPT := 1
@@ -16,11 +16,13 @@ ifeq ($(COMP), gnu)
 	CC       := gcc
 	FC       := gfortran
 	FC_FLAGS := -Wall -O3 -fPIC -fstack-arrays
+        FF_COMP  := gnu95
 else \
 ifeq ($(COMP), intel)
 	CC       := icc
 	FC       := ifort
 	FC_FLAGS := -O3 -xHost -ip -fpic
+        FF_COMP  := intelem
 endif
 
 #----------------------------------------------------------
@@ -38,7 +40,7 @@ endif
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS _OPT
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------
