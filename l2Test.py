@@ -121,7 +121,10 @@ else:
 
     tN = int(tEnd//dt)
 
+    #----------------
     halfStep = dt*0.5
+    fullStep = dt
+    #----------------
 
     my_print(rank,"about to setup")
 
@@ -345,11 +348,11 @@ for ti in range(tN):
     # For v[0]
     for j,z in distribFunc.getCoords(1):
         interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),phiSplines[j])
-        polAdv.step(distribFunc.get2DSlice([0,j]),halfStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
+        polAdv.step(distribFunc.get2DSlice([0,j]),fullStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
     # For v[1:], splitting avoids calling interpolator more often than necessary
     for i,v in enumerate(distribFunc.getCoordVals(0)[1:],1):
         for j,z in distribFunc.getCoords(1):
-            polAdv.step(distribFunc.get2DSlice([i,j]),halfStep,phiSplines[j],v)
+            polAdv.step(distribFunc.get2DSlice([i,j]),fullStep,phiSplines[j],v)
     distribFunc.setLayout('v_parallel')
     for i,r in distribFunc.getCoords(0):
         for j,z in distribFunc.getCoords(1):
