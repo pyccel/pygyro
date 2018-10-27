@@ -11,6 +11,7 @@ from ..splines                      import spline_eval_funcs as SEF
 from ..initialisation.mod_initialiser_funcs   import fEq
 from ..initialisation               import constants
 from ..model.layout                 import Layout
+from ..model.grid                   import Grid
 from .                              import accelerated_advection_steps as AAS
 
 if ('mod_pygyro_advection_accelerated_advection_steps' in dir(AAS)):
@@ -294,6 +295,12 @@ class FluxSurfaceAdvection:
         #~ for j in range(self._nPoints[0]):
             #~ for i in range(self._nPoints[1]):
                 #~ f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],self._LagrangeVals[i,j])
+    
+    def gridStep( self, grid: Grid ):
+        assert(grid.getLayout(grid.currentLayout).dims_order==(0,3,1,2))
+        for i,r in grid.getCoords(0):
+            for j,v in grid.getCoords(1):
+                self.step(grid.get2DSlice([i,j]),j)
 
 class VParallelAdvection:
     """
@@ -432,6 +439,8 @@ class PoloidalAdvection:
         self._endPts_k2_r = np.empty(self._nPoints)
         
         self._max_loops = 0
+        
+        self._phiSplines = [Spline2D(splines[0],splines[1]) for i in range(eta_vals[2].size)]
     
     def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
         """
@@ -575,3 +584,23 @@ class PoloidalAdvection:
                 theta+=2*pi
             return self._spline.eval(theta,r)
     
+    def gridStep ( self, grid: Grid, phi: Grid, dt: float ):
+        gridLayout = grid.getLayout(grid.currentLayout)
+        phiLayout = phi.getLayout(grid.currentLayout)
+        assert(gridLayout.dims_order[1:]==phiLayout.dims_order)
+        assert(gridLayout.dims_order==(3,2,1,0))
+        # Evaluate splines
+        for j,z in grid.getCoords(1):
+            self._interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),self._phiSplines[j])
+        # Do step
+        for i,v in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                self.step(grid.get2DSlice([i,j]),dt,self._phiSplines[j],v)
+    
+    def gridStep_SplinesUnchanged ( self, grid: Grid, dt: float ):
+        gridLayout = grid.getLayout(grid.currentLayout)
+        assert(gridLayout.dims_order==(3,2,1,0))
+        # Do step
+        for i,v in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                self.step(grid.get2DSlice([i,j]),dt,self._phiSplines[j],v)

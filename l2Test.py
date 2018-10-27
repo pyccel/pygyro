@@ -116,6 +116,7 @@ else:
 
     npts = [256,512,32,128]
     # npts = [128,256,32,64]
+    npts = [10,10,10,10]
 
     dt=2
 
@@ -172,10 +173,6 @@ my_print(rank,"phi done")
 rho = Grid(distribFunc.eta_grid[:3],distribFunc.getSpline(slice(0,3)),
             remapperRho,'v_parallel_2d',comm,dtype=np.complex128)
 my_print(rank,"rho done")
-phiSplines = [Spline2D(*distribFunc.getSpline(slice(1,None,-1))) for i in range(phi.getLayout('poloidal').shape[0])]
-my_print(rank,"phi spline ready")
-interpolator = SplineInterpolator2D(*distribFunc.getSpline(slice(1,None,-1)))
-my_print(rank,"interp done")
 
 density = DensityFinder(6,distribFunc.getSpline(3),distribFunc.eta_grid)
 my_print(rank,"df ready")
@@ -300,9 +297,7 @@ for ti in range(tN):
     # Compute f^n+1/2 using lie splitting
     distribFunc.setLayout('flux_surface')
     distribFunc.saveGridValues()
-    for i,r in distribFunc.getCoords(0):
-        for j,v in distribFunc.getCoords(1):
-            fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
+    fluxAdv.gridStep(distribFunc)
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
@@ -312,13 +307,7 @@ for ti in range(tN):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
-
-    for j,z in distribFunc.getCoords(1):
-        interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),phiSplines[j])
-        polAdv.step(distribFunc.get2DSlice([0,j]),halfStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
-    for i,v in enumerate(distribFunc.getCoordVals(0)[1:],1):
-        for j,z in distribFunc.getCoords(1):
-            polAdv.step(distribFunc.get2DSlice([i,j]),halfStep,phiSplines[j],v)
+    polAdv.gridStep(distribFunc,phi,halfStep)
     
     # Find phi from f^n+1/2 by solving QN eq again
     distribFunc.setLayout('v_parallel')
@@ -333,9 +322,7 @@ for ti in range(tN):
     
     # Compute f^n+1 using strang splitting
     distribFunc.restoreGridValues() # restored from flux_surface layout
-    for i,r in distribFunc.getCoords(0):
-        for j,v in distribFunc.getCoords(1):
-            fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
+    fluxAdv.gridStep(distribFunc)
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
@@ -345,23 +332,14 @@ for ti in range(tN):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
-    # For v[0]
-    for j,z in distribFunc.getCoords(1):
-        interpolator.compute_interpolant(np.real(phi.get2DSlice([j])),phiSplines[j])
-        polAdv.step(distribFunc.get2DSlice([0,j]),fullStep,phiSplines[j],distribFunc.getCoordVals(0)[0])
-    # For v[1:], splitting avoids calling interpolator more often than necessary
-    for i,v in enumerate(distribFunc.getCoordVals(0)[1:],1):
-        for j,z in distribFunc.getCoords(1):
-            polAdv.step(distribFunc.get2DSlice([i,j]),fullStep,phiSplines[j],v)
+    polAdv.gridStep(distribFunc,phi,fullStep)
     distribFunc.setLayout('v_parallel')
     for i,r in distribFunc.getCoords(0):
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
     distribFunc.setLayout('flux_surface')
-    for i,r in distribFunc.getCoords(0):
-        for j,v in distribFunc.getCoords(1):
-            fluxAdv.step(distribFunc.get2DSlice([i,j]),j)
+    fluxAdv.gridStep(distribFunc)
     
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
