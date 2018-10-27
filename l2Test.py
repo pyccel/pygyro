@@ -301,11 +301,7 @@ for ti in range(tN):
     fluxAdv.gridStep(distribFunc)
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
-    for i,r in distribFunc.getCoords(0):
-        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[i])
-        for j,z in distribFunc.getCoords(1):
-            for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
+    vParAdv.gridStep(distribFunc,phi,parGrad,parGradVals,halfStep)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
     polAdv.gridStep(distribFunc,phi,halfStep)
@@ -326,19 +322,12 @@ for ti in range(tN):
     fluxAdv.gridStep(distribFunc)
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
-    for i,r in distribFunc.getCoords(0):
-        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[i])
-        for j,z in distribFunc.getCoords(1):
-            for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
+    vParAdv.gridStep(distribFunc,phi,parGrad,parGradVals,halfStep)
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
     polAdv.gridStep(distribFunc,phi,fullStep)
     distribFunc.setLayout('v_parallel')
-    for i,r in distribFunc.getCoords(0):
-        for j,z in distribFunc.getCoords(1):
-            for k,q in distribFunc.getCoords(2):
-                vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
+    vParAdv.gridStepKeepGradient(distribFunc,parGradVals,halfStep)
     distribFunc.setLayout('flux_surface')
     fluxAdv.gridStep(distribFunc)
     

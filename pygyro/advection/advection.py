@@ -381,6 +381,19 @@ class VParallelAdvection:
             return self._edge(r,v)
         else:
             return self._spline.eval(v)
+    
+    def gridStep( self, grid: Grid, phi: Grid, parGrad: ParallelGradient, parGradVals: np.array, dt: float):
+        for i,r in grid.getCoords(0):
+            parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[i])
+            for j,z in grid.getCoords(1):
+                for k,q in grid.getCoords(2):
+                    self.step(grid.get1DSlice([i,j,k]),dt,parGradVals[i,j,k],r)
+    
+    def gridStepKeepGradient( self, grid: Grid, parGradVals, dt: float):
+        for i,r in grid.getCoords(0):
+            for j,z in grid.getCoords(1):
+                for k,q in grid.getCoords(2):
+                    self.step(grid.get1DSlice([i,j,k]),dt,parGradVals[i,j,k],r)
 
 class PoloidalAdvection:
     """
