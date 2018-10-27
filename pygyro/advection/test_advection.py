@@ -459,6 +459,32 @@ def test_perturbedEquilibrium():
 """
 
 @pytest.mark.serial
+def test_vParGradAligned():
+    comm = MPI.COMM_WORLD
+    
+    npts = [20,80,20,8]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface',
+                                eps    = 0,
+                                comm   = comm)
+    
+    N=10
+    
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout),iota=iota8)
+    
+    phiVals = np.empty([npts[2],npts[1]])
+    
+    m, n = (5,-4)
+    theta = grid.eta_grid[1]
+    phi = grid.eta_grid[2]*2*pi/constants.zMax
+    phiVals[:,:] = np.sin( m*theta[None,:] + n*phi[:,None] )
+    
+    der = np.empty([npts[2],npts[1]])
+    pG.parallel_gradient(phiVals,0,der)
+    assert(np.isfinite(der).all())
+    assert((np.abs(der)<1e-7).all())
+
+@pytest.mark.serial
 def test_vParGrad():
     comm = MPI.COMM_WORLD
     
@@ -492,10 +518,10 @@ def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(3,6), (4,6)] )
+@pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(4,4)] )
 def test_Phi_deriv_dz(phiOrder,zOrder):
-    nconvpts = 2
-    npts = [1,1024,128]
+    nconvpts = 5
+    npts = [1,64,64]
     
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
@@ -530,8 +556,14 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         l2[i]=np.sqrt(np.trapz(np.trapz(err**2,dx=dz),dx=dtheta))
         linf[i]=np.linalg.norm(err.flatten(),np.inf)
         
+        npts[1]*=2
         npts[2]*=2
     
+    #~ print("linf:",linf)
+    #~ print("l2:",l2)
+    
     linfOrder = np.log2(linf[0]/linf[1])
+    #~ print("l2ordre:",np.log2(l2[:-1]/l2[1:]))
     
     assert(abs(linfOrder-zOrder)<0.1)
+
