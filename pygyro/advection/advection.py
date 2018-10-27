@@ -449,7 +449,7 @@ class PoloidalAdvection:
         phi: Spline2D
             Advection parameter d_tf + {phi,f}=0
         
-        r: float
+        v: float
             The parallel velocity coordinate
         
         """
