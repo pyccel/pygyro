@@ -3,7 +3,7 @@
 #----------------------------------------------------------
 
 # Use GNU or intel compilers? [gnu|intel]
-COMP := intel
+COMP := gnu
 
 # Use manually optimized Fortran files? [1|0]
 MOPT := 1
