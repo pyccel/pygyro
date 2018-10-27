@@ -85,7 +85,7 @@ def args_norm_grid():
 
 @pytest.mark.parallel
 @pytest.mark.parametrize( "layout,R0,rMin,rMax,vMax", args_norm_grid() )
-def test_l1Norm_phi_is_volume(layout,R0,rMin,rMax,vMax):
+def test_l1Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
