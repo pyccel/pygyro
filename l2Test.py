@@ -301,7 +301,7 @@ for ti in range(tN):
     distribFunc.setLayout('v_parallel')
     phi.setLayout('v_parallel_1d')
     for i,r in distribFunc.getCoords(0):
-        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[0])
+        parGrad.parallel_gradient(np.real(phi.get2DSlice([i])),i,parGradVals[i])
         for j,z in distribFunc.getCoords(1):
             for k,q in distribFunc.getCoords(2):
                 vParAdv.step(distribFunc.get1DSlice([i,j,k]),halfStep,parGradVals[i,j,k],r)
