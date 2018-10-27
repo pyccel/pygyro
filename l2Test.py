@@ -243,7 +243,7 @@ my_print(rank,"got phi")
 output_start=time.clock()
 distribFunc.writeH5Dataset(foldername,t)
 my_print(rank,"grid printed")
-phi.writeH5Dataset(foldername,t,"phi")
+#phi.writeH5Dataset(foldername,t,"phi")
 my_print(rank,"phi printed")
 output_time+=(time.clock()-output_start)
 
@@ -271,7 +271,7 @@ for ti in range(tN):
     if (ti%saveStep==saveStepCut):
         my_print(rank,"save time")
         output_start=time.clock()
-        #distribFunc.writeH5Dataset(foldername,t)
+        distribFunc.writeH5Dataset(foldername,t)
         #phi.writeH5Dataset(foldername,t,"phi")
         
         comm.Reduce(diagnostics[1,:],l2PhiResult,op=MPI.SUM, root=0)
