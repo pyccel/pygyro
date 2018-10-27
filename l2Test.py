@@ -144,7 +144,7 @@ my_print(rank,"conditional setup done")
 fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
                                 distribFunc.getLayout('flux_surface'),halfStep)
 my_print(rank,"flux adv init done")
-vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3),'periodic')
+vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
 my_print(rank,"v par adv init done")
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
 my_print(rank,"pol adv init done")

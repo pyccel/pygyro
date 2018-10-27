@@ -82,7 +82,7 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     
     domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
     degree = [rDegree, qDegree, zDegree, vDegree]
-    period = [False, True, True, True]
+    period = [False, True, True, False]
     
     # Compute breakpoints, knots, spline space and grid points
     nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
@@ -182,7 +182,7 @@ def setupFromFile(foldername, **kwargs):
     
     domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
     degree = [rDegree, qDegree, zDegree, vDegree]
-    period = [False, True, True, True]
+    period = [False, True, True, False]
     
     # Compute breakpoints, knots, spline space and grid points
     nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
