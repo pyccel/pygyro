@@ -81,7 +81,7 @@ def test_poloidalAdvection_invariantPhi():
     
     v=0
     
-    f_vals = np.ndarray([npts[1],npts[0],N+1])
+    f_vals = np.ndarray([N+1,npts[1],npts[0]])
     
     deg = 3
     
@@ -106,19 +106,19 @@ def test_poloidalAdvection_invariantPhi():
     
     interp.compute_interpolant(phiVals,phi)
     
-    #~ f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+    #~ f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
                         #~ + fEq(0.1,v,constants.CN0,constants.kN0,
                                             #~ constants.deltaRN0,constants.rp,
                                             #~ constants.CTi,constants.kTi,
                                             #~ constants.deltaRTi)
-    f_vals[:,:,0] = phiVals + fEq(0.1,v,constants.CN0,constants.kN0,
+    f_vals[0,:,:] = phiVals + fEq(0.1,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
     
     for n in range(N):
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        polAdv.step(f_vals[:,:,n+1],dt,phi,v)
+        f_vals[n+1,:,:]=f_vals[n,:,:]
+        polAdv.step(f_vals[n+1,:,:],dt,phi,v)
     
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -132,7 +132,7 @@ def test_poloidalAdvection_invariantPhi():
     
     plotParams = {'vmin':f_min,'vmax':f_max, 'cmap':"jet"}
     
-    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
+    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[0,:,:].T,20,**plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -142,7 +142,7 @@ def test_poloidalAdvection_invariantPhi():
         for coll in line1.collections:
             coll.remove()
         del line1
-        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[n,:,:].T,20,**plotParams)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -157,7 +157,7 @@ def test_poloidalAdvection_vortex():
     
     v=0
     
-    f_vals = np.ndarray([npts[1],npts[0],N+1])
+    f_vals = np.ndarray([N+1,npts[1],npts[0]])
     
     deg = 3
     
@@ -181,15 +181,15 @@ def test_poloidalAdvection_vortex():
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+    f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
                         + fEq(0.1,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
     
     for n in range(N):
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        polAdv.step(f_vals[:,:,n+1],dt,phi,v)
+        f_vals[n+1,:,:]=f_vals[n,:,:]
+        polAdv.step(f_vals[n+1,:,:],dt,phi,v)
     
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -203,7 +203,7 @@ def test_poloidalAdvection_vortex():
     
     plotParams = {'vmin':f_min,'vmax':f_max, 'cmap':"jet"}
     
-    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
+    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[0,:,:].T,20,**plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -213,7 +213,7 @@ def test_poloidalAdvection_vortex():
         for coll in line1.collections:
             coll.remove()
         del line1
-        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[n,:,:].T,20,**plotParams)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -228,7 +228,7 @@ def test_poloidalAdvection_constantAdv():
     
     v=0
     
-    f_vals = np.ndarray([npts[1],npts[0],N+1])
+    f_vals = np.ndarray([N+1,npts[1],npts[0]])
     
     deg = 3
     
@@ -252,15 +252,15 @@ def test_poloidalAdvection_constantAdv():
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:,:,0] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+    f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
                         + fEq(0.1,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
     
     for n in range(N):
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        polAdv.step(f_vals[:,:,n+1],dt,phi,v)
+        f_vals[n+1,:,:]=f_vals[n,:,:]
+        polAdv.step(f_vals[n+1,:,:],dt,phi,v)
     
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -274,7 +274,7 @@ def test_poloidalAdvection_constantAdv():
     
     plotParams = {'vmin':f_min,'vmax':f_max, 'cmap':"jet"}
     
-    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
+    line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[0,:,:].T,20,**plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -284,7 +284,7 @@ def test_poloidalAdvection_constantAdv():
         for coll in line1.collections:
             coll.remove()
         del line1
-        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        line1 = ax.contourf(eta_vals[1],eta_vals[0],f_vals[n,:,:].T,20,**plotParams)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -353,7 +353,8 @@ initConds = np.vectorize(initConditions, otypes=[np.float])
 
 @pytest.mark.serial
 def test_poloidalAdvection():
-    npts = [128,128]
+    #~ npts = [128,128]
+    npts = [16,16]
     
     print(npts)
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
@@ -364,8 +365,8 @@ def test_poloidalAdvection():
     
     v=0
     
-    f_vals = np.ndarray([npts[1]+1,npts[0],N+1])
-    #~ f_vals = np.ndarray([npts[1],npts[0],N+1])
+    f_vals = np.ndarray([N+1,npts[1]+1,npts[0]])
+    #~ f_vals = np.ndarray([N+1,npts[1],npts[0]])
     
     deg = 3
     
@@ -393,8 +394,9 @@ def test_poloidalAdvection():
     
     interp.compute_interpolant(phiVals,phi)
     
-    f_vals[:-1,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
-    #f_vals[:,:,0] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    f_vals[0,:-1,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    f_vals[0,-1,:] = f_vals[0,0,:]
+    #f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
     
     endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
     endPts[0][:] = polAdv._shapedQ   +     2*a*dt/constants.B0
@@ -402,14 +404,14 @@ def test_poloidalAdvection():
                     + c*np.sin(d*endPts[0])/a/constants.B0)
     
     for n in range(N):
-        f_vals[:-1,:,n+1]=f_vals[:-1,:,n]
+        f_vals[n+1,:-1,:]=f_vals[n,:-1,:]
         #f_vals[:,:,n+1]=f_vals[:,:,n]
-        polAdv.exact_step(f_vals[:-1,:,n+1],endPts,v)
-        #polAdv.step(f_vals[:-1,:,n+1],dt,phi,v)
+        polAdv.exact_step(f_vals[n+1,:-1,:],endPts,v)
+        polAdv.step(f_vals[n+1,:-1,:],dt,phi,v)
         #polAdv.step(f_vals[:,:,n+1],dt,phi,v)
         #polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
     
-    f_vals[-1,:,:]=f_vals[0,:,:]
+    f_vals[:,-1,:]=f_vals[:,0,:]
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
     
@@ -429,10 +431,10 @@ def test_poloidalAdvection():
     ax.set_rlim(0,13)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
     
-    norm = colors.BoundaryNorm(boundaries=np.linspace(0,1,21), ncolors=256,clip=True)
-    plotParams = {'vmin':0,'vmax':1, 'norm':norm, 'cmap':"jet"}
+    norm = colors.BoundaryNorm(boundaries=np.linspace(-1,1,41), ncolors=256,clip=True)
+    plotParams = {'vmin':-1,'vmax':1, 'norm':norm, 'cmap':"jet"}
     
-    line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,0].T,20,**plotParams)
+    line1 = ax.contourf(theta,eta_vals[0],f_vals[0,:,:].T,20,**plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -442,7 +444,8 @@ def test_poloidalAdvection():
         for coll in line1.collections:
             coll.remove()
         del line1
-        line1 = ax.contourf(theta,eta_vals[0],f_vals[:,:,n].T,20,**plotParams)
+        line1 = ax.contourf(theta,eta_vals[0],f_vals[n,:,:].T,20,**plotParams)
+        print(f_vals[n,:,:])
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -631,4 +634,3 @@ def test_flux_aligned():
         fig.canvas.flush_events()
         fig2.canvas.draw()
         fig2.canvas.flush_events()
-
