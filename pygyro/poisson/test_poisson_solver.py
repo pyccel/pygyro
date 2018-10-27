@@ -695,6 +695,57 @@ def test_DiffEqSolver():
     
     qnSolver.findPotential(phi)
 
+@pytest.mark.parallel
+def test_Equilibrium():
+    comm = MPI.COMM_WORLD
+    mpi_size = comm.Get_size()
+    
+    npts = [32, 64, 32]
+    nptsGrid = [*npts, 32]
+    
+    n1 = min(npts[0],npts[1])
+    n2 = 2
+    
+    nprocs = compute_2d_process_grid( nptsGrid , mpi_size )
+    
+    # Create dictionary describing layouts
+    layout_poisson = {'mode_solve': [1,2,0],
+                      'v_parallel': [0,2,1]}
+    layout_advection = {'dphi'      : [0,1,2],
+                        'poloidal'  : [2,1,0],
+                        'r_distrib' : [0,2,1]}
+    
+    nproc = nprocs[0]
+    
+    grid = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel',eps=0.0)
+    
+    remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], grid.eta_grid[:3], 'v_parallel' )
+    
+    rho = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
+    phi = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'mode_solve',comm,dtype=np.complex128)
+    
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    
+    df.getPerturbedRho(grid,rho)
+    
+    #print(rho._f)
+    
+    assert(np.max(rho._f)<1e-8)
+    
+    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0),chi=0)
+    
+    qnSolver.getModes(rho)
+    
+    rho.setLayout('mode_solve')
+    
+    qnSolver.solveEquation(phi,rho)
+    
+    phi.setLayout('v_parallel')
+    
+    qnSolver.findPotential(phi)
+    
+    assert(np.max(np.real(phi._f))<1e-8)
+
 @pytest.mark.serial
 @pytest.mark.parametrize( "deg", [2,3,4,5] )
 def test_BasicPoissonEquation_exact(deg):
