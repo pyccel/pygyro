@@ -90,6 +90,7 @@ if (loadable):
     dt = save_file.attrs['dt']
     
     halfStep = dt*0.5
+    fullStep = dt
     
     save_file.close()
     
