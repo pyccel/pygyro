@@ -12,6 +12,8 @@ testimony:
     - pip show numpy
   script:
     - make
+    - pytest pygyro --cov=pygyro --cov-report=term > current_coverage.txt
+    - python checkCoverage.py
     - pytest pygyro -m serial
     - pytest pygyro -m parallel
     - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 1"
