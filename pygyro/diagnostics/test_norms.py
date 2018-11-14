@@ -183,8 +183,9 @@ def test_l2Norm_grid_is_v(layout,R0,rMin,rMax,vMax):
     norm = l2(grid.eta_grid,theLayout)
     
     idx_v = theLayout.inv_dims_order[3]
+    v_range = grid.getGlobalIdxVals(idx_v)
     
-    reshaper = [slice(None)]
+    reshaper = [slice(v_range.start,v_range.stop)]
     reshaper.extend([None]*(3-idx_v))
     
     grid._f[:] = grid.eta_grid[3][tuple(reshaper)]
@@ -261,8 +262,9 @@ def test_NParticles_grid_is_v(layout,R0,rMin,rMax,vMax):
     norm = nParticles(grid.eta_grid,theLayout)
     
     idx_v = theLayout.inv_dims_order[3]
+    v_range = grid.getGlobalIdxVals(idx_v)
     
-    reshaper = [slice(None)]
+    reshaper = [slice(v_range.start,v_range.stop)]
     reshaper.extend([None]*(3-idx_v))
     
     grid._f[:] = grid.eta_grid[3][tuple(reshaper)]
