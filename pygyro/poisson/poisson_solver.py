@@ -132,8 +132,8 @@ class DiffEqSolver:
     """
     DiffEqSolver: Class used to solve a differential equation of the form:
     
-        A \partial_r^2 \phi + B \partial_r \phi + C \phi
-        + D \partial_\theta^2 \phi = E \rho
+        A \\partial_r^2 \\phi + B \\partial_r \\phi + C \\phi
+        + D \\partial_\\theta^2 \\phi = E \\rho
     
     It contains functions to handle the discrete Fourier transforms and
     a function which uses the finite elements method to solve the equation
@@ -184,7 +184,7 @@ class DiffEqSolver:
         The factor in front of the right hand side (E in the expression
         above)
         Default is: lambda r: 1
-
+        
     """
     def __init__( self, degree: int, rspline: BSplines, nr: int, nTheta: int,
                   lNeumannIdx: list = [], uNeumannIdx: list = [],
@@ -213,18 +213,18 @@ class DiffEqSolver:
         # Ensure dirichlet boundaries are not used at both boundaries on
         # any mode
         poorlyDefined = [b for b in lNeumannIdx if b in uNeumannIdx]
-        if (rFactor==(lambda r:0) and len(poorlyDefined)!=0):
+        if (len(poorlyDefined)!=0 and self.funcIsNull(rFactor)):
             raise ValueError("Modes {0} are poorly defined as they use 0 Dirichlet boundary conditions".format(poorlyDefined))
         
         # If dirichlet boundary conditions are used then assign the
         # required value on the boundary
-        if (lNeumannIdx==[]):
+        if (len(lNeumannIdx)==0):
             start_range = 1
             lBoundary = 'dirichlet'
         else:
             start_range = 0
             lBoundary = 'neumann'
-        if (uNeumannIdx==[]):
+        if (len(uNeumannIdx)==0):
             end_range = rspline.nbasis-1
             excluded_end_pts = 1
             uBoundary = 'dirichlet'
@@ -326,6 +326,13 @@ class DiffEqSolver:
         self._realMem = np.empty(nr)
         self._imagMem = np.empty(nr)
         self._evalRes = np.empty(self._evalPts.size)
+    
+    def funcIsNull( self, f ):
+        vals = f(self._evalPts)
+        if (hasattr(vals,'__len__')):
+            return all(vals==0)
+        else:
+            return vals==0
     
     def getModes( self, rho: Grid ):
         """
@@ -449,14 +456,14 @@ class DiffEqSolver:
                                     self._rspline[j].basis.degree,self._rspline[j].coeffs,
                                     self._evalRes,0)
             rhoVec[j]=np.sum(np.tile(self._weights,len(self._evalPts))*self._multFactor \
-                            * self._evalRes \
+                            * self._evalRes * self._evalPts.flatten() \
                             * rho(self._evalPts.flatten()))
         
         for j,z in phi.getCoords(1):
             # Save the solution to the preprepared buffer
             # The boundary values of this buffer are already set if
             # dirichlet boundary conditions are used
-            coeffs[:] = spsolve(stiffnessMatrix, rhoVec[1:-1])
+            coeffs[:] = spsolve(stiffnessMatrix, rhoVec[self._coeff_range[I]])
             
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
@@ -501,8 +508,8 @@ class QuasiNeutralitySolver(DiffEqSolver):
     which uses the finite elements method to solve the equation in Fourier
     space
     
-    -[d_r^2+( 1/r+g'(r)/g(r) )d_r+1/r^2 d_\theta^2]\phi 
-    + 1/(g\lambda_D^2) [\phi-\chi \langle\phi\rangle_\theta]=rho/g
+    -[d_r^2+( 1/r+g'(r)/g(r) )d_r+1/r^2 d_\\theta^2]\\phi 
+    + 1/(g\\lambda_D^2) [\\phi-\\chi \\langle\\phi\\rangle_\\theta]=rho/g
     
     Parameters
     ----------
@@ -518,7 +525,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
     
     adiabaticElectrons : bool - optional
         Indicates whether the electrons are considered to have an adiabatic
-        response. If this is false then it is assumed 1/\lambda_D^2=0,
+        response. If this is false then it is assumed 1/\\lambda_D^2=0,
         the electrons are a kinetic species and their contribution will
         appear in the perturbed density
         Default is True
@@ -550,7 +557,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
         The temperature of the electrons
         This parameter will be ignored if adiabaticElectrons = False.
         Default is initialiser.Te
-
+    
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
                     adiabaticElectrons: bool = True,
