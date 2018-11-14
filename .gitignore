@@ -9,3 +9,6 @@ __pycache__
 *.mod
 results.txt
 scaling.txt
+current_coverage.txt
+timing/
+.coverage
