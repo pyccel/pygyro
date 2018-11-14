@@ -2,7 +2,7 @@ from mpi4py     import MPI
 import numpy    as np
 import pytest
 
-from .norms     import l2, l1
+from .norms                                     import l2, l1, nParticles
 from ..                                         import splines as spl
 from ..model.process_grid                       import compute_2d_process_grid_from_max
 from ..model.grid                               import Grid
@@ -72,7 +72,7 @@ def test_l2Norm_is_volume(layout,R0,rMin,rMax):
         assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2))<5e-7)
 
 def args_norm_grid():
-    for layout in ['poloidal']:#['v_parallel','flux_surface','poloidal']:
+    for layout in ['poloidal','v_parallel','flux_surface','poloidal']:
         for i in range(3):
             R0 = np.random.rand()*1000
             for j in range(3):
@@ -116,7 +116,7 @@ def test_l1Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     l1Result = comm.reduce(l1Val,op=MPI.SUM, root=0)
     
     if (rank==0):
-        print(l1Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
+        # ~ print(l1Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
         assert(abs(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<5e-7)
 
 @pytest.mark.parallel
@@ -152,5 +152,124 @@ def test_l2Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     l2Result = comm.reduce(l2Val,op=MPI.SUM, root=0)
     
     if (rank==0):
-        print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
+        # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
         assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<5e-7)
+
+@pytest.mark.parallel
+@pytest.mark.parametrize( "layout,R0,rMin,rMax,vMax", args_norm_grid() )
+def test_l2Norm_grid_is_v(layout,R0,rMin,rMax,vMax):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+    layout=comm.bcast(layout)
+    R0=comm.bcast(R0)
+    rMin=comm.bcast(rMin)
+    rMax=comm.bcast(rMax)
+    vMax=comm.bcast(vMax)
+    
+    constants.R0 = R0
+    
+    npts = [10,11,12,13]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = layout,
+                                rMin = rMin,
+                                rMax = rMax,
+                                vMax = vMax,
+                                zMax = 2*np.pi*R0)
+    
+    theLayout = grid.getLayout(layout)
+    
+    norm = l2(grid.eta_grid,theLayout)
+    
+    idx_v = theLayout.inv_dims_order[3]
+    
+    reshaper = [slice(None)]
+    reshaper.extend([None]*(3-idx_v))
+    
+    grid._f[:] = grid.eta_grid[3][tuple(reshaper)]
+    
+    l2Val = norm.l2NormSquared(grid)
+    l2Result = comm.reduce(l2Val,op=MPI.SUM, root=0)
+    
+    if (rank==0):
+        exactResult=(rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax**3/3
+        # ~ print(abs(l2Result-exactResult)/exactResult)
+        assert(abs(l2Result-exactResult)/exactResult<2e-2)
+
+@pytest.mark.parallel
+@pytest.mark.parametrize( "layout,R0,rMin,rMax,vMax", args_norm_grid() )
+def test_NParticles_is_volume(layout,R0,rMin,rMax,vMax):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+    layout=comm.bcast(layout)
+    R0=comm.bcast(R0)
+    rMin=comm.bcast(rMin)
+    rMax=comm.bcast(rMax)
+    vMax=comm.bcast(vMax)
+    
+    constants.R0 = R0
+    
+    npts = [10,11,12,13]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = layout,
+                                rMin = rMin,
+                                rMax = rMax,
+                                vMax = vMax,
+                                zMax = 2*np.pi*R0)
+    
+    theLayout = grid.getLayout(layout)
+    
+    norm = nParticles(grid.eta_grid,theLayout)
+    
+    grid._f[:] = 1
+    
+    l2Val = norm.getN(grid)
+    l2Result = comm.reduce(l2Val,op=MPI.SUM, root=0)
+    
+    if (rank==0):
+        # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
+        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))<5e-7)
+
+@pytest.mark.parallel
+@pytest.mark.parametrize( "layout,R0,rMin,rMax,vMax", args_norm_grid() )
+def test_NParticles_grid_is_v(layout,R0,rMin,rMax,vMax):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+    layout=comm.bcast(layout)
+    R0=comm.bcast(R0)
+    rMin=comm.bcast(rMin)
+    rMax=comm.bcast(rMax)
+    vMax=comm.bcast(vMax)
+    
+    constants.R0 = R0
+    
+    npts = [10,11,12,13]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = layout,
+                                rMin = rMin,
+                                rMax = rMax,
+                                vMax = vMax,
+                                zMax = 2*np.pi*R0)
+    
+    theLayout = grid.getLayout(layout)
+    
+    norm = nParticles(grid.eta_grid,theLayout)
+    
+    idx_v = theLayout.inv_dims_order[3]
+    
+    reshaper = [slice(None)]
+    reshaper.extend([None]*(3-idx_v))
+    
+    grid._f[:] = grid.eta_grid[3][tuple(reshaper)]
+    
+    l2Val = norm.getN(grid)
+    l2Result = comm.reduce(l2Val,op=MPI.SUM, root=0)
+    
+    if (rank==0):
+        # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
+        assert(abs(l2Result)<5e-7)
