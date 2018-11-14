@@ -60,3 +60,27 @@ def test_KineticEnergy_Positive():
     
     if (rank==0):
         assert(abs(KEResult-0.5*((constants.rMax**2-constants.rMin**2)*np.pi*np.pi*constants.R0*2))<1e-7)
+
+@pytest.mark.parallel
+def test_KineticEnergy_Positive_VPar():
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+    npts = [5,20,10,11]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'v_parallel',
+                                vMax = 4)
+    grid._f[:]=0
+    idx_v = np.where(grid.eta_grid[3]==-1)[0][0]
+    grid._f[:,:,:,idx_v] = 1
+    
+    theLayout = grid.getLayout(grid.currentLayout)
+    
+    KE = KineticEnergy(grid.eta_grid,theLayout)
+    KE_val = KE.getKE(grid)
+    
+    KEResult = comm.reduce(KE_val,op=MPI.SUM, root=0)
+    
+    if (rank==0):
+        assert(abs(KEResult-0.5*((constants.rMax**2-constants.rMin**2)*np.pi*np.pi*constants.R0*2))<1e-7)
