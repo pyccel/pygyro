@@ -433,6 +433,11 @@ if (ti%saveStep!=0):
 #~ ps.print_stats()
 #~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
+if (rank==0):
+    if (not os.path.isdir("timing")):
+        os.mkdir("timing")
+
+MPI.COMM_WORLD.Barrier()
 
 print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {diagnostic:16.10e}".
             format(loop=loop_time,output=output_time,setup=setup_time,
