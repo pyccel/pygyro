@@ -133,8 +133,8 @@ class nParticles:
         
         self._factor2 = dq*dz
     
-    def getN(self, phi: Grid):
-        assert(self._layout == phi.currentLayout)
-        points = np.real(phi._f)*self._factor1
+    def getN(self, f: Grid):
+        assert(self._layout == f.currentLayout)
+        points = np.real(f._f)*self._factor1
         
         return np.sum(points)*self._factor2
