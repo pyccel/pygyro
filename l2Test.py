@@ -290,8 +290,9 @@ if (not loadable):
 
 nLoops = 0
 average_loop = 0
+average_output = 0
 startPrint = max(0,ti%saveStep)
-while (ti<tN and time.clock()+2*average_loop<stopTime):
+while (ti<tN and time.clock()+average_loop+2*average_output<stopTime):
     
     full_loop_start=time.clock()
     
@@ -385,6 +386,7 @@ while (ti<tN and time.clock()+2*average_loop<stopTime):
             diagnosticFile.close()
         startPrint = 0
         output_time+=(time.clock()-output_start)
+        average_output = output_time*saveStep/nLoops
     
     nLoops+=1
     ti+=1
