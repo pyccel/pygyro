@@ -2,7 +2,7 @@
 
 \section{Introduction}
 
-As mentioned in chapter \ref{chapter::Introduction} python runs much slower than compiled languages. Tests on the code produced thus far at first did not yield results. Once the total size of the simulation was reduced by a factor of eight, it was found that five time steps could be run on one node containing 32 processes in three hours. This means that the full simulation would take more than a year and a half to run on one node. Assuming perfect scaling, it would take nearly 5 days on the maximum number of processes (2048 processes, 128 nodes). These times are unreasonable, especially if the simulation must be rerun. It is therefore important to find a way to accelerate the code.
+As mentioned in chapter \ref{chapter::Introduction} python runs much slower than compiled languages. Tests on the code produced thus far at first did not yield results. Once the total size of the simulation was reduced by a factor of eight, it was found that five time steps could be run on one node containing 32 processes in three hours. This means that the full simulation would take more than a year and a half to run on one node. Assuming perfect scaling, it would take nearly 5 days on the theoretical maximum number of processes (4096 processes, 128 nodes), and nearly 20 days on the maximum number of processes allowed by the supercomputer used (1024 processes, 32 nodes). These times are unreasonable, especially if the simulation must be rerun. It is therefore important to find a way to accelerate the code.
 
 Pyccel \cite{Pyccel} is one tool that can be used to accelerate python code. It translates the python code into human readable Fortran code. This code can then be compiled and f2py can be used to allow the accelerated version to be called from python. This allows bottlenecks to be run at faster speeds without the code needing to be written in Fortran. It also means that the majority of the code is still written in python which can make it easier to understand. In addition the readability of the Fortran code allows the generated files to be easily modified to exploit any advantages of Fortran which cannot be mimicked in python.
 
@@ -92,7 +92,7 @@ The second bottleneck is due to internal numpy functions. There is nothing that 
 
 The next four bottlenecks all arise due to the implementation of the splines. Bisplev is a scipy function which calls bispev in order to evaluate a 2d spline while splev is its 1d equivalent. The reshape command is used to flatten the 2D array containing the coefficients for the bisplev function, as well as during all layout changes. The function atleast\_1d  is  only used explicitly during the initialisation, which is not profiled. This means that the function must be called implicitly,  probably by one of the scipy functions. The eval functions of the classes Spline1D and Spline2D are therefore the functions which will be accelerated first.
 
-In order to accelerate these two functions a mod\_context\_1.py file will be created. This file will contain the functions find\_span, basis\_funs, and basis\_funs\_1st\_der. These functions are obtained from the SPL library \cite{Python SPL}.  In addition a spline\_eval\_funcs.py file will be created. The file will contain the functions eval\_spline\_1d\_scalar, eval\_spline\_1d\_vector, eval\_spline\_2d\_scalar, and eval\_spline\_2d\_cross which mimic the behaviour of the scipy functions splev and bisplev. Furthermore a function eval\_spline\_2d\_vector will be added to help avoid unaccelerated Python loops. The scipy function calls will then be replaced by an if statement which verifies whether the input has a length, and a call to the necessary function. This implementation ensures that calls elsewhere in the program do not need to be modified. It may however slow the program somewhat as it adds additional function calls which are unnecessary if the type of the data is known.
+In order to accelerate these two functions a mod\_context\_1.py file will be created. This file will contain the functions find\_span, basis\_funs, and basis\_funs\_1st\_der. These functions are obtained from the SPL library \cite{python_spl}.  In addition a spline\_eval\_funcs.py file will be created. The file will contain the functions eval\_spline\_1d\_scalar, eval\_spline\_1d\_vector, eval\_spline\_2d\_scalar, and eval\_spline\_2d\_cross which mimic the behaviour of the scipy functions splev and bisplev. Furthermore a function eval\_spline\_2d\_vector will be added to help avoid unaccelerated Python loops. The scipy function calls will then be replaced by an if statement which verifies whether the input has a length, and a call to the necessary function. This implementation ensures that calls elsewhere in the program do not need to be modified. It may however slow the program somewhat as it adds additional function calls which are unnecessary if the type of the data is known.
 
 The results of the acceleration can be seen in table \ref{tab::spline profile}. It can be seen that although the spline calls remain some of the most costly function calls, the total time spent in each function is significantly reduced. For example in the case of the 2D spline evaluation, previously 37.8 seconds were spent in the function bisplev and its sub-functions, in contrast now only 12.3 seconds are spent in eval in total. Similarly the 1D spline evaluation previously required 18.8 seconds and now takes only 6.3 seconds.
 
@@ -224,7 +224,7 @@ The remaining functions are harder to accelerate. They each contain very little 
  \caption{\label{tab::final profile} The results of profiling the implementation after the acceleration of the spline, initialisation, and advection functions}
 \end{table}
 
-The profile after these final improvements can be seen in table \ref{tab::final profile}. Note that the improvements have slowed the parallel\_gradient function as the calls are more complicated but the overall time spent in this function and its sub-functions is still greatly reduced.
+The profile after these final improvements can be seen in table \ref{tab::final profile}. Note that the improvements have slowed the parallel\_gradient function as the calls are more complicated but the overall time spent in this function and its sub-functions is still greatly reduced. Note also that the bottleneck due to the numpy internal functions has also disappeared as hoped.
 
 \section{Results}
 
@@ -261,7 +261,9 @@ Note that the mpi 'Alltoall' command no longer dominates the simulation. This is
 
 The performance of the generated code depends on the compiler used. For the profiling, gfortran was always used, however on the supercomputer the results can also be tested using the intel compiler. The improvements obtained are shown in table \ref{tab::timings}.
 
-\begin{table}[h]
+The pure Fortran implementation referenced is that used by Latu et al.\cite{YamanPaper} for their work on the same problem. Although the best pyccel version is still three times slower than the pure Fortran version, it still runs at an acceptable speed. The speed of development also makes this increase easily justifiable. In addition there is still scope for improvement. The generated code could be improved, for example by indicating which functions are 'pure', or by using more compiler flags. The algorithms could also be modified to increase the speed. For example the implementation of the spline evaluation is very general however the points are equidistant in all cases, except for points close to the boundary along an axis which does not have periodic boundary conditions. This knowledge can be exploited to produce faster code, as is done in the pure Fortran version.
+
+\begin{table}[H]
 \centering
  \begin{tabular}{|c|c|c|}
   \hline
@@ -275,17 +277,52 @@ The performance of the generated code depends on the compiler used. For the prof
   Pyccel accelerated & 342.5 & 51.8\\
   (gfortran) & & \\
   \hline
+  Modified pyccel & 153.2\footnotemark & 115.8 \\
+  accelerated (gfortran) & & \\
+  \hline
   Pure Fortran & 122.7 & 144.7\\
   \hline
  \end{tabular}
 \caption{\label{tab::timings} Time required to carry out one calculation step on one node containing 32 processes for various versions of the simulation, and the improvement that this represents compared to the pure python version}
 \end{table}
-\footnotetext{Approximated from the timings using a smaller grid and only 5 timesteps}
+\footnotetext[2]{Approximated from the timings using a smaller grid and only 5 timesteps}
+\footnotetext{Approximated from the timings using only 5 timesteps}
 
-The pure Fortran implementation referenced is that used by Latu et al.\cite{YamanPaper} for their work on the same problem. Although the best pyccel version is still three times slower than the pure Fortran version, it still runs at an acceptable speed. The speed of development also makes this increase easily justifiable. In addition there is still scope for improvement. The generated code could be improved, for example by indicating which functions are 'pure', or by using more compiler flags. The algorithms could also be modified to increase the speed. For example the implementation of the spline evaluation is very general however the points are equidistant in all cases, except for points close to the boundary along an axis which does not have periodic boundary conditions. This knowledge can be exploited to produce faster code, as is done in the pure Fortran version. In addition the parallelisation method allows more processes to be used in the python version than in the original Fortran version. While the Fortran version is limited to 256 processes, the python version can use up to 4096 processes. Figure \ref{fig::Timing Comparison} shows the timings for the various versions and shows that this advantage means that the pyccel accelerated code, accelerated using gfortran can run faster than the Fortran code if it uses 1024 processes. Unfortunately results cannot be shown on more processes as the available supercomputers either did not have the required packages or did not allow programs running on more than 32 nodes.
+In addition the parallelisation method allows more processes to be used in the python version than in the original Fortran version. While the Fortran version is limited to 256 processes, the python version can use up to 4096 processes. Figure \ref{fig::Timing Comparison} shows the timings for the various versions and shows that this advantage means that the pyccel accelerated code, accelerated using gfortran can run faster than the Fortran code if it uses 1024 processes. Unfortunately results cannot be shown on more processes as the available supercomputers either did not have the required packages or did not allow programs running on more than 32 nodes.
 
 \begin{figure}[ht]
  \centering
  \includegraphics[width=.7\textwidth]{Figs/PythonScaling/Speeds}
  \caption{\label{fig::Timing Comparison}Comparison of time required to carry out one calculation step on different numbers of nodes, each containing 32 processes }
 \end{figure}
+
+A first attempt was made to manually improve the code generated by pyccel by avoiding unnecessary calls to the allocate routine and by marking functions as pure. Unfortunately due to time restrictions the results of this improvement cannot be fully presented. However figure \ref{fig::Timing Comparison} and table \ref{tab::timings} are still able to present a first estimation of the effect that these improvements would have. We see that the resulting code is now only 1.2 times slower than the pure Fortran code. This is an excellent result which clearly demonstrates that this development method is a good alternative to developing in Fortran. In addition the changes made were relatively simple, it is therefore hoped that a more mature version of pyccel would be able to generate code with these changes already made.
+
+The new code was also profiled on a personal laptop, and the results can be seen in table \ref{tab::yaman profile}. We note that the bottleneck is now the parallel\_gradient function which has so far received little attention. This may imply that there is scope for further improvements.
+
+\begin{table}[ht]
+\centering
+ \begin{tabular}{|m{.37\textwidth}|c|c|c|c|}
+  \hline
+          & Total time & Number & Time & Total \\
+  Function & excluding sub & of & per call & time \\
+          & functions [s] & calls & [s] & [s] \\
+  \hline
+  \hline
+  method 'Alltoall' from mpi4py & 2.295 & 250 & 0.009 & 2.295 \\
+  \hline
+  parallel\_gradient in ParallelGradient & 1.546 & 1000 & 0.002 & 2.005 \\
+  \hline
+  method 'solve' from scipy 'SuperLU' & 1.324 & 88000 & 0.000 & 1.324 \\
+  \hline
+  step in FluxSurfaceAdvection & 1.083 & 4500 & 0.000 & 2.645 \\
+  \hline
+  \_solve\_system\_nonperiodic in SplineInterpolator1D & 1.036 & 111330 & 0.000 & 1.036 \\
+  \hline
+  compute\_interpolant in SplineInterpolator1D & 0.983 & 199330 & 0.000 & 4.275\\
+  \hline
+  step in VParallelAdvection & 0.942 & 45000 & 0.000 & 1.735\\
+  \hline
+ \end{tabular}
+ \caption{\label{tab::yaman profile} The results of profiling the implementation after manually improving the code generated by pyccel}
+\end{table}
