@@ -1,0 +1,100 @@
+
+\pgfplotsset{
+    discard if/.style 2 args={
+        x filter/.code={
+            \edef\tempa{\thisrow{#1}}
+            \edef\tempb{#2}
+            \ifx\tempa\tempb
+                \def\pgfmathresult{inf}
+            \fi
+        }
+    },
+    discard if not/.style 2 args={
+        x filter/.code={
+            \edef\tempa{\thisrow{#1}}
+            \edef\tempb{#2}
+            \ifx\tempa\tempb
+            \else
+                \def\pgfmathresult{inf}
+            \fi
+        }
+    }
+}
+
+\begin{tikzpicture}
+\begin{loglogaxis}[
+height=0.75\textheight,
+xlabel={Number of Nodes},
+ylabel={Duration of one time step [s]},
+legend entries={Pure Python,Pure Fortran, Gfortran,Intel,Manually improved},
+%legend pos=east,
+legend style={
+  at={(1.7,0.5)},
+  anchor=east},
+xtick={1,2,4,8,16,32,64,128},
+xticklabels={1,2,4,8,16,32,64,128},
+ymax = 4e4,
+ymin = 8e-1,
+xmax = 200,
+scatter/classes={
+4={mark=+, blue,scale=2,line width=1pt,visible on=<2->},
+0={mark=*,mygreen,scale=2,visible on=<1->},
+1={mark=triangle*,red,{scale=2},visible on=<3->},
+2={mark=triangle*,black,scale=2,visible on=<4->},
+3={mark=square*,red,visible on=<5->}
+}
+]
+\only<1->{
+\addplot[
+scatter,
+scatter src=explicit symbolic,
+only marks,
+discard if not={type}{4}
+] table[x={nnodes},y={perloop},meta={type}] {Scaling/Speeds.dat};
+}
+\only<2->{
+\addplot[
+scatter,
+scatter src=explicit symbolic,
+only marks,
+discard if not={type}{0}
+] table[x={nnodes},y={perloop},meta={type}] {Scaling/Speeds.dat};
+}
+\only<3->{
+\addplot[
+scatter,
+scatter src=explicit symbolic,
+only marks,
+discard if not={type}{1}
+] table[x={nnodes},y={perloop},meta={type}] {Scaling/Speeds.dat};
+}
+\only<4->{
+\addplot[
+scatter,
+scatter src=explicit symbolic,
+only marks,
+discard if not={type}{2}
+] table[x={nnodes},y={perloop},meta={type}] {Scaling/Speeds.dat};
+}
+\only<5->{
+\addplot[
+scatter,
+scatter src=explicit symbolic,
+only marks,
+discard if not={type}{3}
+] table[x={nnodes},y={perloop},meta={type}] {Scaling/Speeds.dat};
+}
+% \addplot[
+% scatter,
+% only marks,
+% point meta=explicit symbolic,
+% scatter/classes={
+% 0={mark=*,mygreen,scale=2,visible on=<1->},
+% 4={mark=+, blue,scale=2,line width=1pt,visible on=<2->},
+% 1={mark=triangle*,red,{scale=2},visible on=<3->},
+% 2={mark=triangle*,black,scale=2,visible on=<4->},
+% 3={mark=square*,red,visible on=<5->}
+% }
+% ] table[x={nnodes},y={perloop},meta={type}] {Scaling/Speeds.dat};
+\end{loglogaxis}
+\end{tikzpicture}

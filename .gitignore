@@ -7,3 +7,10 @@ __pycache__
 *.so
 *.o
 *.mod
+doc/*.log
+doc/*.backup
+doc/*.aux
+doc/*.toc
+doc/*.snm
+doc/*.nav
+doc/*.out
