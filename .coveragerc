@@ -1,3 +1,5 @@
+[run]
+parallel = True
 [report]
 omit = *test*
        pygyro/advection/*mod*
