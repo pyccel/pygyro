@@ -1,0 +1,195 @@
+% !TEX root = ../main.tex
+% Included by MAIN.TEX
+
+%--------------------------------------------------
+% Fonts and page setup
+%--------------------------------------------------
+
+% Default font
+\usepackage{palatino}
+
+% Enable special PostScript fonts (optional)
+% \usepackage{pifont}
+
+% Manipulate the footer
+\usepackage{scrpage2}
+\usepackage{scrhack}
+\pagestyle{scrheadings}
+\ifoot[\footertext]{\footertext} % \footertext set in INFO.TEX
+
+% Set the font for the section headings
+%\renewcommand{\sectfont}{\normalfont \bfseries}
+
+% Conditional commands in LaTeX documents, used for the \clearemptydoublepage.
+\usepackage{ifthen}
+
+% Typeset text in multiple columns (optional)
+% \usepackage{multicol}
+
+% Rotation tools, including rotated full-page floats (optional)
+\usepackage{rotating}
+
+
+%--------------------------------------------------
+% Document structure
+%--------------------------------------------------
+
+% Create glossaries and lists of acronyms
+\usepackage[toc, xindy]{glossaries}
+
+% Standard LaTeX package for creating indexes
+\usepackage{makeidx}
+
+
+%--------------------------------------------------
+% Bibliography
+%--------------------------------------------------
+
+% Set the bibliography style (default: plain)
+\bibliographystyle{plain}
+
+% Special biblography package (nice to have)
+% \usepackage{natbib}
+
+
+%--------------------------------------------------
+% Graphics and floats
+%--------------------------------------------------
+
+% Enhanced support for graphics (recommended)
+\usepackage{graphicx}
+% Path to the figures directory (default: {figures/})
+% Multiple entries are allowed, e.g. {{figures1/}{figures2/}}.
+\graphicspath{{figures/}}
+
+% Improved interface for floating objects (optional)
+\usepackage{float}
+
+% To use the subfigures (optional)
+\usepackage{subcaption}
+
+
+%--------------------------------------------------
+% Mathematics
+%--------------------------------------------------
+
+% AMS mathematical facilities for LaTeX (recommended)
+\usepackage{amsmath}
+
+% TeX fonts from the American Mathematical Society (recommended)
+\usepackage{amsfonts}
+
+% Some extra math symbols (optional)
+% \usepackage{amssymb}
+
+% Extended maths fonts for LaTeX (optional)
+% \usepackage{yhmath}
+
+% Provide math delimiters whose size can be computed automatically (optional)
+% \usepackage{commath}
+
+
+%--------------------------------------------------
+% Source code and algorithms
+%--------------------------------------------------
+
+% Source code typesetting
+% \usepackage{listings} % (optional - alternative)
+% \usepackage[newfloat]{minted} % (recommended)
+% Set global Minted options
+% \setminted{linenos, autogobble, frame=lines, framesep=2mm}
+% Inline C++ (optional)
+% \newcommand{\incpp}[1]{\mintinline{c++}{#1}}
+% \newenvironment{code}{\captionsetup{type=listing}}{}
+% \SetupFloatingEnvironment{listing}{name=Source Code}
+
+% Typeset algorithms - pseudocode (optional)
+% \usepackage{algorithmicx}
+% \usepackage{algpseudocode}
+% Normal arrow comments
+% \algrenewcommand{\algorithmiccomment}[1]{\hfill$\rightarrow$ #1}
+
+
+%--------------------------------------------------
+% Tables
+%--------------------------------------------------
+
+% Tables (optional)
+\usepackage{tabu}
+
+% Add color to LaTeX tables (optional)
+% \usepackage{colortbl}
+
+% Create tabular cells spanning multiple rows (optional)
+% \usepackage{multirow}
+
+
+%--------------------------------------------------
+% Color
+%--------------------------------------------------
+
+% Use colors
+\usepackage[dvipsnames]{xcolor}
+
+% You may find all the pre-defined colors in
+% https://en.wikibooks.org/wiki/LaTeX/Colors#Predefined_colors
+
+% Custom colors
+\definecolor{Pantone300C}{HTML}{0065BD} % TUM primary blue
+\definecolor{Pantone301}{HTML}{005293}  % TUM secondary light blue
+\definecolor{Pantone540}{HTML}{003359}  % TUM secondary dark blue
+\definecolor{DarkGray}{HTML}{333333}    % TUM secondary dark gray
+\definecolor{MediumGray}{HTML}{808080}  % TUM secondary medium gray
+\definecolor{LightGray}{HTML}{CCCCC6}   % TUM secondary light gray
+\definecolor{Pantone7527}{HTML}{DAD7CB} % TUM accent gray
+\definecolor{Pantone158}{HTML}{E37222}  % TUM accent orange
+\definecolor{Pantone383}{HTML}{A2AD00}  % TUM accent green
+\definecolor{Pantone283}{HTML}{98C6EA}  % TUM accent very light blue
+\definecolor{Pantone542}{HTML}{64A0C8}  % TUM accent light blue
+
+% Color for the hyperlinks (e.g. table of contents)
+\def\colorLinks{Pantone300C}
+% Color for the web links
+\def\colorUrl{Pantone542}
+% Color for the citations
+\def\colorCitations{Pantone158}
+
+%--------------------------------------------------
+% PDF output
+%--------------------------------------------------
+
+% Pro­duce hy­per­text links in the doc­u­ment (recommended)
+\usepackage{hyperref}
+
+% Adjust the color of the links
+\hypersetup{
+  linkcolor=\colorLinks,%
+  urlcolor=\colorUrl,%
+  citecolor=\colorCitations
+}
+
+% Disable the coloring of the links when printing.
+% Requires a compatible PDF reader.
+\usepackage[ocgcolorlinks]{ocgx2}[2017/03/30]
+
+% PDF Metadata
+\hypersetup{
+  pdftitle={\metaTitle},%
+  pdfauthor={\metaAuthor},%
+  pdfkeywords={\metaKeywords},%
+  pdfsubject={\metaSubject}
+}
+
+% Create XMP Metadata (uses the values from hyperref)
+\usepackage{hyperxmp}
+
+% Make thumbnails (optional)
+% \usepackage{thumbpdf}
+
+
+%--------------------------------------------------
+% Other settings
+%--------------------------------------------------
+
+% Define commands that appear not to eat spaces (optional)
+\usepackage{xspace}

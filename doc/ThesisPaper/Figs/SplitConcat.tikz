@@ -1,0 +1,167 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+%\usepackage{pgfplots}
+%\usepackage{pgfplotstable}
+%\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns}
+\tikzstyle{v par}=              [dash pattern=on 10pt off 5pt,color=red!70,line width = 2pt]
+\tikzstyle{z direction}=      [dash pattern=on 10pt off 5pt on 2pt off 5pt, color=Blue,line width = 2pt]
+
+\begin{document}
+{
+\begin{tikzpicture}
+
+ \node at (-0.5,4) {(a)};
+ 
+ \foreach \x in {0,...,3}
+ {
+  \foreach \y in {0,1}
+  {
+   \fill[red!70] (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \draw (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \pgfmathsetmacro\n{int(\x+4*(3-\y))}
+   \node[scale=2] at (\x+0.5,\y+0.5) {\n};
+  }
+  \foreach \y in {2,3}
+  {
+   \draw[pattern=north west lines, pattern color=blue] (\x,\y) rectangle (\x+1,\y+1);
+   %\fill[blue] (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \draw (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \pgfmathsetmacro\n{int(\x+4*(3-\y))}
+   \node[scale=2] at (\x+0.5,\y+0.5) {\n};
+  }
+ }
+
+ \begin{scope}[yshift=-5cm]
+ 
+ \node at (-0.5,3.5) {(c)};
+ 
+  \foreach \x in{0,1,4,5}
+ {
+  \draw[pattern=north west lines, pattern color=green] (\x,0) rectangle (\x+1,1);
+  \draw (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \pgfmathsetmacro\n{int(\x+8)}
+  \node[scale=2] at (\x+0.5,0.5) {\n};
+ }
+ 
+ \foreach \x in{2,3,6,7}
+ {
+ 
+  \fill[yellow!70] (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \draw (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \pgfmathsetmacro\n{int(\x+8)}
+  \node[scale=2] at (\x+0.5,0.5) {\n};
+ }
+ 
+ \foreach \x in{0,1,4,5}
+ {
+  \draw[pattern=north west lines, pattern color=green] (\x,2) rectangle (\x+1,3);
+  \draw (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \node[scale=2] at (\x+0.5,2.5) {\x};
+ }
+ 
+ \foreach \x in{2,3,6,7}
+ {
+  \fill[yellow!70] (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \draw (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \node[scale=2] at (\x+0.5,2.5) {\x};
+ }
+ \end{scope}
+ 
+  \begin{scope}[xshift=6 cm,yshift=0.5cm]
+  \node at (-0.5,2.5) {(b)};
+  
+  \foreach \x in{0,...,7}
+ {
+  \fill[red!70] (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \draw (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \pgfmathsetmacro\n{int(\x+8)}
+  \node[scale=2] at (\x+0.5,0.5) {\n};
+ }
+ 
+ \foreach \x in{0,...,7}
+ {
+  \draw[pattern=north west lines, pattern color=blue] (\x,2) rectangle (\x+1,3);
+  %\fill[blue] (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \draw (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \node[scale=2] at (\x+0.5,2.5) {\x};
+ }
+ \end{scope}
+
+ \begin{scope}[yshift=-5cm, xshift=10cm]
+  \foreach \x in{0,1}
+ {
+   \foreach \y in {0,1,2,3}
+   {
+    \draw[pattern=north west lines, pattern color=green] (\x,\y) rectangle (\x+1,\y+1);
+    \draw (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+    \pgfmathsetmacro\n{int(\x+12-4*\y)}
+    \node[scale=2] at (\x+0.5,\y+0.5) {\n};
+  }
+ }
+ 
+ \node at (-0.5,4) {(d)};
+ 
+ \foreach \x in{2,3}
+ {
+ 
+   \foreach \y in {0,1,2,3}
+   {
+    \fill[yellow!70] (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+    \draw (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+    \pgfmathsetmacro\n{int(\x+12-4*\y)}
+    \node[scale=2] at (\x+0.5,\y+0.5) {\n};
+  }
+ }
+ 
+ \end{scope}
+ 
+ \begin{scope}[xshift=0 cm,yshift=-10cm]
+ \node at (-0.5,2.5) {(e)};
+ 
+  \foreach \x in{0,...,3}
+ {
+  \fill[yellow!70] (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \draw (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \pgfmathsetmacro\n{int(\x*4+2)}
+  \node[scale=2] at (\x+0.5,0.5) {\n};
+ }
+ \foreach \x in{4,...,7}
+ {
+  \fill[yellow!70] (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \draw (\x,0) -- (\x,1) -- (\x+1,1) -- (\x+1,0) -- (\x,0);
+  \pgfmathsetmacro\n{int(\x*4-13)}
+  \node[scale=2] at (\x+0.5,0.5) {\n};
+ }
+ 
+ \foreach \x in{0,...,3}
+ {
+  \draw[pattern=north west lines, pattern color=green] (\x,2) rectangle (\x+1,3);
+  \draw (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \pgfmathsetmacro\n{int(\x*4)}
+  \node[scale=2] at (\x+0.5,2.5) {\n};
+ }
+ 
+ \foreach \x in{4,...,7}
+ {
+  \draw[pattern=north west lines, pattern color=green] (\x,2) rectangle (\x+1,3);
+  \draw (\x,2) -- (\x,3) -- (\x+1,3) -- (\x+1,2) -- (\x,2);
+  \pgfmathsetmacro\n{int(\x*4-15)}
+  \node[scale=2] at (\x+0.5,2.5) {\n};
+ }
+ \end{scope}
+ 
+ \begin{scope}[xshift=9.5 cm,yshift=-10cm]
+  \draw[fill=yellow!70] (0,0) rectangle (0.8,0.8);
+  \node[right] at (1,0.4) {Process 2, Layout 2};
+  \draw[pattern=north west lines, pattern color=green] (0,1) rectangle (0.8,1.8);
+  \node[right] at (1,1.4) {Process 2, Layout 1};
+  \draw[fill=red!70] (0,2) rectangle (0.8,2.8);
+  \node[right] at (1,2.4) {Process 1, Layout 2};
+  \draw[pattern=north west lines, pattern color=blue] (0,3) rectangle (0.8,3.8);
+  \node[right] at (1,3.4) {Process 1, Layout 1};
+ \end{scope}
+\end{tikzpicture}
+}
+\end{document}

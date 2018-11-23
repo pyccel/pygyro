@@ -1,0 +1,48 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns,decorations.markings}
+
+\definecolor{mygreen}{RGB}{0, 153, 0}
+
+\begin{document}
+{
+\begin{tikzpicture}
+\begin{loglogaxis}[
+width=10cm,
+xlabel={Number of Nodes},
+ylabel={Speedup},
+legend entries={Perfect scaling,Pure Fortran,Gfortran improved},
+legend pos=north west,
+xtick={1,2,4,8,16,32,64,128},
+xticklabels={1,2,4,8,16,32,64,128},
+ytick={1,2,4,8,16,32,64,128},
+yticklabels={1,2,4,8,16,32,64,128}
+]
+\addplot[color=black]
+     coordinates{
+     (1 ,  1)
+     (2 ,  2)
+     (4 ,  4)
+     (8 ,  8)
+     (16, 16)
+     (32, 32)
+     (64, 64)
+     (128,128)
+     };
+\addplot[
+scatter,
+only marks,
+point meta=explicit symbolic,
+scatter/classes={
+0={mark=*,mygreen,scale=2},
+3={mark=square*,blue,{scale=1}}
+},
+] table[x={nnodes},y={speedup},meta={type}] {ResultsRed.dat};
+\end{loglogaxis}
+\end{tikzpicture}
+}
+\end{document}
