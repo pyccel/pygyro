@@ -125,6 +125,9 @@ class ParallelGradient:
         i : int
             The current index of r
         
+        def : array_like
+            Array which will contain the solution
+        
         """
         # Get scalar values necessary for this slice
         bz=self._bz[i]
