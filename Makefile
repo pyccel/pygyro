@@ -2,11 +2,17 @@
 # DEFAULT MAKE FLAGS
 #----------------------------------------------------------
 
+# Acceleration method? [none|numba|pyccel]
+ACC := pyccel
+
 # Use GNU or intel compilers? [gnu|intel]
 COMP := gnu
 
 # Use manually optimized Fortran files? [1|0]
 MOPT := 1
+
+# Use pyccel to generate files? [1|0]
+PYCC_GEN := 0
 
 #----------------------------------------------------------
 # Compiler options
@@ -25,6 +31,14 @@ ifeq ($(COMP), intel)
         FF_COMP  := intelem
 endif
 
+python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python --version 2>&1)))
+python_version_major := $(word 1,${python_version_full})
+ifeq ($(python_version_major),3)
+	PYTHON := python
+else
+	PYTHON := python3
+endif
+
 #----------------------------------------------------------
 # Pyccel-generated Fortran files:
 # use originals or manually-optimized version?
@@ -37,10 +51,30 @@ else
 endif
 
 #----------------------------------------------------------
+# Defaut command:
+# use pure python, pyccel, numba?
+#----------------------------------------------------------
+
+ifeq ($(ACC), none)
+	TYPE := clean
+else
+	ifeq ($(ACC), pyccel)
+		TYPE := pyccel
+	else
+		ifeq ($(ACC), numba)
+			TYPE := numba
+		else
+			TYPE := clean
+			echo "Option not recognised!"
+		endif
+	endif
+endif
+
+#----------------------------------------------------------
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT PYCC_GEN
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------
@@ -65,7 +99,18 @@ ALL = \
 
 all: $(ALL)
 
-$(ALL):
+$(ALL): $(TYPE)
+
+pyccel_generation:
+	$(MAKE) -C pygyro $@
+
+ifeq ($(PYCC_GEN), 1)
+pyccel: pyccel_generation
+	$(PYTHON) moduleGenerator.py
+else
+pyccel:
+endif
+	echo $(PYCC_GEN)
 	$(MAKE) -C pygyro $@
 
 clean:
