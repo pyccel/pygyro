@@ -3,10 +3,10 @@ from numba              import njit
 from numba.pycc         import CC
 from math               import pi
 import sys
-sys.path.insert(0,'pygyro')
+sys.path.insert(0,'..')
 
 from initialisation               import constants
-from splines.spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar,eval_spline_1d_scalar, eval_spline_1d_vector
+from splines.numba_spline_eval_funcs    import eval_spline_2d_cross, eval_spline_2d_scalar,eval_spline_1d_scalar, eval_spline_1d_vector
 
 cc = CC('accelerated_advection_steps')
 
