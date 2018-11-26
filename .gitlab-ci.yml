@@ -11,6 +11,7 @@ testimony:
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
   script:
+    - make
     - python pygyro/advection/accelerated_advection_steps.py
     - python pygyro/splines/spline_eval_funcs.py
     - pytest pygyro -m serial
