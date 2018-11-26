@@ -359,8 +359,8 @@ class SlicePlotter3d(object):
         self.rank = self.comm.Get_rank()
         
         # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin(0,self.omit,self.omitVal)
-        self.maximum=grid.getMax(0,self.omit,self.omitVal)
+        self.minimum=grid.getMin(self.drawRank,self.omit,self.omitVal)
+        self.maximum=grid.getMax(self.drawRank,self.omit,self.omitVal)
         
         # on rank 0 set-up the graph
         if (self.rank==0):
@@ -644,7 +644,7 @@ class Plotter2d(object):
             
             if (layout.inv_dims_order[self.omit1]<2 and layout.inv_dims_order[self.omit2]<2):
                 idx = np.where(starts==0)[-1]
-                myShape = baseShape.copy()
+                myShape = list(baseShape)
                 myShape[0]=1
                 myShape[1]=1
                 theSlice=np.squeeze(theSlice.reshape(myShape))
@@ -653,7 +653,7 @@ class Plotter2d(object):
                 concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
-                    myShape=baseShape.copy()
+                    myShape=list(baseShape)
                     myShape[0]=layout.mpi_lengths(0)[coords[0]]
                     myShape[1]=layout.mpi_lengths(1)[coords[1]]
                     if (chunk.size==0):

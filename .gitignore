@@ -5,5 +5,10 @@ __pycache__
 *.swp
 *.pyc
 *.so
-*.mod
 *.o
+*.mod
+results.txt
+scaling.txt
+current_coverage.txt
+timing/
+.coverage

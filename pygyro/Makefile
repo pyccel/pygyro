@@ -17,6 +17,16 @@ numba:
 	$(MAKE) -C initialisation $@
 	$(MAKE) -C advection $@
 
+pyccel_generation:
+	$(MAKE) -C splines $@
+	$(MAKE) -C initialisation $@
+	$(MAKE) -C advection $@
+
+pyccel:
+	$(MAKE) -C splines $@
+	$(MAKE) -C initialisation $@
+	$(MAKE) -C advection $@
+
 spline_eval_funcs:
 	$(MAKE) -C splines $@
 

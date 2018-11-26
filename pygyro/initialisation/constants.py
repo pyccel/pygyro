@@ -33,3 +33,4 @@ def normalisingFunc(r):
     return exp(-kN0*deltaRN0*tanh((r-rp)/deltaRN0))
 
 CN0 = (rMax-rMin)/integrate.quad(normalisingFunc,rMin,rMax)[0]
+#~ CN0 = 0.14711120412124

@@ -12,16 +12,13 @@ testimony:
     - pip show numpy
   script:
     - make
-    - python pygyro/advection/accelerated_advection_steps.py
-    - python pygyro/splines/spline_eval_funcs.py
-    - pytest pygyro -m serial
-    - pytest pygyro -m parallel
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 1"
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 4"
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 6"
-    - python mpi_tester.py pygyro -sxvm parallel --mpirun="mpirun -n 20"
+    - ls pygyro/splines
+    - python checkCoverage.py
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 1"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 4"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 6"
+    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 20"
   after_script:
-    - rm pygyro/splines/*.so
-    - rm pygyro/advection/*.so
+    - make clean
     - deactivate
     - module unload impi

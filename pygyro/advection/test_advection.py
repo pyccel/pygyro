@@ -2,17 +2,20 @@ from mpi4py                 import MPI
 import pytest
 from scipy.integrate        import trapz
 
-from ..initialisation.setups        import setupCylindricalGrid
-from ..initialisation.initialiser   import fEq
-from .advection                     import *
-from ..                             import splines as spl
-from ..initialisation               import constants
+from ..initialisation.setups                    import setupCylindricalGrid
+from ..initialisation.mod_initialiser_funcs     import fEq
+from .advection                                 import *
+from ..                                         import splines as spl
+from ..initialisation                           import constants
 
 def gauss(x):
     return np.exp(-x**2/4)
 
-def iota0():
-    return 0.0
+def iota0(r):
+    return np.zeros_like(r)
+
+def iota8(r):
+    return np.ones_like(r)*0.8
 
 @pytest.mark.serial
 @pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1)] )
@@ -51,6 +54,47 @@ def test_fluxSurfaceAdvection(fact,dt):
     assert(np.max(np.abs(f_vals-f_end))<1e-4)
 
 @pytest.mark.serial
+@pytest.mark.parametrize( "nptZ,dt,err", [(32,1.0,1.5e-2),(64,0.5,3e-4),(128,0.25,1e-5)] )
+def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
+    npts = [nptZ,nptZ]
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
+                np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]
+    
+    N = 10
+    
+    f_vals = np.ndarray(npts)
+    
+    domain    = [ [0,2*pi], [0,2*pi*constants.R0] ]
+    nkts      = [n+1                           for n          in npts ]
+    breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
+    knots     = [spl.make_knots( b,3,True )    for b          in breaks]
+    bsplines  = [spl.BSplines( k,3,True )      for k          in knots]
+    eta_grids = [bspl.greville                 for bspl       in bsplines]
+    
+    c=2
+    
+    eta_vals[1]=eta_grids[0]
+    eta_vals[2]=eta_grids[1]
+    eta_vals[3][0]=c
+    
+    layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota8)
+    
+    m, n = (5,-4)
+    theta = eta_grids[0]
+    phi = eta_grids[1]*2*pi/domain[1][1]
+    f_vals[:,:] = np.sin( m*theta[:,None] + n*phi[None,:] )
+    
+    #~ f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
+    f_end = f_vals.copy()
+    
+    for n in range(N):
+        fluxAdv.step(f_vals,0)
+    #~ print(np.max(np.abs(f_vals-f_end)))
+    assert(np.max(np.abs(f_vals-f_end))<err)
+
+@pytest.mark.serial
 @pytest.mark.parametrize( "function,N", [(gauss,10),(gauss,20),(gauss,30)] )
 def test_vParallelAdvection(function,N):
     npts = 50
@@ -66,12 +110,16 @@ def test_vParallelAdvection(function,N):
     x         = spline.greville
     
     r = 4
-    fEdge = fEq(r,x[0])
-    assert(fEq(r,x[0])==fEq(r,x[-1]))
+    fEdge = fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+    assert(fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+        == fEq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi))
     
     f = function(x)+fEdge
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, True)
+    vParAdv = VParallelAdvection([0,0,0,x], spline, 'null')
     
     for i in range(N):
         vParAdv.step(f,dt,c,r)
@@ -80,9 +128,41 @@ def test_vParallelAdvection(function,N):
     
     for i in range(npts):
         if ((x[i]-c*dt*N)<x[0]):
-            fEnd[i]=fEq(r,(x[i]-c*dt*N))
+            fEnd[i]=fEq(r,(x[i]-c*dt*N),constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
         else:
             fEnd[i]=fEdge+function(x[i]-c*dt*N)
+    
+    assert(max(abs(f-fEnd))<2e-3)
+
+@pytest.mark.serial
+@pytest.mark.parametrize( "N", [10,20,30] )
+def test_vParallelAdvectionPeriodic(N):
+    npts = 50
+    f = np.empty(npts)
+    
+    dt=0.1
+    c=2.0
+    
+    nkts      = npts-2
+    breaks    = np.linspace( -5, 5, num=nkts )
+    knots     = spl.make_knots( breaks,3,False )
+    spline    = spl.BSplines( knots,3,False )
+    x         = spline.greville
+    
+    r = 4
+    
+    f = gauss(x)
+    
+    vParAdv = VParallelAdvection([0,0,0,x], spline, 'periodic')
+    
+    for i in range(N):
+        vParAdv.step(f,dt,c,r)
+    
+    fEnd = np.empty(npts)
+    
+    for i in range(npts):
+        fEnd[i]=gauss((x[i]-c*dt*N+5)%10 -5)
     
     assert(max(abs(f-fEnd))<2e-3)
 
@@ -379,6 +459,32 @@ def test_perturbedEquilibrium():
 """
 
 @pytest.mark.serial
+def test_vParGradAligned():
+    comm = MPI.COMM_WORLD
+    
+    npts = [20,80,20,8]
+    grid = setupCylindricalGrid(npts   = npts,
+                                layout = 'flux_surface',
+                                eps    = 0,
+                                comm   = comm)
+    
+    N=10
+    
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout),iota=iota8)
+    
+    phiVals = np.empty([npts[2],npts[1]])
+    
+    m, n = (5,-4)
+    theta = grid.eta_grid[1]
+    phi = grid.eta_grid[2]*2*pi/constants.zMax
+    phiVals[:,:] = np.sin( m*theta[None,:] + n*phi[:,None] )
+    
+    der = np.empty([npts[2],npts[1]])
+    pG.parallel_gradient(phiVals,0,der)
+    assert(np.isfinite(der).all())
+    assert((np.abs(der)<1e-7).all())
+
+@pytest.mark.serial
 def test_vParGrad():
     comm = MPI.COMM_WORLD
     
@@ -390,7 +496,7 @@ def test_vParGrad():
     
     N=10
     
-    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid)
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout))
     
     phiVals = np.empty([npts[2],npts[1]])
     phiVals[:]=3
@@ -412,10 +518,10 @@ def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(3,6), (4,6)] )
+@pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(4,4)] )
 def test_Phi_deriv_dz(phiOrder,zOrder):
-    nconvpts = 2
-    npts = [128,1024,128]
+    nconvpts = 5
+    npts = [1,64,64]
     
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
@@ -426,7 +532,7 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         breaks_z = np.linspace(0,20,npts[2]+1)
         spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
         
-        eta_grid = [[1], spline_theta.greville, spline_z.greville]
+        eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][1]-eta_grid[2][0]
         dtheta = iota()*dz/constants.R0
@@ -437,7 +543,9 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         phiVals = np.empty([npts[2],npts[1]])
         phiVals[:] = pg_Phi(eta_grid[1][None,:],eta_grid[2][:,None])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,iota,zOrder)
+        layout = Layout('par_grad',[1],[0,2,1],eta_grid,[0])
+        
+        pGrad = ParallelGradient(spline_theta,eta_grid,layout,iota,zOrder)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
@@ -448,8 +556,14 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         l2[i]=np.sqrt(np.trapz(np.trapz(err**2,dx=dz),dx=dtheta))
         linf[i]=np.linalg.norm(err.flatten(),np.inf)
         
+        npts[1]*=2
         npts[2]*=2
     
+    #~ print("linf:",linf)
+    #~ print("l2:",l2)
+    
     linfOrder = np.log2(linf[0]/linf[1])
+    #~ print("l2ordre:",np.log2(l2[:-1]/l2[1:]))
     
     assert(abs(linfOrder-zOrder)<0.1)
+

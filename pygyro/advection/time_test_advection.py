@@ -64,12 +64,16 @@ def test_vParallelAdvection():
     x         = spline.greville
     
     r = 4
-    fEdge = fEq(r,x[0])
-    assert(fEq(r,x[0])==fEq(r,x[-1]))
+    fEdge = fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+    assert(fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+            ==fEq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi))
     
     f = gauss(x)+fEdge
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, lambda r,v : 0)
+    vParAdv = VParallelAdvection([0,0,0,x], spline, nulEdge=True)
     
     vTime = timeit.Timer(lambda: vParAdv.step(f,dt,c,r)).timeit(NSteps)
     print(vTime/NSteps," per step, ",vTime," total")
@@ -120,7 +124,7 @@ def test_explicitPoloidalAdvection():
     eta_vals[1]=eta_grids[1]
     eta_vals[3][0]=v
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0)
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], nulEdge=True)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])

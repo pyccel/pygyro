@@ -2,13 +2,16 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.linalg           import solve_banded
-from scipy.linalg.lapack    import zgbtrf, zgbtrs, dgbtrf, dgbtrs
-from scipy.sparse           import csr_matrix, csc_matrix, dia_matrix
-from scipy.sparse.linalg    import splu
+from scipy.linalg        import solve_banded
+from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs
+from scipy.sparse        import csr_matrix, csc_matrix, dia_matrix
+from scipy.sparse.linalg import splu
 
-from .splines               import BSplines, Spline1D, Spline2D
-from .spline_eval_funcs     import find_span, basis_funs
+from .splines           import BSplines, Spline1D, Spline2D
+from .                  import mod_context_1
+
+if ('mod_pygyro_splines_mod_context_1' in dir(mod_context_1)):
+    mod_context_1 = mod_context_1.mod_pygyro_splines_mod_context_1
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
@@ -118,8 +121,8 @@ class SplineInterpolator1D():
         basis = np.empty(degree+1)
         # Fill in non-zero matrix values
         for i,x in enumerate( xgrid ):
-            span  =  find_span( knots, degree, x )
-            basis_funs( knots, degree, x, span, basis )
+            span  =  mod_context_1.find_span( knots, degree, x )
+            mod_context_1.basis_funs( knots, degree, x, span, basis )
             mat[i,js(span)] = basis
 
         return mat
