@@ -17,6 +17,7 @@ def iota0(r):
 def iota8(r):
     return np.ones_like(r)*0.8
 
+
 @pytest.mark.serial
 @pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1)] )
 def test_fluxSurfaceAdvection(fact,dt):
@@ -207,7 +208,7 @@ def test_poloidalAdvection(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0)
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], True)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -230,6 +231,7 @@ def test_poloidalAdvection(dt,v):
     assert(l2<0.2)
 
 @pytest.mark.serial
+@pytest.mark.long
 @pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
 def test_poloidalAdvectionImplicit(dt,v):
     
@@ -255,7 +257,7 @@ def test_poloidalAdvectionImplicit(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0,False,1e-10)
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], True,False,1e-10)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -510,17 +512,18 @@ def pg_Phi(theta,z):
     #return np.cos(z*pi*0.1) + np.sin(theta)
     return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
 
-def pg_dPhi(theta,z,btheta,bz):
+def pg_dPhi(r,theta,z,btheta,bz):
     #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
-    return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta
+    return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
 
 def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
+@pytest.mark.long
 @pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(4,4)] )
 def test_Phi_deriv_dz(phiOrder,zOrder):
-    nconvpts = 5
+    nconvpts = 2
     npts = [1,64,64]
     
     l2=np.empty(nconvpts)
@@ -534,11 +537,13 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         
         eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
-        dz = eta_grid[2][1]-eta_grid[2][0]
+        dz = eta_grid[2][2]-eta_grid[2][1]
         dtheta = iota()*dz/constants.R0
         
-        bz = dz/np.sqrt(dz**2+dtheta**2)
-        btheta = dtheta/np.sqrt(dz**2+dtheta**2)
+        bz = 1 / np.sqrt(1+( iota(1)/constants.R0)**2)
+        btheta =  iota(1)/constants.R0 / np.sqrt(1+( iota(1)/constants.R0)**2)
+        # ~ bz = dz/np.sqrt(dz**2+dtheta**2)
+        # ~ btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
         phiVals = np.empty([npts[2],npts[1]])
         phiVals[:] = pg_Phi(eta_grid[1][None,:],eta_grid[2][:,None])
@@ -549,7 +554,7 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
-        exactGrad = pg_dPhi(eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
+        exactGrad = pg_dPhi(1,eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
         
         err = approxGrad-exactGrad
         
@@ -559,11 +564,12 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         npts[1]*=2
         npts[2]*=2
     
-    #~ print("linf:",linf)
-    #~ print("l2:",l2)
+    print("linf:",linf)
+    print("l2:",l2)
     
     linfOrder = np.log2(linf[0]/linf[1])
-    #~ print("l2ordre:",np.log2(l2[:-1]/l2[1:]))
+    print("linfordre:",np.log2(linf[:-1]/linf[1:]))
+    print("l2ordre:",np.log2(l2[:-1]/l2[1:]))
     
     assert(abs(linfOrder-zOrder)<0.1)
 
