@@ -43,7 +43,7 @@ def test_vParallelAdvection():
         
         f = gaussLike(x)
         
-        vParAdv = VParallelAdvection([0,0,0,x], spline, lambda r,v : 0)
+        vParAdv = VParallelAdvection([0,0,0,x], spline, 'null')
         
         for i in range(N):
             vParAdv.step(f,dt,c,r)
@@ -525,9 +525,9 @@ def Phi(theta,z):
     #return np.cos(z*pi*0.1) + np.sin(theta)
     return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
 
-def dPhi(theta,z,btheta,bz):
+def dPhi(r,theta,z,btheta,bz):
     #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
-    return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta
+    return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
 
 def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
@@ -546,22 +546,28 @@ def test_Phi_deriv_dtheta():
         breaks_z = np.linspace(0,20,npts[2]+1)
         spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
         
-        eta_grid = [[1], spline_theta.greville, spline_z.greville]
+        eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][1]-eta_grid[2][0]
         dtheta = iota()*dz/constants.R0
         
-        bz = dz/np.sqrt(dz**2+dtheta**2)
-        btheta = dtheta/np.sqrt(dz**2+dtheta**2)
+        r = eta_grid[0]
+        
+        bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        #bz = dz/np.sqrt(dz**2+dtheta**2)
+        btheta = r * iota(r)/constants.R0 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        # ~ btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
         
         phiVals = np.empty([npts[2],npts[1]])
         phiVals[:] = Phi(eta_grid[1][None,:],eta_grid[2][:,None])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,iota)
+        theLayout = Layout('full',[1,1,1],[0,2,1],eta_grid,[0,0,0])
+        
+        pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,iota = iota)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
-        exactGrad = dPhi(eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
+        exactGrad = dPhi(eta_grid[0][:,None,None],eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
         
         err = approxGrad-exactGrad
         
@@ -600,7 +606,7 @@ def test_Phi_deriv_dtheta():
 @pytest.mark.serial
 def test_Phi_deriv_dz():
     nconvpts = 7
-    npts = [128,1024,8]
+    npts = [1,32,32]
     
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
@@ -611,22 +617,28 @@ def test_Phi_deriv_dz():
         breaks_z = np.linspace(0,20,npts[2]+1)
         spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
         
-        eta_grid = [[1], spline_theta.greville, spline_z.greville]
+        eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][1]-eta_grid[2][0]
         dtheta = iota()*dz/constants.R0
         
-        bz = dz/np.sqrt(dz**2+dtheta**2)
-        btheta = dtheta/np.sqrt(dz**2+dtheta**2)
+        r = eta_grid[0]
+        
+        bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        btheta = r * iota(r)/constants.R0 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        #bz = dz/np.sqrt(dz**2+dtheta**2)
+        #btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
         
         phiVals = np.empty([npts[2],npts[1]])
         phiVals[:] = Phi(eta_grid[1][None,:],eta_grid[2][:,None])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,iota)
+        theLayout = Layout('full',[1,1,1],[0,2,1],eta_grid,[0,0,0])
+        
+        pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,iota,order = 3)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
-        exactGrad = dPhi(eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
+        exactGrad = dPhi(eta_grid[0][:,None,None],eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
         
         err = approxGrad-exactGrad
         
