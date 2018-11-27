@@ -5,16 +5,18 @@ from pyccel.decorators  import types
         #~ return f
     #~ return id
 
-#~ from ..splines  import spline_eval_funcs as SEF
+from ..splines  import spline_eval_funcs as SEF
 
-#~ if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
-    #~ eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
-    #~ eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
-    #~ eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
-#~ else:
-    #~ print("oops",dir(SEF))
+if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
+    eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
+    eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
+    eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
+else:
+    eval_spline_2d_cross = SEF.eval_spline_2d_cross
+    eval_spline_2d_scalar = SEF.eval_spline_2d_scalar
+    eval_spline_1d_scalar = SEF.eval_spline_1d_scalar
 
-#~ from ..initialisation.mod_initialiser_funcs               import fEq
+from ..initialisation.mod_initialiser_funcs               import fEq
 
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
@@ -43,6 +45,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
         The parallel velocity coordinate
     
     """
+    
     from numpy import pi
     
     multFactor = dt/B0
