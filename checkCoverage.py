@@ -5,7 +5,14 @@ bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k='not long'"
 try:
     process = subprocess.run(split(bashCommand), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 except:
+    out = str(process.stdout)
+    out = out[2:-1]
+    out = out.replace("\\n","\n")
     print(out)
+    
+    err = str(process.stderr)
+    err = err[2:-1]
+    err = err.replace("\\n","\n")
     print(err)
     raise
 
