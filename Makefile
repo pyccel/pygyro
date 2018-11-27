@@ -2,14 +2,14 @@
 # DEFAULT MAKE FLAGS
 #----------------------------------------------------------
 
-# Acceleration method? [none|numba|pyccel]
-ACC := pyccel
+# Acceleration method? [none|numba|pycc]
+ACC := pycc
 
 # Use GNU or intel compilers? [gnu|intel]
 COMP := gnu
 
 # Use manually optimized Fortran files? [1|0]
-MOPT := 1
+MOPT := 0
 
 # Use pyccel to generate files? [1|0]
 PYCC_GEN := 0
@@ -58,8 +58,8 @@ endif
 ifeq ($(ACC), none)
 	TYPE := clean
 else
-	ifeq ($(ACC), pyccel)
-		TYPE := pyccel
+	ifeq ($(ACC), pycc)
+		TYPE := pycc
 	else
 		ifeq ($(ACC), numba)
 			TYPE := numba
@@ -105,13 +105,13 @@ pyccel_generation:
 	$(MAKE) -C pygyro $@
 
 ifeq ($(PYCC_GEN), 1)
-pyccel: pyccel_generation
+pycc: pyccel_generation
 	$(PYTHON) moduleGenerator.py
 else
-pyccel:
+pycc:
 endif
 	echo $(PYCC_GEN)
-	$(MAKE) -C pygyro $@
+	$(MAKE) -C pygyro pyccel
 
 clean:
 	$(MAKE) -C pygyro $@
