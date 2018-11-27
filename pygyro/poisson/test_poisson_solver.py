@@ -15,15 +15,9 @@ from .poisson_solver                        import DiffEqSolver, DensityFinder, 
 from ..splines.splines                      import BSplines, Spline1D
 from ..splines.spline_interpolators         import SplineInterpolator1D
 
-def args_density_finder_poly():
-    for npts,tol in zip([10,20,50],[0.002,0.0003,2e-6]):
-        for i in range( 5 ):
-            coeffs = np.random.random(4)*3
-            yield (npts, coeffs,tol)
-
 @pytest.mark.parallel
-@pytest.mark.parametrize( "npts_v,coeffs,tol", args_density_finder_poly() )
-def test_DensityFinder_poly_Rho(npts_v, coeffs,tol):
+def test_DensityFinder_poly_Rho(param_df_poly):
+    npts_v, coeffs,tol = param_df_poly
     npts = [30,4,4,npts_v]
     domain = [[1,5],[0,2*pi],[0,1],[0,10]]
     degree = [3,3,3,3]
@@ -64,8 +58,8 @@ def test_DensityFinder_poly_Rho(npts_v, coeffs,tol):
     assert((np.abs(err)<tol).all())
 
 @pytest.mark.parallel
-@pytest.mark.parametrize( "npts_v,coeffs,tol", args_density_finder_poly() )
-def test_DensityFinder_poly_RhoPerturbed(npts_v, coeffs,tol):
+def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
+    npts_v, coeffs,tol = param_df_poly
     npts = [30,4,4,npts_v]
     domain = [[1,5],[0,2*pi],[0,1],[0,10]]
     degree = [3,3,3,3]
@@ -194,11 +188,8 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v,tol):
     assert((np.abs(err)<tol).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
-                                          (2,32,0.1),(3,9,0.03),(3,32,0.02),
-                                          (4,10,0.02),(4,40,0.02),(5,14,0.01),
-                                          (5,64,0.01)] )
-def test_BasicPoissonEquation_Dirichlet_r_function(deg,npt,eps):
+def test_BasicPoissonEquation_Dirichlet_r_function(param_poisson_dirichlet):
+    deg,npt,eps = param_poisson_dirichlet
     npts = [npt,8,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -231,11 +222,8 @@ def test_BasicPoissonEquation_Dirichlet_r_function(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
-                                          (2,32,0.1),(3,9,0.03),(3,32,0.02),
-                                          (4,10,0.02),(4,40,0.02),(5,14,0.01),
-                                          (5,64,0.01)] )
-def test_BasicPoissonEquation_Dirichlet_r_discrete(deg,npt,eps):
+def test_BasicPoissonEquation_Dirichlet_r_discrete(param_poisson_dirichlet):
+    deg,npt,eps = param_poisson_dirichlet
     npts = [npt,8,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -270,11 +258,8 @@ def test_BasicPoissonEquation_Dirichlet_r_discrete(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,10),(1,32,0.09),(2,6,1e-12),
-                                          (2,32,1e-12),(3,9,1e-12),(3,32,1e-12),
-                                          (4,10,1e-12),(4,40,1e-12),(5,14,1e-12),
-                                          (5,64,1e-12)] )
-def test_BasicPoissonEquation_lNeumann_discrete(deg,npt,eps):
+def test_BasicPoissonEquation_lNeumann_discrete(param_poisson_neumann):
+    deg,npt,eps = param_poisson_neumann
     npts = [npt,8,4]
     domain = [[1,9],[0,2*pi],[0,1]]
     degree = [deg,2,2]
@@ -311,11 +296,8 @@ def test_BasicPoissonEquation_lNeumann_discrete(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,10),(1,32,0.09),(2,6,1e-12),
-                                          (2,32,1e-12),(3,9,1e-12),(3,32,1e-12),
-                                          (4,10,1e-12),(4,40,1e-12),(5,14,1e-12),
-                                          (5,64,2e-12)] )
-def test_BasicPoissonEquation_lNeumann_function(deg,npt,eps):
+def test_BasicPoissonEquation_lNeumann_function(param_poisson_neumann):
+    deg,npt,eps = param_poisson_neumann
     npts = [npt,8,4]
     domain = [[1,9],[0,2*pi],[0,1]]
     degree = [deg,2,2]
@@ -350,11 +332,8 @@ def test_BasicPoissonEquation_lNeumann_function(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,10),(1,32,0.09),(2,6,1e-12),
-                                          (2,32,1e-12),(3,9,1e-12),(3,32,1e-12),
-                                          (4,10,1e-12),(4,40,2e-12),(5,14,1e-12),
-                                          (5,64,3e-12)] )
-def test_BasicPoissonEquation_rNeumann_discrete(deg,npt,eps):
+def test_BasicPoissonEquation_rNeumann_discrete(param_poisson_neumann):
+    deg,npt,eps = param_poisson_neumann
     npts = [npt,8,4]
     domain = [[1,9],[0,2*pi],[0,1]]
     degree = [deg,2,2]
@@ -391,11 +370,8 @@ def test_BasicPoissonEquation_rNeumann_discrete(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,10),(1,32,0.09),(2,6,1e-12),
-                                          (2,32,1e-12),(3,9,1e-12),(3,32,1e-12),
-                                          (4,10,1e-12),(4,40,2e-12),(5,14,1e-12),
-                                          (5,64,3e-12)] )
-def test_BasicPoissonEquation_rNeumann_function(deg,npt,eps):
+def test_BasicPoissonEquation_rNeumann_function(param_poisson_neumann):
+    deg,npt,eps = param_poisson_neumann
     npts = [npt,8,4]
     domain = [[1,9],[0,2*pi],[0,1]]
     degree = [deg,2,2]
@@ -430,11 +406,8 @@ def test_BasicPoissonEquation_rNeumann_function(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.3),(1,32,0.01),(2,6,0.1),
-                                          (2,32,0.1),(3,9,0.03),(3,32,0.02),
-                                          (4,10,0.02),(4,40,0.02),(5,14,0.01),
-                                          (5,64,0.01)] )
-def test_PoissonEquation_Dirichlet(deg,npt,eps):
+def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
+    deg,npt,eps = param_poisson_dirichlet
     npts = [npt,8,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -484,11 +457,8 @@ def test_PoissonEquation_Dirichlet(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(2,6,0.3),
-                                          (2,32,0.05),(3,10,0.2),(3,32,0.04),
-                                          (4,10,0.2),(4,40,0.03),(5,14,0.09),
-                                          (5,64,0.02)] )
-def test_grad_discrete(deg,npt,eps):
+def test_grad_discrete(param_grad):
+    deg,npt,eps = param_grad
     npts = [npt,32,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -528,11 +498,8 @@ def test_grad_discrete(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,0.9),(1,32,0.07),(2,6,0.3),
-                                          (2,32,0.05),(3,10,0.2),(3,32,0.04),
-                                          (4,10,0.2),(4,40,0.03),(5,14,0.09),
-                                          (5,64,0.02)] )
-def test_grad_function(deg,npt,eps):
+def test_grad_function(param_grad):
+    deg,npt,eps = param_grad
     npts = [npt,32,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -569,11 +536,8 @@ def test_grad_function(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,32,0.2),(1,256,0.02),(2,32,0.09),
-                                          (2,256,0.02),(3,32,0.08),(3,256,0.009),
-                                          (4,32,0.07),(4,256,0.007),(5,32,0.06),
-                                          (5,256,0.006)] )
-def test_grad_r_discrete(deg,npt,eps):
+def test_grad_r_discrete(param_grad_r):
+    deg,npt,eps = param_grad_r
     npts = [npt,32,4]
     domain = [[1,8],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -613,11 +577,8 @@ def test_grad_r_discrete(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,32,0.2),(1,256,0.02),(2,32,0.09),
-                                          (2,256,0.02),(3,32,0.08),(3,256,0.009),
-                                          (4,32,0.07),(4,256,0.007),(5,32,0.06),
-                                          (5,256,0.006)] )
-def test_grad_r_function(deg,npt,eps):
+def test_grad_r_function(param_grad_r):
+    deg,npt,eps = param_grad_r
     npts = [npt,32,4]
     domain = [[1,8],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -704,11 +665,8 @@ def test_grad_withFFT(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt,eps", [(1,4,2),(1,32,0.2),(1,64,0.03),(2,6,1.1),
-                                          (2,32,0.03),(3,10,0.3),(3,32,0.02),
-                                          (4,10,0.3),(4,40,0.008),(5,14,0.09),
-                                          (5,64,0.003)] )
-def test_Sin_r_Sin_theta(deg,npt,eps):
+def test_Sin_r_Sin_theta(param_sin_sin):
+    deg,npt,eps = param_sin_sin
     npts = [npt,64,4]
     domain = [[1,5],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -757,11 +715,8 @@ def test_Sin_r_Sin_theta(deg,npt,eps):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt", [(1,4),(1,32),(1,64),(2,6),
-                                      (2,32),(3,10),(3,32),
-                                      (4,10),(4,40),(5,14),
-                                      (5,64)] )
-def test_ddTheta(deg,npt):
+def test_ddTheta(param_fft):
+    deg,npt = param_fft
     eps=1e-12
     npts = [8,npt,5]
     domain = [[1,5],[0,2*pi],[0,1]]
@@ -811,11 +766,8 @@ def test_ddTheta(deg,npt):
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "deg,npt", [(1,4),(1,32),(1,64),(2,6),
-                                      (2,32),(3,10),(3,32),
-                                      (4,10),(4,40),(5,14),
-                                      (5,64)] )
-def test_phi(deg,npt):
+def test_phi(param_fft):
+    deg,npt = param_fft
     eps=1e-12
     npts = [256,npt,4]
     domain = [[1,5],[0,2*pi],[0,1]]

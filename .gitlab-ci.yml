@@ -11,9 +11,9 @@ testimony:
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
   script:
+    - pytest pygyro -m serial -k 'not long' --short
     - make
     - python checkCoverage.py
-    - pytest pygyro -m serial -k 'not long'
     - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 1"
     - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 4"
     - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 6"
