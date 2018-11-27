@@ -1,9 +1,5 @@
 import numpy                as np
 
-def pytest_addoption(parser):
-    parser.addoption("--short", action="store_true",
-        help="run fewer tests (to be used when running in pure python mode)")
-
 def pytest_generate_tests(metafunc):
     if 'param_df_poly' in metafunc.fixturenames:
         param_df_poly = []
