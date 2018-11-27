@@ -230,6 +230,7 @@ def test_poloidalAdvection(dt,v):
     assert(l2<0.2)
 
 @pytest.mark.serial
+@pytest.mark.long
 @pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
 def test_poloidalAdvectionImplicit(dt,v):
     
@@ -518,6 +519,7 @@ def iota(r = 6.0):
     return np.full_like(r,0.8,dtype=float)
 
 @pytest.mark.serial
+@pytest.mark.long
 @pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(4,4)] )
 def test_Phi_deriv_dz(phiOrder,zOrder):
     nconvpts = 5

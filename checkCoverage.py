@@ -1,5 +1,5 @@
 
-bashCommand = "pytest pygyro --cov=pygyro --cov-report=term"
+bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k 'not long'"
 import subprocess
 process = subprocess.run(bashCommand.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
