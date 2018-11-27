@@ -91,7 +91,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             
             # Step two of Heun method
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-            endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % 2*pi
+            endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % (2*pi)
             endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
     
     # Find value at the determined point
@@ -176,12 +176,12 @@ def flux_advection(nq,nr,f,coeffs,vals):
             for k in range(1,len(coeffs)):
                 f[j,i] += coeffs[k]*vals[i,j,k]
 
-@cc.export('poloidal_advection_step_impl', '(f8[:,:],f8,f8,f8[:],f8[:], \
-                                          i8[:],f8[:,:],f8[:,:],f8[:,:],\
+@cc.export('poloidal_advection_step_impl', (f8[:,:],f8,f8,f8[:],f8[:], \
+                                          shape2,f8[:,:],f8[:,:],f8[:,:],\
                                           f8[:,:],f8[:,:],f8[:,:],f8[:,:],\
                                           f8[:,:],f8[:],f8[:],f8[:,:],\
                                           i4,i4, f8[:],f8[:],f8[:,:],\
-                                          i4,i4,f8,f8,f8,f8,f8,f8,f8,f8,f8,b1)')
+                                          i4,i4,f8,f8,f8,f8,f8,f8,f8,f8,f8,b1))
 def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
