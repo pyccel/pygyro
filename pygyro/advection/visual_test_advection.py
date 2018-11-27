@@ -22,7 +22,7 @@ def test_fluxSurfaceAdvection():
     
     c=2
     
-    f_vals = np.ndarray([npts[0],npts[1],N+1])
+    f_vals = np.ndarray([N+1,npts[0],npts[1]])
     
     domain    = [ [0,2*pi], [0,20] ]
     nkts      = [n+1                           for n          in npts ]
@@ -39,11 +39,11 @@ def test_fluxSurfaceAdvection():
     
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
     
-    f_vals[:,:,0]=np.sin(eta_vals[2]*pi/10)
+    f_vals[0,:,:]=np.sin(eta_vals[2]*pi/10)
     
     for n in range(N):
-        f_vals[:,:,n+1]=f_vals[:,:,n]
-        fluxAdv.step(f_vals[:,:,n+1],0)
+        f_vals[n+1,:,:]=f_vals[n,:,:]
+        fluxAdv.step(f_vals[n+1,:,:],0)
     
     x,y = np.meshgrid(eta_vals[2], eta_vals[1])
     
@@ -56,7 +56,7 @@ def test_fluxSurfaceAdvection():
     ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
     
-    line1 = ax.pcolormesh(x,y,f_vals[:,:,0],vmin=f_min,vmax=f_max)
+    line1 = ax.pcolormesh(x,y,f_vals[0,:,:],vmin=f_min,vmax=f_max)
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -64,11 +64,11 @@ def test_fluxSurfaceAdvection():
     
     for n in range(1,N):
         del line1
-        line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
+        line1 = ax.pcolormesh(x,y,f_vals[n,:,:],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
     
-    print(np.max(f_vals[:,:,N]-f_vals[:,:,0]))
+    print(np.max(f_vals[N,:,:]-f_vals[0,:,:]))
 
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
@@ -482,7 +482,7 @@ def test_fluxAdvection_dz():
     
     c=2
     
-    f_vals = np.ndarray([npts[0],npts[1],N+1])
+    f_vals = np.ndarray([N+1,npts[0],npts[1]])
     
     domain    = [ [0,2*pi], [0,20] ]
     nkts      = [n+1                           for n          in npts ]
@@ -504,11 +504,11 @@ def test_fluxAdvection_dz():
     btheta = dtheta/np.sqrt(dz**2+dtheta**2)
     bz = dz/np.sqrt(dz**2+dtheta**2)
     
-    f_vals[:,:,0] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
+    f_vals[0,:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
     
     for n in range(1,N+1):
-        f_vals[:,:,n]=f_vals[:,:,n-1]
-        fluxAdv.step(f_vals[:,:,n],0)
+        f_vals[n,:,:]=f_vals[n-1,:,:]
+        fluxAdv.step(f_vals[n,:,:],0)
     
     x,y = np.meshgrid(eta_vals[2],eta_vals[1])
     
@@ -522,8 +522,8 @@ def test_fluxAdvection_dz():
     ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
     
-    #~ line1 = ax.pcolormesh(y,x,f_vals[:,:,0],vmin=f_min,vmax=f_max)
-    line1 = ax.pcolormesh(x,y,f_vals[:,:,0],vmin=f_min,vmax=f_max)
+    #~ line1 = ax.pcolormesh(y,x,f_vals[0,:,:],vmin=f_min,vmax=f_max)
+    line1 = ax.pcolormesh(x,y,f_vals[0,:,:],vmin=f_min,vmax=f_max)
     ax.set_title('End of Calculation')
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -534,8 +534,8 @@ def test_fluxAdvection_dz():
     
     for n in range(1,N+1):
         del line1
-        line1 = ax.pcolormesh(x,y,f_vals[:,:,n],vmin=f_min,vmax=f_max)
-        #~ line1 = ax.pcolormesh(y,x,f_vals[:,:,n],vmin=f_min,vmax=f_max)
+        line1 = ax.pcolormesh(x,y,f_vals[n,:,:],vmin=f_min,vmax=f_max)
+        #~ line1 = ax.pcolormesh(y,x,f_vals[n,:,:],vmin=f_min,vmax=f_max)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -576,7 +576,7 @@ def test_flux_aligned():
     f_vals[0,:,:] = 0.5 +  0.5 * np.sin( m*theta[:,None] - n*phi[None,:] )
     
     #~ m, n = (4, 5)
-    m, n = (0, 5)
+    # ~ m, n = (0, 5)
     #~ theta = eta_grids[0]
     #~ phi = eta_grids[1]*2*pi/domain[1][1]
     #~ f_vals[:,:,0] = 0.5+ 0.5*np.sin( m*theta[:,None] + n*phi[None,:] )
@@ -612,8 +612,8 @@ def test_flux_aligned():
     line1 = ax.pcolormesh(phi,theta,f_vals[0,:,:]-f_vals[0,:,:],vmin=e_min,vmax=e_max)
     line2 = ax2.pcolormesh(phi,theta,f_vals[0,:,:],vmin=f_min,vmax=f_max)
     #~ line1 = ax.pcolormesh(phi,theta,f_vals[:,:,0],vmin=f_min,vmax=f_max)
-    ax.set_title('Values')
-    ax2.set_title('Error')
+    ax.set_title('Error')
+    ax2.set_title('Values')
     fig.canvas.draw()
     fig.canvas.flush_events()
     
@@ -634,3 +634,76 @@ def test_flux_aligned():
         fig.canvas.flush_events()
         fig2.canvas.draw()
         fig2.canvas.flush_events()
+
+def Phi(theta,z):
+    #return np.cos(z*pi*0.1) + np.sin(theta)
+    # ~ return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
+    m, n = (5, 4)
+    phi = z*2*np.pi/20
+    return 0.5+ 0.5*np.sin( m*theta - n*phi )
+
+def dPhi(r,theta,z,btheta,bz):
+    #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
+    # ~ return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
+    m, n = (5, 4)
+    phi = z*2*np.pi/20
+    return 0.5*np.cos( m*theta - n*phi )*(m*btheta/r - bz*n*2*np.pi/20)
+
+@pytest.mark.serial
+def test_Phi_deriv():
+    npts = [1,64,128]
+    
+    breaks_theta = np.linspace(0,2*pi,npts[1]+1)
+    spline_theta = spl.BSplines(spl.make_knots(breaks_theta,3,True),3,True)
+    breaks_z = np.linspace(0,20,npts[2]+1)
+    spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
+    
+    eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
+    
+    dz = eta_grid[2][1]-eta_grid[2][0]
+    dtheta = iota8()*dz/constants.R0
+    
+    r = eta_grid[0]
+    
+    bz = 1 / np.sqrt(1+(r * iota8(r)/constants.R0)**2)
+    btheta = r * iota8(r)/constants.R0 / np.sqrt(1+(r * iota8(r)/constants.R0)**2)
+    #bz = dz/np.sqrt(dz**2+dtheta**2)
+    #btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
+    
+    phiVals = np.empty([npts[2],npts[1]])
+    phiVals[:] = Phi(eta_grid[1][None,:],eta_grid[2][:,None])
+    
+    theLayout = Layout('full',[1,1,1],[0,2,1],eta_grid,[0,0,0])
+    
+    pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,iota8)
+    
+    approxGrad = np.empty([npts[2],npts[1]])
+    pGrad.parallel_gradient(phiVals,0,approxGrad)
+    exactGrad = dPhi(eta_grid[0][:,None,None],eta_grid[1][None,:],eta_grid[2][:,None],btheta,bz)
+    
+    err = np.squeeze(approxGrad-exactGrad)
+    
+    fig = plt.figure()
+    ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax1 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+    fig2 = plt.figure()
+    ax2 = fig2.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax2 = fig2.add_axes([0.85, 0.1, 0.03, 0.8],)
+    
+    fig3 = plt.figure()
+    ax3 = fig3.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax3 = fig3.add_axes([0.85, 0.1, 0.03, 0.8],)
+    
+    line1 = ax.pcolormesh(eta_grid[1],eta_grid[2],err)
+    line2 = ax2.pcolormesh(eta_grid[1],eta_grid[2],approxGrad)
+    line3 = ax3.pcolormesh(eta_grid[1],eta_grid[2],np.squeeze(exactGrad))
+    ax.set_title('Error')
+    ax2.set_title('Values')
+    ax3.set_title('Expected Values')
+    
+    fig.colorbar(line1, cax = colorbarax1)
+    fig2.colorbar(line2, cax = colorbarax2)
+    fig3.colorbar(line3, cax = colorbarax3)
+    
+    plt.show()
