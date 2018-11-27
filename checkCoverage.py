@@ -1,7 +1,13 @@
-
-bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k 'not long'"
+from shlex  import split
 import subprocess
-process = subprocess.run(bashCommand.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k='not long'"
+try:
+    process = subprocess.run(split(bashCommand), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+except:
+    print(out)
+    print(err)
+    raise
 
 out = str(process.stdout)
 out = out[2:-1]
