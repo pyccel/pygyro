@@ -5,6 +5,9 @@ omit = *test*
        pygyro/advection/*mod*
        pygyro/initialisation/*mod*
        pygyro/splines/*mod*
+       pygyro/advection/numba_*
+       pygyro/initialisation/numba_*
+       pygyro/splines/numba_*
        pygyro/advection/accelerated_advection_steps.py
        pygyro/initialisation/initialiser_func.py
        pygyro/splines/spline_eval_funcs.py
