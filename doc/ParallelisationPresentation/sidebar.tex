@@ -1,0 +1,43 @@
+\vspace*{\fill}
+  \begin{minipage}{\mysidebarwidth}
+   \begin{todolist}
+    \ifUsedMaxNProc
+     \item[\done]
+    \else
+     \item
+    \fi The number of processes that can be used is maximised
+    \ifUsedDimsNotDistrib
+     \item[\done]
+    \else
+     \item
+    \fi  The dimensions used by the operator are not distributed
+    \ifUsedDimsContig
+     \item[\done]
+    \else
+     \item
+    \fi  The dimensions used by the operator are contiguous
+    \ifUsedMinMPI
+     \item[\done]
+    \else
+     \item
+    \fi  The number of MPI messages sent and received is minimised
+    \ifUsedMinMemory
+     \item[\done]
+    \else
+     \item
+    \fi  The memory required is minimised
+    \ifUsedNoMemAlloc
+     \item[\done]
+    \else
+     \item
+    \fi  After setup no memory is allocated
+    \ifUsedMinCopy
+     \item[\done]
+    \else
+     \item
+    \fi  As little copying of data as possible is used
+   \end{todolist}
+  \end{minipage}\par
+  \vfill
+  \parbox{\mywd}{\centering\textcolor{white}{\insertauthor}}
+  \vspace*{0.6cm}

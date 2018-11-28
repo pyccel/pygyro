@@ -1,0 +1,62 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns,decorations.markings}
+
+\definecolor{mygreen}{RGB}{0, 153, 0}
+
+\begin{document}
+{
+\begin{tikzpicture}
+\begin{loglogaxis}[
+xlabel={Number of Nodes},
+ylabel={Duration of one time step [s]},
+legend entries={Pure Fortran,Gfortran,Intel,Manually improved},
+legend pos=north east,
+xtick={1,2,4,8,16,32},
+xticklabels={1,2,4,8,16,32},
+minor xtick={3,5,6,7,9,10,11,12,13,14,15,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31},
+]
+% \addplot[color=black]
+%      coordinates{
+%      (1 ,  4.8764073060e+02)
+%      (2 ,  243.8203653)
+%      (4 ,  121.91018265)
+%      (8 ,  60.955091325)
+%      (16, 30.4775456625)
+%      (32, 15.23877283125)
+%      };
+% \addplot[color=red]
+%      coordinates{
+%      (1 ,  342.4934561)
+%      (2 ,  171.24672805)
+%      (4 ,  85.623364025)
+%      (8 ,  42.8116820125)
+%      (16, 21.40584100625)
+%      (32, 10.702920503125)
+%      };
+% \addplot[color=mygreen]
+%      coordinates{
+%      (1 ,  122.7)
+%      (2 ,  61.35)
+%      (4 ,  30.675)
+%      (8 ,  15.3375)
+%      };
+\addplot[
+scatter,
+only marks,
+point meta=explicit symbolic,
+scatter/classes={
+0={mark=*,mygreen,scale=2},
+1={mark=triangle*,red,{scale=2}},
+2={mark=triangle*,black,scale=2},
+3={mark=square*,red,scale=2}
+},
+] table[x={nnodes},y={perloop},meta={type}] {Results_withOptimised.dat};
+\end{loglogaxis}
+\end{tikzpicture}
+}
+\end{document}
