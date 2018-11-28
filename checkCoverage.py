@@ -2,7 +2,7 @@ from shlex  import split
 import subprocess
 import os
 
-bashCommand = "pytest pygyro/advection --cov=pygyro --cov-report=term -k='not long' > cov_out.txt 2> cov_err.txt"
+bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k='not long' > cov_out.txt 2> cov_err.txt"
 try:
     process = subprocess.run(bashCommand, shell=True, check=True)
 except:
