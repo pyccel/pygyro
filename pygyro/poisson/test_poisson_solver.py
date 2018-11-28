@@ -394,7 +394,7 @@ def test_BasicPoissonEquation_rNeumann_discrete(deg,npt,eps):
 @pytest.mark.parametrize( "deg,npt,eps", [(1,4,10),(1,32,0.09),(2,6,1e-12),
                                           (2,32,1e-12),(3,9,1e-12),(3,32,1e-12),
                                           (4,10,1e-12),(4,40,2e-12),(5,14,1e-12),
-                                          (5,64,3e-12)] )
+                                          (5,64,1e-11)] )
 def test_BasicPoissonEquation_rNeumann_function(deg,npt,eps):
     npts = [npt,8,4]
     domain = [[1,9],[0,2*pi],[0,1]]
