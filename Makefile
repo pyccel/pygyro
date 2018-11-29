@@ -65,7 +65,6 @@ else
 			TYPE := numba
 		else
 			TYPE := clean
-			echo "Option not recognised!"
 		endif
 	endif
 endif
@@ -74,7 +73,7 @@ endif
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT PYCC_GEN
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT PYCC_GEN PYTHON
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------
@@ -112,6 +111,10 @@ pycc:
 endif
 	echo $(PYCC_GEN)
 	$(MAKE) -C pygyro pyccel
+
+numba:
+	echo $(PYTHON)
+	$(MAKE) -C pygyro $@
 
 clean:
 	$(MAKE) -C pygyro $@
