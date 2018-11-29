@@ -21,6 +21,7 @@ except:
     err = err[2:-1]
     err = err.replace("\\n","\n")
     print(err)
+    raise
 else:
     file = open("cov_out.txt", "r") 
     out = file.read()
