@@ -10,6 +10,7 @@ testimony:
     - export I_MPI_SHM_LMT=shm
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
+    - mkdir __test__
   script:
     - pytest pygyro -m serial -k 'not long' --short
     - make
@@ -25,6 +26,7 @@ testimony:
     - coverage combine -a
     - python checkCoverage.py
   after_script:
+    - rm -r __test__
     - make clean
     - deactivate
     - module unload impi
