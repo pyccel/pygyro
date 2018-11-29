@@ -47,7 +47,7 @@ def args_SplineInterpolator1D_cosine():
     for ncells in [5,10,23]:
         for periodic in [True, False]:
             pmax = min(ncells,9) if periodic else 9
-            for degree in range(1,pmax+1):
+            for degree in range(1,pmax):
                 yield (ncells, degree, periodic)
 
 @pytest.mark.serial
