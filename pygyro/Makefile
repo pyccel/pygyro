@@ -12,6 +12,11 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 # Main targets
 #----------------------------------------------------------
 
+numba:
+	$(MAKE) -C splines $@
+	$(MAKE) -C initialisation $@
+	$(MAKE) -C advection $@
+
 pyccel_generation:
 	$(MAKE) -C splines $@
 	$(MAKE) -C initialisation $@

@@ -8,10 +8,7 @@
 # Main targets
 #----------------------------------------------------------
 
-#initialiser_func: initialiser_func.so
-#
-#initialiser_func.so: initialiser_func.f90 mod_initialiser_funcs$(_OPT).o
-#	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func $^
+numba:
 
 pyccel_generation: mod_initialiser_funcs.f90
 
