@@ -31,7 +31,7 @@ def pytest_generate_tests(metafunc):
         else:
             param_poisson_neumann = [(1,4,10),(1,32,0.09),(2,6,1e-12),
                       (2,32,1e-12),(3,9,1e-12),(3,32,1e-12),
-                      (4,10,1e-12),(4,40,1e-12),(5,14,1e-12),
+                      (4,10,1e-12),(4,40,1e-11),(5,14,1e-12),
                       (5,64,1e-11)]
         metafunc.parametrize("param_poisson_neumann", param_poisson_neumann)
     if 'param_grad' in metafunc.fixturenames:
