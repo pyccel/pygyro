@@ -357,7 +357,7 @@ class Tester( object ):
         # This is a hack to avoid ConftestImportFailure raised when the
         # pytest does its initial import of conftests in the source directory.
         # This prevents any manipulation of the command-line via conftests
-        argv += ['--noconftest']
+        # ~ argv += ['--noconftest']
 
         # get the pytest configuration object
         try:

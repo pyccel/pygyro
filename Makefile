@@ -3,13 +3,13 @@
 #----------------------------------------------------------
 
 # Acceleration method? [none|numba|pycc]
-ACC := numba
+ACC := pycc
 
 # Use GNU or intel compilers? [gnu|intel]
 COMP := gnu
 
 # Use manually optimized Fortran files? [1|0]
-MOPT := 1
+MOPT := 0
 
 # Use pyccel to generate files? [1|0]
 PYCC_GEN := 0

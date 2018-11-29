@@ -13,6 +13,7 @@ omit = *test*
        pygyro/splines/spline_eval_funcs.py
        pygyro/tools/*
        pygyro/utilities/*
+include = pygyro/*
 
 [xml]
 output = current_coverage.xml

@@ -10,15 +10,23 @@ testimony:
     - export I_MPI_SHM_LMT=shm
     - source ~/python_virtualenv/bin/activate
     - pip show numpy
+    - mkdir __test__
   script:
+    - pytest pygyro -m serial -k 'not long' --short
     - make
-    - pytest pygyro -m serial -k 'not long'
+    - coverage run -p --source=pygyro -m pytest pygyro -m serial
+    - coverage combine
+    - mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+    - coverage combine -a
+    - mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+    - coverage combine -a
+    - mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+    - coverage combine -a
+    - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+    - coverage combine -a
     - python checkCoverage.py
-    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 1"
-    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 4"
-    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 6"
-    - python mpi_tester.py pygyro -m parallel --mpirun="mpirun -n 20"
   after_script:
+    - rm -r __test__
     - make clean
     - deactivate
     - module unload impi
