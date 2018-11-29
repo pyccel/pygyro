@@ -2,7 +2,8 @@ from shlex  import split
 import subprocess
 import os
 
-bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k='not long' > cov_out.txt 2> cov_err.txt"
+# ~ bashCommand = "pytest pygyro --cov=pygyro --cov-report=term -k='not long' > cov_out.txt 2> cov_err.txt"
+bashCommand = "coverage report > cov_out.txt 2> cov_err.txt"
 try:
     process = subprocess.run(bashCommand, shell=True, check=True)
 except:
@@ -42,6 +43,5 @@ else:
     if (process.returncode==0):
         i = out.find("TOTAL")
         totline = out[i:]
-        totline = totline[:totline.find("\n")]
         pc=float(totline[totline.rfind(" "):totline.rfind("%")])
         assert(pc>=75)
