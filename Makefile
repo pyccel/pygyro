@@ -2,7 +2,7 @@
 # DEFAULT MAKE FLAGS
 #----------------------------------------------------------
 
-# Acceleration method? [none|numba|pyccel]
+# Acceleration method? [none|numba|pycc]
 ACC := numba
 
 # Use GNU or intel compilers? [gnu|intel]
@@ -58,14 +58,13 @@ endif
 ifeq ($(ACC), none)
 	TYPE := clean
 else
-	ifeq ($(ACC), pyccel)
-		TYPE := pyccel
+	ifeq ($(ACC), pycc)
+		TYPE := pycc
 	else
 		ifeq ($(ACC), numba)
 			TYPE := numba
 		else
 			TYPE := clean
-			echo "Option not recognised!"
 		endif
 	endif
 endif
@@ -105,13 +104,13 @@ pyccel_generation:
 	$(MAKE) -C pygyro $@
 
 ifeq ($(PYCC_GEN), 1)
-pyccel: pyccel_generation
+pycc: pyccel_generation
 	$(PYTHON) moduleGenerator.py
 else
-pyccel:
+pycc:
 endif
 	echo $(PYCC_GEN)
-	$(MAKE) -C pygyro $@
+	$(MAKE) -C pygyro pyccel
 
 numba:
 	echo $(PYTHON)
