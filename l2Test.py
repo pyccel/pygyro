@@ -1,6 +1,7 @@
 from mpi4py                 import MPI
 import time
 setup_time_start = time.clock()
+profilingOn = False
 
 from glob                   import glob
 
@@ -8,18 +9,18 @@ import numpy                as np
 import argparse
 import os
 import h5py
-#~ import cProfile, pstats, io
+if (profilingOn):
+    import cProfile, pstats, io
 
-from pygyro.model.layout                    import LayoutSwapper, getLayoutHandler
-from pygyro.model.grid                      import Grid
-from pygyro.initialisation.setups           import setupCylindricalGrid, setupFromFile
-from pygyro.advection.advection             import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
-from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralitySolver
-from pygyro.splines.splines                 import Spline2D
-from pygyro.splines.spline_interpolators    import SplineInterpolator2D
-from pygyro.utilities.savingTools           import setupSave
-from pygyro.diagnostics.norms               import l2, l1, nParticles
-from pygyro.diagnostics.energy              import KineticEnergy
+from pygyro.model.layout                        import LayoutSwapper, getLayoutHandler
+from pygyro.model.grid                          import Grid
+from pygyro.initialisation.setups               import setupCylindricalGrid, setupFromFile
+from pygyro.advection.advection                 import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
+from pygyro.poisson.poisson_solver              import DensityFinder, QuasiNeutralitySolver
+from pygyro.splines.splines                     import Spline2D
+from pygyro.splines.spline_interpolators        import SplineInterpolator2D
+from pygyro.utilities.savingTools               import setupSave
+from pygyro.diagnostics.diagnostic_collector    import DiagnosticCollector
 
 loop_start = 0
 loop_time = 0
@@ -199,37 +200,17 @@ parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid,
 
 my_print(rank,"par grad ready")
 
-# 0 - time
-# 1 - l2 (phi)
-# 2 - l2 (f)
-# 3 - l1 (f)
-# 4 - n particles
-# 5 - min
-# 6 - max
-# 7 - KE
-diagnostics = np.zeros([8,saveStep])
-l2PhiResult=np.zeros(saveStep)
-l2GridResult=np.zeros(saveStep)
-l1Result=np.zeros(saveStep)
-nPartResult=np.zeros(saveStep)
-min_val=np.zeros(saveStep)
-max_val=np.zeros(saveStep)
-KE_val=np.zeros(saveStep)
-
-l2_phi_class = l2(phi.eta_grid,phi.getLayout('v_parallel_2d'))
-l1class = l1(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
-l2_grid_class = l2(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
-npart = nParticles(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
-KEclass = KineticEnergy(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
+diagnostics = DiagnosticCollector(comm,saveStep,dt,distribFunc,phi)
 
 my_print(rank,"diagnostics ready")
 
 
 diagnostic_filename = "{0}/phiDat.txt".format(foldername)
 
-#Setup profiling tools
-#~ pr = cProfile.Profile()
-#~ pr.enable()
+if (profilingOn):
+    #Setup profiling tools
+    pr = cProfile.Profile()
+    pr.enable()
 
 my_print(rank,"ready for setup")
 
@@ -254,14 +235,7 @@ my_print(rank,"got phi")
 
 diagnostic_start=time.clock()
 # Calculate diagnostic quantities
-diagnostics[0,0]=t
-diagnostics[1,0]=l2_phi_class.l2NormSquared(phi)
-diagnostics[2,0]=l2_grid_class.l2NormSquared(distribFunc)
-diagnostics[3,0]=l1class.l1Norm(distribFunc)
-diagnostics[4,0]=npart.getN(distribFunc)
-diagnostics[5,0]=distribFunc.getMin()
-diagnostics[6,0]=distribFunc.getMax()
-diagnostics[7,0]=KEclass.getKE(distribFunc)
+diagnostics.collect(distribFunc,phi,t)
 
 diagnostic_time+=(time.clock()-diagnostic_start)
 
@@ -275,22 +249,10 @@ if (not loadable):
     my_print(rank,"phi printed")
     output_time+=(time.clock()-output_start)
 
-    comm.Reduce(diagnostics[1,:],l2PhiResult,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[2,:],l2GridResult,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[3,:],l1Result,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[4,:],nPartResult,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[5,:],min_val,op=MPI.MIN, root=0)
-    comm.Reduce(diagnostics[6,:],max_val,op=MPI.MAX, root=0)
-    comm.Reduce(diagnostics[7,:],KE_val,op=MPI.SUM, root=0)
+    diagnostics.reduce()
     if (rank == 0):
-        l2PhiResult = np.sqrt(l2PhiResult)
-        l2GridResult = np.sqrt(l2GridResult)
         diagnosticFile = open(diagnostic_filename,"a")
-        print("{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}".
-                format(t=diagnostics[0,0],l2P=l2PhiResult[0],l2G=l2GridResult[0],
-                        l1=l1Result[0], np = nPartResult[0],
-                        minim=min_val[0],maxim=max_val[0],ke=KE_val[0]),
-                file=diagnosticFile)
+        print(diagnostics.getLine(0),file=diagnosticFile)
         diagnosticFile.close()
     output_time+=(time.clock()-output_start)
 
@@ -356,14 +318,7 @@ while (ti<tN and timeForLoop):
     
     diagnostic_start=time.clock()
     # Calculate diagnostic quantities
-    diagnostics[0,ti%saveStep]=t
-    diagnostics[1,ti%saveStep]=l2_phi_class.l2NormSquared(phi)
-    diagnostics[2,ti%saveStep]=l2_grid_class.l2NormSquared(distribFunc)
-    diagnostics[3,ti%saveStep]=l1class.l1Norm(distribFunc)
-    diagnostics[4,ti%saveStep]=npart.getN(distribFunc)
-    diagnostics[5,ti%saveStep]=distribFunc.getMin()
-    diagnostics[6,ti%saveStep]=distribFunc.getMax()
-    diagnostics[7,ti%saveStep]=KEclass.getKE(distribFunc)
+    diagnostics.collect(distribFunc,phi,t)
     
     diagnostic_time+=(time.clock()-diagnostic_start)
     
@@ -373,23 +328,11 @@ while (ti<tN and timeForLoop):
         distribFunc.writeH5Dataset(foldername,t)
         phi.writeH5Dataset(foldername,t,"phi")
         
-        comm.Reduce(diagnostics[1,:],l2PhiResult,op=MPI.SUM, root=0)
-        comm.Reduce(diagnostics[2,:],l2GridResult,op=MPI.SUM, root=0)
-        comm.Reduce(diagnostics[3,:],l1Result,op=MPI.SUM, root=0)
-        comm.Reduce(diagnostics[4,:],nPartResult,op=MPI.SUM, root=0)
-        comm.Reduce(diagnostics[5,:],min_val,op=MPI.MIN, root=0)
-        comm.Reduce(diagnostics[6,:],max_val,op=MPI.MAX, root=0)
-        comm.Reduce(diagnostics[7,:],KE_val,op=MPI.SUM, root=0)
+        diagnostics.reduce()
         if (rank == 0):
-            l2PhiResult = np.sqrt(l2PhiResult)
-            l2GridResult = np.sqrt(l2GridResult)
             diagnosticFile = open(diagnostic_filename,"a")
             for i in range(startPrint,min(saveStep,ti+1)):
-                print("{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}".
-                        format(t=diagnostics[0,i],l2P=l2PhiResult[i],l2G=l2GridResult[i],
-                                l1=l1Result[i], np = nPartResult[i],
-                                minim=min_val[i],maxim=max_val[i],ke=KE_val[i]),
-                        file=diagnosticFile)
+                print(diagnostics.getLine(i),file=diagnosticFile)
             diagnosticFile.close()
         startPrint = 0
         output_time+=(time.clock()-output_start)
@@ -408,25 +351,13 @@ output_start=time.clock()
 
 if (ti%saveStep!=0):
 
-    comm.Reduce(diagnostics[1,:],l2PhiResult,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[2,:],l2GridResult,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[3,:],l1Result,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[4,:],nPartResult,op=MPI.SUM, root=0)
-    comm.Reduce(diagnostics[5,:],min_val,op=MPI.MIN, root=0)
-    comm.Reduce(diagnostics[6,:],max_val,op=MPI.MAX, root=0)
-    comm.Reduce(diagnostics[7,:],KE_val,op=MPI.SUM, root=0)
+    diagnostics.reduce()
     if (rank == 0):
-        l2PhiResult = np.sqrt(l2PhiResult)
-        l2GridResult = np.sqrt(l2GridResult)
         diagnosticFile = open(diagnostic_filename,"a")
         print(ti%saveStep+1)
         print(diagnostics)
         for i in range(ti%saveStep):
-            print("{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}".
-                        format(t=diagnostics[0,i],l2P=l2PhiResult[i],l2G=l2GridResult[i],
-                                l1=l1Result[i], np = nPartResult[i],
-                                minim=min_val[i],maxim=max_val[i],ke=KE_val[i]),
-                        file=diagnosticFile)
+            print(diagnostics.getLine(i),file=diagnosticFile)
         diagnosticFile.close()
 
 
@@ -435,11 +366,12 @@ if (ti%saveStep!=0):
     output_time+=(time.clock()-output_start)
 
 #End profiling and print results
-#~ pr.disable()
-#~ s = io.StringIO()
-#~ ps = pstats.Stats(pr, stream=s).sort_stats('time')
-#~ ps.print_stats()
-#~ print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
+if (profilingOn):
+    pr.disable()
+    s = io.StringIO()
+    ps = pstats.Stats(pr, stream=s).sort_stats('time')
+    ps.print_stats()
+    print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
 if (rank==0):
     if (not os.path.isdir("timing")):
