@@ -11,9 +11,9 @@ from ..model.layout         import getLayoutHandler
 from ..model.grid           import Grid
 from ..model.process_grid   import compute_2d_process_grid
 from .initialiser           import initialise_flux_surface, initialise_poloidal, initialise_v_parallel
-from .                      import constants
+from .constants             import get_constants
 
-def setupCylindricalGrid(npts: list, layout: str, **kwargs):
+def setupCylindricalGrid(constantFile: str, npts: list, layout: str, **kwargs):
     """
     Setup using radial topology can be initialised using the following arguments:
     
@@ -48,20 +48,33 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
+    constants = get_constants(constantFile)
+    
     rMin=kwargs.pop('rMin',constants.rMin)
+    constants.rMin=rMin
     rMax=kwargs.pop('rMax',constants.rMax)
+    constants.rMax=rMax
     constants.rp = 0.5*(rMin + rMax)
     zMin=kwargs.pop('zMin',constants.zMin)
+    constants.zMin=zMin
     zMax=kwargs.pop('zMax',constants.zMax)
+    constants.zMax=zMax
     vMax=kwargs.pop('vMax',constants.vMax)
+    constants.vMax=vMax
     vMin=kwargs.pop('vMin',-vMax)
+    constants.vMin=vMin
     m=kwargs.pop('m',constants.m)
+    constants.m=m
     n=kwargs.pop('n',constants.n)
+    constants.n=n
+    R0=kwargs.pop('R0',constants.R0)
+    constants.R0=R0
     rDegree=kwargs.pop('rDegree',3)
     qDegree=kwargs.pop('thetaDegree',3)
     zDegree=kwargs.pop('zDegree',3)
     vDegree=kwargs.pop('vDegree',3)
     eps=kwargs.pop('eps',constants.eps)
+    constants.eps=eps
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
@@ -109,14 +122,14 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
     
     if (layout=='flux_surface'):
-        initialise_flux_surface(grid,m,n,eps)
+        initialise_flux_surface(grid,constants)
     elif (layout=='v_parallel'):
-        initialise_v_parallel(grid,m,n,eps)
+        initialise_v_parallel(grid,constants)
     elif (layout=='poloidal'):
-        initialise_poloidal(grid,m,n,eps)
-    return grid
+        initialise_poloidal(grid,constants)
+    return grid, constants
 
-def setupFromFile(foldername, **kwargs):
+def setupFromFile(foldername, constantFile: str, **kwargs):
     """
     Setup using information from a previous simulation:
     
@@ -139,6 +152,9 @@ def setupFromFile(foldername, **kwargs):
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
+    
+    constants = get_constants(constantFile)
+    
     filename = "{0}/initParams.h5".format(foldername)
     save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
     group = save_file['constants']
@@ -246,13 +262,13 @@ def setupFromFile(foldername, **kwargs):
         grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
         if (layout=='flux_surface'):
-            initialise_flux_surface(grid,m,n,eps)
+            initialise_flux_surface(grid,constants)
         elif (layout=='v_parallel'):
-            initialise_v_parallel(grid,m,n,eps)
+            initialise_v_parallel(grid,constants)
         elif (layout=='poloidal'):
-            initialise_poloidal(grid,m,n,eps)
+            initialise_poloidal(grid,constants)
     
     for name,value in kwargs.items():
         warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
     
-    return grid
+    return grid, constants

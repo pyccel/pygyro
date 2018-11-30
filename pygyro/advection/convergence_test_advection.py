@@ -8,7 +8,7 @@ from ..initialisation.setups        import setupCylindricalGrid
 from ..initialisation.mod_initialiser_funcs     import fEq
 from .advection                     import *
 from ..                             import splines as spl
-from ..initialisation               import constants
+from ..initialisation.constants     import get_constants
 
 def gaussLike(x):
     return np.cos(pi*x*0.1)**4
@@ -25,6 +25,8 @@ def test_vParallelAdvection():
     
     l2 = np.ndarray(nconvpts)
     linf = np.ndarray(nconvpts)
+    
+    constants = get_constants('testSetups/iota0.json')
     
     for j in range(nconvpts):
         npts*=2
@@ -43,7 +45,7 @@ def test_vParallelAdvection():
         
         f = gaussLike(x)
         
-        vParAdv = VParallelAdvection([0,0,0,x], spline, 'null')
+        vParAdv = VParallelAdvection([0,0,0,x], spline, constants, 'null')
         
         for i in range(N):
             vParAdv.step(f,dt,c,r)
@@ -130,6 +132,8 @@ def test_poloidalAdvection_constantAdv(initConditions):
     l2 = np.ndarray(nconvpts)
     linf = np.ndarray(nconvpts)
     
+    constants = get_constants('testSetups/iota0.json')
+    
     for i in range(nconvpts):
         print(npts)
         eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
@@ -153,7 +157,7 @@ def test_poloidalAdvection_constantAdv(initConditions):
         eta_vals[0]=eta_grids[0]
         eta_vals[1]=eta_grids[1]
         
-        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0)
+        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],constants,True)
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
@@ -224,9 +228,13 @@ def test_poloidalAdvection_constantAdv_dt():
     l2 = np.ndarray(nconvpts)
     linf = np.ndarray(nconvpts)
     
+    constants = get_constants('testSetups/iota0.json')
+    
     npts = [200,200]
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
+    
+    initConds = np.vectorize(initConditions1, otypes=[np.float])
     
     for i in range(nconvpts):
         dt/=2
@@ -251,7 +259,7 @@ def test_poloidalAdvection_constantAdv_dt():
         eta_vals[0]=eta_grids[0]
         eta_vals[1]=eta_grids[1]
         
-        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],lambda r,v: 0)
+        polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],constants,True)
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
@@ -334,6 +342,8 @@ def test_fluxAdvection():
     linf = np.ndarray(nconvpts)
     dts = np.ndarray(nconvpts)
     
+    constants = get_constants('testSetups/iota0.json')
+    
     for i in range(nconvpts):
         dts[i]=dt
         N = int(1/dt)
@@ -367,7 +377,7 @@ def test_fluxAdvection():
         
         layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
         
-        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0, zDegree=3)
+        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants, zDegree=3)
         
         f_vals[:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
         finalPts=[eta_vals[1]-c*N*dt*btheta,eta_vals[2]-c*N*dt*bz]
@@ -427,6 +437,8 @@ def test_fluxAdvectionAligned():
     thetaStart=32
     npts = [thetaStart,zStart]
     
+    constants = get_constants('testSetups/iota8.json')
+    
     nconvpts = 5
     
     l2 = np.ndarray(nconvpts)
@@ -463,7 +475,7 @@ def test_fluxAdvectionAligned():
         
         layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
         
-        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota8, zDegree=3)
+        fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants, zDegree=3)
         
         m, n = (5, 4)
         theta = eta_grids[0]
@@ -529,9 +541,6 @@ def dPhi(r,theta,z,btheta,bz):
     #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
     return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
 
-def iota(r = 6.0):
-    return np.full_like(r,0.8,dtype=float)
-
 @pytest.mark.serial
 def test_Phi_deriv_dtheta():
     nconvpts = 7
@@ -539,6 +548,8 @@ def test_Phi_deriv_dtheta():
     
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
+    
+    constants = get_constants('testSetups/iota8.json')
     
     for i in range(nconvpts):
         breaks_theta = np.linspace(0,2*pi,npts[1]+1)
@@ -549,13 +560,13 @@ def test_Phi_deriv_dtheta():
         eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][1]-eta_grid[2][0]
-        dtheta = iota()*dz/constants.R0
+        dtheta = constants.iota()*dz/constants.R0
         
         r = eta_grid[0]
         
-        bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        bz = 1 / np.sqrt(1+(r * constants.iota(r)/constants.R0)**2)
         #bz = dz/np.sqrt(dz**2+dtheta**2)
-        btheta = r * iota(r)/constants.R0 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        btheta = r * constants.iota(r)/constants.R0 / np.sqrt(1+(r * constants.iota(r)/constants.R0)**2)
         # ~ btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
         
         phiVals = np.empty([npts[2],npts[1]])
@@ -563,7 +574,7 @@ def test_Phi_deriv_dtheta():
         
         theLayout = Layout('full',[1,1,1],[0,2,1],eta_grid,[0,0,0])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,iota = iota)
+        pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,constants)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
@@ -611,6 +622,8 @@ def test_Phi_deriv_dz():
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
     
+    constants = get_constants('testSetups/iota8.json')
+    
     for i in range(nconvpts):
         breaks_theta = np.linspace(0,2*pi,npts[1]+1)
         spline_theta = spl.BSplines(spl.make_knots(breaks_theta,3,True),3,True)
@@ -620,12 +633,12 @@ def test_Phi_deriv_dz():
         eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][1]-eta_grid[2][0]
-        dtheta = iota()*dz/constants.R0
+        dtheta = constants.iota()*dz/constants.R0
         
         r = eta_grid[0]
         
-        bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
-        btheta = r * iota(r)/constants.R0 / np.sqrt(1+(r * iota(r)/constants.R0)**2)
+        bz = 1 / np.sqrt(1+(r * constants.iota(r)/constants.R0)**2)
+        btheta = r * constants.iota(r)/constants.R0 / np.sqrt(1+(r * constants.iota(r)/constants.R0)**2)
         #bz = dz/np.sqrt(dz**2+dtheta**2)
         #btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
         
@@ -634,7 +647,7 @@ def test_Phi_deriv_dz():
         
         theLayout = Layout('full',[1,1,1],[0,2,1],eta_grid,[0,0,0])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,iota,order = 3)
+        pGrad = ParallelGradient(spline_theta,eta_grid,theLayout,constants,order = 3)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)

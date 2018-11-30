@@ -4,7 +4,7 @@ from scipy.integrate        import trapz
 
 from .advection                     import *
 from ..                             import splines as spl
-from ..initialisation               import constants
+from ..initialisation.constants     import get_constants
 from ..model.layout                 import Layout
 
 NSteps = 1000
@@ -38,7 +38,9 @@ def test_fluxSurfaceAdvection():
     
     layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
+    constants = get_constants('testSetups/iota0.json')
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/10)
     
@@ -53,6 +55,8 @@ def gauss(x):
 def test_vParallelAdvection():
     npts = NGrid
     f = np.empty(npts)
+    
+    constants = get_constants('testSetups/iota0.json')
     
     dt=0.1
     c=2.0
@@ -73,7 +77,7 @@ def test_vParallelAdvection():
     
     f = gauss(x)+fEdge
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, nulEdge=True)
+    vParAdv = VParallelAdvection([0,0,0,x], spline, constants, edge='null')
     
     vTime = timeit.Timer(lambda: vParAdv.step(f,dt,c,r)).timeit(NSteps)
     print(vTime/NSteps," per step, ",vTime," total")
@@ -124,7 +128,9 @@ def test_explicitPoloidalAdvection():
     eta_vals[1]=eta_grids[1]
     eta_vals[3][0]=v
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], nulEdge=True)
+    constants = get_constants('testSetups/iota0.json')
+    
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, nulEdge=True)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])

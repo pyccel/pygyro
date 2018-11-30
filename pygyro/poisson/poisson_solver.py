@@ -8,7 +8,6 @@ from numpy.polynomial.legendre      import leggauss
 import warnings
 
 from ..model.grid                   import Grid
-from ..initialisation               import constants
 from ..initialisation               import mod_initialiser_funcs    as initialiser
 from ..initialisation               import initialiser_func as MOD_IF
 from ..splines.splines              import BSplines, Spline1D
@@ -45,7 +44,7 @@ class DensityFinder:
         A spline along the v parallel direction
 
     """
-    def __init__ ( self, degree: int, spline: BSplines, eta_grid: list ):
+    def __init__ ( self, degree: int, spline: BSplines, eta_grid: list, constants ):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
@@ -560,13 +559,15 @@ class QuasiNeutralitySolver(DiffEqSolver):
     
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
-                    adiabaticElectrons: bool = True,
-                    n0 = lambda r: initialiser.n0(r,constants.CN0,constants.kN0,
-                                                constants.deltaRN0,constants.rp),
-                    B: float = 1.0,
-                    Te = lambda r: initialiser.Te(r,constants.CTe,constants.kTe,
-                                                constants.deltaRTe,constants.rp),
-                    **kwargs):
+                    constants, adiabaticElectrons: bool = True,
+                    n0 = None, B: float = 1.0,
+                    Te = None, **kwargs):
+        if (n0==None):
+            n0 = lambda r: initialiser.n0(r,constants.CN0,constants.kN0,
+                                        constants.deltaRN0,constants.rp)
+        if (Te==None):
+            Te = lambda r: initialiser.Te(r,constants.CTe,constants.kTe,
+                                        constants.deltaRTe,constants.rp)
         r = eta_grid[0]
         
         if ('n0derivNormalised' in kwargs):

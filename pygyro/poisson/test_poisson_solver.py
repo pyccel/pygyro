@@ -8,8 +8,8 @@ from ..model.process_grid                   import compute_2d_process_grid
 from ..model.layout                         import LayoutSwapper, getLayoutHandler
 from ..model.grid                           import Grid
 from ..initialisation.setups                import setupCylindricalGrid
+from ..initialisation.constants             import get_constants
 from ..initialisation.mod_initialiser_funcs import Te, fEq
-from ..initialisation                       import constants
 from ..                                     import splines as spl
 from .poisson_solver                        import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
 from ..splines.splines                      import BSplines, Spline1D
@@ -33,7 +33,8 @@ def test_DensityFinder_poly_Rho(param_df_poly):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -48,7 +49,7 @@ def test_DensityFinder_poly_Rho(param_df_poly):
                 for l,v in grid.getCoords(3):
                     vec[l] = coeffs[0]*v**3 + coeffs[1]*v**2 + coeffs[2]*v + coeffs[3]
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     df.getRho(grid,rho)
     
@@ -75,7 +76,8 @@ def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -92,7 +94,7 @@ def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
                                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi) \
                             + coeffs[0]*v**3 + coeffs[1]*v**2 + coeffs[2]*v + coeffs[3]
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     df.getPerturbedRho(grid,rho)
     
@@ -119,7 +121,8 @@ def test_DensityFinder_cos_Rho(npts_v,tol):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -134,7 +137,7 @@ def test_DensityFinder_cos_Rho(npts_v,tol):
                 for l,v in grid.getCoords(3):
                     vec[l] = np.cos(v)
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     df.getRho(grid,rho)
     
@@ -161,7 +164,8 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v,tol):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -178,7 +182,7 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v,tol):
                                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi) \
                             + np.cos(v)
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     df.getPerturbedRho(grid,rho)
     
@@ -425,7 +429,8 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
                       'v_parallel': [0,2,1]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
     
-    grid = setupCylindricalGrid(npts=[*npts,4],layout='v_parallel')
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=[*npts,4],layout='v_parallel')
     
     ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1])
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -442,7 +447,7 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
     
     r = eta_grid[0]
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     ps.getModes(rho)
     
@@ -822,6 +827,9 @@ def test_phi(param_fft):
 @pytest.mark.serial
 def test_quasiNeutrality():
     npts = [256,32,4]
+    
+    constants = get_constants('testSetups/iota0.json')
+    
     domain = [[constants.rMin,constants.rMax],[0,2*pi],[0,1]]
     degree = [3,3,3]
     period = [False,True,False]
@@ -905,18 +913,19 @@ def test_QNSolver():
     
     nproc = nprocs[0]
     
-    grid = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel')
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=nptsGrid,layout='v_parallel')
     
     remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], grid.eta_grid[:3], 'v_parallel' )
     
     rho = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     phi = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'mode_solve',comm,dtype=np.complex128)
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     df.getPerturbedRho(grid,rho)
     
-    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0),chi=0)
+    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0),constants,chi=0)
     
     qnSolver.getModes(rho)
     
@@ -950,14 +959,15 @@ def test_Equilibrium():
     
     nproc = nprocs[0]
     
-    grid = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel',eps=0.0)
+    grid,constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
+                                npts=nptsGrid,layout='v_parallel',eps=0.0)
     
     remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], grid.eta_grid[:3], 'v_parallel' )
     
     rho = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'v_parallel',comm,dtype=np.complex128)
     phi = Grid(grid.eta_grid[:3],grid.getSpline(slice(0,3)),remapper,'mode_solve',comm,dtype=np.complex128)
     
-    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid)
+    df = DensityFinder(3,grid.getSpline(3),grid.eta_grid,constants)
     
     df.getPerturbedRho(grid,rho)
     
@@ -965,7 +975,7 @@ def test_Equilibrium():
     
     assert(np.max(rho._f)<1e-8)
     
-    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0),chi=0)
+    qnSolver = QuasiNeutralitySolver(grid.eta_grid,6,rho.getSpline(0),constants,chi=0)
     
     qnSolver.getModes(rho)
     

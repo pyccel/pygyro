@@ -11,9 +11,8 @@ from matplotlib             import rc
 from ..model.process_grid           import compute_2d_process_grid
 from ..model.layout                 import LayoutSwapper, getLayoutHandler
 from ..model.grid                   import Grid
-from ..initialisation.setups        import setupCylindricalGrid
-from ..initialisation               import initialiser
-from ..initialisation               import constants
+from ..initialisation               import mod_initialiser_funcs as initialiser
+from ..initialisation.constants     import get_constants
 from ..                             import splines as spl
 from .poisson_solver                import DiffEqSolver, DensityFinder
 from ..splines.splines              import BSplines, Spline1D
@@ -45,7 +44,8 @@ def test_BasicPoissonEquation_pointConverge(deg):
         layout_poisson = {'mode_solve': [1,2,0]}
         remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
         
-        ps = DiffEqSolver(2*deg+1,bsplines[0],eta_grid[1].size,drFactor=lambda r:0,
+        ps = DiffEqSolver(2*deg+1,bsplines[0],eta_grid[0].size,
+                            eta_grid[1].size,drFactor=lambda r:0,
                             rFactor=lambda r:0,ddThetaFactor=lambda r:0)
         
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -121,6 +121,7 @@ def test_BasicPoissonEquation_degreeConverge():
     degree = [deg,3,3]
     period = [False,True,False]
     comm = MPI.COMM_WORLD
+    a=2*pi/(domain[0][1]-domain[0][0])
     
     l2 = np.empty(nconvpts)
     lInf = np.empty(nconvpts)
@@ -136,7 +137,8 @@ def test_BasicPoissonEquation_degreeConverge():
         layout_poisson = {'mode_solve': [1,2,0]}
         remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
         
-        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[1].size,drFactor=lambda r:0,
+        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[0].size,
+                            eta_grid[1].size,drFactor=lambda r:0,
                             rFactor=lambda r:0,ddThetaFactor=lambda r:0)
         
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -227,7 +229,8 @@ def test_grad_pointConverge(deg):
         
         a=2*pi/(domain[0][1]-domain[0][0])
         
-        ps = DiffEqSolver(2*deg+1,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,
+        ps = DiffEqSolver(2*deg+1,bsplines[0],eta_grid[0].size,
+                        eta_grid[1].size,ddrFactor=lambda r:0,
                         drFactor=lambda r:1,rFactor=lambda r:1,ddThetaFactor=lambda r:0)
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -318,7 +321,8 @@ def test_grad_degreeConverge():
         
         a=2*pi/(domain[0][1]-domain[0][0])
         
-        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,
+        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[0].size,
+                eta_grid[1].size,ddrFactor=lambda r:0,
                 drFactor=lambda r:1,rFactor=lambda r:1,ddThetaFactor=lambda r:0)
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -415,7 +419,8 @@ def test_grad_r_pointConverge(deg):
         a=2*pi/(domain[0][1]-domain[0][0])
         r = eta_grid[0]
         
-        ps = DiffEqSolver(2*deg+1,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,
+        ps = DiffEqSolver(2*deg+1,bsplines[0],eta_grid[0].size,
+                eta_grid[1].size,ddrFactor=lambda r:0,
                 drFactor=lambda r:1/r,rFactor=lambda r:1,ddThetaFactor=lambda r:0)
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -505,7 +510,8 @@ def test_grad_r_degreeConverge():
         a=2*pi/(domain[0][1]-domain[0][0])
         r = eta_grid[0]
         
-        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,
+        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[0].size,
+                eta_grid[1].size,ddrFactor=lambda r:0,
                 drFactor=lambda r:1/r,rFactor=lambda r:1,ddThetaFactor=lambda r:0)
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -599,7 +605,8 @@ def test_ddTheta(deg):
         
         mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
         
-        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[1].size,ddrFactor=lambda r:0,
+        ps = DiffEqSolver(2*degree[0]+1,bsplines[0],eta_grid[0].size,
+                            eta_grid[1].size,ddrFactor=lambda r:0,
                             drFactor=lambda r:0,rFactor=lambda r:1,
                             ddThetaFactor=lambda r:-1,lNeumannIdx=mVals,uNeumannIdx=mVals)
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -660,6 +667,8 @@ def test_ddTheta(deg):
 #def test_QuasiNeutralityEquation_pointConverge(deg):
 def test_QuasiNeutralityEquation_pointConverge():
     font = {'size'   : 16}
+    
+    constants = get_constants('testSetups/iota0.json')
 
     rc('font', **font)
     rc('text', usetex=True)
@@ -689,10 +698,12 @@ def test_QuasiNeutralityEquation_pointConverge():
             
             mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
             
-            ps = DiffEqSolver(100,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,
+            ps = DiffEqSolver(100,bsplines[0],eta_grid[0].size,
+                    eta_grid[1].size,lNeumannIdx=mVals,
                     ddrFactor = lambda r:-1,
-                    drFactor = lambda r:-( 1/r + initialiser.n0derivNormalised(r) ),
-                    rFactor = lambda r:1/initialiser.Te(r),ddThetaFactor = lambda r:-1/r**2)
+                    drFactor = lambda r:-( 1/r + initialiser.n0derivNormalised(r,constants.kN0,constants.rp,constants.deltaRN0)),
+                    rFactor = lambda r:1/initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp),
+                    ddThetaFactor = lambda r:-1/r**2)
             phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
             phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
             rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -707,7 +718,8 @@ def test_QuasiNeutralityEquation_pointConverge():
                            + 4*np.cos(rArg)**4                *a*a*np.sin(q)**3 \
                            + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                            4 * np.cos(rArg)**3*np.sin(rArg)*a*np.sin(q)**3 \
-                           + np.cos(rArg)**4*np.sin(q)**3 / initialiser.Te(r) \
+                           + np.cos(rArg)**4*np.sin(q)**3 \
+                           / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp) \
                            - 6 * np.cos(rArg)**4*np.sin(q)*np.cos(q)**2/r**2 \
                            + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
                 plane = phi_exact.get2DSlice([i])
@@ -716,7 +728,7 @@ def test_QuasiNeutralityEquation_pointConverge():
                            #~ + 4*np.cos(rArg)**4                *a*a \
                            #~ + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                            #~ 4 * np.cos(rArg)**3*np.sin(rArg)*a \
-                           #~ + np.cos(rArg)**4 / initialiser.Te(r)
+                           #~ + np.cos(rArg)**4 / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp)
                 #~ plane = phi_exact.get2DSlice([i])
                 #~ plane[:] = np.cos(rArg)**4
             
@@ -825,6 +837,8 @@ def test_QuasiNeutralityEquation_degreeConverge():
     # splev only works for splines of degree <=5
     nconvpts = 3
     
+    constants = get_constants('testSetups/iota0.json')
+    
     npts = [512,8,4]
     domain = [[1,15],[0,2*pi],[0,1]]
     degree = [deg,3,3]
@@ -848,10 +862,12 @@ def test_QuasiNeutralityEquation_degreeConverge():
         
         mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
         
-        ps = DiffEqSolver(100,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,
+        ps = DiffEqSolver(100,bsplines[0],eta_grid[0].size,
+                eta_grid[1].size,lNeumannIdx=mVals,
                 ddrFactor = lambda r:-1,
-                drFactor = lambda r:-( 1/r + initialiser.n0derivNormalised(r) ),
-                rFactor = lambda r:1/initialiser.Te(r),ddThetaFactor = lambda r:-1/r**2)
+                drFactor = lambda r:-( 1/r + initialiser.n0derivNormalised(r,constants.kN0,constants.rp,constants.deltaRN0) ),
+                rFactor = lambda r:1/initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp),
+                ddThetaFactor = lambda r:-1/r**2)
         phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
         rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -866,7 +882,8 @@ def test_QuasiNeutralityEquation_degreeConverge():
                        + 4*np.cos(rArg)**4                *a*a*np.sin(q)**3 \
                        + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                        4 * np.cos(rArg)**3*np.sin(rArg)*a*np.sin(q)**3 \
-                       + np.cos(rArg)**4*np.sin(q)**3 / initialiser.Te(r) \
+                       + np.cos(rArg)**4*np.sin(q)**3 \
+                       / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp) \
                        - 6 * np.cos(rArg)**4*np.sin(q)*np.cos(q)**2/r**2 \
                        + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
             plane = phi_exact.get2DSlice([i])

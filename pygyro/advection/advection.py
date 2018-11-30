@@ -9,7 +9,6 @@ from ..splines.splines              import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines                      import spline_eval_funcs as SEF
 from ..initialisation.mod_initialiser_funcs   import fEq
-from ..initialisation               import constants
 from ..model.layout                 import Layout
 from ..model.grid                   import Grid
 from .                              import accelerated_advection_steps as AAS
@@ -23,8 +22,8 @@ else:
 if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
     SEF = SEF.mod_pygyro_splines_spline_eval_funcs
 
-def fieldline(theta,z_diff,iota,r):
-    return np.mod(theta+iota(r)*z_diff/constants.R0,2*pi)
+def fieldline(theta,z_diff,iota,r,R0):
+    return np.mod(theta+iota(r)*z_diff/R0,2*pi)
 
 class ParallelGradient:
     """
@@ -39,16 +38,15 @@ class ParallelGradient:
     eta_grid : list of array_like
         The coordinates of the grid points in each dimension
 
-    iota : function handle - optional
-        Function returning the value of iota at a given radius r.
-        Default is constants.iota
+    constants : Constant class
+        Class containing all the constants
     
     order : int - optional
         The order of the finite differences scheme that is used
         Default is 6
 
     """
-    def __init__( self, spline: BSplines, eta_grid: list, layout: Layout, iota = constants.iota, order: int = 6 ):
+    def __init__( self, spline: BSplines, eta_grid: list, layout: Layout, constants, order: int = 6 ):
         # Save z step
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         # Save size in z direction
@@ -70,7 +68,7 @@ class ParallelGradient:
                      layout.ends  [layout.inv_dims_order[0]]    ]
         
         # Determine bz
-        self._bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)[:,None]**2)
+        self._bz = 1 / np.sqrt(1+(r * constants.iota(r)/constants.R0)[:,None]**2)
         
         # Save the necessary spline and interpolator
         self._interpolator = SplineInterpolator1D(spline)
@@ -80,7 +78,7 @@ class ParallelGradient:
         # They can therefore be calculated in advance
         self._thetaVals = np.empty([eta_grid[0].size, self._nz, order+1, self._nq])
         for i,r in enumerate(eta_grid[0]):
-            self._getThetaVals(r,self._thetaVals[i],eta_grid,iota)
+            self._getThetaVals(r,self._thetaVals[i],eta_grid,constants.iota,constants.R0)
     
     def getCoeffsFirstDeriv( self, n: int):
         b=np.zeros(n)
@@ -103,14 +101,14 @@ class ParallelGradient:
         # Solve the linear system to find the coefficients
         self._coeffs = solve(A,b)
     
-    def _getThetaVals( self, r: float, thetaVals: np.ndarray, eta_grid: list, iota ):
+    def _getThetaVals( self, r: float, thetaVals: np.ndarray, eta_grid: list, iota, R0 ):
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         n = eta_grid[2].size
         
         for k,z in enumerate(eta_grid[2]):
             for i,l in enumerate(self._shifts):
-                thetaVals[(k+l)%n,i,:]=fieldline(eta_grid[1],self._dz*l,iota,r)
+                thetaVals[(k+l)%n,i,:]=fieldline(eta_grid[1],self._dz*l,iota,r,R0)
     
     def parallel_gradient( self, phi_r: np.ndarray, i : int, der: np.ndarray ):
         """
@@ -184,16 +182,15 @@ class FluxSurfaceAdvection:
     dt: float
         Time-step
 
-    iota: function handle - optional
-        Function returning the value of iota at a given radius r.
-        Default is constants.iota
+    constants : Constant class
+        Class containing all the constants
     
     zDegree: int - optional
         Order of the lagrange interpolation
 
     """
     def __init__( self, eta_grid: list, splines: list, layout: Layout,
-                  dt: float, iota = constants.iota, zDegree: int = 5 ):
+                  dt: float, constants, zDegree: int = 5 ):
         # Save all pertinent information
         self._zLagrangePts = zDegree+1
         self._points = eta_grid[1:3]
@@ -201,10 +198,10 @@ class FluxSurfaceAdvection:
         self._interpolator = SplineInterpolator1D(splines[0])
         self._thetaSpline = Spline1D(splines[0])
         
-        self._getLagrangePts(eta_grid,layout,dt,iota)
+        self._getLagrangePts(eta_grid,layout,dt,constants.iota,constants.R0)
         self._LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
     
-    def _getLagrangePts( self, eta_grid: list, layout: Layout, dt: float, iota ):
+    def _getLagrangePts( self, eta_grid: list, layout: Layout, dt: float, iota, R0 ):
         # Get z step
         dz = eta_grid[2][2]-eta_grid[2][1]
         
@@ -212,9 +209,9 @@ class FluxSurfaceAdvection:
                      layout.ends  [layout.inv_dims_order[0]]    ]
         
         # Get theta step
-        dtheta = (dz * iota(r) / constants.R0)[:,None,None]
+        dtheta = (dz * iota(r) / R0)[:,None,None]
         
-        bz = 1 / np.sqrt(1+(r * iota(r)/constants.R0)[:,None,None]**2)
+        bz = 1 / np.sqrt(1+(r * iota(r)/R0)[:,None,None]**2)
         
         nR = len(dtheta)
         nV = layout.shape[layout.inv_dims_order[3]]
@@ -317,17 +314,23 @@ class VParallelAdvection:
 
     splines: BSplines
         The spline approximations along v
+    
+    constants : Constant class
+        Class containing all the constants
 
-    edgeFunc: function handle - optional
-        Function returning the value at the boundary as a function of r and v
-        Default is fEquilibrium
+    edge: str handle - optional
+        String defining the boundary conditions. Options are:
+        fEq - equilibrium value at boundary
+        'null' - 0 at boundary
+        'periodic' - periodic boundary conditions
 
     """
-    def __init__( self, eta_vals: list, splines: BSplines, edge : str = 'fEq' ):
+    def __init__( self, eta_vals: list, splines: BSplines, constants, edge : str = 'fEq' ):
         self._points = eta_vals[3]
         self._nPoints = (self._points.size,)
         self._interpolator = SplineInterpolator1D(splines)
         self._spline = Spline1D(splines)
+        self._constants = constants
         
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         if (edge=='fEq'):
@@ -373,10 +376,10 @@ class VParallelAdvection:
         AAS.v_parallel_advection_eval_step(f,self._points-c*dt,r,self._points[0],
                                         self._points[-1],self._spline.basis.knots,
                                         self._spline.basis.degree,self._spline.coeffs,
-                                        constants.CN0,constants.kN0,
-                                        constants.deltaRN0,constants.rp,
-                                        constants.CTi,constants.kTi,
-                                        constants.deltaRTi,self._edgeType)
+                                        self._constants.CN0,self._constants.kN0,
+                                        self._constants.deltaRN0,self._constants.rp,
+                                        self._constants.CTi,self._constants.kTi,
+                                        self._constants.deltaRTi,self._edgeType)
         #~ f[:]=self._evalFunc(self._points-c*dt, r)
     
     def evaluate( self, v, r ):
@@ -411,6 +414,9 @@ class PoloidalAdvection:
     splines: list of BSplines
         The spline approximations along theta and r
     
+    constants : Constant class
+        Class containing all the constants
+    
     edgeFunc: function handle - optional
         Function returning the value at the boundary as a function of r and v
         Default is fEquilibrium
@@ -424,13 +430,14 @@ class PoloidalAdvection:
         The tolerance used for the implicit trapezoidal rule
 
     """
-    def __init__( self, eta_vals: list, splines: list, nulEdge = False,
+    def __init__( self, eta_vals: list, splines: list, constants, nulEdge = False,
                     explicitTrap: bool =  True, tol: float = 1e-10 ):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size,self._points[1].size)
         self._interpolator = SplineInterpolator2D(splines[0],splines[1])
         self._spline = Spline2D(splines[0],splines[1])
+        self._constants = constants
         
         self._explicit = explicitTrap
         self._TOL = tol
@@ -494,11 +501,12 @@ class PoloidalAdvection:
                             phiBases[1].knots, modFunc(phi.coeffs),
                             phiBases[0].degree, phiBases[1].degree,
                             polBases[0].knots, polBases[1].knots,
-                            modFunc(self._spline.coeffs),
-                            polBases[0].degree, polBases[1].degree,constants.CN0,
-                            constants.kN0,constants.deltaRN0,constants.rp,
-                            constants.CTi,constants.kTi,constants.deltaRTi,
-                            constants.B0,self._nulEdge)
+                            modFunc(self._spline.coeffs), polBases[0].degree,
+                            polBases[1].degree, self._constants.CN0,
+                            self._constants.kN0, self._constants.deltaRN0,
+                            self._constants.rp, self._constants.CTi,
+                            self._constants.kTi, self._constants.deltaRTi,
+                            self._constants.B0, self._nulEdge)
         else:
             AAS.poloidal_advection_step_impl( modFunc(f), dt, v, self._points[1],
                             self._points[0], self._nPoints, modFunc(self._drPhi_0),
@@ -509,76 +517,12 @@ class PoloidalAdvection:
                             phiBases[1].knots, modFunc(phi.coeffs),
                             phiBases[0].degree, phiBases[1].degree,
                             polBases[0].knots, polBases[1].knots,
-                            modFunc(self._spline.coeffs),
-                            polBases[0].degree, polBases[1].degree,constants.CN0,
-                            constants.kN0,constants.deltaRN0,constants.rp,
-                            constants.CTi,constants.kTi,constants.deltaRTi,
-                            constants.B0,self._TOL,self._nulEdge)
-        
-        """
-        multFactor = dt/constants.B0
-        
-        drPhi_0 = phi.eval(*self._points,0,1)/self._points[1]
-        dthetaPhi_0 = phi.eval(*self._points,1,0)/self._points[1]
-        
-        # Step one of Heun method
-        # x' = x^n + f(x^n)
-        endPts_k1 = ( self._shapedQ   -     drPhi_0*multFactor,
-                     self._points[1] + dthetaPhi_0*multFactor )
-        
-        drPhi_k = np.empty_like(drPhi_0)
-        dthetaPhi_k = np.empty_like(dthetaPhi_0)
-        
-        multFactor*=0.5
-        
-        while (True):
-            
-            for i in range(self._nPoints[0]):
-                for j in range(self._nPoints[1]):
-                    # Handle theta boundary conditions
-                    while (endPts_k1[0][i,j]<0):
-                        endPts_k1[0][i,j]+=2*pi
-                    while (endPts_k1[0][i,j]>2*pi):
-                        endPts_k1[0][i,j]-=2*pi
-                    
-                    if (not (endPts_k1[1][i,j]<self._points[1][0] or 
-                             endPts_k1[1][i,j]>self._points[1][-1])):
-                        # Add the new value of phi to the derivatives
-                        # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-                        #                               ^^^^^^^^^^^^^^^
-                        drPhi_k[i,j]     = phi.eval(endPts_k1[0][i,j],endPts_k1[1][i,j],0,1)/endPts_k1[1][i,j]
-                        dthetaPhi_k[i,j] = phi.eval(endPts_k1[0][i,j],endPts_k1[1][i,j],1,0)/endPts_k1[1][i,j]
-                    else:
-                        drPhi_k[i,j]     = 0.0
-                        dthetaPhi_k[i,j] = 0.0
-            
-            if (self._explicit):
-                # Step two of Heun method
-                # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-                endPts_k2 = ( np.mod(self._shapedQ   - (drPhi_0     + drPhi_k)*multFactor,2*pi),
-                              self._points[1] + (dthetaPhi_0 + dthetaPhi_k)*multFactor )
-                break
-            else:
-                # Step two of Heun method
-                # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-
-                # Clipping is one method of avoiding infinite loops due to boundary conditions
-                # Using the splines to extrapolate is not sufficient
-                endPts_k2 = ( np.mod(self._shapedQ   - (drPhi_0     + drPhi_k)*multFactor,2*pi),
-                              np.clip(self._points[1] + (dthetaPhi_0 + dthetaPhi_k)*multFactor,
-                                      self._points[1][0], self._points[1][-1]) )
-                
-                norm = max(np.linalg.norm((endPts_k2[0]-endPts_k1[0]).flatten(),np.inf),
-                           np.linalg.norm((endPts_k2[1]-endPts_k1[1]).flatten(),np.inf))
-                if (norm<self._TOL):
-                    break
-                endPts_k1=endPts_k2
-        
-        # Find value at the determined point
-        for i,theta in enumerate(self._points[0]):
-            for j,r in enumerate(self._points[1]):
-                f[i,j]=self.evalFunc(endPts_k2[0][i,j],endPts_k2[1][i,j],v)
-        """
+                            modFunc(self._spline.coeffs), polBases[0].degree,
+                            polBases[1].degree, self._constants.CN0,
+                            self._constants.kN0, self._constants.deltaRN0,
+                            self._constants.rp, self._constants.CTi,
+                            self._constants.kTi, self._constants.deltaRTi,
+                            self._constants.B0, self._TOL,self._nulEdge)
     
     def exact_step( self, f, endPts, v ):
         assert(f.shape==self._nPoints)

@@ -6,16 +6,10 @@ from ..initialisation.setups                    import setupCylindricalGrid
 from ..initialisation.mod_initialiser_funcs     import fEq
 from .advection                                 import *
 from ..                                         import splines as spl
-from ..initialisation                           import constants
+from ..initialisation.constants                 import get_constants
 
 def gauss(x):
     return np.exp(-x**2/4)
-
-def iota0(r):
-    return np.zeros_like(r)
-
-def iota8(r):
-    return np.ones_like(r)*0.8
 
 
 @pytest.mark.serial
@@ -44,7 +38,9 @@ def test_fluxSurfaceAdvection(fact,dt):
     
     layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
+    constants = get_constants('testSetups/iota0.json')
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
     f_end = np.sin((eta_vals[2]-c*dt*N)*pi/fact)
@@ -58,6 +54,9 @@ def test_fluxSurfaceAdvection(fact,dt):
 @pytest.mark.parametrize( "nptZ,dt,err", [(32,1.0,1.5e-2),(64,0.5,3e-4),(128,0.25,1e-5)] )
 def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
     npts = [nptZ,nptZ]
+    
+    constants = get_constants('testSetups/iota8.json')
+    
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]
     
@@ -80,7 +79,7 @@ def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
     
     layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota8)
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
     
     m, n = (5,-4)
     theta = eta_grids[0]
@@ -101,6 +100,8 @@ def test_vParallelAdvection(function,N):
     npts = 50
     f = np.empty(npts)
     
+    constants = get_constants('testSetups/iota0.json')
+    
     dt=0.1
     c=2.0
     
@@ -120,7 +121,7 @@ def test_vParallelAdvection(function,N):
     
     f = function(x)+fEdge
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, 'null')
+    vParAdv = VParallelAdvection([0,0,0,x], spline, constants, 'null')
     
     for i in range(N):
         vParAdv.step(f,dt,c,r)
@@ -155,7 +156,9 @@ def test_vParallelAdvectionPeriodic(N):
     
     f = gauss(x)
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, 'periodic')
+    constants = get_constants('testSetups/iota0.json')
+    
+    vParAdv = VParallelAdvection([0,0,0,x], spline, constants, 'periodic')
     
     for i in range(N):
         vParAdv.step(f,dt,c,r)
@@ -208,7 +211,9 @@ def test_poloidalAdvection(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], True)
+    constants = get_constants('testSetups/iota0.json')
+    
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, True)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -257,7 +262,9 @@ def test_poloidalAdvectionImplicit(dt,v):
     eta_vals[0]=eta_grids[0]
     eta_vals[1]=eta_grids[1]
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], True,False,1e-10)
+    constants = get_constants('testSetups/iota0.json')
+    
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, True,False,1e-10)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -282,12 +289,14 @@ def test_poloidalAdvectionImplicit(dt,v):
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
     npts = [10,20,10,10]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota0.json',
+                                npts   = npts,
                                 layout = 'flux_surface')
     
     dt=0.1
     
-    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),grid.getLayout('flux_surface'),dt)
+    fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),
+                                    grid.getLayout('flux_surface'),dt,constants)
     
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
@@ -296,7 +305,8 @@ def test_fluxSurfaceAdvection_gridIntegration():
 @pytest.mark.serial
 def test_vParallelAdvection_gridIntegration():
     npts = [4,4,4,100]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota0.json',
+                                npts   = npts,
                                 layout = 'v_parallel')
     
     dt=0.1
@@ -304,7 +314,7 @@ def test_vParallelAdvection_gridIntegration():
     
     old_f=grid._f.copy()
     
-    vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline())
+    vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline(),constants)
     
     for i,r in grid.getCoords(0):
         for j,z in grid.getCoords(1):
@@ -316,11 +326,13 @@ def test_vParallelAdvection_gridIntegration():
 @pytest.mark.serial
 def test_poloidalAdvection_gridIntegration():
     npts = [10,20,10,10]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota0.json',
+                                npts   = npts,
                                 layout = 'poloidal')
     
     basis = grid.get2DSpline()
-    polAdv = PoloidalAdvection(grid.eta_grid, basis)
+    
+    polAdv = PoloidalAdvection(grid.eta_grid, basis,constants)
     
     phi = Spline2D(basis[0],basis[1])
     phiVals = np.full((npts[1],npts[0]),2)
@@ -341,7 +353,8 @@ def test_equilibrium():
     comm = MPI.COMM_WORLD
     
     npts = [20,20,10,8]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota0.json',
+                                npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)
@@ -403,7 +416,8 @@ def test_perturbedEquilibrium():
     comm = MPI.COMM_WORLD
     
     npts = [20,20,10,8]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota0.json',
+                                npts   = npts,
                                 layout = 'flux_surface',
                                 comm   = comm)
     
@@ -465,14 +479,15 @@ def test_vParGradAligned():
     comm = MPI.COMM_WORLD
     
     npts = [20,80,20,8]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota8.json',
+                                npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)
     
     N=10
     
-    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout),iota=iota8)
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout),constants)
     
     phiVals = np.empty([npts[2],npts[1]])
     
@@ -491,14 +506,15 @@ def test_vParGrad():
     comm = MPI.COMM_WORLD
     
     npts = [20,20,10,8]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/iota0.json',
+                                npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)
     
     N=10
     
-    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout))
+    pG = ParallelGradient(grid.getSpline(1),grid.eta_grid,grid.getLayout(grid.currentLayout),constants)
     
     phiVals = np.empty([npts[2],npts[1]])
     phiVals[:]=3
@@ -516,9 +532,6 @@ def pg_dPhi(r,theta,z,btheta,bz):
     #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
     return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
 
-def iota(r = 6.0):
-    return np.full_like(r,0.8,dtype=float)
-
 @pytest.mark.serial
 @pytest.mark.long
 @pytest.mark.parametrize( "phiOrder,zOrder", [(3,3),(3,4),(3,5),(4,4)] )
@@ -528,6 +541,8 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
     
     l2=np.empty(nconvpts)
     linf=np.empty(nconvpts)
+        
+    constants = get_constants('testSetups/iota8.json')
     
     for i in range(nconvpts):
         breaks_theta = np.linspace(0,2*pi,npts[1]+1)
@@ -538,10 +553,10 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
         
         dz = eta_grid[2][2]-eta_grid[2][1]
-        dtheta = iota()*dz/constants.R0
+        dtheta = constants.iota()*dz/constants.R0
         
-        bz = 1 / np.sqrt(1+( iota(1)/constants.R0)**2)
-        btheta =  iota(1)/constants.R0 / np.sqrt(1+( iota(1)/constants.R0)**2)
+        bz = 1 / np.sqrt(1+( constants.iota(1)/constants.R0)**2)
+        btheta =  constants.iota(1)/constants.R0 / np.sqrt(1+( constants.iota(1)/constants.R0)**2)
         # ~ bz = dz/np.sqrt(dz**2+dtheta**2)
         # ~ btheta = dtheta/np.sqrt(dz**2+dtheta**2)
         
@@ -550,7 +565,7 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
         
         layout = Layout('par_grad',[1],[0,2,1],eta_grid,[0])
         
-        pGrad = ParallelGradient(spline_theta,eta_grid,layout,iota,zOrder)
+        pGrad = ParallelGradient(spline_theta,eta_grid,layout,constants,zOrder)
         
         approxGrad = np.empty([npts[2],npts[1]])
         pGrad.parallel_gradient(phiVals,0,approxGrad)
