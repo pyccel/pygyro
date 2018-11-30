@@ -35,6 +35,8 @@ parser.add_argument('tEnd', metavar='tEnd',nargs=1,type=int,
                    help='end time')
 parser.add_argument('tMax', metavar='tMax',nargs=1,type=int,
                    help='Maximum runtime in seconds')
+parser.add_argument('constantFile', metavar='constantFile',nargs=1,type=str,
+                   help='File describing the constants')
 parser.add_argument('-f', dest='foldername',nargs=1,type=str,
                     default=[""],
                    help='the name of the folder from which to load and in which to save')
@@ -60,6 +62,7 @@ def my_print(rank,*args,**kwargs):
 
 args = parser.parse_args()
 foldername = args.foldername[0]
+constantFile = args.constantFile[0]
 
 loadable = False
 
@@ -113,7 +116,8 @@ if (loadable):
     tN = int(tEnd//dt)
         
     my_print(rank,"setting up from ",t)
-    distribFunc = setupFromFile(foldername,comm=comm,
+    distribFunc,constants = setupFromFile(foldername,
+                                constantFile,comm=comm,
                                 allocateSaveMemory = True,
                                 layout = 'v_parallel')
 else:
@@ -138,7 +142,8 @@ else:
 
     my_print(rank,"about to setup")
 
-    distribFunc = setupCylindricalGrid(npts   = npts,
+    distribFunc,constants = setupCylindricalGrid(constantFile,
+                                npts   = npts,
                                 layout = 'v_parallel',
                                 comm   = comm,
                                 allocateSaveMemory = True)
@@ -152,11 +157,11 @@ else:
 my_print(rank,"conditional setup done")
 
 fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
-                                distribFunc.getLayout('flux_surface'),halfStep)
+                                distribFunc.getLayout('flux_surface'),halfStep,constants)
 my_print(rank,"flux adv init done")
-vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3))
+vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3),constants)
 my_print(rank,"v par adv init done")
-polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)))
+polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)),constants)
 my_print(rank,"pol adv init done")
 parGradVals = np.empty([distribFunc.getLayout(distribFunc.currentLayout).shape[0],npts[2],npts[1]])
 my_print(rank,"par grad vals done")
@@ -183,13 +188,14 @@ rho = Grid(distribFunc.eta_grid[:3],distribFunc.getSpline(slice(0,3)),
             remapperRho,'v_parallel_2d',comm,dtype=np.complex128)
 my_print(rank,"rho done")
 
-density = DensityFinder(6,distribFunc.getSpline(3),distribFunc.eta_grid)
+density = DensityFinder(6,distribFunc.getSpline(3),distribFunc.eta_grid,constants)
 my_print(rank,"df ready")
 
 QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3],7,distribFunc.getSpline(0),
-                                chi=0)
+                                constants,chi=0)
 my_print(rank,"QN ready")
-parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid,remapperPhi.getLayout('v_parallel_1d'))
+parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid,
+                            remapperPhi.getLayout('v_parallel_1d'),constants)
 
 my_print(rank,"par grad ready")
 

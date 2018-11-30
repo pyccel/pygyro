@@ -96,15 +96,15 @@ def test_l1Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     rMax=comm.bcast(rMax)
     vMax=comm.bcast(vMax)
     
-    constants.R0 = R0
-    
     npts = [10,11,12,13]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
+                                npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
                                 vMax = vMax,
-                                zMax = 2*np.pi*R0)
+                                zMax = 2*np.pi*R0,
+                                R0   = R0)
     
     theLayout = grid.getLayout(layout)
     
@@ -132,15 +132,15 @@ def test_l2Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     rMax=comm.bcast(rMax)
     vMax=comm.bcast(vMax)
     
-    constants.R0 = R0
-    
     npts = [10,11,12,13]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
+                                npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
                                 vMax = vMax,
-                                zMax = 2*np.pi*R0)
+                                zMax = 2*np.pi*R0,
+                                R0   = R0)
     
     theLayout = grid.getLayout(layout)
     
@@ -168,15 +168,15 @@ def test_l2Norm_grid_is_v(layout,R0,rMin,rMax,vMax):
     rMax=comm.bcast(rMax)
     vMax=comm.bcast(vMax)
     
-    constants.R0 = R0
-    
     npts = [10,11,12,13]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
+                                npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
                                 vMax = vMax,
-                                zMax = 2*np.pi*R0)
+                                zMax = 2*np.pi*R0,
+                                R0   = R0)
     
     theLayout = grid.getLayout(layout)
     
@@ -211,15 +211,15 @@ def test_NParticles_is_volume(layout,R0,rMin,rMax,vMax):
     rMax=comm.bcast(rMax)
     vMax=comm.bcast(vMax)
     
-    constants.R0 = R0
-    
     npts = [10,11,12,13]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
+                                npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
                                 vMax = vMax,
-                                zMax = 2*np.pi*R0)
+                                zMax = 2*np.pi*R0,
+                                R0   = R0)
     
     theLayout = grid.getLayout(layout)
     
@@ -247,15 +247,15 @@ def test_NParticles_grid_is_v(layout,R0,rMin,rMax,vMax):
     rMax=comm.bcast(rMax)
     vMax=comm.bcast(vMax)
     
-    constants.R0 = R0
-    
     npts = [10,11,12,13]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
+                                npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
                                 vMax = vMax,
-                                zMax = 2*np.pi*R0)
+                                zMax = 2*np.pi*R0,
+                                R0   = R0)
     
     theLayout = grid.getLayout(layout)
     
