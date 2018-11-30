@@ -298,7 +298,8 @@ nLoops = 0
 average_loop = 0
 average_output = 0
 startPrint = max(0,ti%saveStep)
-while (ti<tN and time.clock()+average_loop+2*average_output<stopTime):
+timeForLoop = True
+while (ti<tN and timeForLoop):
     
     full_loop_start=time.clock()
     
@@ -399,6 +400,7 @@ while (ti<tN and time.clock()+average_loop+2*average_output<stopTime):
     loop_time+=(time.clock()-loop_start)
     full_loop_time+=(time.clock()-full_loop_start)
     average_loop = full_loop_time/nLoops
+    timeForLoop = comm.allreduce(time.clock()+average_loop+2*average_output<stopTime,op=MPI.LAND)
 
 loop_time+=(time.clock()-loop_start)
 
