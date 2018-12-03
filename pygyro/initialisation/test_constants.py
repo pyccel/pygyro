@@ -5,6 +5,7 @@ import os
 
 from .constants     import get_constants, Constants
 
+@pytest.mark.serial
 def test_constants_file():
     f= open("constants_test_file.json","w")
     f.write("{\n\"B0\": 1.0,\n\"R0\":239.8081535,\n\"rMin\":0.1,\n\"rMax\":14.5,\n\
@@ -46,6 +47,7 @@ def test_constants_file():
 
     assert(constants.CN0 == (constants.rMax-constants.rMin)/integrate.quad(normalisingFunc,constants.rMin,constants.rMax)[0])
 
+@pytest.mark.serial
 def test_constants_defaults():
     constants = Constants()
     
