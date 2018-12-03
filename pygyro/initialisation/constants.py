@@ -31,6 +31,9 @@ class Constants:
     n = None
     iotaVal = None
     CN0 = None
+    _splineDegrees = None
+    _npts = None
+    dt = None
     
     def __init__(self,setup = True):
         if (setup):
@@ -57,6 +60,26 @@ class Constants:
         self._rMax = x
         if (self._rMin!=None):
             self.rp = 0.5*(self._rMin + self._rMax)
+    
+    @property
+    def npts(self):
+        return self._npts
+
+    @npts.setter
+    def npts(self, x):
+        self._npts = x
+        if (self._splineDegrees!=None):
+            assert(len(self._npts)==len(self._splineDegrees))
+    
+    @property
+    def splineDegrees(self):
+        return self._npts
+
+    @npts.setter
+    def splineDegrees(self, x):
+        self._splineDegrees = x
+        if (self._npts!=None):
+            assert(len(self._npts)==len(self._splineDegrees))
 
     def iota(self,r = rp):
         return np.full_like(r,self.iotaVal,dtype=float)
@@ -71,6 +94,15 @@ class Constants:
         for key,val in defaults.items():
             if (getattr(self,key)==None):
                 setattr(self,key,val)
+    
+    def __str__(self):
+        s = "{\n"
+        for obj in dir(self):
+            val=getattr(self,obj)
+            if not callable(val) and obj[0]!='_':
+                s+="\""+obj+"\"="+"{}".format(val)+",\n"
+        s=s[:-2]+"\n}"
+        return s
 
 def eval_expr(mystr,constants):
     f=re.split('([+*/\\-\\(\\)])', mystr.replace(" ", ""))

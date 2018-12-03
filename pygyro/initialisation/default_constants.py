@@ -15,7 +15,10 @@ defaults = {
 "CTi":1.0,
 "m":15,
 "n":1,
-"iotaVal":0.0
+"iotaVal":0.0,
+"npts":[256,512,32,128],
+"splineDegrees":[3,3,3,3],
+"dt":2
 }
 
 defaults["vMin"]        = -defaults["vMax"]
