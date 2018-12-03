@@ -8,22 +8,19 @@ from  .setups                 import setupCylindricalGrid, setupFromFile
 @pytest.mark.parallel
 def test_setup():
     npts = [10,20,10,10]
-    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
-                                npts   = npts,
+    grid,constants = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
     
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
     
-    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
-                                npts   = npts,
+    grid,constants = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
     
-    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
-                                npts   = npts,
+    grid,constants = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
     
     for (coord,npt) in zip(grid.eta_grid,npts):
@@ -96,7 +93,7 @@ def test_setupFromFolder():
     grid._f[:]+=20
     grid.writeH5Dataset('testValues',100)
     
-    grid2,constants = setupFromFile('testValues','constants.json')
+    grid2,constants = setupFromFile('testValues')
     compare_f(grid2,100)
 
 @pytest.mark.parallel
@@ -137,5 +134,5 @@ def test_setupFromFolderAtTime():
     grid._f[:]+=20
     grid.writeH5Dataset('testValues',100)
     
-    grid2,constants = setupFromFile('testValues','constants.json',timepoint = 40)
+    grid2,constants = setupFromFile('testValues',timepoint = 40)
     compare_f(grid2,40)
