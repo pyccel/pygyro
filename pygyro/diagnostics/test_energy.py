@@ -17,8 +17,7 @@ def test_KineticEnergy_NoVelocity():
     size = comm.Get_size()
     
     npts = [10,20,10,11]
-    grid,constants = setupCylindricalGrid(constantFile = 'constants.json',
-                                npts   = npts,
+    grid,constants = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     grid._f[:]=0
     idx_v = np.where(abs(grid.eta_grid[3])<1e-14)[0][0]
@@ -43,8 +42,9 @@ def test_KineticEnergy_Positive():
     size = comm.Get_size()
     
     npts = [10,20,10,11]
-    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/KineticEnergyPositive.json',
-                                npts   = npts,
+    grid,constants = setupCylindricalGrid(npts   = npts,
+                                vMax   = 4,
+                                vMin   = -4,
                                 layout = 'poloidal')
     grid._f[:]=0
     idx_v = np.where(grid.eta_grid[3]==-1)[0][0]
@@ -69,8 +69,9 @@ def test_KineticEnergy_Positive_VPar():
     size = comm.Get_size()
     
     npts = [5,20,10,11]
-    grid,constants = setupCylindricalGrid(constantFile = 'testSetups/KineticEnergyPositive.json',
-                                npts   = npts,
+    grid,constants = setupCylindricalGrid(npts   = npts,
+                                vMax   = 4,
+                                vMin   = -4,
                                 layout = 'v_parallel')
     grid._f[:]=0
     idx_v = np.where(grid.eta_grid[3]==-1)[0][0]

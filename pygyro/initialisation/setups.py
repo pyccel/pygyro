@@ -11,9 +11,9 @@ from ..model.layout         import getLayoutHandler
 from ..model.grid           import Grid
 from ..model.process_grid   import compute_2d_process_grid
 from .initialiser           import initialise_flux_surface, initialise_poloidal, initialise_v_parallel
-from .constants             import get_constants
+from .constants             import get_constants, Constants
 
-def setupCylindricalGrid(constantFile: str, npts: list, layout: str, **kwargs):
+def setupCylindricalGrid(npts: list, layout: str, constantFile: str = None, **kwargs):
     """
     Setup using radial topology can be initialised using the following arguments:
     
@@ -48,33 +48,21 @@ def setupCylindricalGrid(constantFile: str, npts: list, layout: str, **kwargs):
     
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
-    constants = get_constants(constantFile)
     
-    rMin=kwargs.pop('rMin',constants.rMin)
-    constants.rMin=rMin
-    rMax=kwargs.pop('rMax',constants.rMax)
-    constants.rMax=rMax
-    constants.rp = 0.5*(rMin + rMax)
-    zMin=kwargs.pop('zMin',constants.zMin)
-    constants.zMin=zMin
-    zMax=kwargs.pop('zMax',constants.zMax)
-    constants.zMax=zMax
-    vMax=kwargs.pop('vMax',constants.vMax)
-    constants.vMax=vMax
-    vMin=kwargs.pop('vMin',-vMax)
-    constants.vMin=vMin
-    m=kwargs.pop('m',constants.m)
-    constants.m=m
-    n=kwargs.pop('n',constants.n)
-    constants.n=n
-    R0=kwargs.pop('R0',constants.R0)
-    constants.R0=R0
+    if (constantFile==None):
+        constants = Constants()
+    else:
+        constants = get_constants(constantFile)
+    
+    for f in dir(constants):
+        val=getattr(constants,f)
+        if not callable(val) and f[0]!='_':
+            setattr(constants,f,kwargs.pop(f,val))
+    
     rDegree=kwargs.pop('rDegree',3)
     qDegree=kwargs.pop('thetaDegree',3)
     zDegree=kwargs.pop('zDegree',3)
     vDegree=kwargs.pop('vDegree',3)
-    eps=kwargs.pop('eps',constants.eps)
-    constants.eps=eps
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
@@ -93,7 +81,7 @@ def setupCylindricalGrid(constantFile: str, npts: list, layout: str, **kwargs):
     
     mpi_size = layout_comm.Get_size()
     
-    domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
+    domain = [ [constants.rMin,constants.rMax], [0,2*pi], [constants.zMin,constants.zMax], [constants.vMin, constants.vMax]]
     degree = [rDegree, qDegree, zDegree, vDegree]
     period = [False, True, True, False]
     
@@ -129,7 +117,7 @@ def setupCylindricalGrid(constantFile: str, npts: list, layout: str, **kwargs):
         initialise_poloidal(grid,constants)
     return grid, constants
 
-def setupFromFile(foldername, constantFile: str, **kwargs):
+def setupFromFile(foldername, constantFile: str = None, **kwargs):
     """
     Setup using information from a previous simulation:
     
@@ -153,24 +141,21 @@ def setupFromFile(foldername, constantFile: str, **kwargs):
     """
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     
-    constants = get_constants(constantFile)
+    if (constantFile==None):
+        constants = Constants()
+    else:
+        constants = get_constants(constantFile)
+    
+    for f in dir(constants):
+        val=getattr(constants,f)
+        if not callable(val) and f[0]!='_':
+            setattr(constants,f,kwargs.pop(f,val))
     
     filename = "{0}/initParams.h5".format(foldername)
     save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
     group = save_file['constants']
     for i in group.attrs:
         constants.i = group.attrs[i]
-    constants.rp = 0.5*(constants.rMin + constants.rMax)
-    
-    rMin=constants.rMin
-    rMax=constants.rMax
-    zMin=constants.zMin
-    zMax=constants.zMax
-    vMax=constants.vMax
-    vMin=constants.vMin
-    m=constants.m
-    n=constants.n
-    eps=constants.eps
     
     group = save_file['degrees']
     rDegree=int(group.attrs['r'])
@@ -196,7 +181,7 @@ def setupFromFile(foldername, constantFile: str, **kwargs):
     
     mpi_size = layout_comm.Get_size()
     
-    domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
+    domain = [ [constants.rMin,constants.rMax], [0,2*pi], [constants.zMin,constants.zMax], [constants.vMin, constants.vMax]]
     degree = [rDegree, qDegree, zDegree, vDegree]
     period = [False, True, True, False]
     

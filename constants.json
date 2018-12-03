@@ -7,7 +7,6 @@
 "zMax":"R0*2*pi",
 "vMax":7.32,
 "vMin":"-vMax",
-"rp":"0.5*(rMin + rMax)",
 "eps":1e-6,
 "eps0":8.854187817e-12,
 "kN0":0.055,
