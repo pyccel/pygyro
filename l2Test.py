@@ -143,8 +143,8 @@ else:
 
     my_print(rank,"about to setup")
 
-    distribFunc,constants = setupCylindricalGrid(constantFile,
-                                npts   = npts,
+    distribFunc,constants = setupCylindricalGrid(npts   = npts,
+                                constantFile = constantFile,
                                 layout = 'v_parallel',
                                 comm   = comm,
                                 allocateSaveMemory = True)
