@@ -2,6 +2,7 @@ import numpy as np
 from scipy          import integrate
 from math           import exp, tanh, pi
 import os
+import pytest
 
 from .constants     import get_constants, Constants
 
