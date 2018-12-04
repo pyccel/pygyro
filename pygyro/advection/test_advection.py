@@ -291,7 +291,7 @@ def test_poloidalAdvectionImplicit(dt,v):
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
     npts = [10,20,10,10]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
     
     dt=0.1
@@ -306,7 +306,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
 @pytest.mark.serial
 def test_vParallelAdvection_gridIntegration():
     npts = [4,4,4,100]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
     
     dt=0.1
@@ -326,7 +326,7 @@ def test_vParallelAdvection_gridIntegration():
 @pytest.mark.serial
 def test_poloidalAdvection_gridIntegration():
     npts = [10,20,10,10]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     
     basis = grid.get2DSpline()
@@ -352,7 +352,7 @@ def test_equilibrium():
     comm = MPI.COMM_WORLD
     
     npts = [20,20,10,8]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)
@@ -414,7 +414,7 @@ def test_perturbedEquilibrium():
     comm = MPI.COMM_WORLD
     
     npts = [20,20,10,8]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 comm   = comm)
     
@@ -476,7 +476,7 @@ def test_vParGradAligned():
     comm = MPI.COMM_WORLD
     
     npts = [20,80,20,8]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout  = 'flux_surface',
                                 eps     = 0,
                                 iotaVal = 0.8,
@@ -504,7 +504,7 @@ def test_vParGrad():
     comm = MPI.COMM_WORLD
     
     npts = [20,20,10,8]
-    grid,constants = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)

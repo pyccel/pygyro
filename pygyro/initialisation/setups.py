@@ -115,7 +115,7 @@ def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
         initialise_v_parallel(grid,constants)
     elif (layout=='poloidal'):
         initialise_poloidal(grid,constants)
-    return grid, constants
+    return grid, constants, 0
 
 def setupFromFile(foldername, constantFile: str = None, **kwargs):
     """
@@ -191,14 +191,18 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
     if ('timepoint' in kwargs):
-        filename = "{0}/grid_{1:06}.h5".format(foldername,kwargs.pop('timepoint'))
+        t = kwargs.pop('timepoint')
+        filename = "{0}/grid_{1:06}.h5".format(foldername,t)
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
         if (len(list_of_files)>0):
             filename = max(list_of_files)
+            t = int(filename.split('_')[-1].split('.')[0])
         else:
             filename = None
+            t = 0
+    
     if (filename!=None):
         file = h5py.File(filename,'r')
         dataset=file['/dset']
@@ -240,4 +244,4 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     for name,value in kwargs.items():
         warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
     
-    return grid, constants
+    return grid, constants, t

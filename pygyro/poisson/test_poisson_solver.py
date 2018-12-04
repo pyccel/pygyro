@@ -33,7 +33,7 @@ def test_DensityFinder_poly_Rho(param_df_poly):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid,constants = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants,t = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -75,7 +75,7 @@ def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid,constants = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants,t = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -119,7 +119,7 @@ def test_DensityFinder_cos_Rho(npts_v,tol):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid,constants = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants,t = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -161,7 +161,7 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v,tol):
     
     layout_poisson = {'v_parallel': [0,2,1]}
     
-    grid,constants = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
+    grid,constants,t = setupCylindricalGrid(npts=npts,layout='v_parallel',vMax=10,vMin=0)
     
     nprocs = grid.getLayout(grid.currentLayout).nprocs[:2]
     
@@ -425,7 +425,7 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
                       'v_parallel': [0,2,1]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
     
-    grid,constants = setupCylindricalGrid(npts=[*npts,4],layout='v_parallel')
+    grid,constants,t = setupCylindricalGrid(npts=[*npts,4],layout='v_parallel')
     
     ps = DiffEqSolver(2*deg,bsplines[0],npts[0],npts[1])
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
@@ -908,7 +908,7 @@ def test_QNSolver():
     
     nproc = nprocs[0]
     
-    grid,constants = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel')
+    grid,constants,t = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel')
     
     remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], grid.eta_grid[:3], 'v_parallel' )
     
@@ -953,7 +953,7 @@ def test_Equilibrium():
     
     nproc = nprocs[0]
     
-    grid,constants = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel',eps=0.0)
+    grid,constants,t = setupCylindricalGrid(npts=nptsGrid,layout='v_parallel',eps=0.0)
     
     remapper = LayoutSwapper( comm, [layout_poisson,layout_advection],[nprocs,nproc], grid.eta_grid[:3], 'v_parallel' )
     
