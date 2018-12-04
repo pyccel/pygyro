@@ -36,23 +36,12 @@ parser.add_argument('tEnd', metavar='tEnd',nargs=1,type=int,
                    help='end time')
 parser.add_argument('tMax', metavar='tMax',nargs=1,type=int,
                    help='Maximum runtime in seconds')
-parser.add_argument('constantFile', metavar='constantFile',nargs=1,type=str,
+parser.add_argument('-c', dest='constantFile',nargs=1,type=str,
+                    default=[""],
                    help='File describing the constants')
 parser.add_argument('-f', dest='foldername',nargs=1,type=str,
                     default=[""],
                    help='the name of the folder from which to load and in which to save')
-parser.add_argument('-r', dest='rDegree',nargs=1,type=int,
-                    default=[3],
-                   help='Degree of spline in r')
-parser.add_argument('-q', dest='qDegree',nargs=1,type=int,
-                    default=[3],
-                   help='Degree of spline in theta')
-parser.add_argument('-z', dest='zDegree',nargs=1,type=int,
-                    default=[3],
-                   help='Degree of spline in z')
-parser.add_argument('-v', dest='vDegree',nargs=1,type=int,
-                    default=[3],
-                   help='Degree of spline in v')
 parser.add_argument('-s', dest='saveStep',nargs=1,type=int,
                     default=[5],
                    help='Number of time steps between writing output')
@@ -66,11 +55,6 @@ foldername = args.foldername[0]
 constantFile = args.constantFile[0]
 
 loadable = False
-
-rDegree = args.rDegree[0]
-qDegree = args.qDegree[0]
-zDegree = args.zDegree[0]
-vDegree = args.vDegree[0]
 
 saveStep = args.saveStep[0]
 saveStepCut = saveStep-1
@@ -86,74 +70,42 @@ if (len(foldername)>0):
 else:
     foldername = None
 
-if (loadable):
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    
-    my_print(rank,"ready to setup from loadable")
+if (len(constantFile)==0):
+    constantFile = None
 
-    filename = "{0}/initParams.h5".format(foldername)
-    save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
-    group = save_file['constants']
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+if (loadable):
+    my_print(rank,"ready to setup from loadable")
     
-    npts = save_file.attrs['npts']
-    dt = save_file.attrs['dt']
-    
-    halfStep = dt*0.5
-    fullStep = dt
-    
-    save_file.close()
-    
-    list_of_files = glob("{0}/grid_*".format(foldername))
-    if (len(list_of_files)==0):
-        t  = 0
-    else:
-        filename = max(list_of_files)
-        tStart = int(filename.split('_')[-1].split('.')[0])
-        
-        t  = tStart
-    
-    ti = t//dt
-    tN = int(tEnd//dt)
-        
-    my_print(rank,"setting up from ",t)
-    distribFunc,constants = setupFromFile(foldername,
+    distribFunc,constants,t = setupFromFile(foldername,
                                 constantFile,comm=comm,
                                 allocateSaveMemory = True,
                                 layout = 'v_parallel')
 else:
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
+    assert(constantFile!=None)
 
     my_print(rank,"ready to setup new")
-
-    npts = [256,512,32,128]
-    # npts = [128,256,32,64]
-    npts = [10,10,10,10]
-
-    dt=2
-
-    tN = int(tEnd//dt)
-    ti = 0
-
-    #----------------
-    halfStep = dt*0.5
-    fullStep = dt
-    #----------------
-
-    my_print(rank,"about to setup")
-
-    distribFunc,constants = setupCylindricalGrid(npts   = npts,
-                                constantFile = constantFile,
+    
+    distribFunc,constants,t = setupCylindricalGrid(constantFile = constantFile,
                                 layout = 'v_parallel',
                                 comm   = comm,
                                 allocateSaveMemory = True)
 
     my_print(rank,"setup done, saving initParams")
     
-    foldername = setupSave(rDegree,qDegree,zDegree,vDegree,npts,dt,foldername)
+    foldername = setupSave(constants,foldername)
+    
     print("Saving in ",foldername)
-    t = 0
+
+ti = t//constants.dt
+tN = int(tEnd//constants.dt)
+
+#--------------------------
+halfStep = constants.dt*0.5
+fullStep = constants.dt
+#--------------------------
 
 my_print(rank,"conditional setup done")
 
@@ -164,7 +116,7 @@ vParAdv = VParallelAdvection(distribFunc.eta_grid, distribFunc.getSpline(3),cons
 my_print(rank,"v par adv init done")
 polAdv = PoloidalAdvection(distribFunc.eta_grid, distribFunc.getSpline(slice(1,None,-1)),constants)
 my_print(rank,"pol adv init done")
-parGradVals = np.empty([distribFunc.getLayout(distribFunc.currentLayout).shape[0],npts[2],npts[1]])
+parGradVals = np.empty([distribFunc.getLayout(distribFunc.currentLayout).shape[0],constants.npts[2],constants.npts[1]])
 my_print(rank,"par grad vals done")
 
 layout_poisson   = {'v_parallel_2d': [0,2,1],
@@ -200,7 +152,7 @@ parGrad = ParallelGradient(distribFunc.getSpline(1),distribFunc.eta_grid,
 
 my_print(rank,"par grad ready")
 
-diagnostics = DiagnosticCollector(comm,saveStep,dt,distribFunc,phi)
+diagnostics = DiagnosticCollector(comm,saveStep,fullStep,distribFunc,phi)
 
 my_print(rank,"diagnostics ready")
 
@@ -265,7 +217,7 @@ while (ti<tN and timeForLoop):
     
     full_loop_start=time.clock()
     
-    t+=dt
+    t+=fullStep
     my_print(rank,"t=",t)
     loop_start=time.clock()
     
