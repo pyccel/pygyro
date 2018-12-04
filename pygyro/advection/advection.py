@@ -324,7 +324,6 @@ class VParallelAdvection:
         self._spline = Spline1D(splines)
         self._constants = constants
         
-        self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         if (edge=='fEq'):
             self._edgeType = 0
         elif (edge=='null'):
