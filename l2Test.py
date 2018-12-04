@@ -306,8 +306,6 @@ if (ti%saveStep!=0):
     diagnostics.reduce()
     if (rank == 0):
         diagnosticFile = open(diagnostic_filename,"a")
-        print(ti%saveStep+1)
-        print(diagnostics)
         for i in range(ti%saveStep):
             print(diagnostics.getLine(i),file=diagnosticFile)
         diagnosticFile.close()
