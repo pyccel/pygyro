@@ -73,9 +73,9 @@ class Constants:
     
     @property
     def splineDegrees(self):
-        return self._npts
+        return self._splineDegrees
 
-    @npts.setter
+    @splineDegrees.setter
     def splineDegrees(self, x):
         self._splineDegrees = x
         if (self._npts!=None):
@@ -100,7 +100,7 @@ class Constants:
         for obj in dir(self):
             val=getattr(self,obj)
             if not callable(val) and obj[0]!='_':
-                s+="\""+obj+"\"="+"{}".format(val)+",\n"
+                s+="\""+obj+"\":"+"{}".format(val)+",\n"
         s=s[:-2]+"\n}"
         return s
 
