@@ -59,10 +59,6 @@ def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
         if not callable(val) and f[0]!='_':
             setattr(constants,f,kwargs.pop(f,val))
     
-    print(constants.npts)
-    
-    assert(np.prod(constants.npts)<1e8)
-    
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
