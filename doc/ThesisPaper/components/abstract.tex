@@ -1,0 +1,15 @@
+% !TEX root = ../main.tex
+% The abstract.
+% Included by MAIN.TEX
+
+\clearemptydoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{Abstract}
+
+\vspace*{2cm}
+\begin{center}
+{\Large \textbf Abstract}
+\end{center}
+\vspace{1cm}
+
+Pyccel, a python to human-readable Fortran translator, is used to test the feasibility of writing large parallel simulations in python without significant loss of runtime speed as compared to writing in Fortran directly. A parallel simulation of a plasma using gyrokinetic theory is written for this purpose. The simulation uses a field-aligned semi-lagrangian method. Cylindrical (screw-pinch) geometry is used to approximate the shape of the domain. The acceleration obtained using Pyccel is very large. Although the speed of the pure Fortran version is not quite reached, the decrease in the amount of development time required largely offsets this small loss.

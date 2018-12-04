@@ -1,0 +1,35 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+%\usepackage{pgfplots}
+%\usepackage{pgfplotstable}
+%\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns}
+\tikzstyle{v par}=              [dash pattern=on 10pt off 5pt,color=red!70,line width = 2pt]
+\tikzstyle{z direction}=      [dash pattern=on 10pt off 5pt on 2pt off 5pt, color=Blue,line width = 2pt]
+
+\begin{document}
+{
+\begin{tikzpicture}
+ 
+ \foreach \x in {0,...,5}
+ {
+  \foreach \y in {0,1}
+  {
+   \fill[red!70] (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \draw (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \pgfmathsetmacro\n{int(\x+6*(3-\y))}
+   \node[scale=2] at (\x+0.5,\y+0.5) {\n};
+  }
+  \foreach \y in {2,3}
+  {
+   \draw[pattern=north west lines, pattern color=blue] (\x,\y) rectangle (\x+1,\y+1);
+   %\fill[blue] (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \draw (\x,\y) -- (\x,\y+1) -- (\x+1,\y+1) -- (\x+1,\y) -- (\x,\y);
+   \pgfmathsetmacro\n{int(\x+6*(3-\y))}
+   \node[scale=2] at (\x+0.5,\y+0.5) {\n};
+  }
+ }
+\end{tikzpicture}
+}
+\end{document}
