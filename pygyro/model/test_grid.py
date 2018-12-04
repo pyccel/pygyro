@@ -85,6 +85,96 @@ def test_Grid_parallel():
     
     Grid(eta_grids,[],manager,'flux_surface')
 
+@pytest.mark.parallel
+def test_Grid_max():
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,[],manager,'flux_surface')
+    define_f(grid)
+    assert(grid.getMax()==(np.prod(npts)-1))
+
+@pytest.mark.parallel
+def test_Grid_min():
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,[],manager,'flux_surface')
+    define_f(grid)
+    assert(grid.getMin()==0)
+
+@pytest.mark.parallel
+def test_Grid_save_restore():
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,[],manager,'flux_surface',allocateSaveMemory = True)
+    define_f(grid,0)
+    grid.saveGridValues()
+    define_f(grid,100)
+    compare_f(grid,100)
+    grid.restoreGridValues()
+    compare_f(grid,0)
+    assert(grid.getMin()==0)
+
+@pytest.mark.parallel
+def test_Grid_save_restore_once():
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    
+    nprocs = compute_2d_process_grid( [10,10,10,10], comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,[],manager,'flux_surface',allocateSaveMemory = True)
+    grid.saveGridValues()
+    with pytest.raises(AssertionError):
+        grid.saveGridValues()
+    grid.restoreGridValues()
+    grid.saveGridValues()
+    grid.freeGridSave()
+    grid.saveGridValues()
+
 @pytest.mark.serial
 def test_CoordinateSave():
     comm = MPI.COMM_WORLD
