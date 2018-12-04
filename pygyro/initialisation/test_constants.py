@@ -14,7 +14,8 @@ def test_constants_file():
         \"eps\":1e-6,\n\"eps0\":8.854187817e-12,\n\"kN0\":0.055,\n\"kTi\":0.27586,\n\
         \"kTe\":\"kTi\",\n\"deltaRTi\":1.45,\n\"deltaRTe\":\"deltaRTi\",\n\
         \"deltaRN0\":\"2.0*deltaRTe\",\n\"deltaR\":\"4.0*deltaRN0/deltaRTi\",\n\
-        \"CTi\":1.0,\n\"CTe\":\"CTi\",\n\"m\":15,\n\"n\":1,\n\"iotaVal\":0.0\n}\n")
+        \"CTi\":1.0,\n\"CTe\":\"CTi\",\n\"m\":15,\n\"n\":1,\n\"iotaVal\":0.0,\n\
+        \"npts\":[256,512,32,128],\n\"splineDegrees\":[3,3,3,3],\n\"dt\":2\n}\n")
     f.close()
     constants = get_constants("constants_test_file.json")
     os.remove("constants_test_file.json")
@@ -42,6 +43,9 @@ def test_constants_file():
     assert(constants.m == 15)
     assert(constants.n == 1)
     assert(constants.iotaVal == 0.0)
+    assert(constants.npts == [256,512,32,128])
+    assert(constants.splineDegrees == [3,3,3,3])
+    assert(constants.dt == 2)
 
     def normalisingFunc(r):
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
@@ -75,6 +79,9 @@ def test_constants_defaults():
     assert(constants.m == 15)
     assert(constants.n == 1)
     assert(constants.iotaVal == 0.0)
+    assert(constants.npts == [256,512,32,128])
+    assert(constants.splineDegrees == [3,3,3,3])
+    assert(constants.dt == 2)
 
     def normalisingFunc(r):
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))

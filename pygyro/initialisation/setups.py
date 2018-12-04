@@ -13,7 +13,7 @@ from ..model.process_grid   import compute_2d_process_grid
 from .initialiser           import initialise_flux_surface, initialise_poloidal, initialise_v_parallel
 from .constants             import get_constants, Constants
 
-def setupCylindricalGrid(npts: list, layout: str, constantFile: str = None, **kwargs):
+def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
     """
     Setup using radial topology can be initialised using the following arguments:
     
@@ -59,10 +59,10 @@ def setupCylindricalGrid(npts: list, layout: str, constantFile: str = None, **kw
         if not callable(val) and f[0]!='_':
             setattr(constants,f,kwargs.pop(f,val))
     
-    rDegree=kwargs.pop('rDegree',3)
-    qDegree=kwargs.pop('thetaDegree',3)
-    zDegree=kwargs.pop('zDegree',3)
-    vDegree=kwargs.pop('vDegree',3)
+    print(constants.npts)
+    
+    assert(np.prod(constants.npts)<1e8)
+    
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
@@ -82,18 +82,18 @@ def setupCylindricalGrid(npts: list, layout: str, constantFile: str = None, **kw
     mpi_size = layout_comm.Get_size()
     
     domain = [ [constants.rMin,constants.rMax], [0,2*pi], [constants.zMin,constants.zMax], [constants.vMin, constants.vMax]]
-    degree = [rDegree, qDegree, zDegree, vDegree]
+    degree = constants.splineDegrees
     period = [False, True, True, False]
     
     # Compute breakpoints, knots, spline space and grid points
-    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( constants.npts,degree, period )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
     bsplines  = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grids = [bspl.greville                 for bspl       in bsplines]
 
     # Compute 2D grid of processes for the two distributed dimensions in each layout
-    nprocs = compute_2d_process_grid( npts, mpi_size )
+    nprocs = compute_2d_process_grid( constants.npts, mpi_size )
     
     # Create dictionary describing layouts
     layouts = {'flux_surface': [0,3,1,2],
@@ -142,30 +142,14 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     
     if (constantFile==None):
-        constants = Constants()
-    else:
-        constants = get_constants(constantFile)
+        constantFile = "{0}/initParams.json".format(foldername)
+    
+    constants = get_constants(constantFile)
     
     for f in dir(constants):
         val=getattr(constants,f)
         if not callable(val) and f[0]!='_':
             setattr(constants,f,kwargs.pop(f,val))
-    
-    filename = "{0}/initParams.h5".format(foldername)
-    save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
-    group = save_file['constants']
-    for i in group.attrs:
-        constants.i = group.attrs[i]
-    
-    group = save_file['degrees']
-    rDegree=int(group.attrs['r'])
-    qDegree=int(group.attrs['theta'])
-    zDegree=int(group.attrs['z'])
-    vDegree=int(group.attrs['v'])
-    
-    npts = save_file.attrs['npts']
-    
-    save_file.close()
     
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
@@ -182,18 +166,18 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     mpi_size = layout_comm.Get_size()
     
     domain = [ [constants.rMin,constants.rMax], [0,2*pi], [constants.zMin,constants.zMax], [constants.vMin, constants.vMax]]
-    degree = [rDegree, qDegree, zDegree, vDegree]
+    degree = constants.splineDegrees
     period = [False, True, True, False]
     
     # Compute breakpoints, knots, spline space and grid points
-    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( constants.npts,degree, period )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
     bsplines  = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grids = [bspl.greville                 for bspl       in bsplines]
 
     # Compute 2D grid of processes for the two distributed dimensions in each layout
-    nprocs = compute_2d_process_grid( npts, mpi_size )
+    nprocs = compute_2d_process_grid( constants.npts, mpi_size )
     
     # Create dictionary describing layouts
     layouts = {'flux_surface': [0,3,1,2],

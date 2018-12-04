@@ -3,6 +3,7 @@ import numpy as np
 from functools import reduce
 import pytest
 
+from  .constants              import Constants
 from  .setups                 import setupCylindricalGrid, setupFromFile
 
 @pytest.mark.parallel
@@ -71,6 +72,9 @@ def test_setupFromFolder():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
+    constants = Constants()
+    constants.npts = npts
+    
     grid = Grid(eta_grids,[],remapper,'flux_surface')
     
     define_f(grid)
@@ -79,7 +83,7 @@ def test_setupFromFolder():
         if (not os.path.isdir('testValues')):
             os.mkdir('testValues')
     
-    setupSave(3,3,3,3,npts,0.1,'testValues')
+    setupSave(constants,'testValues')
     
     grid.writeH5Dataset('testValues',0)
     grid._f[:]+=20
@@ -112,6 +116,9 @@ def test_setupFromFolderAtTime():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
+    constants = Constants()
+    constants.npts = npts
+    
     grid = Grid(eta_grids,[],remapper,'flux_surface')
     
     define_f(grid)
@@ -120,7 +127,7 @@ def test_setupFromFolderAtTime():
         if (not os.path.isdir('testValues')):
             os.mkdir('testValues')
     
-    setupSave(3,3,3,3,npts,0.1,'testValues')
+    setupSave(constants,'testValues')
     
     grid.writeH5Dataset('testValues',0)
     grid._f[:]+=20
