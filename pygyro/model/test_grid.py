@@ -103,7 +103,9 @@ def test_Grid_max():
     
     grid = Grid(eta_grids,[],manager,'flux_surface')
     define_f(grid)
-    assert(grid.getMax()==(np.prod(npts)-1))
+    maxVal = grid.getMax(0)
+    if (comm.Get_rank()==0):
+        assert(maxVal==(np.prod(npts)-1))
 
 @pytest.mark.parallel
 def test_Grid_min():
@@ -123,7 +125,9 @@ def test_Grid_min():
     
     grid = Grid(eta_grids,[],manager,'flux_surface')
     define_f(grid)
-    assert(grid.getMin()==0)
+    minVal = grid.getMin(0)
+    if (comm.Get_rank()==0):
+        assert(minVal==0)
 
 @pytest.mark.parallel
 def test_Grid_save_restore():
@@ -148,7 +152,6 @@ def test_Grid_save_restore():
     compare_f(grid,100)
     grid.restoreGridValues()
     compare_f(grid,0)
-    assert(grid.getMin()==0)
 
 @pytest.mark.parallel
 def test_Grid_save_restore_once():
