@@ -12,3 +12,10 @@ scaling.txt
 current_coverage.txt
 timing/
 .coverage
+doc/*.log
+doc/*.backup
+doc/*.aux
+doc/*.toc
+doc/*.snm
+doc/*.nav
+doc/*.out
