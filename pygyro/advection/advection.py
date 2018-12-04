@@ -420,8 +420,6 @@ class PoloidalAdvection:
         
         self._explicit = explicitTrap
         self._TOL = tol
-        
-        self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         self._nulEdge=nulEdge
         
         self._drPhi_0 = np.empty(self._nPoints)
