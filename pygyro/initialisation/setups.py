@@ -120,11 +120,15 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     Compulsory arguments:
     foldername -- The folder in which the results of the previous simulation
                   are stored
+    layout      -- parallel distribution start configuration
+                    (not required if a grid from the previous layout has been
+                    saved)
     
     Optional arguments:
     comm        -- MPI communicator. (default MPI.COMM_WORLD)
     plotThread  -- whether there is a thread to be used only for plotting (default False)
     drawRank    -- Thread to be used for plotting (default 0)
+    dtype       -- The data type used by the grid
     
     timepoint   -- Point in time from which the simulation should resume
                    (default is latest possible)
@@ -146,6 +150,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
     allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
+    dtype=kwargs.pop('dtype',float)
     
     rank=comm.Get_rank()
     
@@ -187,7 +192,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
-        if (len(list_of_files)>1):
+        if (len(list_of_files)>0):
             filename = max(list_of_files)
             t = int(filename.split('_')[-1].split('.')[0])
         else:
@@ -207,7 +212,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
             raise ArgumentError("The stored layout is not a standard layout")
         
         # Create grid
-        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
+        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
         layout = grid.getLayout(my_layout)
         slices = tuple([slice(s,e) for s,e in zip(layout.starts,layout.ends)])
@@ -220,6 +225,8 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
             if (desired_layout!=my_layout):
                 grid.setLayout(desired_layout)
     else:
+        assert('layout' in kwargs)
+        layout = kwargs.pop('layout')
         # Create grid
         grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
