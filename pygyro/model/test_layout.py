@@ -953,3 +953,26 @@ def test_phiSwapperUsed():
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
+    
+    remapper.transpose(source=fEnd,
+                       dest=fBuf,
+                       buf =fStart,
+                       source_name='poloidal',
+                       dest_name='v_parallel_1d')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_b)
+    
+    remapper.transpose(source=fBuf,
+                       dest=fStart,
+                       source_name='v_parallel_1d',
+                       dest_name='poloidal')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_s)
+    
+    remapper.transpose(source=fStart,
+                       dest=fEnd,
+                       source_name='poloidal',
+                       dest_name='v_parallel_1d')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_e)
