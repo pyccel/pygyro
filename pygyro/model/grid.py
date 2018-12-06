@@ -211,6 +211,89 @@ class Grid(object):
         self._f[:]=dataset[slices]
         file.close()
 
+    ####################################################################
+    ####                   Functions for figures                    ####
+    ####################################################################
+    
+    
+    def getSliceFromDict(self,d : dict, comm: MPI.Comm, rank: int):
+        """
+        Utility function to access getSliceForFig without using 6 if statements
+        The function takes a dictionary which plots the fixed dimensions to the
+        index at which they are fixed
+        
+        >>> getSliceFromDict({self.Dimension.ETA3: 5, self.Dimension.ETA4 : 2})
+        """
+        dims = []
+        for dim_o in self._layout.dims_order:
+            dims.append(d.get(dim_o,None))
+        return self.getSliceForFig(dims,comm,rank)
+    
+    def getSliceForFig(self, dims: list, comm: MPI.Comm, rank: int):
+        """
+        Class to retrieve a 2D slice. Any values set to None will vary.
+        Any dimensions not set to None will be fixed at the global index provided
+        """
+        
+        # helper variables to correctly reshape the slice after gathering
+        dimSize=[]
+        dim_slices = []
+        shape = []
+        
+        # Get slices for each dimension (eta2_slice, eta1_slice, eta3_slice, eta4_slice)
+        # If value is None then all values along that dimension should be returned
+        # this means that the size and dimension index will be stored
+        # If value is not None then only values at that index should be returned
+        # if that index cannot be found on the current process then None will
+        # be stored
+        
+        for i,dim_i in enumerate(dims):
+            if (dim_i==None):
+                dim_slices.append(slice(0,self._layout.ends[i]-self._layout.starts[i]))
+                dimSize.append(self._layout.ends[i]-self._layout.starts[i])
+            else:
+                if (dim_i>=self._layout.starts[i] and dim_i<self._layout.ends[i]):
+                    dim_slices.append(dim_i-self._layout.starts[i])
+                    dimSize.append(1)
+                else:
+                    dim_slices.append(None)
+                    dimSize.append(None)
+        
+        # if the data is not on this process then at least one of the slices is equal to None
+        # in this case send something of size 0
+        sendInfo = self._layout_manager.mpiCoords
+        if (None in dim_slices):
+            toSend = np.ndarray(0)
+            sendInfo.append(0)
+        else:
+            # set sendSize and data to be sent
+            if (self._f.dtype==np.complex128):
+                toSend = np.real(self._f[tuple(dim_slices)]).flatten()
+                assert(toSend.flags['OWNDATA'])
+            else:
+                toSend = self._f[tuple(dim_slices)].flatten()
+            sendInfo.append(toSend.size)
+        
+        mpi_data=comm.gather(sendInfo,root=rank)
+        
+        if (comm.Get_rank()==rank):
+            sizes = [coords.pop() for coords in mpi_data]
+            # use sizes to get start points
+            starts=np.zeros(len(sizes),int)
+            starts[1:]=np.cumsum(sizes[:comm.Get_size()-1])
+            
+            # save memory for gatherv to fill
+            sliceSize = np.sum(sizes)
+            mySlice = np.empty(sliceSize, dtype=float)
+            
+            # Gather information from all ranks to rank 0 in the
+            # direction of the comm
+            comm.Gatherv(toSend,(mySlice, sizes, starts, MPI.DOUBLE), rank)
+            return (self._layout,starts,mpi_data,mySlice)
+        else:
+            # Gather information from all ranks
+            comm.Gatherv(toSend,toSend, rank)
+    
     def getMin(self,drawingRank = None,axis = None,fixValue = None):
         if (drawingRank == None):
             return self._f.min()

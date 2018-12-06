@@ -25,12 +25,3 @@ module load anaconda/3
 module load mpi4py
 module load hdf5-mpi
 ```
-
-Pyccel
-======
-
-If pyccel is installed then the shared object libraries can be created using the command
-
-```
-bash buildLibraries.sh
-```

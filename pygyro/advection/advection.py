@@ -51,7 +51,6 @@ class ParallelGradient:
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         # Save size in z direction
         self._nz = eta_grid[2].size
-        self._nq = eta_grid[1].size
         
         # If there are too few points then the access cannot be optimised
         # at the boundaries in the way that has been used
@@ -137,27 +136,21 @@ class ParallelGradient:
         # the value multiplied by the corresponding coefficient to the
         # derivative at the point at which it is required
         # This is split into three steps to avoid unnecessary modulo operations
-        tmp = np.empty(self._nq)
+        
         for i in range(self._fwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
-                                    self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
-                der[(i-s)%self._nz,:]+=c*tmp
+                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
-                                    self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
-                der[(i-s),:]+=c*tmp
+                der[(i-s),:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         for i in range(self._nz-self._bkwdSteps,self._nz):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
-                                    self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
-                der[(i-s)%self._nz,:]+=c*tmp
+                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
         
         der*= ( bz * self._inv_dz )
         
@@ -275,6 +268,8 @@ class FluxSurfaceAdvection:
         assert(f.shape==self._nPoints)
         
         # find the values of the function at each required point
+        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
+        
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
             
