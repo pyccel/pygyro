@@ -51,6 +51,7 @@ class ParallelGradient:
         self._dz = eta_grid[2][1]-eta_grid[2][0]
         # Save size in z direction
         self._nz = eta_grid[2].size
+        self._nq = eta_grid[1].size
         
         # If there are too few points then the access cannot be optimised
         # at the boundaries in the way that has been used
@@ -136,21 +137,27 @@ class ParallelGradient:
         # the value multiplied by the corresponding coefficient to the
         # derivative at the point at which it is required
         # This is split into three steps to avoid unnecessary modulo operations
-        
+        tmp = np.empty(self._nq)
         for i in range(self._fwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
+                                    self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
+                der[(i-s)%self._nz,:]+=c*tmp
         
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[(i-s),:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
+                                    self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
+                der[(i-s),:]+=c*tmp
         
         for i in range(self._nz-self._bkwdSteps,self._nz):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                der[(i-s)%self._nz,:]+=c*self._thetaSpline.eval(thetaVals[:,i,j])
+                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
+                                    self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
+                der[(i-s)%self._nz,:]+=c*tmp
         
         der*= ( bz * self._inv_dz )
         
@@ -268,8 +275,6 @@ class FluxSurfaceAdvection:
         assert(f.shape==self._nPoints)
         
         # find the values of the function at each required point
-        LagrangeVals = np.ndarray([self._nPoints[1],self._nPoints[0], self._zLagrangePts])
-        
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
             
@@ -278,10 +283,18 @@ class FluxSurfaceAdvection:
                                 self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
                                 self._thetaSpline.basis.degree,
                                 self._thetaSpline.coeffs)
+            
+            #~ for j,s in enumerate(self._shifts[rIdx,cIdx]):
+                #~ self._LagrangeVals[(i-s)%self._nPoints[1],:,j] = \
+                        #~ self._thetaSpline.eval((self._points[0]+self._thetaShifts[rIdx,cIdx,j])%(2*pi))
         
         AAS.flux_advection(*self._nPoints,modFunc(f),
                             self._lagrangeCoeffs[rIdx,cIdx],
                             modFunc(self._LagrangeVals))
+        
+        #~ for j in range(self._nPoints[0]):
+            #~ for i in range(self._nPoints[1]):
+                #~ f[j,i] = np.dot(self._lagrangeCoeffs[rIdx,cIdx],self._LagrangeVals[i,j])
     
     def gridStep( self, grid: Grid ):
         assert(grid.getLayout(grid.currentLayout).dims_order==(0,3,1,2))
@@ -319,14 +332,21 @@ class VParallelAdvection:
         self._spline = Spline1D(splines)
         self._constants = constants
         
+        self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         if (edge=='fEq'):
             self._edgeType = 0
+            self._edge = lambda r,v: fEq(r,v,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
         elif (edge=='null'):
             self._edgeType = 1
+            self._edge = lambda r,v: 0.0
         elif (edge=='periodic'):
             self._edgeType = 2
             minPt = self._points[0]
             width = self._points[-1]-self._points[0]
+            self._edge = lambda r,v: self._spline.eval((v-minPt)%width + minPt)
         else:
             raise RuntimeError("V parallel boundary condition must be one of 'fEq', 'null', 'periodic'")
     
@@ -360,6 +380,13 @@ class VParallelAdvection:
                                         self._constants.deltaRN0,self._constants.rp,
                                         self._constants.CTi,self._constants.kTi,
                                         self._constants.deltaRTi,self._edgeType)
+        #~ f[:]=self._evalFunc(self._points-c*dt, r)
+    
+    def evaluate( self, v, r ):
+        if (v<self._points[0] or v>self._points[-1]):
+            return self._edge(r,v)
+        else:
+            return self._spline.eval(v)
     
     def gridStep( self, grid: Grid, phi: Grid, parGrad: ParallelGradient, parGradVals: np.array, dt: float):
         for i,r in grid.getCoords(0):
@@ -414,7 +441,16 @@ class PoloidalAdvection:
         
         self._explicit = explicitTrap
         self._TOL = tol
+        
+        self.evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
         self._nulEdge=nulEdge
+        if (nulEdge):
+            self._edge = lambda r,v: 0.0
+        else:
+            self._edge = lambda r,v: fEq(x,y,constants.CN0,constants.kN0,
+                                            constants.deltaRN0,constants.rp,
+                                            constants.CTi,constants.kTi,
+                                            constants.deltaRTi)
         
         self._drPhi_0 = np.empty(self._nPoints)
         self._dqPhi_0 = np.empty(self._nPoints)
@@ -495,6 +531,18 @@ class PoloidalAdvection:
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
                 f[i,j]=self.evalFunc(endPts[0][i,j],endPts[1][i,j],v)
+    
+    def evaluate( self, theta, r, v ):
+        if (r<self._points[1][0]):
+            return self._edge(self._points[1][0],v)
+        elif (r>self._points[1][-1]):
+            return self._edge(r,v)
+        else:
+            while (theta>2*pi):
+                theta-=2*pi
+            while (theta<0):
+                theta+=2*pi
+            return self._spline.eval(theta,r)
     
     def gridStep ( self, grid: Grid, phi: Grid, dt: float ):
         gridLayout = grid.getLayout(grid.currentLayout)
