@@ -116,6 +116,5 @@ def test_Spline2D_unit( ncells, degree, periodic, npts=10, tol=1e-15 ):
     x1 = np.linspace( breaks1[0], breaks1[-1], npts ) # Test points
     x2 = np.linspace( breaks2[0], breaks2[-1], npts ) # Test points
     f  = spline.eval( x1, x2 )
-    print( f.shape )
 
     assert np.all( abs(1.0-f)<tol )

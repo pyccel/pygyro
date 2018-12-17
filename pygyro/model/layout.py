@@ -742,23 +742,29 @@ class LayoutHandler(LayoutManager):
         bufView = np.split(buf,[size])[0].reshape(source_shape)
         assert(bufView.base is buf)
         
-        for r in range(mpi_size):
-            start = layout_source.max_block_shape[axis[0]]*r
-            
-            # Get a view on the block
-            bufRanges=[slice(x) for x in source_shape]
-            bufRanges[axis[1]]=slice(layout_dest.shape[axis[0]])
-            bufRanges[0]=slice(start,start+layout_source.mpi_lengths(axis[0])[r])
-            assert(bufView[tuple(bufRanges)].base is buf)
-            
-            # Get a view on the block in the destination memory
-            destRanges=[slice(x) for x in layout_dest.shape]
-            destRanges[axis[2]]=slice(layout_source.mpi_starts(axis[0])[r],
-                               layout_source.mpi_starts(axis[0])[r]+layout_source.mpi_lengths(axis[0])[r])
-            
-            # Transpose the data. As the axes to be concatenated are the first dimension
-            # the concatenation is done automatically
-            destView[tuple(destRanges)] = np.transpose(bufView[tuple(bufRanges)],transposition)
+        if (layout_dest.shape[axis[2]]%mpi_size==0 and layout_source.shape[axis[1]]%mpi_size==0):
+            # If all blocks are the same shape with no padding then the
+            # transposition can be carried out directly
+            destView[:] = np.transpose(bufView,transposition)
+        else:
+        
+            for r in range(mpi_size):
+                start = layout_source.max_block_shape[axis[0]]*r
+                
+                # Get a view on the block
+                bufRanges=[slice(x) for x in source_shape]
+                bufRanges[axis[1]]=slice(layout_dest.shape[axis[0]])
+                bufRanges[0]=slice(start,start+layout_source.mpi_lengths(axis[0])[r])
+                assert(bufView[tuple(bufRanges)].base is buf)
+                
+                # Get a view on the block in the destination memory
+                destRanges=[slice(x) for x in layout_dest.shape]
+                destRanges[axis[2]]=slice(layout_source.mpi_starts(axis[0])[r],
+                                   layout_source.mpi_starts(axis[0])[r]+layout_source.mpi_lengths(axis[0])[r])
+                
+                # Transpose the data. As the axes to be concatenated are the first dimension
+                # the concatenation is done automatically
+                destView[tuple(destRanges)] = np.transpose(bufView[tuple(bufRanges)],transposition)
     
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -1057,13 +1063,21 @@ class LayoutSwapper(LayoutManager):
             if (nDim1>nDim2):
                 handler1, handler2 = handler2, handler1
                 nDim1, nDim2 = nDim2, nDim1
+                layout1, layout2 = layout2, layout1
+            
+            l1=handler1.getLayout(layout1)
+            l2=handler2.getLayout(layout2)
+            
+            dims1 = l1.dims_order
+            dims2 = l2.dims_order
             
             # Find the axis which will be distributed
             possComms = list(handler2.communicators)
-            for c in handler1.communicators:
+            for i,c in enumerate(handler1.communicators):
                 if c in possComms:
-                    i=possComms.index(c)
-                    possComms[i]=None
+                    j=possComms.index(c)
+                    if (dims1[i]==dims2[j]):
+                        possComms[j]=None
             
             idx_s = np.nonzero(np.array(possComms)!=None)[0]
             

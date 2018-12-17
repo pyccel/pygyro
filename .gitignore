@@ -7,6 +7,11 @@ __pycache__
 *.so
 *.o
 *.mod
+results.txt
+scaling.txt
+current_coverage.txt
+timing/
+.coverage
 doc/*.log
 doc/*.backup
 doc/*.aux

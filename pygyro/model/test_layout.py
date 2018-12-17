@@ -464,7 +464,7 @@ def test_IncompatibleLayoutError():
                np.linspace(0,6.28318531,npts[1]),
                np.linspace(0,10,npts[2]),
                np.linspace(0,10,npts[3])]
-    if (nprocs!=(1,1)):
+    if (not 1 in nprocs):
         with pytest.raises(RuntimeError):
             layouts = {'flux_surface': [0,3,1,2],
                        'v_parallel'  : [0,2,1,3],
@@ -508,7 +508,7 @@ def test_BadStepWarning():
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
     
-    if (nprocs!=(1,1)):
+    if (not 1 in nprocs):
         with pytest.warns(UserWarning):
             remapper.transpose(source = f1,
                                dest   = f2,
@@ -552,7 +552,7 @@ def test_BadStepWarning_IntactSource():
     assert(not f_p_e.flags['OWNDATA'])
     
     
-    if (nprocs!=(1,1)):
+    if (not 1 in nprocs):
         with pytest.warns(UserWarning):
             remapper.transpose(source = fStart,
                                dest = fEnd,
@@ -880,4 +880,99 @@ def test_phiSwapper():
     
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],msLayout,f_ms_s)
     compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
+
+@pytest.mark.parallel
+def test_phiSwapperUsed():
+    comm = MPI.COMM_WORLD
+    comm.Barrier()
+    mpi_size = comm.Get_size()
     
+    npts = [32, 64, 32]
+    
+    n1 = min(npts[0],npts[2])
+    n2 = min(npts[0],npts[1])
+    
+    eta_grids = [np.linspace( 0,10, num=num ) for num in npts ]
+    
+    nprocs = compute_2d_process_grid_from_max( n1 , n2 , mpi_size )
+    
+    # Create dictionary describing layouts    
+    layout_poisson   = {'v_parallel_2d': [0,2,1],
+                        'mode_solve'   : [1,2,0]}
+    layout_vpar      = {'v_parallel_1d': [0,2,1]}
+    layout_poloidal  = {'poloidal'     : [2,1,0]}
+    
+    remapper = LayoutSwapper( comm, [layout_poisson, layout_vpar, layout_poloidal],
+                            [nprocs,nprocs[0],nprocs[1]], eta_grids,
+                            'poloidal' )
+    
+    vp2Layout = remapper.getLayout('v_parallel_2d')
+    msLayout = remapper.getLayout('mode_solve')
+    vp1Layout = remapper.getLayout('v_parallel_1d')
+    plLayout = remapper.getLayout('poloidal')
+    
+    fStart = np.empty(remapper.bufferSize)
+    fEnd = np.empty(remapper.bufferSize)
+    fBuf = np.empty(remapper.bufferSize)
+    
+    f_vp2_s = np.split(fStart,[vp2Layout.size])[0].reshape(vp2Layout.shape)
+    f_vp2_e = np.split(fEnd  ,[vp2Layout.size])[0].reshape(vp2Layout.shape)
+    f_vp2_b = np.split(fBuf  ,[vp2Layout.size])[0].reshape(vp2Layout.shape)
+    assert(not f_vp2_s.flags['OWNDATA'])
+    assert(not f_vp2_e.flags['OWNDATA'])
+    assert(not f_vp2_b.flags['OWNDATA'])
+    
+    f_ms_s = np.split(fStart,[msLayout.size])[0].reshape(msLayout.shape)
+    f_ms_e = np.split(fEnd  ,[msLayout.size])[0].reshape(msLayout.shape)
+    f_ms_b = np.split(fBuf  ,[msLayout.size])[0].reshape(msLayout.shape)
+    assert(not f_ms_s.flags['OWNDATA'])
+    assert(not f_ms_e.flags['OWNDATA'])
+    assert(not f_ms_b.flags['OWNDATA'])
+    
+    f_vp1_s = np.split(fStart,[vp1Layout.size])[0].reshape(vp1Layout.shape)
+    f_vp1_e = np.split(fEnd  ,[vp1Layout.size])[0].reshape(vp1Layout.shape)
+    f_vp1_b = np.split(fBuf  ,[vp1Layout.size])[0].reshape(vp1Layout.shape)
+    assert(not f_vp1_s.flags['OWNDATA'])
+    assert(not f_vp1_e.flags['OWNDATA'])
+    assert(not f_vp1_b.flags['OWNDATA'])
+    
+    f_pl_s = np.split(fStart,[plLayout.size])[0].reshape(plLayout.shape)
+    f_pl_e = np.split(fEnd  ,[plLayout.size])[0].reshape(plLayout.shape)
+    f_pl_b = np.split(fBuf  ,[plLayout.size])[0].reshape(plLayout.shape)
+    assert(not f_pl_s.flags['OWNDATA'])
+    assert(not f_pl_e.flags['OWNDATA'])
+    assert(not f_pl_b.flags['OWNDATA'])
+    
+    define_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_s)
+    
+    remapper.transpose(source=fStart,
+                       dest=fEnd,
+                       buf =fBuf,
+                       source_name='v_parallel_1d',
+                       dest_name='poloidal')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_s)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
+    
+    remapper.transpose(source=fEnd,
+                       dest=fBuf,
+                       buf =fStart,
+                       source_name='poloidal',
+                       dest_name='v_parallel_1d')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_e)
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_b)
+    
+    remapper.transpose(source=fBuf,
+                       dest=fStart,
+                       source_name='v_parallel_1d',
+                       dest_name='poloidal')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],plLayout,f_pl_s)
+    
+    remapper.transpose(source=fStart,
+                       dest=fEnd,
+                       source_name='poloidal',
+                       dest_name='v_parallel_1d')
+    
+    compare_phi(eta_grids[0],eta_grids[1],eta_grids[2],vp1Layout,f_vp1_e)

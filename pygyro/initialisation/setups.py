@@ -11,9 +11,9 @@ from ..model.layout         import getLayoutHandler
 from ..model.grid           import Grid
 from ..model.process_grid   import compute_2d_process_grid
 from .initialiser           import initialise_flux_surface, initialise_poloidal, initialise_v_parallel
-from .                      import constants
+from .constants             import get_constants, Constants
 
-def setupCylindricalGrid(npts: list, layout: str, **kwargs):
+def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
     """
     Setup using radial topology can be initialised using the following arguments:
     
@@ -48,20 +48,17 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
-    rMin=kwargs.pop('rMin',constants.rMin)
-    rMax=kwargs.pop('rMax',constants.rMax)
-    constants.rp = 0.5*(rMin + rMax)
-    zMin=kwargs.pop('zMin',constants.zMin)
-    zMax=kwargs.pop('zMax',constants.zMax)
-    vMax=kwargs.pop('vMax',constants.vMax)
-    vMin=kwargs.pop('vMin',-vMax)
-    m=kwargs.pop('m',constants.m)
-    n=kwargs.pop('n',constants.n)
-    rDegree=kwargs.pop('rDegree',3)
-    qDegree=kwargs.pop('thetaDegree',3)
-    zDegree=kwargs.pop('zDegree',3)
-    vDegree=kwargs.pop('vDegree',3)
-    eps=kwargs.pop('eps',constants.eps)
+    
+    if (constantFile==None):
+        constants = Constants()
+    else:
+        constants = get_constants(constantFile)
+    
+    for f in dir(constants):
+        val=getattr(constants,f)
+        if not callable(val) and f[0]!='_':
+            setattr(constants,f,kwargs.pop(f,val))
+    
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
@@ -80,19 +77,19 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     
     mpi_size = layout_comm.Get_size()
     
-    domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
-    degree = [rDegree, qDegree, zDegree, vDegree]
+    domain = [ [constants.rMin,constants.rMax], [0,2*pi], [constants.zMin,constants.zMax], [constants.vMin, constants.vMax]]
+    degree = constants.splineDegrees
     period = [False, True, True, False]
     
     # Compute breakpoints, knots, spline space and grid points
-    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( constants.npts,degree, period )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
     bsplines  = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grids = [bspl.greville                 for bspl       in bsplines]
 
     # Compute 2D grid of processes for the two distributed dimensions in each layout
-    nprocs = compute_2d_process_grid( npts, mpi_size )
+    nprocs = compute_2d_process_grid( constants.npts, mpi_size )
     
     # Create dictionary describing layouts
     layouts = {'flux_surface': [0,3,1,2],
@@ -109,25 +106,29 @@ def setupCylindricalGrid(npts: list, layout: str, **kwargs):
     grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
     
     if (layout=='flux_surface'):
-        initialise_flux_surface(grid,m,n,eps)
+        initialise_flux_surface(grid,constants)
     elif (layout=='v_parallel'):
-        initialise_v_parallel(grid,m,n,eps)
+        initialise_v_parallel(grid,constants)
     elif (layout=='poloidal'):
-        initialise_poloidal(grid,m,n,eps)
-    return grid
+        initialise_poloidal(grid,constants)
+    return grid, constants, 0
 
-def setupFromFile(foldername, **kwargs):
+def setupFromFile(foldername, constantFile: str = None, **kwargs):
     """
     Setup using information from a previous simulation:
     
     Compulsory arguments:
     foldername -- The folder in which the results of the previous simulation
                   are stored
+    layout      -- parallel distribution start configuration
+                    (not required if a grid from the previous layout has been
+                    saved)
     
     Optional arguments:
     comm        -- MPI communicator. (default MPI.COMM_WORLD)
     plotThread  -- whether there is a thread to be used only for plotting (default False)
     drawRank    -- Thread to be used for plotting (default 0)
+    dtype       -- The data type used by the grid
     
     timepoint   -- Point in time from which the simulation should resume
                    (default is latest possible)
@@ -135,36 +136,21 @@ def setupFromFile(foldername, **kwargs):
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
-    filename = "{0}/initParams.h5".format(foldername)
-    save_file = h5py.File(filename,'r',driver='mpio',comm=comm)
-    group = save_file['constants']
-    for i in group.attrs:
-        constants.i = group.attrs[i]
-    constants.rp = 0.5*(constants.rMin + constants.rMax)
     
-    rMin=constants.rMin
-    rMax=constants.rMax
-    zMin=constants.zMin
-    zMax=constants.zMax
-    vMax=constants.vMax
-    vMin=constants.vMin
-    m=constants.m
-    n=constants.n
-    eps=constants.eps
+    if (constantFile==None):
+        constantFile = "{0}/initParams.json".format(foldername)
     
-    group = save_file['degrees']
-    rDegree=int(group.attrs['r'])
-    qDegree=int(group.attrs['theta'])
-    zDegree=int(group.attrs['z'])
-    vDegree=int(group.attrs['v'])
+    constants = get_constants(constantFile)
     
-    npts = save_file.attrs['npts']
-    
-    save_file.close()
+    for f in dir(constants):
+        val=getattr(constants,f)
+        if not callable(val) and f[0]!='_':
+            setattr(constants,f,kwargs.pop(f,val))
     
     plotThread=kwargs.pop('plotThread',False)
     drawRank=kwargs.pop('drawRank',0)
     allocateSaveMemory=kwargs.pop('allocateSaveMemory',False)
+    dtype=kwargs.pop('dtype',float)
     
     rank=comm.Get_rank()
     
@@ -175,19 +161,19 @@ def setupFromFile(foldername, **kwargs):
     
     mpi_size = layout_comm.Get_size()
     
-    domain = [ [rMin,rMax], [0,2*pi], [zMin,zMax], [vMin, vMax]]
-    degree = [rDegree, qDegree, zDegree, vDegree]
+    domain = [ [constants.rMin,constants.rMax], [0,2*pi], [constants.zMin,constants.zMax], [constants.vMin, constants.vMax]]
+    degree = constants.splineDegrees
     period = [False, True, True, False]
     
     # Compute breakpoints, knots, spline space and grid points
-    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
+    nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( constants.npts,degree, period )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
     bsplines  = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grids = [bspl.greville                 for bspl       in bsplines]
 
     # Compute 2D grid of processes for the two distributed dimensions in each layout
-    nprocs = compute_2d_process_grid( npts, mpi_size )
+    nprocs = compute_2d_process_grid( constants.npts, mpi_size )
     
     # Create dictionary describing layouts
     layouts = {'flux_surface': [0,3,1,2],
@@ -201,14 +187,18 @@ def setupFromFile(foldername, **kwargs):
         remapper = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
     if ('timepoint' in kwargs):
-        filename = "{0}/grid_{1:06}.h5".format(foldername,kwargs.pop('timepoint'))
+        t = kwargs.pop('timepoint')
+        filename = "{0}/grid_{1:06}.h5".format(foldername,t)
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
-        if (len(list_of_files)>1):
+        if (len(list_of_files)>0):
             filename = max(list_of_files)
+            t = int(filename.split('_')[-1].split('.')[0])
         else:
             filename = None
+            t = 0
+    
     if (filename!=None):
         file = h5py.File(filename,'r')
         dataset=file['/dset']
@@ -222,25 +212,32 @@ def setupFromFile(foldername, **kwargs):
             raise ArgumentError("The stored layout is not a standard layout")
         
         # Create grid
-        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,allocateSaveMemory=allocateSaveMemory)
+        grid = Grid(eta_grids,bsplines,remapper,my_layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
         layout = grid.getLayout(my_layout)
         slices = tuple([slice(s,e) for s,e in zip(layout.starts,layout.ends)])
         grid._f[:] = dataset[slices]
         
         file.close()
+        
+        if ('layout' in kwargs):
+            desired_layout = kwargs.pop('layout')
+            if (desired_layout!=my_layout):
+                grid.setLayout(desired_layout)
     else:
+        assert('layout' in kwargs)
+        layout = kwargs.pop('layout')
         # Create grid
         grid = Grid(eta_grids,bsplines,remapper,layout,comm,dtype=dtype,allocateSaveMemory=allocateSaveMemory)
         
         if (layout=='flux_surface'):
-            initialise_flux_surface(grid,m,n,eps)
+            initialise_flux_surface(grid,constants)
         elif (layout=='v_parallel'):
-            initialise_v_parallel(grid,m,n,eps)
+            initialise_v_parallel(grid,constants)
         elif (layout=='poloidal'):
-            initialise_poloidal(grid,m,n,eps)
+            initialise_poloidal(grid,constants)
     
     for name,value in kwargs.items():
         warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
     
-    return grid
+    return grid, constants, t

@@ -4,7 +4,7 @@ from scipy.integrate        import trapz
 
 from .advection                     import *
 from ..                             import splines as spl
-from ..initialisation               import constants
+from ..initialisation.constants     import get_constants
 from ..model.layout                 import Layout
 
 NSteps = 1000
@@ -38,12 +38,15 @@ def test_fluxSurfaceAdvection():
     
     layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     
-    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, iota0)
+    constants = get_constants('testSetups/iota0.json')
+    
+    fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
     
     f_vals[:,:] = np.sin(eta_vals[2]*pi/10)
     
     fTime = timeit.Timer(lambda: fluxAdv.step(f_vals,0)).timeit(NSteps)
     print(fTime/NSteps," per step, ",fTime," total")
+    print(fTime*NGrid*NGrid/NSteps," per grid ")
 
 def gauss(x):
     return np.exp(-x**2/4)
@@ -52,6 +55,8 @@ def gauss(x):
 def test_vParallelAdvection():
     npts = NGrid
     f = np.empty(npts)
+    
+    constants = get_constants('testSetups/iota0.json')
     
     dt=0.1
     c=2.0
@@ -63,15 +68,20 @@ def test_vParallelAdvection():
     x         = spline.greville
     
     r = 4
-    fEdge = fEq(r,x[0])
-    assert(fEq(r,x[0])==fEq(r,x[-1]))
+    fEdge = fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+    assert(fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
+            ==fEq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
+                constants.rp,constants.CTi,constants.kTi,constants.deltaRTi))
     
     f = gauss(x)+fEdge
     
-    vParAdv = VParallelAdvection([0,0,0,x], spline, lambda r,v : 0)
+    vParAdv = VParallelAdvection([0,0,0,x], spline, constants, edge='null')
     
     vTime = timeit.Timer(lambda: vParAdv.step(f,dt,c,r)).timeit(NSteps)
     print(vTime/NSteps," per step, ",vTime," total")
+    print(vTime*NGrid*NGrid*NGrid/NSteps," per grid ")
 
 
 def Phi(r,theta):
@@ -118,7 +128,9 @@ def test_explicitPoloidalAdvection():
     eta_vals[1]=eta_grids[1]
     eta_vals[3][0]=v
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], lambda r,v : 0)
+    constants = get_constants('testSetups/iota0.json')
+    
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, nulEdge=True)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
@@ -131,3 +143,4 @@ def test_explicitPoloidalAdvection():
     
     pTime = timeit.Timer(lambda: polAdv.step(f_vals,dt,phi,v)).timeit(NSteps)
     print(pTime/NSteps," per step, ",pTime," total")
+    print(pTime*NGrid*NGrid/NSteps," per grid ")

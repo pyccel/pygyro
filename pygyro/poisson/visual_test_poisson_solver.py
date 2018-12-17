@@ -11,9 +11,8 @@ from matplotlib             import rc
 from ..model.process_grid           import compute_2d_process_grid
 from ..model.layout                 import LayoutSwapper, getLayoutHandler
 from ..model.grid                   import Grid
-from ..initialisation.setups        import setupCylindricalGrid
-from ..initialisation               import initialiser
-from ..initialisation               import constants
+from ..initialisation               import mod_initialiser_funcs as initialiser
+from ..initialisation.constants     import get_constants
 from ..                             import splines as spl
 from .poisson_solver                import DiffEqSolver, DensityFinder
 from ..splines.splines              import BSplines, Spline1D
@@ -41,16 +40,20 @@ def test_QuasiNeutralityEquation_pointConverge():
     bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grid = [bspl.greville                 for bspl       in bsplines]
     
+    constants = get_constants('testSetups/iota0.json')
+    
     layout_poisson = {'mode_solve': [1,2,0],
                       'v_parallel': [0,2,1]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
     
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
     
-    ps = DiffEqSolver(100,bsplines[0],eta_grid[1].size,lNeumannIdx=mVals,
+    ps = DiffEqSolver(100,bsplines[0],eta_grid[0].size,
+            eta_grid[1].size,lNeumannIdx=mVals,
             ddrFactor = lambda r:-1,
-            drFactor = lambda r:-( 1/r + initialiser.n0derivNormalised(r) ),
-            rFactor = lambda r:1/initialiser.Te(r),ddThetaFactor = lambda r:-1/r**2)
+            drFactor = lambda r:-( 1/r + initialiser.n0derivNormalised(r,constants.kN0,constants.rp,constants.deltaRN0) ),
+            rFactor = lambda r:1/initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp),
+            ddThetaFactor = lambda r:-1/r**2)
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
@@ -65,7 +68,8 @@ def test_QuasiNeutralityEquation_pointConverge():
                    + 4*np.cos(rArg)**4                *a*a*np.sin(q)**3 \
                    + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                    4 * np.cos(rArg)**3*np.sin(rArg)*a*np.sin(q)**3 \
-                   + np.cos(rArg)**4*np.sin(q)**3 / initialiser.Te(r) \
+                   + np.cos(rArg)**4*np.sin(q)**3 \
+                   / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp) \
                    - 6 * np.cos(rArg)**4*np.sin(q)*np.cos(q)**2/r**2 \
                    + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
         plane = phi_exact.get2DSlice([i])

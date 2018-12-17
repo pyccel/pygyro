@@ -3,6 +3,7 @@ import numpy as np
 from functools import reduce
 import pytest
 
+from  .constants              import Constants
 from  .setups                 import setupCylindricalGrid, setupFromFile
 
 @pytest.mark.serial
@@ -29,19 +30,19 @@ def test_setup():
 @pytest.mark.parallel
 def test_setup():
     npts = [10,20,10,10]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
     
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
     
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
     
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
     
     for (coord,npt) in zip(grid.eta_grid,npts):
@@ -92,6 +93,9 @@ def test_setupFromFolder():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
+    constants = Constants()
+    constants.npts = npts
+    
     grid = Grid(eta_grids,[],remapper,'flux_surface')
     
     define_f(grid)
@@ -100,7 +104,7 @@ def test_setupFromFolder():
         if (not os.path.isdir('testValues')):
             os.mkdir('testValues')
     
-    setupSave(3,3,3,3,npts,0.1,'testValues')
+    setupSave(constants,'testValues')
     
     grid.writeH5Dataset('testValues',0)
     grid._f[:]+=20
@@ -114,7 +118,7 @@ def test_setupFromFolder():
     grid._f[:]+=20
     grid.writeH5Dataset('testValues',100)
     
-    grid2 = setupFromFile('testValues')
+    grid2,constants,t = setupFromFile('testValues')
     compare_f(grid2,100)
 
 @pytest.mark.parallel
@@ -133,6 +137,9 @@ def test_setupFromFolderAtTime():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
+    constants = Constants()
+    constants.npts = npts
+    
     grid = Grid(eta_grids,[],remapper,'flux_surface')
     
     define_f(grid)
@@ -141,7 +148,7 @@ def test_setupFromFolderAtTime():
         if (not os.path.isdir('testValues')):
             os.mkdir('testValues')
     
-    setupSave(3,3,3,3,npts,0.1,'testValues')
+    setupSave(constants,'testValues')
     
     grid.writeH5Dataset('testValues',0)
     grid._f[:]+=20
@@ -155,5 +162,5 @@ def test_setupFromFolderAtTime():
     grid._f[:]+=20
     grid.writeH5Dataset('testValues',100)
     
-    grid2 = setupFromFile('testValues',timepoint = 40)
+    grid2,constants,t = setupFromFile('testValues',timepoint = 40)
     compare_f(grid2,40)
