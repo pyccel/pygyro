@@ -380,7 +380,7 @@ def test_Grid_max_plotting(layout):
     
     maxVal = grid.getMax(r,[0,1],[0,0])
     if (rank==r):
-        aassert(maxVal==(np.prod(npts[2:])-1))
+        assert(maxVal==(np.prod(npts[2:])-1))
 
 @pytest.mark.parametrize( "layout", ['flux_surface','v_parallel','poloidal'] )
 @pytest.mark.parallel
