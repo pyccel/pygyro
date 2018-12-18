@@ -11,7 +11,7 @@ def test_Perturbation_FluxSurface():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 m      = m,
                                 n      = n)
@@ -27,14 +27,16 @@ def test_Perturbation_FluxSurface():
             theta = theta.reshape(theta.size,1)
             FluxSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
-    Plotter2d(grid,'r','v').show()
+    p = Plotter2d(grid,0,3,False)
+    p.setLabels('r','v')
+    p.show()
 
 @pytest.mark.serial
 def test_Perturbation_vPar():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel',
                                 m      = m,
                                 n      = n)
@@ -50,14 +52,16 @@ def test_Perturbation_vPar():
             theta = theta.reshape(theta.size,1)
             Surface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
-    Plotter2d(grid,'r','v').show()
+    p = Plotter2d(grid,0,3,False)
+    p.setLabels('r','v')
+    p.show()
 
 @pytest.mark.serial
 def test_Perturbation_Poloidal():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
@@ -73,17 +77,22 @@ def test_Perturbation_Poloidal():
             theta = theta.reshape(theta.size,1)
             PoloidalSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
-    Plotter2d(grid,'r','v').show()
+    p = Plotter2d(grid,0,3,False)
+    p.setLabels('r','v')
+    p.show()
 
 @pytest.mark.serial
 def test_FieldPlot_FluxSurface():
     npts = [10,20,10,10]
     m = 15
-    n = 20
-    grid = setupCylindricalGrid(npts   = npts,
-                                layout = 'flux_surface',
-                                m      = m,
-                                n      = n)
+    n = -11
+    iotaVal = 0.8
+    
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
+                                layout  = 'flux_surface',
+                                m       = m,
+                                n       = n,
+                                iotaVal = iotaVal)
     for i,r in grid.getCoords(0):
         for j,v in grid.getCoords(1):
             # Get surface
@@ -96,17 +105,21 @@ def test_FieldPlot_FluxSurface():
             theta = theta.reshape(theta.size,1)
             FluxSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
-    Plotter2d(grid,'q','z').show()
+    p = Plotter2d(grid,1,2,False)
+    p.setLabels('q','z')
+    p.show()
 
 @pytest.mark.serial
 def test_FieldPlot_vPar():
     npts = [10,20,10,10]
     m = 15
-    n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    n = -11
+    iotaVal = 0.8
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel',
                                 m      = m,
-                                n      = n)
+                                n      = n,
+                                iotaVal = iotaVal)
     for i,r in grid.getCoords(0):
         for j,z in grid.getCoords(1):
             # Get surface
@@ -119,17 +132,21 @@ def test_FieldPlot_vPar():
             theta = theta.reshape(theta.size,1)
             Surface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
-    Plotter2d(grid,'q','z').show()
+    p = Plotter2d(grid,1,2,False)
+    p.setLabels('q','z')
+    p.show()
 
 @pytest.mark.serial
 def test_FieldPlot_Poloidal():
     npts = [10,20,10,10]
     m = 15
-    n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    n = -11
+    iotaVal = 0.8
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal',
                                 m      = m,
-                                n      = n)
+                                n      = n,
+                                iotaVal = iotaVal)
     for i,v in grid.getCoords(0):
         for j,z in grid.getCoords(1):
             # Get surface
@@ -142,14 +159,16 @@ def test_FieldPlot_Poloidal():
             theta = theta.reshape(theta.size,1)
             PoloidalSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
     
-    Plotter2d(grid,'q','z').show()
+    p = Plotter2d(grid,1,2,False)
+    p.setLabels('q','z')
+    p.show()
 
 @pytest.mark.serial
 def test_Equilibrium_FluxSurface():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 m      = m,
                                 n      = n)
@@ -168,14 +187,16 @@ def test_Equilibrium_FluxSurface():
                                 constants.CTi,constants.kTi,
                                 constants.deltaRTi)
     
-    Plotter2d(grid,'r','v').show()
+    p = Plotter2d(grid,0,3,False)
+    p.setLabels('r','v')
+    p.show()
 
 @pytest.mark.serial
 def test_Equilibrium_vPar():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel',
                                 m      = m,
                                 n      = n)
@@ -194,14 +215,16 @@ def test_Equilibrium_vPar():
                             constants.CTi,constants.kTi,
                             constants.deltaRTi)
     
-    Plotter2d(grid,'r','v').show()
+    p = Plotter2d(grid,0,3,False)
+    p.setLabels('r','v')
+    p.show()
 
 @pytest.mark.serial
 def test_Equilibrium_Poloidal():
     npts = [10,20,10,10]
     m = 15
     n = 20
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
@@ -220,25 +243,27 @@ def test_Equilibrium_Poloidal():
                                     constants.CTi,constants.kTi,
                                     constants.deltaRTi)
     
-    Plotter2d(grid,'r','v').show()
+    p = Plotter2d(grid,0,3,False)
+    p.setLabels('r','v')
+    p.show()
 
 @pytest.mark.serial
 def test_FluxSurface():
     npts = [10,10,20,20]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
     SlicePlotter4d(grid).show()
 
 @pytest.mark.serial
 def test_vParallel():
     npts = [10,10,20,20]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
     SlicePlotter4d(grid).show()
 
 @pytest.mark.serial
 def test_Poloidal():
     npts = [10,10,20,20]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     SlicePlotter4d(grid).show()
