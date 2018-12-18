@@ -299,7 +299,7 @@ class Grid(object):
             return self._f.min()
         else:
             if (self._f.size==0):
-                return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
+                return self.global_comm.reduce(np.inf,op=MPI.MIN,root=drawingRank)
             else:
                 # if we want the total of all points on the grid
                 if (axis==None and fixValue==None):
@@ -318,14 +318,14 @@ class Grid(object):
                 # if the data is not on this process then send the largest possible value of f
                 # this way min will always choose an alternative
                 else:
-                    return self.global_comm.reduce(1,op=MPI.MIN,root=drawingRank)
+                    return self.global_comm.reduce(np.inf,op=MPI.MIN,root=drawingRank)
     
     def getMax(self,drawingRank = None,axis = None,fixValue = None):
         if (drawingRank == None):
             return self._f.max()
         else:
             if (self._f.size==0):
-                return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
+                return self.global_comm.reduce(-np.inf,op=MPI.MAX,root=drawingRank)
             else:
                 # if we want the total of all points on the grid
                 if (axis==None and fixValue==None):
@@ -344,4 +344,4 @@ class Grid(object):
                 # if the data is not on this process then send the smallest possible value of f
                 # this way max will always choose an alternative
                 else:
-                    return self.global_comm.reduce(0,op=MPI.MAX,root=drawingRank)
+                    return self.global_comm.reduce(-np.inf,op=MPI.MAX,root=drawingRank)
