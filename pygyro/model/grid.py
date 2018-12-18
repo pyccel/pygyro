@@ -352,7 +352,7 @@ class Grid(object):
                         hasData = False
                 
                 if hasData:
-                    return self.global_comm.reduce(np.amax(np.real(self._f[idx])),op=MPI.MAX,root=drawingRank)
+                    return self.global_comm.reduce(np.amax(np.real(self._f[tuple(idx)])),op=MPI.MAX,root=drawingRank)
                 
                 # if the data is not on this process then send the smallest possible value of f
                 # this way max will always choose an alternative
