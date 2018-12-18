@@ -1,0 +1,23 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns,decorations.markings}
+
+\definecolor{mygreen}{RGB}{0, 153, 0}
+
+\begin{document}
+{
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+xlabel={$\|\phi\|_2$},
+ylabel={Time}
+]
+\addplot[only marks,mark=*] table[x={time},y={phi}] {phiDat.txt};
+\addplot[domain=0:5000] {1.12e-5*exp(3.83e-3*x)};
+\end{semilogyaxis}
+\end{tikzpicture}
+}
+\end{document}

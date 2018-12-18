@@ -1,0 +1,164 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+%\usepackage{pgfplots}
+%\usepackage{pgfplotstable}
+%\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns}
+\tikzstyle{proc1}=      [color=blue!20]
+\tikzstyle{proc2}=      [color=blue!70]
+
+\begin{document}
+{
+\begin{tikzpicture}[scale=0.5]
+ \input{nDims}
+ 
+ \pgfmathsetmacro\nxMax{\nx-1}
+ \pgfmathsetmacro\nyMax{\nz-1}
+ \pgfmathsetmacro\nzMax{\ny-1}
+ 
+ \pgfmathsetmacro\nxSplit{int(\nx/2)}
+ \pgfmathsetmacro\nySplit{int(\nz/2)}
+ \pgfmathsetmacro\nzSplit{int(\ny/2)}
+ \pgfmathsetmacro\Split{1.5}
+ 
+ \pgfmathsetmacro\nxSplitMax{\nxSplit-1}
+ \pgfmathsetmacro\nySplitMax{\nySplit-1}
+ \pgfmathsetmacro\nzSplitMax{\nzSplit-1}
+ 
+ \foreach \x in {0,...,\nxSplitMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \draw (\x,-\nySplit,-\z) -- (\x,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z);
+   \fill[proc1] (\x,-\nySplit,-\z) -- (\x,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z);
+   \pgfmathsetmacro\n{int(\x+\nySplit*\ny*\nx+\nx*\z)}
+   \node[scale=0.5]  at (\x+0.5,-\nySplit,-\z-0.5) {\n};
+  }
+  \foreach \y in {\nySplit,...,\nyMax}
+  {
+   \fill[proc1] (\x,-\y,0) rectangle (\x+1,-\y-1,0);
+   \draw (\x,-\y,0) -- (\x,-\y-1,0) -- (\x+1,-\y-1,0) -- (\x+1,-\y,0) -- (\x,-\y,0);
+   \pgfmathsetmacro\n{int(\x+\nx*\ny*\y)}
+   \node[scale=1] at (\x+0.5,-\y-0.5,0) {\bf \n};
+  }
+ }
+ 
+ \foreach \y in {\nySplit,...,\nyMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \fill[proc1] (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \draw (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \pgfmathsetmacro\n{int(\nxSplitMax+\z*\nx+\nx*\ny* \y)}
+   \node[scale=0.5] at (\nxSplit,-\y-0.5,-\z-0.5) {\n};
+  }
+ }
+ 
+ \begin{scope}[xshift=6 cm]
+  \foreach \x in {0,...,\nxSplitMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \draw (\x,-\nySplit,-\z) -- (\x,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z);
+   \fill[proc2] (\x,-\nySplit,-\z) -- (\x,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z-1) -- (\x+1,-\nySplit,-\z);
+   \pgfmathsetmacro\n{int(\nxSplit+\x+\nySplit*\ny*\nx+\nx*\z)}
+   \node[scale=0.5]  at (\x+0.5,-\nySplit,-\z-0.5) {\n};
+  }
+  \foreach \y in {\nySplit,...,\nyMax}
+  {
+   \fill[proc2] (\x,-\y,0) rectangle (\x+1,-\y-1,0);
+   \draw (\x,-\y,0) -- (\x,-\y-1,0) -- (\x+1,-\y-1,0) -- (\x+1,-\y,0) -- (\x,-\y,0);
+   \pgfmathsetmacro\n{int(\nxSplit+\x+\nx*\ny*\y)}
+   \node[scale=1] at (\x+0.5,-\y-0.5,0) {\bf \n};
+  }
+ }
+ 
+ \foreach \y in {\nySplit,...,\nyMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \fill[proc2] (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \draw (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \pgfmathsetmacro\n{int(\nxMax+\z*\nx+\nx*\ny* \y)}
+   \node[scale=0.5] at (\nxSplit,-\y-0.5,-\z-0.5) {\n};
+  }
+ }
+ \end{scope}
+
+ 
+ \begin{scope}[yshift=\Split cm]
+ \foreach \x in {0,...,\nxSplitMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \draw (\x,0,-\z) -- (\x,0,-\z-1) -- (\x+1,0,-\z-1) -- (\x+1,0,-\z);
+   \fill[proc1] (\x,0,-\z) -- (\x,0,-\z-1) -- (\x+1,0,-\z-1) -- (\x+1,0,-\z);
+   \pgfmathsetmacro\n{int(\x+\nx*\z)}
+   \node[scale=0.5]  at (\x+0.5,0,-\z-0.5) {\n};
+  }
+  \foreach \y in {0,...,\nySplitMax}
+  {
+   \fill[proc1] (\x,-\y,0) rectangle (\x+1,-\y-1,0);
+   \draw (\x,-\y,0) -- (\x,-\y-1,0) -- (\x+1,-\y-1,0) -- (\x+1,-\y,0) -- (\x,-\y,0);
+   \pgfmathsetmacro\n{int(\x+\nx*\ny*\y)}
+   \node[scale=1] at (\x+0.5,-\y-0.5,0) {\bf \n};
+  }
+ }
+ \foreach \y in {0,...,\nySplitMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \fill[proc1] (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \draw (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \pgfmathsetmacro\n{int(\nxSplitMax+\z*\nx+\nx*\ny*\y)}
+   \node[scale=0.5] at (\nxSplit,-\y-0.5,-\z-0.5) {\n};
+  }
+ }
+ 
+ \begin{scope}[xshift=6cm]
+ \foreach \x in {0,...,\nxSplitMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \draw (\x,0,-\z) -- (\x,0,-\z-1) -- (\x+1,0,-\z-1) -- (\x+1,0,-\z);
+   \fill[proc2] (\x,0,-\z) -- (\x,0,-\z-1) -- (\x+1,0,-\z-1) -- (\x+1,0,-\z);
+   \pgfmathsetmacro\n{int(\nxSplit+\x+\nx*\z)}
+   \node[scale=0.5]  at (\x+0.5,0,-\z-0.5) {\n};
+  }
+  \foreach \y in {0,...,\nySplitMax}
+  {
+   \fill[proc2] (\x,-\y,0) rectangle (\x+1,-\y-1,0);
+   \draw (\x,-\y,0) -- (\x,-\y-1,0) -- (\x+1,-\y-1,0) -- (\x+1,-\y,0) -- (\x,-\y,0);
+   \pgfmathsetmacro\n{int(\nxSplit+\x+\nx*\ny*\y)}
+   \node[scale=1] at (\x+0.5,-\y-0.5,0) {\bf \n};
+  }
+ }
+ \foreach \y in {0,...,\nySplitMax}
+ {
+  \foreach \z in {0,...,\nzMax}
+  {
+   \fill[proc2] (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \draw (\nxSplit,-\y,-\z) -- (\nxSplit,-\y,-\z-1) -- (\nxSplit,-\y-1,-\z-1) -- (\nxSplit,-\y-1,-\z) -- (\nxSplit,-\y,-\z);
+   \pgfmathsetmacro\n{int(\nxMax+\z*\nx+\nx*\ny*\y)}
+   \node[scale=0.5] at (\nxSplit,-\y-0.5,-\z-0.5) {\n};
+  }
+ }
+ \end{scope}
+ 
+ 
+ \end{scope}
+ \draw[black,very thick] (\nxSplit,-\nySplit,0) -- (\nxSplit,-\nyMax-1,0);
+ \draw[black,very thick] (\nxSplit,-\nySplit,-\ny) -- (\nxSplit,-\nyMax-1,-\ny);
+ \draw[black,very thick] (\nxSplit,-\nyMax-1,0) -- (\nxSplit,-\nyMax-1,-\ny);
+ 
+ \draw[black,very thick] (\nxSplit,-\nySplit+\Split,0) -- (\nxSplit,\Split,0);
+ \draw[black,very thick] (\nxSplit,-\nySplit+\Split,-\ny) -- (\nxSplit,\Split,-\ny);
+ \draw[black,very thick] (\nxSplit,\Split,0) -- (\nxSplit,\Split,-\ny);
+ 
+ \draw[black,very thick] (6,-\nySplit,0) -- (6,-\nyMax-1,0);
+ \draw[black,very thick] (6,-\nySplit+\Split,0) -- (6,\Split,0);
+ \draw[black,very thick] (6,\Split,0) -- (6,\Split,-\ny);
+\end{tikzpicture}
+}
+\end{document}

@@ -1,0 +1,20 @@
+\documentclass{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+%\usepackage{pgfplots}
+%\usepackage{pgfplotstable}
+%\pgfplotsset{compat=1.5}
+\usetikzlibrary{patterns}
+
+\begin{document}
+{
+\begin{tikzpicture}
+ \draw[->,thick] (0,0,0) -- (1,0,0);
+ \draw[->,thick] (0,0,0) -- (0,-1,0);
+ \draw[->,thick] (0,0,0) -- (0,0,-1);
+ \node[left] at (0,-0.5,0) {i};
+ \node[left] at (-0.2,0,-0.8) {j};
+ \node[below] at (0.5,0,0) {k};
+\end{tikzpicture}
+}
+\end{document}

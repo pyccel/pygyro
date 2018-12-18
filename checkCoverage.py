@@ -44,4 +44,4 @@ else:
         i = out.find("TOTAL")
         totline = out[i:]
         pc=float(totline[totline.rfind(" "):totline.rfind("%")])
-        assert(pc>=75)
+        assert(pc>=90)
