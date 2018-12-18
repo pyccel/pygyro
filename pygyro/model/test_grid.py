@@ -50,7 +50,7 @@ def compare_phi(grid):
             for k,a in enumerate(Slice):
                 [I,J,K] = grid.getGlobalIndices([i,j,k])
                 assert(a == I*nEta3*nEta2+J*nEta3+K)
-"""
+
 @pytest.mark.serial
 def test_Grid_serial():
     eta_grids=[np.linspace(0,1,10),
@@ -84,7 +84,7 @@ def test_Grid_parallel():
     manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     Grid(eta_grids,[],manager,'flux_surface')
-"""
+
 @pytest.mark.parallel
 def test_Grid_max():
     npts = [10,10,10,10]
@@ -127,7 +127,7 @@ def test_Grid_min():
     define_f(grid)
     minVal = grid.getMin()
     assert(minVal==np.min(grid._f))
-"""
+
 @pytest.mark.parallel
 def test_Grid_save_restore():
     npts = [10,10,10,10]
@@ -341,7 +341,7 @@ def test_h5py():
     grid.writeH5Dataset('testValues',100)
     grid.loadFromFile('testValues')
     compare_f(grid,100)
-"""
+
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!!!!!!!!!!!!!!!!!!       Test plotting functions !!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
