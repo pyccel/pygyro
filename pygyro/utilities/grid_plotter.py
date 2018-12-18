@@ -517,155 +517,174 @@ class SlicePlotter3d(object):
         MPI.COMM_WORLD.bcast(0,root=0)
 
 class Plotter2d(object):
-    def __init__(self,grid: Grid, *args, **kwargs):
+    """
+    Plotter2d
+    ---------
+    Class for plotting 2d slices of a grid
+    
+    Parameters
+    ----------
+    grid : Grid
+        The grid to plot
+    
+    xDimension : int
+        The dimension of the grid which will be represented by the x (or r) axis
+    
+    yDimension : int
+        The dimension of the grid which will be represented by the y (or θ) axis
+    
+    polar : boolean
+        Indicates whether or not the plot is polar
+    
+    Optional parameters
+    -------------------
+    comm : MPI.Comm
+        The communicator on which the data is distributed
+    
+    drawingRank : int
+        The rank on which the plot is drawn. Default is 0
+    
+    fixVals : list
+        A list of the values at which the non-plotted axes are fixed.
+        All values must be given.
+        E.g. For a theta,z plot, fixVals = [2,3] means r=2 and v=3
+        Default is the median value
+    """
+    def __init__(self,grid: Grid, xDimension: int, yDimension: int, polar: bool, **kwargs):
         self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
         self.drawRank = kwargs.pop('drawingRank',0)
         
+        self.rank = self.comm.Get_rank()
         self.nprocs = grid._layout_manager.nProcs
         
-        # use arguments to get x values
-        assert(len(args)==2)
-        if (args[0]=='r'):
-            self.xVals=Dimension.ETA1
-            self.x=grid.eta_grid[Dimension.ETA1]
-        elif (args[0]=='q' or args[0]=='theta'):
-            self.xVals=Dimension.ETA2
-            self.x=np.append(grid.eta_grid[Dimension.ETA2],2*pi)
-        elif (args[0]=='z'):
-            self.xVals=Dimension.ETA3
-            self.x=grid.eta_grid[Dimension.ETA3]
-        elif (args[0]=='v'):
-            self.xVals=Dimension.ETA4
-            self.x=grid.eta_grid[Dimension.ETA4]
-        else:
-            raise TypeError("%s is not a valid dimension" % self.xVals)
-        
-        # use arguments to get y values
-        if (args[1]=='r'):
-            self.yVals=Dimension.ETA1
-            self.y=grid.eta_grid[Dimension.ETA1]
-        elif (args[1]=='q' or args[0]=='theta'):
-            self.yVals=Dimension.ETA2
-            self.y=np.append(grid.eta_grid[Dimension.ETA2],2*pi)
-        elif (args[1]=='z'):
-            self.yVals=Dimension.ETA3
-            self.y=grid.eta_grid[Dimension.ETA3]
-        elif (args[1]=='v'):
-            self.yVals=Dimension.ETA4
-            self.y=grid.eta_grid[Dimension.ETA4]
-        else:
-            raise TypeError("%s is not a valid dimension" % self.yVals)
         self.grid = grid
         
-        # get unused dimensions identifiers
-        omitted=(set(Dimension)-set([self.xVals,self.yVals]))
-        self.omit1=omitted.pop()
-        self.omit2=omitted.pop()
+        self.xDim = xDimension
+        self.yDim = yDimension
+        self.x = grid.eta_grid[self.xDim]
+        self.y = grid.eta_grid[self.yDim]
         
-        # fix first unused dimension at an arbitrary (but measured) value
-        if (self.omit1==Dimension.ETA1):
-            self.omitVal1=self.grid.nGlobalCoords[Dimension.ETA1]//2
-        elif (self.omit1==Dimension.ETA2):
-            self.omitVal1=self.grid.nGlobalCoords[Dimension.ETA2]//2
-        elif (self.omit1==Dimension.ETA3):
-            self.omitVal1=self.grid.nGlobalCoords[Dimension.ETA3]//2
-        elif (self.omit1==Dimension.ETA4):
-            self.omitVal1=self.grid.nGlobalCoords[Dimension.ETA4]//2
+        # Get omitted dimensions
+        self.omitDims = [d for d in range(len(grid.eta_grid)) if (d!=self.xDim and d!=self.yDim)]
+        self.nOmitted = len(self.omitDims)
         
-        # fix second unused dimension at an arbitrary (but measured) value
-        if (self.omit2==Dimension.ETA1):
-            self.omitVal2=self.grid.nGlobalCoords[Dimension.ETA1]//2
-        elif (self.omit2==Dimension.ETA2):
-            self.omitVal2=self.grid.nGlobalCoords[Dimension.ETA2]//2
-        elif (self.omit2==Dimension.ETA3):
-            self.omitVal2=self.grid.nGlobalCoords[Dimension.ETA3]//2
-        elif (self.omit2==Dimension.ETA4):
-            self.omitVal2=self.grid.nGlobalCoords[Dimension.ETA4]//2
+        # Get fixed values in non-plotted dimensions
+        if ('fixValues' in kwargs):
+            self.omitVals = kwargs.pop('fixValues')
+            assert(len(self.omitVals)==self.nOmitted)
+        else:
+            self.omitVals = [self.grid.nGlobalCoords[d]//2 for d in self.omitDims]
+        # Create a dictionary from the omitted values to feed to the grid
+        self.omitDict = dict(zip(self.omitDims,self.omitVals))
         
-        # get MPI vals
-        self.comm = MPI.COMM_WORLD
-        self.rank = self.comm.Get_rank()
+        ## Shift the x/y values to centre the plotted squares on the data
+        
+        # Get sorted values to avoid wrong dx values (found at periodic boundaries)
+        xSorted = np.sort(self.x)
+        ySorted = np.sort(self.y)
+        
+        dx = xSorted[1:] - xSorted[:-1]
+        dy = ySorted[1:] - ySorted[:-1]
+        
+        # The corner of the square should be shifted by (-dx/2,-dy/2) for the value
+        # to be found in the middle
+        shift = [dx[0]*0.5, *(dx[:-1]+dx[1:])*0.25, dx[-1]*0.5]
+        # The values are reordered to the original ordering to shift the relevant values
+        shift = [shift[i] for i in np.argsort(self.x)]
+        self.x = self.x - shift
+        
+        # Ditto for y
+        shift = [dy[0]*0.5, *(dy[:-1]+dy[1:])*0.25, dy[-1]*0.5]
+        shift = [shift[i] for i in np.argsort(self.y)]
+        self.y = self.y - shift
         
         # save x and y grid values
         nx=len(self.x)
         ny=len(self.y)
-        self.x = np.repeat(self.x,ny).reshape(nx,ny)
-        self.y = np.tile(self.y,nx).reshape(nx,ny)
         
-        # if (x,y) are (r,θ) or (θ,r) then print in polar coordinates
-        self.polar=False
-        if (self.xVals==Dimension.ETA1 and self.yVals==Dimension.ETA2):
+        # if (x,y) are (r,θ) then print in polar coordinates
+        self.polar=polar
+        if (polar):
+            self.x = np.repeat(self.x,ny+1).reshape(nx,ny+1)
+            self.y = np.tile([*self.y,self.y[0]],nx).reshape(nx,ny+1)
             x=self.x*np.cos(self.y)
             y=self.x*np.sin(self.y)
             self.x=x
             self.y=y
-            self.polar=True
-        elif (self.yVals==Dimension.ETA1 and self.xVals==Dimension.ETA2):
-            y=self.x*np.cos(self.y)
-            x=self.x*np.sin(self.y)
-            self.x=x
-            self.y=y
-            self.polar=True
+            
+            self.xLab = "x"
+            self.yLab = "y"
+        else:
+            self.x = np.repeat(self.x,ny).reshape(nx,ny)
+            self.y = np.tile(self.y,nx).reshape(nx,ny)
+            
+            self.xLab = "r"
+            self.yLab = r'$\theta$ [rad]'
         
         # on rank 0 set-up the graph
-        if (self.rank==0):
+        if (self.rank==self.drawRank):
             self.fig = plt.figure()
             self.ax = self.fig.add_axes([0.1, 0.15, 0.7, 0.7],)
             self.colorbarax2 = self.fig.add_axes([0.85, 0.1, 0.03, 0.8],)
-            if (not self.polar):
-                # add x-axis label
-                if (self.xVals==Dimension.ETA1):
-                    self.ax.set_xlabel("r [m]")
-                elif (self.xVals==Dimension.ETA2):
-                    self.ax.set_xlabel(r'$\theta$ [rad]')
-                elif (self.xVals==Dimension.ETA3):
-                    self.ax.set_xlabel("z [m]")
-                elif (self.xVals==Dimension.ETA4):
-                    self.ax.set_xlabel(r'v [$ms^{-1}$]')
-                # add y-axis label
-                if (self.yVals==Dimension.ETA1):
-                    self.ax.set_ylabel("r [m]")
-                elif (self.yVals==Dimension.ETA2):
-                    self.ax.set_ylabel(r'$\theta$ [rad]')
-                elif (self.yVals==Dimension.ETA3):
-                    self.ax.set_ylabel("z [m]")
-                elif (self.yVals==Dimension.ETA4):
-                    self.ax.set_ylabel(r'v [$ms^{-1}$]')
+            self.useLabels()
         
         self.plotFigure()
     
+    def setLabels(self,xLab,yLab):
+        self.xLab=xLab
+        self.yLab=yLab
+        self.useLabels()
+    
+    def useLabels(self):
+        if (self.rank==self.drawRank):
+            # add x-axis label
+            self.ax.set_xlabel(self.xLab)
+            # add y-axis label
+            self.ax.set_ylabel(self.yLab)
+    
     def plotFigure(self):
         # get slice by passing dictionary containing fixed dimensions and their values
-        d = {self.omit1 : self.omitVal1, self.omit2 : self.omitVal2}
-        
-        if (self.rank==self.drawRank):
-            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+        if (self.rank!=self.drawRank):
+            self.grid.getSliceFromDict(self.omitDict,self.comm,self.drawRank)
+        else:
+            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(self.omitDict,self.comm,self.drawRank)
             baseShape = layout.shape
             
-            if (layout.inv_dims_order[self.omit1]<2 and layout.inv_dims_order[self.omit2]<2):
-                idx = np.where(starts==0)[-1]
-                myShape = list(baseShape)
-                myShape[0]=1
-                myShape[1]=1
+            if (all([layout.inv_dims_order[o]<self.nOmitted for o in self.omitDims])):
+                # If data is contiguous (and therefore all on one process)
+                # Find shape
+                myShape = np.array(baseShape)
+                myShape[:-2]=1
+                # Reshape to correct sized 2-D array
                 theSlice=np.squeeze(theSlice.reshape(myShape))
             else:
+                # If data is not contiguous (and therefore from different processes)
+                # Split the data back into the chunks received from each process
                 splitSlice = np.split(theSlice,starts[1:])
+                
+                # Prepare a space to save the result in the correct configuration
                 concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
+                
+                # For each received chunk
                 for i,chunk in enumerate(splitSlice):
                     coords=mpi_data[i]
+                    # Get the largest possible shape of the data chunk
                     myShape=list(baseShape)
-                    myShape[0]=layout.mpi_lengths(0)[coords[0]]
-                    myShape[1]=layout.mpi_lengths(1)[coords[1]]
+                    # Get the actual shape of the data chunk
+                    for d,c in enumerate(coords):
+                        myShape[d]=layout.mpi_lengths(d)[c]
+                    # Reduce the size to 1 in the omitted dimensions
+                    for d in self.omitDims:
+                        myShape[layout.inv_dims_order[d]]=1
+                    # If there was no relevant data on this process then
+                    # one dimension size must be set to 0
                     if (chunk.size==0):
-                        myShape[min(layout.inv_dims_order[self.omit1],
-                                    layout.inv_dims_order[self.omit2])]=0
-                        myShape[max(layout.inv_dims_order[self.omit1],
-                                    layout.inv_dims_order[self.omit2])]=1
-                    else:
-                        myShape[layout.inv_dims_order[self.omit1]]=1
-                        myShape[layout.inv_dims_order[self.omit2]]=1
+                        inv_dims = [layout.inv_dims_order[d] for d in self.omitDims]
+                        myShape[min(inv_dims)]=0
+                    # Reshape the chunk and save it in the appropriate part of the configuration
                     concatReady[coords[0]][coords[1]]=chunk.reshape(myShape)
                 
+                # Reassemble the slice
                 concat1 = [np.concatenate(concat,axis=1) for concat in concatReady]
                 theSlice = np.squeeze(np.concatenate(concat1,axis=0))
             
@@ -675,46 +694,23 @@ class Plotter2d(object):
             self.ax.clear()
             self.colorbarax2.clear()
             
-            if (layout.inv_dims_order[self.xVals]>layout.inv_dims_order[self.yVals]):
-                if (Dimension.ETA2 == self.xVals):
-                    theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
-                elif (Dimension.ETA2 == self.yVals):
+            # Plot the new data, adding an extra row of data for polar plots
+            # (to avoid having a missing segment), and transposing the data
+            # if the storage dimensions are ordered differently to the plotting
+            # dimensions
+            if (layout.inv_dims_order[self.xDim]>layout.inv_dims_order[self.yDim]):
+                if (self.polar):
                     theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
                 self.plot = self.ax.pcolormesh(self.x,self.y,theSlice.T,cmap="jet")
             else:
-                if (Dimension.ETA2 == self.xVals):
-                    theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
-                elif (Dimension.ETA2 == self.yVals):
+                if (self.polar):
                     theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
                 self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet")
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
             
-            if (not self.polar):
-                # add x-axis label
-                if (self.xVals==Dimension.ETA1):
-                    self.ax.set_xlabel("r [m]")
-                elif (self.xVals==Dimension.ETA2):
-                    self.ax.set_xlabel(r'$\theta$ [rad]')
-                elif (self.xVals==Dimension.ETA3):
-                    self.ax.set_xlabel("z [m]")
-                elif (self.xVals==Dimension.ETA4):
-                    self.ax.set_xlabel(r'v [$ms^{-1}$]')
-                # add y-axis label
-                if (self.yVals==Dimension.ETA1):
-                    self.ax.set_ylabel("r [m]")
-                elif (self.yVals==Dimension.ETA2):
-                    self.ax.set_ylabel(r'$\theta$ [rad]')
-                elif (self.yVals==Dimension.ETA3):
-                    self.ax.set_ylabel("z [m]")
-                elif (self.yVals==Dimension.ETA4):
-                    self.ax.set_ylabel(r'v [$ms^{-1}$]')
-            else:
-                self.ax.set_xlabel("x [m]")
-                self.ax.set_ylabel("y [m]")
+            self.useLabels()
             self.fig.canvas.draw()
             
-        else:
-            self.grid.getSliceFromDict(d,self.comm,self.drawRank)
     
     def show(self):
         plt.show()
