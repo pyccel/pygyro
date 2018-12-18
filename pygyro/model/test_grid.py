@@ -370,8 +370,10 @@ def test_Grid_max_plotting(layout):
     if (rank==0):
         assert(maxVal==(np.prod(npts)-1))
     
-    maxVal = grid.getMax(1,0,0)
-    if (rank==1):
+    r = min(1,comm.Get_size()-1)
+    
+    maxVal = grid.getMax(r,0,0)
+    if (rank==r):
         assert(maxVal==(np.prod(npts[1:])-1))
 
 @pytest.mark.parametrize( "layout", ['flux_surface','v_parallel','poloidal'] )
@@ -398,6 +400,8 @@ def test_Grid_min_plotting(layout):
     if (comm.Get_rank()==0):
         assert(minVal==0)
     
-    minVal = grid.getMin(1,0,9)
-    if (rank==1):
+    r = min(1,comm.Get_size()-1)
+    
+    minVal = grid.getMin(r,0,9)
+    if (rank==r):
         assert(minVal==9*np.prod(npts[1:]))
