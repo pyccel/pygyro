@@ -2,10 +2,13 @@ from mpi4py                 import MPI
 from math                   import pi
 from enum                   import IntEnum
 from matplotlib.widgets     import Button
+from matplotlib.gridspec    import GridSpec, GridSpecFromSubplotSpec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot    as plt
 import numpy                as np
 
 from .discrete_slider import DiscreteSlider
+from .bounded_slider import BoundedSlider
 from ..model.grid     import Grid
 
 class Dimension(IntEnum):
@@ -13,6 +16,201 @@ class Dimension(IntEnum):
     ETA2 = 1,
     ETA3 = 2,
     ETA4 = 3
+
+class SlicePlotterNd(object):
+    def __init__(self,grid: Grid, xDimension: int, yDimension: int,
+                polar: bool, sliderDimensions: list = [], sliderNames = [], **kwargs):
+        self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
+        self.rank = self.comm.Get_rank()
+        self.drawRank = kwargs.pop('drawingRank',0)
+        
+        self.grid = grid
+        
+        self.nprocs = grid._layout_manager.nProcs
+        
+        # use arguments to get coordinate values (including omitted coordinate)
+        self.xDim = xDimension
+        self.yDim = yDimension
+        self.sDims = sliderDimensions
+        self.nSliders = len(self.sDims)
+        self.sliderVals = [0]*self.nSliders
+        assert(len(sliderNames)==self.nSliders)
+        self.x = grid.eta_grid[self.xDim]
+        self.y = grid.eta_grid[self.yDim]
+        
+        # Get omitted dimensions
+        self.oDims = list(set(range(len(grid.eta_grid)))-set([*self.sDims,self.xDim,self.yDim]))
+        
+        # Get fixed values in non-plotted dimensions
+        if ('fixValues' in kwargs):
+            self.omitVals = kwargs.pop('fixValues')
+            assert(len(self.omitVals)==len(self.oDims))
+        else:
+            self.omitVals = [self.grid.nGlobalCoords[d]//2 for d in self.oDims]
+        # Create a dictionary from the omitted values to feed to the grid
+        self.selectDict = dict(zip([*self.oDims,*self.sDims],[*self.omitVals,*self.sliderVals]))
+        self.nDims = len(grid.eta_grid)
+        
+        ## Shift the x/y values to centre the plotted squares on the data
+        
+        # Get sorted values to avoid wrong dx values (found at periodic boundaries)
+        xSorted = np.sort(self.x)
+        ySorted = np.sort(self.y)
+        
+        dx = xSorted[1:] - xSorted[:-1]
+        dy = ySorted[1:] - ySorted[:-1]
+        
+        # The corner of the square should be shifted by (-dx/2,-dy/2) for the value
+        # to be found in the middle
+        shift = [dx[0]*0.5, *(dx[:-1]+dx[1:])*0.25, dx[-1]*0.5]
+        # The values are reordered to the original ordering to shift the relevant values
+        shift = [shift[i] for i in np.argsort(self.x)]
+        self.x = self.x - shift
+        
+        # Ditto for y
+        shift = [dy[0]*0.5, *(dy[:-1]+dy[1:])*0.25, dy[-1]*0.5]
+        shift = [shift[i] for i in np.argsort(self.y)]
+        self.y = self.y - shift
+        
+        # save x and y grid values
+        nx=len(self.x)
+        ny=len(self.y)
+        
+        # if (x,y) are (r,θ) then print in polar coordinates
+        self.polar=polar
+        if (polar):
+            self.x = np.repeat(self.x,ny+1).reshape(nx,ny+1)
+            self.y = np.tile([*self.y,self.y[0]],nx).reshape(nx,ny+1)
+            x=self.x*np.cos(self.y)
+            y=self.x*np.sin(self.y)
+            self.x=x
+            self.y=y
+            
+            self.xLab = "x"
+            self.yLab = "y"
+        else:
+            self.x = np.repeat(self.x,ny).reshape(nx,ny)
+            self.y = np.tile(self.y,nx).reshape(nx,ny)
+            
+            self.xLab = "r"
+            self.yLab = r'$\theta$ [rad]'
+        
+        # get max and min values of f to avoid colorbar jumps
+        self.minimum=grid.getMin(self.drawRank,self.oDims,self.omitVals)
+        self.maximum=grid.getMax(self.drawRank,self.oDims,self.omitVals)
+        
+        # on rank 0 set-up the graph
+        if (self.rank==0):
+            self.fig = plt.figure()
+            self.fig.canvas.mpl_connect('close_event', self.handle_close)
+            #Grid spec in Grid spec to guarantee size of plot
+            gs = GridSpec(2, 1, height_ratios = [3,1])
+            gs_plot = GridSpecFromSubplotSpec(1, 1, subplot_spec=gs[0])
+            gs_slider = GridSpecFromSubplotSpec(self.nSliders, 1, subplot_spec=gs[1],hspace=1)
+
+            self.ax = self.fig.add_subplot(gs_plot[0])
+            divider = make_axes_locatable(self.ax)
+            self.colorbarax = divider.append_axes("right",size="5%",pad=0.05)
+            self.slider_axes = [self.fig.add_subplot(gs_slider[i]) for i in range(self.nSliders)]
+            
+            self.sliders = []
+            
+            for i in range(self.nSliders):
+                # add slider and remember its value
+                slider = BoundedSlider(self.slider_axes[i], sliderNames[i],
+                        valinit=grid.eta_grid[self.sDims[i]][0],values=grid.eta_grid[self.sDims[i]])
+                slider.grid_dimension = self.sDims[i]
+                slider.on_changed(lambda val,dim=self.sDims[i]: self.updateVal(val,dim))
+                self.sliders.append(slider)
+        
+            gs.tight_layout(self.fig,pad=1.0)
+        
+        self.plotFigure()
+    
+    def setLabels(self,xLab,yLab):
+        self.xLab=xLab
+        self.yLab=yLab
+        self.useLabels()
+    
+    def useLabels(self):
+        if (self.rank==self.drawRank):
+            # add x-axis label
+            self.ax.set_xlabel(self.xLab)
+            # add y-axis label
+            self.ax.set_ylabel(self.yLab)
+    
+    def updateVal(self, value, dimension):
+        print(value,dimension)
+        self.selectDict[dimension] = value
+        self.plotFigure()
+        # Update self.selectDict
+    
+    def handle_close(self,_evt):
+        # broadcast 0 to break non-0 ranks listen loop
+        MPI.COMM_WORLD.bcast(0,root=0)
+    
+    def plotFigure(self):
+        if (self.rank!=self.drawRank):
+            self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+        else:
+            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(self.selectDict,self.comm,self.drawRank)
+            
+            baseShape = layout.shape
+            
+            if (layout.inv_dims_order[2]<2 and layout.inv_dims_order[3]<2):
+                idx = np.where(starts==0)[-1]
+                myShape = list(baseShape)
+                myShape[0]=1
+                myShape[1]=1
+                theSlice=np.squeeze(theSlice.reshape(myShape))
+            else:
+                if (self.drawRankInGrid):
+                    splitSlice = np.split(theSlice,starts[1:])
+                else:
+                    splitSlice = np.split(theSlice,starts[2:])
+                    mpi_data=mpi_data[1:]
+                concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
+                for i,chunk in enumerate(splitSlice):
+                    coords=mpi_data[i]
+                    myShape=list(baseShape)
+                    myShape[0]=layout.mpi_lengths(0)[coords[0]]
+                    myShape[1]=layout.mpi_lengths(1)[coords[1]]
+                    if (chunk.size==0):
+                        myShape[min(layout.inv_dims_order[2:4])]=0
+                        myShape[max(layout.inv_dims_order[2:4])]=1
+                    else:
+                        myShape[layout.inv_dims_order[2]]=1
+                        myShape[layout.inv_dims_order[3]]=1
+                    concatReady[coords[0]][coords[1]]=chunk.reshape(myShape)
+                
+                concat1 = [np.concatenate(concat,axis=1) for concat in concatReady]
+                theSlice = np.squeeze(np.concatenate(concat1,axis=0))
+            
+            # remove the old plot
+            self.ax.clear()
+            self.colorbarax.clear()
+            
+            # Plot the new data, adding an extra row of data for polar plots
+            # (to avoid having a missing segment), and transposing the data
+            # if the storage dimensions are ordered differently to the plotting
+            # dimensions
+            if (layout.inv_dims_order[self.xDim]>layout.inv_dims_order[self.yDim]):
+                if (self.polar):
+                    theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
+                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice.T,cmap="jet",vmin=self.minimum,vmax=self.maximum)
+            else:
+                if (self.polar):
+                    theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
+            self.fig.colorbar(self.plot,cax=self.colorbarax)
+            
+            self.ax.set_xlabel("x [m]")
+            self.ax.set_ylabel("y [m]")
+            
+            self.fig.canvas.draw()
+        
+    def show(self):
+        plt.show()
 
 class SlicePlotter4d(object):
     def __init__(self,grid: Grid, autoUpdate: bool = True,
@@ -256,7 +454,8 @@ class SlicePlotter4d(object):
         
 
 class SlicePlotter3d(object):
-    def __init__(self,grid: Grid, *args, **kwargs):
+    def __init__(self,grid: Grid, xDimension: int, yDimension: int,
+                zDimension: int, polar: bool, **kwargs):
         self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
         self.drawRank = kwargs.pop('drawingRank',0)
         
@@ -265,6 +464,16 @@ class SlicePlotter3d(object):
         self.nprocs = grid._layout_manager.nProcs
         
         # use arguments to get coordinate values (including omitted coordinate)
+        self.xDim = xDimension
+        self.yDim = yDimension
+        self.zDim = zDimension
+        self.x = grid.eta_grid[self.xDim]
+        self.y = grid.eta_grid[self.yDim]
+        
+        # Get omitted dimensions
+        self.omitDims = [d for d in range(len(grid.eta_grid)) if (d!=self.xDim and d!=self.yDim)]
+        self.nOmitted = len(self.omitDims)
+        
         if (len(args)==0):
             # if no arguments are provided then assume (r,θ,z)
             self.xVals=Dimension.ETA1
