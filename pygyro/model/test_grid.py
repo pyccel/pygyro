@@ -417,3 +417,88 @@ def test_Grid_min_plotting(layout):
     minVal = grid.getMin(r,[0,1],[9,9])
     if (rank==r):
         assert(minVal==9*np.prod(npts[1:])+9*np.prod(npts[2:]))
+
+def compare_small_f(f,grid,idx,n_idx,layout,starts,mpi_data):
+    [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
+    runs = [grid.getCoords(i) for i in range(n_idx)]
+    
+    idx = layout.inv_dims_order[idx]
+    
+    split = np.split(f,starts[1:])
+    
+    nprocs = [max([mpi_data[i][j] for i in range(len(mpi_data))])+1 for j in range(len(mpi_data[0]))]
+    
+    concatReady = np.ndarray(tuple(nprocs),dtype=object)
+    
+    runs[idx] = enumerate([0])
+    layout_shape = [list(layout.shape) for i in range(len(starts))]
+    for l,ranks in enumerate(mpi_data):
+        visited=False
+        for j,d in enumerate(ranks):
+            layout_shape[l][j]=layout.mpi_lengths(j)[d]
+            if (j==idx):
+                visited=True
+                if layout.mpi_starts(idx)[d]==0:
+                    layout_shape[l][j]=1
+                else:
+                    layout_shape[l][j]=0
+        if (not visited):
+            layout_shape[l][idx]=1
+        concatReady[tuple(ranks)]=split[l].reshape(layout_shape[l])
+    
+    zone = [range(n) for n in nprocs]
+    zone.pop()
+    
+    for i in range(len(nprocs)-1,0,-1):
+        toConcat = np.ndarray(tuple(nprocs[:i]),dtype=object)
+        
+        coords = [0 for n in zone]
+        for d in range(len(zone)):
+            for j in range(nprocs[d]):
+                toConcat[tuple(coords)]=np.concatenate(concatReady[tuple(coords)].tolist(),axis=i)
+                coords[d]+=1
+        concatReady = toConcat
+        zone.pop()
+    
+    toConcat = np.ndarray(tuple(nprocs[:i]),dtype=object)
+        
+    coords = 0
+    f=np.concatenate(concatReady.tolist(),axis=0)
+    
+    for i,x in runs[0]:
+        for j,y in runs[1]:
+            for k,z in runs[2]:
+                for l,a in runs[3]:
+                    [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
+                    assert(f[i,j,k,l] == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L)
+
+@pytest.mark.parallel
+def test_Grid_block_getter():
+    # ~ npts = [10,10,10,10]
+    npts = [3,3,3,3]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    for my_layout in ['poloidal','v_parallel','flux_surface']:
+        
+        grid = Grid(eta_grids,[],manager,my_layout)
+        define_f(grid)
+        
+        for i in range(4):
+            if (rank==0):
+                layout,starts,mpi_data,new_f = grid.getBlockFromDict({i:0},comm,0)
+                compare_small_f(new_f,grid,i,4,layout,starts,mpi_data)
+            else:
+                grid.getBlockFromDict({i:0},comm,0)
+            comm.Barrier()
