@@ -216,23 +216,25 @@ class Grid(object):
     ####################################################################
     
     
-    def getSliceFromDict(self,d : dict, comm: MPI.Comm, rank: int):
+    def getBlockFromDict(self,d : dict, comm: MPI.Comm, rank: int):
         """
-        Utility function to access getSliceForFig without using 6 if statements
-        The function takes a dictionary which plots the fixed dimensions to the
-        index at which they are fixed
-        
-        >>> getSliceFromDict({self.Dimension.ETA3: 5, self.Dimension.ETA4 : 2})
+        Utility function to access getBlockForFig without having to specify
+        information for every dimension.
+        The function takes a dictionary which specifies the global ranges or index
+        used for each dimension. Dimensions which are not specified will return
+        all values on that axis
         """
         dims = []
-        for dim_o in self._layout.dims_order:
-            dims.append(d.get(dim_o,None))
-        return self.getSliceForFig(dims,comm,rank)
+        for i,dim_o in enumerate(self._layout.dims_order):
+            dim = d.get(dim_o,None)
+            if (isinstance(dim,int)):
+                dim = range(dim,dim+1)
+            dims.append(dim)
+        return self.getBlockForFig(dims,comm,rank)
     
-    def getSliceForFig(self, dims: list, comm: MPI.Comm, rank: int):
+    def getBlockForFig(self, dims: list, comm: MPI.Comm, rank: int):
         """
-        Class to retrieve a 2D slice. Any values set to None will vary.
-        Any dimensions not set to None will be fixed at the global index provided
+        Class to retrieve a N-D block.
         """
         
         # helper variables to correctly reshape the slice after gathering
@@ -252,12 +254,24 @@ class Grid(object):
                 dim_slices.append(slice(0,self._layout.ends[i]-self._layout.starts[i]))
                 dimSize.append(self._layout.ends[i]-self._layout.starts[i])
             else:
-                if (dim_i>=self._layout.starts[i] and dim_i<self._layout.ends[i]):
-                    dim_slices.append(dim_i-self._layout.starts[i])
-                    dimSize.append(1)
+                dim_s=dim_i.start
+                dim_e=dim_i.stop
+                if dim_s<self._layout.starts[i]:
+                    dim_s=0
+                elif dim_s>=self._layout.ends[i]:
+                    dim_s=self._layout.ends[i]
                 else:
+                    dim_s=dim_s-self._layout.starts[i]
+                if dim_e<self._layout.starts[i]:
+                    dim_e=0
+                elif dim_e>=self._layout.ends[i]:
+                    dim_e=self._layout.ends[i]
+                else:
+                    dim_e=dim_e-self._layout.starts[i]
+                if dim_e<=dim_s:
                     dim_slices.append(None)
-                    dimSize.append(None)
+                else:
+                    dim_slices.append(range(dim_s,dim_e))
         
         # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0
