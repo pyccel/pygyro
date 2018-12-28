@@ -51,6 +51,11 @@ class SlicePlotterNd(object):
         self.selectDict = dict(zip([*self.oDims,*self.sDims],[*self.omitVals,*self.sliderVals]))
         self.nDims = len(grid.eta_grid)
         
+        # Select how to access the printed values
+        self.access_pattern = [0 for i in range(len(grid.eta_grid))]
+        self.access_pattern[self.xDim] = slice(0,len(self.x))
+        self.access_pattern[self.yDim] = slice(0,len(self.y))
+        
         ## Shift the x/y values to centre the plotted squares on the data
         
         # Get sorted values to avoid wrong dx values (found at periodic boundaries)
@@ -100,7 +105,7 @@ class SlicePlotterNd(object):
         self.maximum=grid.getMax(self.drawRank,self.oDims,self.omitVals)
         
         # on rank 0 set-up the graph
-        if (self.rank==0):
+        if (self.rank==self.drawRank):
             self.fig = plt.figure()
             self.fig.canvas.mpl_connect('close_event', self.handle_close)
             #Grid spec in Grid spec to guarantee size of plot
@@ -118,13 +123,17 @@ class SlicePlotterNd(object):
             for i in range(self.nSliders):
                 # add slider and remember its value
                 slider = BoundedSlider(self.slider_axes[i], sliderNames[i],
-                        valinit=grid.eta_grid[self.sDims[i]][0],values=grid.eta_grid[self.sDims[i]])
+                        valinit=0,values=grid.eta_grid[self.sDims[i]])
                 slider.grid_dimension = self.sDims[i]
                 slider.on_changed(lambda val,dim=self.sDims[i]: self.updateVal(val,dim))
+                s_min,s_max = slider.reset_bounds()
+                self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
+                self.access_pattern[slider.grid_dimension] = self.sliderVals[i]-s_min
                 self.sliders.append(slider)
         
             gs.tight_layout(self.fig,pad=1.0)
         
+        self.getData()
         self.plotFigure()
     
     def setLabels(self,xLab,yLab):
@@ -140,8 +149,7 @@ class SlicePlotterNd(object):
             self.ax.set_ylabel(self.yLab)
     
     def updateVal(self, value, dimension):
-        print(value,dimension)
-        self.selectDict[dimension] = value
+        self.access_pattern[dimension] = value - self.selectDict[dimension].start
         self.plotFigure()
         # Update self.selectDict
     
@@ -149,65 +157,111 @@ class SlicePlotterNd(object):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)
     
-    def plotFigure(self):
+    def getData(self):
+        for slider in self.sliders:
+            s_min,s_max = slider.reset_bounds()
+            self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
+        
         if (self.rank!=self.drawRank):
-            self.grid.getSliceFromDict(d,self.comm,self.drawRank)
+            self.grid.getBlockFromDict(self.selectDict,self.comm,self.drawRank)
         else:
-            layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(self.selectDict,self.comm,self.drawRank)
+            layout, starts, mpi_data, theSlice = self.grid.getBlockFromDict(self.selectDict,self.comm,self.drawRank)
             
-            baseShape = layout.shape
+            split = np.split(theSlice,starts[1:])
             
-            if (layout.inv_dims_order[2]<2 and layout.inv_dims_order[3]<2):
-                idx = np.where(starts==0)[-1]
-                myShape = list(baseShape)
-                myShape[0]=1
-                myShape[1]=1
-                theSlice=np.squeeze(theSlice.reshape(myShape))
-            else:
-                if (self.drawRankInGrid):
-                    splitSlice = np.split(theSlice,starts[1:])
-                else:
-                    splitSlice = np.split(theSlice,starts[2:])
-                    mpi_data=mpi_data[1:]
-                concatReady = [[None for i in range(self.nprocs[1])] for j in range(self.nprocs[0])]
-                for i,chunk in enumerate(splitSlice):
-                    coords=mpi_data[i]
-                    myShape=list(baseShape)
-                    myShape[0]=layout.mpi_lengths(0)[coords[0]]
-                    myShape[1]=layout.mpi_lengths(1)[coords[1]]
-                    if (chunk.size==0):
-                        myShape[min(layout.inv_dims_order[2:4])]=0
-                        myShape[max(layout.inv_dims_order[2:4])]=1
-                    else:
-                        myShape[layout.inv_dims_order[2]]=1
-                        myShape[layout.inv_dims_order[3]]=1
-                    concatReady[coords[0]][coords[1]]=chunk.reshape(myShape)
+            nprocs = [max([mpi_data[i][j] for i in range(len(mpi_data))])+1 for j in range(len(mpi_data[0]))]
+            
+            concatReady = np.ndarray(tuple(nprocs),dtype=object)
+            
+            for l,ranks in enumerate(mpi_data):
+                layout_shape = list(layout.shape)
+                visited=False
+                for j,d in enumerate(ranks):
+                    layout_shape[j]=layout.mpi_lengths(j)[d]
                 
-                concat1 = [np.concatenate(concat,axis=1) for concat in concatReady]
-                theSlice = np.squeeze(np.concatenate(concat1,axis=0))
+                n_ranks = len(ranks)
+                for k in self.selectDict.keys():
+                    j = layout.inv_dims_order[k]
+                    if (j<n_ranks):
+                        start = layout.mpi_starts(j)[ranks[j]]
+                        end = start + layout.mpi_lengths(j)[ranks[j]]
+                        if (isinstance(self.selectDict[k],int)):
+                            val = self.selectDict[k]
+                            if start <= val and end > val:
+                                layout_shape[j]=1
+                            else:
+                                layout_shape[j]=0
+                        else:
+                            range_start = self.selectDict[k].start
+                            range_stop  = self.selectDict[k].stop
+                            start = max(range_start - start,0)
+                            stop  = min(range_stop, end)
+                            layout_shape[j] = max(stop-start,0)
+                    else:
+                        if (isinstance(self.selectDict[k],int)):
+                            layout_shape[j]=1
+                        else:
+                            layout_shape[j]=self.selectDict[k].stop-self.selectDict[k].start
+                concatReady[tuple(ranks)]=split[l].reshape(layout_shape)
             
-            # remove the old plot
-            self.ax.clear()
-            self.colorbarax.clear()
+            zone = [range(n) for n in nprocs]
+            zone.pop()
             
-            # Plot the new data, adding an extra row of data for polar plots
-            # (to avoid having a missing segment), and transposing the data
-            # if the storage dimensions are ordered differently to the plotting
-            # dimensions
-            if (layout.inv_dims_order[self.xDim]>layout.inv_dims_order[self.yDim]):
-                if (self.polar):
-                    theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
-                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice.T,cmap="jet",vmin=self.minimum,vmax=self.maximum)
-            else:
-                if (self.polar):
-                    theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
-                self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
-            self.fig.colorbar(self.plot,cax=self.colorbarax)
+            for i in range(len(nprocs)-1,0,-1):
+                toConcat = np.ndarray(tuple(nprocs[:i]),dtype=object)
+                
+                coords = [0 for n in zone]
+                for d in range(len(zone)):
+                    for j in range(nprocs[d]):
+                        toConcat[tuple(coords)]=np.concatenate(concatReady[tuple(coords)].tolist(),axis=i)
+                        coords[d]+=1
+                concatReady = toConcat
+                zone.pop()
             
-            self.ax.set_xlabel("x [m]")
-            self.ax.set_ylabel("y [m]")
+            toConcat = np.ndarray(tuple(nprocs[:i]),dtype=object)
             
-            self.fig.canvas.draw()
+            self._data = np.concatenate(concatReady.tolist(),axis=0)
+            
+            self._data = self._data.transpose(layout.dims_order)
+    
+    def plotFigure(self):
+        assert(self.rank==self.drawRank)
+        
+        theSlice = self._data[tuple(self.access_pattern)]
+        
+        # Plot the new data, adding an extra row of data for polar plots
+        # (to avoid having a missing segment), and transposing the data
+        # if the storage dimensions are ordered differently to the plotting
+        # dimensions
+        if (self.xDim>self.yDim):
+            if (self.polar):
+                theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
+            theSlice = theSlice.T
+        else:
+            if (self.polar):
+                theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+            theSlice = theSlice
+        
+        # remove the old plot
+        self.ax.clear()
+        self.colorbarax.clear()
+        
+        # Plot the new data, adding an extra row of data for polar plots
+        # (to avoid having a missing segment), and transposing the data
+        # if the storage dimensions are ordered differently to the plotting
+        # dimensions
+        if (self.xDim>self.yDim):
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
+        else:
+            if (self.polar):
+                theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
+        self.fig.colorbar(self.plot,cax=self.colorbarax)
+        
+        self.ax.set_xlabel("x [m]")
+        self.ax.set_ylabel("y [m]")
+        
+        self.fig.canvas.draw()
         
     def show(self):
         plt.show()
