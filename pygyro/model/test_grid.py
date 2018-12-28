@@ -418,9 +418,9 @@ def test_Grid_min_plotting(layout):
     if (rank==r):
         assert(minVal==9*np.prod(npts[1:])+9*np.prod(npts[2:]))
 
-def compare_small_f(f,grid,idx,n_idx,layout,starts,mpi_data):
+def compare_small_f(f,grid,idx,n_idx,val,layout,starts,mpi_data):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
-    runs = [grid.getCoords(i) for i in range(n_idx)]
+    runs = [range(len(eta)) for eta in grid.eta_grid]
     
     idx = layout.inv_dims_order[idx]
     
@@ -430,7 +430,7 @@ def compare_small_f(f,grid,idx,n_idx,layout,starts,mpi_data):
     
     concatReady = np.ndarray(tuple(nprocs),dtype=object)
     
-    runs[idx] = enumerate([0])
+    runs[idx] = [val]
     layout_shape = [list(layout.shape) for i in range(len(starts))]
     for l,ranks in enumerate(mpi_data):
         visited=False
@@ -438,7 +438,8 @@ def compare_small_f(f,grid,idx,n_idx,layout,starts,mpi_data):
             layout_shape[l][j]=layout.mpi_lengths(j)[d]
             if (j==idx):
                 visited=True
-                if layout.mpi_starts(idx)[d]==0:
+                if layout.mpi_starts(idx)[d]<=val and \
+                        layout.mpi_starts(idx)[d]+layout.mpi_lengths(idx)[d]>val:
                     layout_shape[l][j]=1
                 else:
                     layout_shape[l][j]=0
@@ -465,17 +466,18 @@ def compare_small_f(f,grid,idx,n_idx,layout,starts,mpi_data):
     coords = 0
     f=np.concatenate(concatReady.tolist(),axis=0)
     
-    for i,x in runs[0]:
-        for j,y in runs[1]:
-            for k,z in runs[2]:
-                for l,a in runs[3]:
-                    [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
+    for i,x in enumerate(runs[0]):
+        for j,y in enumerate(runs[1]):
+            for k,z in enumerate(runs[2]):
+                for l,a in enumerate(runs[3]):
+                    [I,J,K,L] = grid.getGlobalIndices([x,y,z,a])
                     assert(f[i,j,k,l] == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L)
 
+@pytest.mark.parametrize( "val", [0,3,7] )
 @pytest.mark.parallel
-def test_Grid_block_getter():
-    # ~ npts = [10,10,10,10]
-    npts = [3,3,3,3]
+def test_Grid_block_getter(val):
+    npts = [10,10,10,10]
+    # ~ npts = [3,3,3,3]
     eta_grids=[np.linspace(0,1,npts[0]),
                np.linspace(0,6.28318531,npts[1]),
                np.linspace(0,10,npts[2]),
@@ -497,8 +499,8 @@ def test_Grid_block_getter():
         
         for i in range(4):
             if (rank==0):
-                layout,starts,mpi_data,new_f = grid.getBlockFromDict({i:0},comm,0)
-                compare_small_f(new_f,grid,i,4,layout,starts,mpi_data)
+                layout,starts,mpi_data,new_f = grid.getBlockFromDict({i:val},comm,0)
+                compare_small_f(new_f,grid,i,4,val,layout,starts,mpi_data)
             else:
-                grid.getBlockFromDict({i:0},comm,0)
+                grid.getBlockFromDict({i:val},comm,0)
             comm.Barrier()
