@@ -123,7 +123,7 @@ class SlicePlotterNd(object):
             for i in range(self.nSliders):
                 # add slider and remember its value
                 slider = BoundedSlider(self.slider_axes[i], sliderNames[i],
-                        valinit=0,values=grid.eta_grid[self.sDims[i]])
+                        values=grid.eta_grid[self.sDims[i]])
                 slider.grid_dimension = self.sDims[i]
                 slider.on_changed(lambda val,dim=self.sDims[i]: self.updateVal(val,dim))
                 s_min,s_max = slider.reset_bounds()
