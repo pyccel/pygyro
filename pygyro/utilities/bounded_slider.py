@@ -15,9 +15,12 @@ class BoundedSlider:
         
         self.n = len(self.poss_vals)-1
         self.midpoint = self.n//2
-        self.idx = self.midpoint
         self.min_idx = 0
         self.max_idx = self.n
+        if ('valinit' in kwargs):
+            self.idx = kwargs['valinit']
+        else:
+            self.idx = self.midpoint
         
         self.fix_min = self.min_idx
         self.fix_max = self.max_idx
