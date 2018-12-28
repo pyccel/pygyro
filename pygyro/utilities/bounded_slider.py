@@ -123,6 +123,7 @@ class BoundedSlider:
         self.grayed_s.set_width(self.min_idx/self.n)
         self.grayed_e.set_bounds(self.max_idx/self.n,0, (self.n-self.max_idx)/self.n, 1)
         self.filled.set_bounds(self.min_idx/self.n,0, (self.idx-self.min_idx)/self.n, 1)
+        return (self.fix_min,self.fix_max)
 
     def get_next_n_poss_pts(self):
         return self.max_idx-self.min_idx+1
