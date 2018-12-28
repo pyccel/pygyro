@@ -384,6 +384,47 @@ def test_Grid_max_plotting(layout):
 
 @pytest.mark.parametrize( "layout", ['flux_surface','v_parallel','poloidal'] )
 @pytest.mark.parallel
+def test_Grid_max_plotting_drawRank(layout):
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    
+    # Create layout manager
+    if (rank==0):
+        manager = getLayoutHandler( comm, layouts, nprocs, [[],[],[],[]] )
+    else:
+        manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,[],manager,layout)
+    define_f(grid)
+    maxVal = grid.getMax(0)
+    if (rank==0):
+        assert(maxVal==(np.prod(npts)-1))
+    
+    r = min(1,comm.Get_size()-1)
+    
+    maxVal = grid.getMax(r,0,0)
+    if (rank==r):
+        assert(maxVal==(np.prod(npts[1:])-1))
+    
+    r = min(2,comm.Get_size()-1)
+    
+    maxVal = grid.getMax(r,[0,1],[0,0])
+    if (rank==r):
+        assert(maxVal==(np.prod(npts[2:])-1))
+
+@pytest.mark.parametrize( "layout", ['flux_surface','v_parallel','poloidal'] )
+@pytest.mark.parallel
 def test_Grid_min_plotting(layout):
     npts = [10,10,10,10]
     eta_grids=[np.linspace(0,1,npts[0]),
@@ -401,6 +442,47 @@ def test_Grid_min_plotting(layout):
     manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
     grid = Grid(eta_grids,[],manager,layout)
+    define_f(grid)
+    minVal = grid.getMin(0)
+    if (comm.Get_rank()==0):
+        assert(minVal==0)
+    
+    r = min(1,comm.Get_size()-1)
+    
+    minVal = grid.getMin(r,0,9)
+    if (rank==r):
+        assert(minVal==9*np.prod(npts[1:]))
+    
+    r = min(2,comm.Get_size()-1)
+    
+    minVal = grid.getMin(r,[0,1],[9,9])
+    if (rank==r):
+        assert(minVal==9*np.prod(npts[1:])+9*np.prod(npts[2:]))
+
+@pytest.mark.parametrize( "layout", ['flux_surface','v_parallel','poloidal'] )
+@pytest.mark.parallel
+def test_Grid_min_plotting_drawRank(layout):
+    npts = [10,10,10,10]
+    eta_grids=[np.linspace(0,1,npts[0]),
+               np.linspace(0,6.28318531,npts[1]),
+               np.linspace(0,10,npts[2]),
+               np.linspace(0,10,npts[3])]
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    
+    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
+    
+    layouts = {'flux_surface': [0,3,1,2],
+               'v_parallel'  : [0,2,1,3],
+               'poloidal'    : [3,2,1,0]}
+    
+    # Create layout manager
+    if (rank==0):
+        manager = getLayoutHandler( comm, layouts, nprocs, [[],[],[],[]] )
+    else:
+        manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+    
+    grid = Grid(eta_grids,[],manager,layout,)
     define_f(grid)
     minVal = grid.getMin(0)
     if (comm.Get_rank()==0):
