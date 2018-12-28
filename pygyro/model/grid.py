@@ -271,7 +271,7 @@ class Grid(object):
                 if dim_e<=dim_s:
                     dim_slices.append(None)
                 else:
-                    dim_slices.append(range(dim_s,dim_e))
+                    dim_slices.append(slice(dim_s,dim_e))
         
         # if the data is not on this process then at least one of the slices is equal to None
         # in this case send something of size 0
