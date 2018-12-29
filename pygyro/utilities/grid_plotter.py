@@ -1,10 +1,11 @@
 from mpi4py                 import MPI
 from math                   import pi
 from enum                   import IntEnum
-from matplotlib.widgets     import Button
+from matplotlib.widgets     import Button, CheckButtons
 from matplotlib.gridspec    import GridSpec, GridSpecFromSubplotSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot    as plt
+from matplotlib             import rc
 import numpy                as np
 
 from .discrete_slider import DiscreteSlider
@@ -101,22 +102,37 @@ class SlicePlotterNd(object):
             self.yLab = r'$\theta$ [rad]'
         
         # get max and min values of f to avoid colorbar jumps
-        self.minimum=grid.getMin(self.drawRank,self.oDims,self.omitVals)
-        self.maximum=grid.getMax(self.drawRank,self.oDims,self.omitVals)
+        minimum=grid.getMin(self.drawRank,self.oDims,self.omitVals)
+        maximum=grid.getMax(self.drawRank,self.oDims,self.omitVals)
         
         # on rank 0 set-up the graph
         if (self.rank==self.drawRank):
             self.fig = plt.figure()
             self.fig.canvas.mpl_connect('close_event', self.handle_close)
             #Grid spec in Grid spec to guarantee size of plot
-            gs = GridSpec(2, 1, height_ratios = [3,1])
+            gs_orig = GridSpec(1, 2, width_ratios = [9,1])
+            gs = GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_orig[0], height_ratios = [3,1],hspace=0.3)
             gs_plot = GridSpecFromSubplotSpec(1, 1, subplot_spec=gs[0])
             gs_slider = GridSpecFromSubplotSpec(self.nSliders, 1, subplot_spec=gs[1],hspace=1)
+            gs_buttons = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs_orig[1])
+            
+            
 
             self.ax = self.fig.add_subplot(gs_plot[0])
             divider = make_axes_locatable(self.ax)
             self.colorbarax = divider.append_axes("right",size="5%",pad=0.05)
             self.slider_axes = [self.fig.add_subplot(gs_slider[i]) for i in range(self.nSliders)]
+            self.button_axes = [self.fig.add_subplot(gs_buttons[i]) for i in range(4)]
+            # ~ rc('font',size=30)
+            self.button_axes[2].axis('off')
+            self.buttons = [Button(self.button_axes[0],u"\u25b6"),
+                            Button(self.button_axes[1],u"\u25b6\u258e"),
+                            CheckButtons(self.button_axes[2],['Fixed\n max/min'],[True])]
+            self.playing = False
+            self.buttons[0].on_clicked(self.play_pause)
+            self.buttons[1].on_clicked(self.stepForward)
+            self.buttons[2].on_clicked(self.fixBounds)
+            plt.Text('test',0,0)
             
             self.sliders = []
             
@@ -130,8 +146,10 @@ class SlicePlotterNd(object):
                 self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
                 self.access_pattern[slider.grid_dimension] = self.sliderVals[i]-s_min
                 self.sliders.append(slider)
-        
-            gs.tight_layout(self.fig,pad=1.0)
+            
+            gs_orig.tight_layout(self.fig,pad=1.0)
+            
+            self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet"}
         
         self.getData()
         self.plotFigure()
@@ -156,6 +174,28 @@ class SlicePlotterNd(object):
     def handle_close(self,_evt):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)
+    
+    def play_pause(self,evt):
+        self.playing = not self.playing
+        if (self.playing):
+            self.buttons[0].label.set_text(u"\u258e\u258e")
+        else:
+            self.buttons[0].label.set_text(u"\u25b6")
+        self.fig.canvas.draw()
+    
+    def stepForward(self,evt):
+        pass
+    
+    def fixBounds(self,evt):
+        if ('vmin' in self.plotParams):
+            self.plotParams.pop('vmin')
+            self.plotParams.pop('vmax')
+        else:
+            # get max and min values of f to avoid colorbar jumps
+            minimum=grid.getMin(self.drawRank,self.oDims,self.omitVals)
+            maximum=grid.getMax(self.drawRank,self.oDims,self.omitVals)
+            self.plotParams['vmin'] = minimum
+            self.plotParams['vmax'] = maximum
     
     def getData(self):
         for slider in self.sliders:
@@ -250,12 +290,7 @@ class SlicePlotterNd(object):
         # (to avoid having a missing segment), and transposing the data
         # if the storage dimensions are ordered differently to the plotting
         # dimensions
-        if (self.xDim>self.yDim):
-            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
-        else:
-            if (self.polar):
-                theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
-            self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,cmap="jet",vmin=self.minimum,vmax=self.maximum)
+        self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,**self.plotParams)
         self.fig.colorbar(self.plot,cax=self.colorbarax)
         
         self.ax.set_xlabel("x [m]")
