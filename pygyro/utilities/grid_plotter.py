@@ -56,6 +56,9 @@ class SlicePlotterNd(object):
         self.access_pattern = [0 for i in range(len(grid.eta_grid))]
         self.access_pattern[self.xDim] = slice(0,len(self.x))
         self.access_pattern[self.yDim] = slice(0,len(self.y))
+        self.memory_requirements = [1 for i in range(len(grid.eta_grid))]
+        self.memory_requirements[self.xDim] = grid.eta_grid[self.xDim].size
+        self.memory_requirements[self.yDim] = grid.eta_grid[self.yDim].size
         
         ## Shift the x/y values to centre the plotted squares on the data
         
@@ -125,14 +128,16 @@ class SlicePlotterNd(object):
             self.button_axes = [self.fig.add_subplot(gs_buttons[i]) for i in range(4)]
             # ~ rc('font',size=30)
             self.button_axes[2].axis('off')
+            self.button_axes[3].axis('off')
+            self.button_axes[3].text(0,0.66,'Memory\nrequired:',verticalalignment='center',fontsize='medium')
             self.buttons = [Button(self.button_axes[0],u"\u25b6"),
                             Button(self.button_axes[1],u"\u25b6\u258e"),
-                            CheckButtons(self.button_axes[2],['Fixed\n max/min'],[True])]
+                            CheckButtons(self.button_axes[2],['Fixed\n max/min'],[True]),
+                            self.button_axes[3].text(0,0.33,'txt',verticalalignment='center',fontsize='large')]
             self.playing = False
             self.buttons[0].on_clicked(self.play_pause)
             self.buttons[1].on_clicked(self.stepForward)
             self.buttons[2].on_clicked(self.fixBounds)
-            plt.Text('test',0,0)
             
             self.sliders = []
             
@@ -142,14 +147,18 @@ class SlicePlotterNd(object):
                         values=grid.eta_grid[self.sDims[i]])
                 slider.grid_dimension = self.sDims[i]
                 slider.on_changed(lambda val,dim=self.sDims[i]: self.updateVal(val,dim))
+                slider.on_mem_changed(lambda idx=i,dim=self.sDims[i]: self.updateMem(idx,dim))
                 s_min,s_max = slider.reset_bounds()
                 self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
                 self.access_pattern[slider.grid_dimension] = self.sliderVals[i]-s_min
+                self.memory_requirements[self.sDims[i]] = slider.get_next_n_poss_pts()
                 self.sliders.append(slider)
             
             gs_orig.tight_layout(self.fig,pad=1.0)
             
             self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet"}
+            
+            self.setMemText()
         
         self.getData()
         self.plotFigure()
@@ -169,7 +178,26 @@ class SlicePlotterNd(object):
     def updateVal(self, value, dimension):
         self.access_pattern[dimension] = value - self.selectDict[dimension].start
         self.plotFigure()
-        # Update self.selectDict
+    
+    def updateMem(self,idx,dim):
+        self.memory_requirements[dim] = self.sliders[idx].get_next_n_poss_pts()
+        self.setMemText()
+    
+    def setMemText(self):
+        requirements = np.prod(self.memory_requirements)*8.0
+        units = int(np.log2(requirements)/10)
+        if (units == 0):
+            units = 'B'
+        elif (units==1):
+            requirements/=2**10
+            units = 'KB'
+        elif (units==2):
+            requirements/=2**20
+            units = 'MB'
+        else:
+            requirements/=2**30
+            units = 'GB'
+        self.buttons[3].set_text('{:.4g} {}'.format(requirements,units))
     
     def handle_close(self,_evt):
         # broadcast 0 to break non-0 ranks listen loop
