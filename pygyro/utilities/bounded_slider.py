@@ -158,7 +158,7 @@ class BoundedSlider:
             self.grayed_e.set_visible(True)
             self.start_box.set_fc('red')
             self.end_box.set_fc('red')
-            self.filled_start = self.min_idx
+            self.filled_start = self.fix_min
         self.filled.set_bounds(self.filled_start/self.n,0, (self.idx-self.filled_start)/self.n, 1)
     
     @property
