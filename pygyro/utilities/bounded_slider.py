@@ -30,9 +30,14 @@ class BoundedSlider:
         
         self.grayed_s = Rectangle((0,0), self.min_idx/self.n, 1,facecolor='gray')
         self.grayed_e = Rectangle((self.max_idx/self.n,0), (self.n-self.max_idx)/self.n, 1,facecolor='gray')
-        self.filled = Rectangle((self.min_idx/self.n,0), (self.idx-self.min_idx)/self.n, 1,facecolor='blue')
-        self.start_box = Polygon(self.start_poly + [self.min_idx/self.n,0],facecolor='red')
-        self.end_box = Polygon(self.end_poly + [self.max_idx/self.n,0],facecolor='red')
+        self.filled = Rectangle((0,0), self.idx/self.n, 1,facecolor='blue')
+        self.start_box = Polygon(self.start_poly + [self.min_idx/self.n,0],facecolor='grey')
+        self.end_box = Polygon(self.end_poly + [self.max_idx/self.n,0],facecolor='grey')
+        
+        self.bounds_active = False
+        self.grayed_s.set_visible(False)
+        self.grayed_e.set_visible(False)
+        self.filled_start = 0
         
         # Add patch to axes
         ax.add_patch(self.grayed_s)
@@ -90,7 +95,7 @@ class BoundedSlider:
             elif (self.moving == 'val'):
                 if (x_idx!=self.idx and self.inMemory(x_idx)):
                     self.idx = x_idx
-                    self.filled.set_width((self.idx-self.fix_min)/self.n)
+                    self.filled.set_width((self.idx-self.filled_start)/self.n)
                     self.ax.figure.canvas.draw()
                     self.changed(self.idx)
     
@@ -108,7 +113,7 @@ class BoundedSlider:
             elif (self.moving == 'val'):
                 if (x_idx!=self.idx and self.inMemory(x_idx)):
                     self.idx = x_idx
-                    self.filled.set_width((self.idx-self.fix_min)/self.n)
+                    self.filled.set_width((self.idx-self.filled_start)/self.n)
                     self.ax.figure.canvas.draw()
                 self.changed(self.idx)
         self.moving = None
@@ -125,12 +130,29 @@ class BoundedSlider:
             self.idx = self.fix_max
         self.grayed_s.set_width(self.min_idx/self.n)
         self.grayed_e.set_bounds(self.max_idx/self.n,0, (self.n-self.max_idx)/self.n, 1)
-        self.filled.set_bounds(self.min_idx/self.n,0, (self.idx-self.min_idx)/self.n, 1)
+        self.filled.set_bounds(self.filled_start/self.n,0, (self.idx-self.filled_start)/self.n, 1)
         return (self.fix_min,self.fix_max)
 
     def get_next_n_poss_pts(self):
         return self.max_idx-self.min_idx+1
 
+    def toggle_active_bounds(self):
+        if (self.bounds_active):
+            self.bounds_active = False
+            self.grayed_s.set_visible(False)
+            self.grayed_e.set_visible(False)
+            self.start_box.set_fc('grey')
+            self.end_box.set_fc('grey')
+            self.filled_start = 0
+        else:
+            self.bounds_active = True
+            self.grayed_s.set_visible(True)
+            self.grayed_e.set_visible(True)
+            self.start_box.set_fc('red')
+            self.end_box.set_fc('red')
+            self.filled_start = self.min_idx
+        self.filled.set_bounds(self.filled_start/self.n,0, (self.idx-self.filled_start)/self.n, 1)
+    
     @property
     def idx(self):
         return self._idx

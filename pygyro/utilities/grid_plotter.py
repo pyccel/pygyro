@@ -177,6 +177,8 @@ class SlicePlotterNd(object):
     
     def play_pause(self,evt):
         self.playing = not self.playing
+        for slider in self.sliders:
+            slider.toggle_active_bounds()
         if (self.playing):
             self.buttons[0].label.set_text(u"\u258e\u258e")
         else:
@@ -192,8 +194,8 @@ class SlicePlotterNd(object):
             self.plotParams.pop('vmax')
         else:
             # get max and min values of f to avoid colorbar jumps
-            minimum=grid.getMin(self.drawRank,self.oDims,self.omitVals)
-            maximum=grid.getMax(self.drawRank,self.oDims,self.omitVals)
+            minimum=self.grid.getMin(self.drawRank,self.oDims,self.omitVals)
+            maximum=self.grid.getMax(self.drawRank,self.oDims,self.omitVals)
             self.plotParams['vmin'] = minimum
             self.plotParams['vmax'] = maximum
     
