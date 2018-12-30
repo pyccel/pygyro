@@ -7,6 +7,7 @@ from matplotlib                 import rc
 from mpl_toolkits.axes_grid1    import make_axes_locatable
 import matplotlib.pyplot        as plt
 import numpy                    as np
+import sched,time
 
 from .discrete_slider import DiscreteSlider
 from .bounded_slider import BoundedSlider
@@ -22,6 +23,7 @@ class SlicePlotterNd(object):
     def __init__(self,grid: Grid, xDimension: int, yDimension: int,
                 polar: bool, sliderDimensions: list = [], sliderNames = [], **kwargs):
         self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
+        self.comm_size = self.comm.Get_size()
         self.rank = self.comm.Get_rank()
         self.drawRank = kwargs.pop('drawingRank',0)
         
@@ -110,6 +112,8 @@ class SlicePlotterNd(object):
         
         # on rank 0 set-up the graph
         if (self.rank==self.drawRank):
+            plt.ion()
+            self.open=True
             self.fig = plt.figure()
             self.fig.canvas.mpl_connect('close_event', self.handle_close)
             #Grid spec in Grid spec to guarantee size of plot
@@ -164,9 +168,14 @@ class SlicePlotterNd(object):
             self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet"}
             
             self.setMemText()
+            
+            self.completedRanks = [i==self.drawRank for i in range(self.comm_size)]
         
         self.getData()
-        self.plotFigure()
+        self.action = -1
+        
+        if (self.rank == self.drawRank):
+            self.plotFigure()
     
     def setLabels(self,xLab,yLab):
         self.xLab=xLab
@@ -205,21 +214,34 @@ class SlicePlotterNd(object):
         self.buttons[3].set_text('{:.4g} {}'.format(requirements,units))
     
     def handle_close(self,_evt):
-        # broadcast 0 to break non-0 ranks listen loop
-        MPI.COMM_WORLD.bcast(0,root=0)
+        assert(self.rank==self.drawRank)
+        self.action = 0
+        self.open=False
+        self.fig.canvas.stop_event_loop()
+        self.prepare_data_reception()
+    
+    def prepare_data_reception(self):
+        for j in range(1,self.comm_size):
+            i = self.comm.recv(tag=2510)
+            self.completedRanks[i] = True
+        self.comm.Barrier()
+        self.getData()
+        self.comm.bcast(self.action,root=0)
     
     def play_pause(self,evt):
         self.playing = not self.playing
         for slider in self.sliders:
             slider.toggle_active_bounds()
+            slider.reset_bounds()
         if (self.playing):
             self.buttons[0].label.set_text(u"\u258e\u258e")
         else:
             self.buttons[0].label.set_text(u"\u25b6")
+            self.action = 1
         self.fig.canvas.draw()
     
     def stepForward(self,evt):
-        pass
+        self.action = 2
     
     def fixBounds(self,evt):
         if ('vmin' in self.plotParams):
@@ -233,13 +255,20 @@ class SlicePlotterNd(object):
             self.plotParams['vmax'] = maximum
     
     def getData(self):
-        for slider in self.sliders:
-            s_min,s_max = slider.reset_bounds()
-            self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
-        
+        print(self.rank,"get data")
         if (self.rank!=self.drawRank):
+            print(self.rank,self.selectDict)
+            self.selectDict = self.comm.bcast(self.selectDict,self.drawRank)
+            print(self.rank,self.selectDict)
             self.grid.getBlockFromDict(self.selectDict,self.comm,self.drawRank)
         else:
+            for slider in self.sliders:
+                s_min,s_max = slider.reset_bounds()
+                self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
+            print(self.rank,self.selectDict)
+            self.selectDict = self.comm.bcast(self.selectDict,self.drawRank)
+            print(self.rank,self.selectDict)
+            
             layout, starts, mpi_data, theSlice = self.grid.getBlockFromDict(self.selectDict,self.comm,self.drawRank)
             
             split = np.split(theSlice,starts[1:])
@@ -269,9 +298,9 @@ class SlicePlotterNd(object):
                         else:
                             range_start = self.selectDict[k].start
                             range_stop  = self.selectDict[k].stop
-                            start = max(range_start - start,0)
-                            stop  = min(range_stop, end)
-                            layout_shape[j] = max(stop-start,0)
+                            range_start = max(range_start - start,0)
+                            range_stop  = min(range_stop - start, layout.mpi_lengths(j)[ranks[j]])
+                            layout_shape[j] = max(range_stop-range_start,0)
                     else:
                         if (isinstance(self.selectDict[k],int)):
                             layout_shape[j]=1
@@ -334,7 +363,44 @@ class SlicePlotterNd(object):
         self.fig.canvas.draw()
         
     def show(self):
-        plt.show()
+        while (self.open):
+            self.checkProgress()
+            self.fig.canvas.start_event_loop(timeout = 1)
+    
+    def calculation_complete(self):
+        print("calc done")
+        assert(self.rank!=self.drawRank)
+        self.comm.send(self.rank,self.drawRank,tag=2510)
+        self.comm.Barrier()
+        self.getData()
+        return self.runPauseLoop()
+    
+    def runPauseLoopSlave(self):
+        action = 1
+        while(action==1):
+            action = self.comm.bcast(0,root=0)
+            print("action:",action)
+            if action == 0:
+                # close
+                return False
+            elif action == 1:
+                # pause
+                pass
+            elif action == 2:
+                # play
+                pass
+        return True
+    
+    def checkProgress(self):
+        assert(self.rank==self.drawRank)
+        if (self.comm.Iprobe(tag=2510)):
+            self.prepare_data_reception()
+            if (self.action == 2):
+                self.action = 1
+            for i in range(len(self.completedRanks)):
+                self.completedRanks[i] = (i==self.drawRank)
+        if (not self.playing):
+            self.comm.bcast(self.action,root=0)
 
 class SlicePlotter4d(object):
     def __init__(self,grid: Grid, autoUpdate: bool = True,
