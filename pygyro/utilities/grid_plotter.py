@@ -1,12 +1,12 @@
-from mpi4py                 import MPI
-from math                   import pi
-from enum                   import IntEnum
-from matplotlib.widgets     import Button, CheckButtons
-from matplotlib.gridspec    import GridSpec, GridSpecFromSubplotSpec
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.pyplot    as plt
-from matplotlib             import rc
-import numpy                as np
+from mpi4py                     import MPI
+from math                       import pi
+from enum                       import IntEnum
+from matplotlib.widgets         import Button, CheckButtons
+from matplotlib.gridspec        import GridSpec, GridSpecFromSubplotSpec
+from matplotlib                 import rc
+from mpl_toolkits.axes_grid1    import make_axes_locatable
+import matplotlib.pyplot        as plt
+import numpy                    as np
 
 from .discrete_slider import DiscreteSlider
 from .bounded_slider import BoundedSlider
@@ -132,12 +132,17 @@ class SlicePlotterNd(object):
             self.button_axes[3].text(0,0.66,'Memory\nrequired:',verticalalignment='center',fontsize='medium')
             self.buttons = [Button(self.button_axes[0],u"\u25b6"),
                             Button(self.button_axes[1],u"\u25b6\u258e"),
-                            CheckButtons(self.button_axes[2],['Fixed\n max/min'],[True]),
+                            CheckButtons(self.button_axes[2],['Fix\n max/min\n colour'],[True]),
                             self.button_axes[3].text(0,0.33,'txt',verticalalignment='center',fontsize='large')]
             self.playing = False
             self.buttons[0].on_clicked(self.play_pause)
             self.buttons[1].on_clicked(self.stepForward)
             self.buttons[2].on_clicked(self.fixBounds)
+            self.buttons[2].labels[0].set_fontsize('large')
+            self.buttons[2].rectangles[0].set_width(0.2)
+            dat = self.buttons[2].lines[0][0].get_data()
+            self.buttons[2].lines[0][0].set_data([0.05,0.25],dat[1])
+            self.buttons[2].lines[0][1].set_data([0.25,0.05],dat[1])
             
             self.sliders = []
             
