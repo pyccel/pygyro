@@ -25,8 +25,8 @@ class BoundedSlider:
         self.fix_min = self.min_idx
         self.fix_max = self.max_idx
         
-        self.start_poly = np.array([[0,0],[1,0],[1,0.3],[0.7,0.3],[0.7,0.7],[1,0.7],[1,1],[0,1]])*[0.5/self.n,1]
-        self.  end_poly = np.array([[0,0],[-1,0],[-1,0.3],[-0.7,0.3],[-0.7,0.7],[-1,0.7],[-1,1],[0,1]])*[0.5/self.n,1]
+        self.start_poly = np.array([[-0.5,0],[0.5,0],[0.5,0.3],[0.2,0.3],[0.2,0.7],[0.5,0.7],[0.5,1],[-0.5,1]])*[0.5/self.n,1]
+        self.  end_poly = np.array([[0.5,0],[-0.5,0],[-0.5,0.3],[-0.2,0.3],[-0.2,0.7],[-0.5,0.7],[-0.5,1],[0.5,1]])*[0.5/self.n,1]
         
         self.grayed_s = Rectangle((0,0), self.min_idx/self.n, 1,facecolor='gray')
         self.grayed_e = Rectangle((self.max_idx/self.n,0), (self.n-self.max_idx)/self.n, 1,facecolor='gray')
@@ -63,9 +63,13 @@ class BoundedSlider:
         cid = ax.figure.canvas.mpl_connect('motion_notify_event', self.on_move)
         
         self.changed = lambda val: None
+        self.mem_changed = lambda val: None
     
     def on_changed(self,lam):
         self.changed = lam
+    
+    def on_mem_changed(self,lam):
+        self.mem_changed = lam
     
     def on_press(self,event):
         if (event.inaxes==self.ax):
@@ -87,11 +91,13 @@ class BoundedSlider:
                     self.min_idx = x_idx
                     self.start_box.set_xy(self.start_poly + [self.min_idx/self.n,0])
                     self.ax.figure.canvas.draw()
+                    self.mem_changed()
             elif (self.moving == 'end'):
                 if (x_idx!=self.max_idx):
                     self.max_idx = x_idx
                     self.end_box.set_xy(self.end_poly + [self.max_idx/self.n,0])
                     self.ax.figure.canvas.draw()
+                    self.mem_changed()
             elif (self.moving == 'val'):
                 if (x_idx!=self.idx and self.inMemory(x_idx)):
                     self.idx = x_idx
@@ -106,10 +112,12 @@ class BoundedSlider:
                 self.min_idx = x_idx
                 self.start_box.set_xy(self.start_poly + [self.min_idx/self.n,0])
                 self.ax.figure.canvas.draw()
+                self.mem_changed()
             if (self.moving == 'end'):
                 self.max_idx = x_idx
                 self.end_box.set_xy(self.end_poly + [self.max_idx/self.n,0])
                 self.ax.figure.canvas.draw()
+                self.mem_changed()
             elif (self.moving == 'val'):
                 if (x_idx!=self.idx and self.inMemory(x_idx)):
                     self.idx = x_idx
