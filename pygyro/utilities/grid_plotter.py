@@ -411,8 +411,8 @@ class SlicePlotterNd(object):
         assert(self.rank==self.drawRank)
         if (self.comm.Iprobe(tag=2510)):
             self.prepare_data_reception()
-            if (self.action == 2):
-                self.action = 1
+            if (self.action == 1):
+                self.mpi_playing = False
             for i in range(len(self.completedRanks)):
                 self.completedRanks[i] = (i==self.drawRank)
         if (not self.mpi_playing):
