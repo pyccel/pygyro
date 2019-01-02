@@ -161,7 +161,6 @@ class SlicePlotterNd(object):
                 slider.on_mem_changed(lambda idx=i,dim=self.sDims[i]: self.updateMem(idx,dim))
                 s_min,s_max = slider.reset_bounds()
                 self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
-                self.access_pattern[slider.grid_dimension] = self.sliderVals[i]-s_min
                 self.memory_requirements[self.sDims[i]] = slider.get_next_n_poss_pts()
                 self.sliders.append(slider)
             
@@ -193,7 +192,11 @@ class SlicePlotterNd(object):
             self.ax.set_ylabel(self.yLab)
     
     def updateVal(self, value, dimension):
-        self.access_pattern[dimension] = value - self.selectDict[dimension].start
+        if (self.playing):
+            self.access_pattern[dimension] = value - self.selectDict[dimension].start
+        else:
+            self.comm.bcast(4,root=0)
+            self.getData()
         self.plotFigure()
     
     def updateMem(self,idx,dim):
@@ -246,19 +249,26 @@ class SlicePlotterNd(object):
             self.action = 3
             self.buttons[1].set_active(False)
             if (not self.mpi_playing):
-                self.comm.bcast(self.action,root=0)
                 self.mpi_playing = True
+                if (self.action!=2):
+                    self.comm.bcast(self.action,root=0)
+            for i,d in enumerate(self.sDims):
+                self.access_pattern[d] = self.sliders[i].idx - self.sliders[i].fix_min
         else:
             self.buttons[0].label.set_text(u"\u25b6")
             self.action = 1
             self.buttons[1].set_active(True)
+            for d in self.sDims:
+                self.access_pattern[d] = 0
         self.fig.canvas.draw()
     
     def stepForward(self,evt):
+        self.buttons[1].set_active(False)
         self.action = 2
+        self.fig.canvas.stop_event_loop()
         self.comm.bcast(self.action,root=0)
-        self.action = 1
         self.mpi_playing = True
+        self.fig.canvas.start_event_loop(timeout = 1)
     
     def fixBounds(self,evt):
         if ('vmin' in self.plotParams):
@@ -278,12 +288,20 @@ class SlicePlotterNd(object):
                 self.selectDict[self.selectInfo[i*3]] = range(self.selectInfo[i*3+1],self.selectInfo[i*2+2])
             self.grid.getBlockFromDict(self.selectDict,self.comm,self.drawRank)
         else:
-            for i,slider in enumerate(self.sliders):
-                s_min,s_max = slider.reset_bounds()
-                self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
-                self.selectInfo[i*3] = slider.grid_dimension
-                self.selectInfo[i*2+1] = s_min
-                self.selectInfo[i*2+2] = s_max+1
+            if (self.playing):
+                for i,slider in enumerate(self.sliders):
+                    s_min,s_max = slider.reset_bounds()
+                    self.selectDict[slider.grid_dimension] = range(s_min,s_max+1)
+                    self.selectInfo[i*3] = slider.grid_dimension
+                    self.selectInfo[i*2+1] = s_min
+                    self.selectInfo[i*2+2] = s_max+1
+            else:
+                for i,slider in enumerate(self.sliders):
+                    val = slider.idx
+                    self.selectDict[slider.grid_dimension] = range(val,val+1)
+                    self.selectInfo[i*3] = slider.grid_dimension
+                    self.selectInfo[i*2+1] = val
+                    self.selectInfo[i*2+2] = val+1
             self.comm.Bcast(self.selectInfo,self.drawRank)
             
             layout, starts, mpi_data, theSlice = self.grid.getBlockFromDict(self.selectDict,self.comm,self.drawRank)
@@ -403,16 +421,27 @@ class SlicePlotterNd(object):
                 # pause
                 pass
             elif action == 2:
+                # step
+                pass
+            elif action == 3:
                 # play
                 pass
+            elif action == 4:
+                # collect data (in pause)
+                self.getData()
+                action = 1
         return True
     
     def checkProgress(self):
         assert(self.rank==self.drawRank)
         if (self.comm.Iprobe(tag=2510)):
-            self.prepare_data_reception()
-            if (self.action == 1):
+            if (self.action == 2):
+                self.action = 1
+                self.prepare_data_reception()
                 self.mpi_playing = False
+                self.buttons[1].set_active(True)
+            else:
+                self.prepare_data_reception()
             for i in range(len(self.completedRanks)):
                 self.completedRanks[i] = (i==self.drawRank)
         if (not self.mpi_playing):
