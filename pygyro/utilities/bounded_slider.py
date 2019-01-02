@@ -127,7 +127,10 @@ class BoundedSlider:
         self.moving = None
     
     def inMemory(self,idx):
-        return (idx<=self.fix_max and idx>=self.fix_min)
+        if (self.bounds_active):
+            return (idx<=self.fix_max and idx>=self.fix_min)
+        else:
+            return (idx>=0 and idx<=self.n)
     
     def reset_bounds(self):
         self.fix_max = self.max_idx
