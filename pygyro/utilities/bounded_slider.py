@@ -136,8 +136,10 @@ class BoundedSlider:
             self.idx = self.fix_min
         elif (self.idx>self.fix_max):
             self.idx = self.fix_max
-        self.grayed_s.set_width(self.min_idx/self.n)
-        self.grayed_e.set_bounds(self.max_idx/self.n,0, (self.n-self.max_idx)/self.n, 1)
+        if (self.bounds_active):
+            self.filled_start = self.fix_min
+        self.grayed_s.set_width(self.fix_min/self.n)
+        self.grayed_e.set_bounds(self.fix_max/self.n,0, (self.n-self.fix_max)/self.n, 1)
         self.filled.set_bounds(self.filled_start/self.n,0, (self.idx-self.filled_start)/self.n, 1)
         return (self.fix_min,self.fix_max)
 
