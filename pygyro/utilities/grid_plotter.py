@@ -218,10 +218,13 @@ class SlicePlotterNd(object):
     
     def handle_close(self,_evt):
         assert(self.rank==self.drawRank)
+        self.fig.canvas.stop_event_loop()
         self.action = 0
         self.open=False
-        self.fig.canvas.stop_event_loop()
-        self.prepare_data_reception()
+        if (self.playing):
+            self.prepare_data_reception()
+        else:
+            self.comm.bcast(self.action,root=0)
     
     def prepare_data_reception(self):
         for j in range(1,self.comm_size):
@@ -241,15 +244,21 @@ class SlicePlotterNd(object):
         if (self.playing):
             self.buttons[0].label.set_text(u"\u258e\u258e")
             self.action = 3
-            self.comm.bcast(self.action,root=0)
-            self.mpi_playing = True
+            self.buttons[1].set_active(False)
+            if (not self.mpi_playing):
+                self.comm.bcast(self.action,root=0)
+                self.mpi_playing = True
         else:
             self.buttons[0].label.set_text(u"\u25b6")
             self.action = 1
+            self.buttons[1].set_active(True)
         self.fig.canvas.draw()
     
     def stepForward(self,evt):
         self.action = 2
+        self.comm.bcast(self.action,root=0)
+        self.action = 1
+        self.mpi_playing = True
     
     def fixBounds(self,evt):
         if ('vmin' in self.plotParams):
@@ -376,21 +385,17 @@ class SlicePlotterNd(object):
             self.fig.canvas.start_event_loop(timeout = 1)
     
     def calculation_complete(self):
-        print(self.rank,"calc done")
         assert(self.rank!=self.drawRank)
         self.comm.send(self.rank,self.drawRank,tag=2510)
         self.comm.Barrier()
-        print(self.rank,"get data")
         self.getData()
         return self.runPauseLoopSlave()
     
     def runPauseLoopSlave(self):
-        print(self.rank,"pause loop")
         action = 1
         while(action==1):
             ac=0
             action = self.comm.bcast(ac,root=0)
-            print(self.rank,"action:",action,ac)
             if action == 0:
                 # close
                 return False
@@ -405,14 +410,12 @@ class SlicePlotterNd(object):
     def checkProgress(self):
         assert(self.rank==self.drawRank)
         if (self.comm.Iprobe(tag=2510)):
-            print(0,"prep data")
             self.prepare_data_reception()
             if (self.action == 2):
                 self.action = 1
             for i in range(len(self.completedRanks)):
                 self.completedRanks[i] = (i==self.drawRank)
         if (not self.mpi_playing):
-            print(0,self.action,"paused")
             self.comm.bcast(self.action,root=0)
 
 class SlicePlotter4d(object):
