@@ -192,12 +192,14 @@ class SlicePlotterNd(object):
             self.ax.set_ylabel(self.yLab)
     
     def updateVal(self, value, dimension):
+        self.fig.canvas.stop_event_loop()
         if (self.playing):
             self.access_pattern[dimension] = value - self.selectDict[dimension].start
         else:
             self.comm.bcast(4,root=0)
             self.getData()
         self.plotFigure()
+        self.fig.canvas.start_event_loop(timeout = 1)
     
     def updateMem(self,idx,dim):
         self.memory_requirements[dim] = self.sliders[idx].get_next_n_poss_pts()
@@ -230,6 +232,7 @@ class SlicePlotterNd(object):
             self.comm.bcast(self.action,root=0)
     
     def prepare_data_reception(self):
+        self.fig.canvas.stop_event_loop()
         for j in range(1,self.comm_size):
             i = self.comm.recv(tag=2510)
             self.completedRanks[i] = True
@@ -238,6 +241,8 @@ class SlicePlotterNd(object):
         self.comm.bcast(self.action,root=0)
         if (self.action==1):
             self.mpi_playing = False
+        self.plotFigure()
+        self.fig.canvas.start_event_loop(timeout = 1)
     
     def play_pause(self,evt):
         self.playing = not self.playing
