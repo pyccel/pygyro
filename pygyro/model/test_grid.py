@@ -393,7 +393,14 @@ def test_Grid_max_plotting_drawRank(layout):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     
-    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
+    if (comm.Get_size()==1):
+        return
+    
+    layout_comm = comm.Split(rank==0,comm.Get_rank())
+    
+    mpi_size = layout_comm.Get_size()
+    
+    nprocs = compute_2d_process_grid( npts, mpi_size )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -401,19 +408,21 @@ def test_Grid_max_plotting_drawRank(layout):
     
     # Create layout manager
     if (rank==0):
-        manager = getLayoutHandler( comm, layouts, nprocs, [[],[],[],[]] )
+        manager = getLayoutHandler( layout_comm, layouts, nprocs, [[],[],[],[]] )
     else:
-        manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+        manager = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
-    grid = Grid(eta_grids,[],manager,layout)
+    grid = Grid(eta_grids,[],manager,layout,comm=comm)
     define_f(grid)
     maxVal = grid.getMax(0)
+    
     if (rank==0):
         assert(maxVal==(np.prod(npts)-1))
     
     r = min(1,comm.Get_size()-1)
     
     maxVal = grid.getMax(r,0,0)
+    
     if (rank==r):
         assert(maxVal==(np.prod(npts[1:])-1))
     
@@ -470,20 +479,28 @@ def test_Grid_min_plotting_drawRank(layout):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     
-    nprocs = compute_2d_process_grid( npts, comm.Get_size() )
+    layout_comm = comm.Split(rank==0,comm.Get_rank())
+    
+    mpi_size = layout_comm.Get_size()
+    
+    nprocs = compute_2d_process_grid( npts, mpi_size )
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
     
+    if (comm.Get_size()==1):
+        return
+    
     # Create layout manager
     if (rank==0):
-        manager = getLayoutHandler( comm, layouts, nprocs, [[],[],[],[]] )
+        manager = getLayoutHandler( layout_comm, layouts, nprocs, [[],[],[],[]] )
     else:
-        manager = getLayoutHandler( comm, layouts, nprocs, eta_grids )
+        manager = getLayoutHandler( layout_comm, layouts, nprocs, eta_grids )
     
-    grid = Grid(eta_grids,[],manager,layout,)
+    grid = Grid(eta_grids,[],manager,layout,comm=comm)
     define_f(grid)
+    
     minVal = grid.getMin(0)
     if (comm.Get_rank()==0):
         assert(minVal==0)
