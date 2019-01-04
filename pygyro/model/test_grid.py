@@ -393,6 +393,9 @@ def test_Grid_max_plotting_drawRank(layout):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     
+    if (comm.Get_size()==1):
+        return
+    
     nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     
     layouts = {'flux_surface': [0,3,1,2],
@@ -475,6 +478,9 @@ def test_Grid_min_plotting_drawRank(layout):
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
+    
+    if (comm.Get_size()==1):
+        return
     
     # Create layout manager
     if (rank==0):
