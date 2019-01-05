@@ -400,7 +400,10 @@ def test_Grid_max_plotting_drawRank(layout):
     
     mpi_size = layout_comm.Get_size()
     
-    nprocs = compute_2d_process_grid( npts, mpi_size )
+    try:
+        nprocs = compute_2d_process_grid( npts, mpi_size )
+    except RuntimeError:
+        return
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
@@ -483,7 +486,10 @@ def test_Grid_min_plotting_drawRank(layout):
     
     mpi_size = layout_comm.Get_size()
     
-    nprocs = compute_2d_process_grid( npts, mpi_size )
+    try:
+        nprocs = compute_2d_process_grid( npts, mpi_size )
+    except RuntimeError:
+        return
     
     layouts = {'flux_surface': [0,3,1,2],
                'v_parallel'  : [0,2,1,3],
