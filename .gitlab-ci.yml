@@ -12,10 +12,11 @@ testimony:
     - pip show numpy
     - mkdir __test__
   script:
-    - pytest pygyro -m serial -k 'not long' --short
+    - coverage run -p --source=pygyro -m pytest pygyro -m serial -k 'not long' --short
+    - coverage combine
     - make
     - coverage run -p --source=pygyro -m pytest pygyro -m serial
-    - coverage combine
+    - coverage combine -a
     - mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
     - coverage combine -a
     - mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
