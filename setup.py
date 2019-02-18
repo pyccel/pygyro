@@ -15,23 +15,25 @@ KEYWORDS = ['Semi-Lagrangian', 'MPI', 'Gyrokinetic']
 
 #==============================================================================
 
-setup(
-    name             = NAME,
-    version          = VERSION,
-    author           = AUTHOR,
-    author_email     = EMAIL,
-    description      = DESCR,
-    long_description = open('README').read(),
-#    license          = LICENSE,
-    keywords         = KEYWORDS,
-    url              = URL,
-    packages         = find_packages(),
-    classifiers      = [
-        "Development Status :: 3 - Alpha",
-        "Topic :: Utilities",
-#        "License :: OSI Approved :: BSD License",
-    ],
-)
+def setup_package():
+    setup(
+        name             = NAME,
+        version          = VERSION,
+        author           = AUTHOR,
+        author_email     = EMAIL,
+        description      = DESCR,
+        long_description = open('README').read(),
+    #    license          = LICENSE,
+        keywords         = KEYWORDS,
+        url              = URL,
+        packages         = find_packages(),
+        classifiers      = [
+            "Development Status :: 3 - Alpha",
+            "Topic :: Utilities",
+    #        "License :: OSI Approved :: BSD License",
+        ],
+    )
 
+#..............................................................................
 if __name__ == '__main__':
-    setup()
+    setup_package()
