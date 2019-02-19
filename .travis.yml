@@ -50,8 +50,8 @@ script:
   - coverage combine -a
   - mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
   - coverage combine -a
-  - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-  - coverage combine -a
+#  - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+#  - coverage combine -a
   - python checkCoverage.py
 
 after_script:
