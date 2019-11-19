@@ -123,7 +123,11 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             start_x, start_y = logical_to_pseudocart(rPts[j], qPts[i])
             endPts_k1_r[i,j], endPts_k1_q[i,j] = pseudocart_to_logical(start_x + df1_dx * multFactor,
                                                                        start_y + df1_dy * multFactor)
-            df2_dx, df2_dy = poloidal_advection_pseudoDeriv(endPts_k1_r[i,j], endPts_k1_q[i,j], kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+            if (endPts_k1_r[i,j] > rMax):
+                df2_dx = 0
+                df2_dy = 0
+            else:
+                df2_dx, df2_dy = poloidal_advection_pseudoDeriv(endPts_k1_r[i,j], endPts_k1_q[i,j], kts1Phi, deg1Phi, kts2Phi, deg2Phi,
                               coeffsPhi, dPhi_r0_dx, dPhi_r0_dy, eps)
             # Step two of Heun method
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
@@ -241,15 +245,19 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
     
     idx = nPts[1]-1
     rMax = rPts[idx]
+
+    start_x = np.empty([nPts[1],nPts[0]])
+    start_y = np.empty([nPts[1],nPts[0]])
+    logical_to_pseudocart_cross(rPts[j],qPts[i], start_x, start_y)
     
     for i in range(nPts[0]):
         for j in range(nPts[1]):
+            df1_dx, df1_dy = poloidal_advection_pseudoDeriv(rPts[j],qPts[i], kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                              coeffsPhi, dPhi_r0_dx, dPhi_r0_dy, eps)
             # Step one of Heun method
             # x' = x^n + f(x^n)
-            drPhi_0[i,j]/=rPts[j]
-            dthetaPhi_0[i,j]/=rPts[j]
-            endPts_k1_q[i,j] = qPts[i] - drPhi_0[i,j]*multFactor
-            endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
+            endPts_k1_r[i,j], endPts_k1_q[i,j] = pseudocart_to_logical(start_x[i,j] + df1_dx * multFactor,
+                                                                       start_y[i,j] + df1_dy * multFactor)
 
     multFactor *= 0.5
     
@@ -258,39 +266,21 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
         norm=0.0
         for i in range(nPts[0]):
             for j in range(nPts[1]):
-                # Handle theta boundary conditions
-                while (endPts_k1_q[i,j]<0):
-                    endPts_k1_q[i,j]+=2*pi
-                while (endPts_k1_q[i,j]>2*pi):
-                    endPts_k1_q[i,j]-=2*pi
-                
-                if (not (endPts_k1_r[i,j]<rPts[0] or 
-                         endPts_k1_r[i,j]>rMax)):
-                    # Add the new value of phi to the derivatives
-                    # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-                    #                               ^^^^^^^^^^^^^^^
-                    drPhi_k[i,j]     = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
-                                                        kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,0,1)
-                    drPhi_k[i,j]     /= endPts_k1_r[i,j]
-                    dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
-                                                        kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,1,0)
-                    dthetaPhi_k[i,j] /= endPts_k1_r[i,j]
+                if (endPts_k1_r[i,j] > rMax):
+                    df2_dx = 0
+                    df2_dy = 0
                 else:
-                    drPhi_k[i,j]     = 0.0
-                    dthetaPhi_k[i,j] = 0.0
+                    df2_dx, df2_dy = poloidal_advection_pseudoDeriv(endPts_k1_r[i,j], endPts_k1_q[i,j], kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                  coeffsPhi, dPhi_r0_dx, dPhi_r0_dy, eps)
                 
                 # Step two of Heun method
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
+                endPts_k2_r[i,j], endPts_k2_q[i,j] = pseudocart_to_logical(start_x[i,j] + (df1_dx + df2_dx) * multFactor_half,
+                                                                           start_y[i,j] + (df1_dy + df2_dy) * multFactor_half)
                 # Clipping is one method of avoiding infinite loops due to
                 # boundary conditions
                 # Using the splines to extrapolate is not sufficient
-                endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor) % 2*pi
-                endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor
-                if (endPts_k2_r[i,j]<rPts[0]):
-                    endPts_k2_r[i,j]=rPts[0]
-                elif (endPts_k2_r[i,j]>rMax):
+                if (endPts_k2_r[i,j]>rMax):
                     endPts_k2_r[i,j]=rMax
                 
                 diff=abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])

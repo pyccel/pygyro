@@ -25,11 +25,35 @@ end subroutine
 !........................................
 
 !........................................
+pure subroutine logical_to_pseudocart_cross(r, theta, x, y) 
+
+implicit none
+real(kind=8), intent(in)  :: r (0:)
+real(kind=8), intent(in)  :: theta (0:)
+real(kind=8), intent(inout)  :: x (0:,0:)
+real(kind=8), intent(inout)  :: y (0:,0:)
+integer(kind=4) :: j  
+integer(kind=4) :: i  
+
+do j = 0, size(r,1) - 1, 1
+do i = 0, size(theta,1) - 1, 1
+  x(j, i) = cos(theta(i))*r(j)
+  y(j, i) = sin(theta(i))*r(j)
+
+
+end do
+
+end do
+
+end subroutine
+!........................................
+
+!........................................
 pure subroutine pseudocart_to_logical(x, y, r, theta) 
 
 implicit none
-real(kind=8), intent(out)  :: theta 
 real(kind=8), intent(out)  :: r 
+real(kind=8), intent(out)  :: theta 
 real(kind=8), intent(in)  :: x 
 real(kind=8), intent(in)  :: y 
 

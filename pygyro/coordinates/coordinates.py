@@ -12,12 +12,21 @@ def logical_to_pseudocart(r,theta):
 
 @external
 @pure
+@types('double[:]','double[:]','double[:,:]','double[:,:]')
+def logical_to_pseudocart_cross(r,theta,x,y):
+    for j in range(len(r)):
+        for i in range(len(theta)):
+            x[i,j] = r[j] * cos( theta[i] )
+            y[i,j] = r[j] * sin( theta[i] )
+
+@external
+@pure
 @types('double','double')
 def pseudocart_to_logical(x,y):
     r = sqrt( x * x + y * y )
     theta = arctan2( y, x )
-    #if theta < 0:
-    #   theta = theta + 2 * pi
+    if theta < 0:
+       theta = theta + 2 * pi
 
     return r, theta
 
