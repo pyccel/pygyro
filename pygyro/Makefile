@@ -19,11 +19,13 @@ numba:
 
 pyccel_generation:
 	$(MAKE) -C splines $@
+	$(MAKE) -C coordinates $@
 	$(MAKE) -C initialisation $@
 	$(MAKE) -C advection $@
 
 pyccel:
 	$(MAKE) -C splines $@
+	$(MAKE) -C coordinates $@
 	$(MAKE) -C initialisation $@
 	$(MAKE) -C advection $@
 
@@ -38,5 +40,6 @@ accelerated_advection_steps:
 
 clean:
 	$(MAKE) -C splines $@
+	$(MAKE) -C coordinates $@
 	$(MAKE) -C initialisation $@
 	$(MAKE) -C advection $@

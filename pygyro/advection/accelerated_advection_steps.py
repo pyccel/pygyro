@@ -1,22 +1,69 @@
-from pyccel.decorators  import types
-
-#~ def types(*args):
-    #~ def id(f):
-        #~ return f
-    #~ return id
+from pyccel.decorators  import types, pure
 
 from ..splines  import spline_eval_funcs as SEF
+from ..coordinates import coordinates as coords
 
 if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
-    eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
+    eval_spline_2d_cross  = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
     eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
     eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
+    eval_spline_2d_vector = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_vector
 else:
-    eval_spline_2d_cross = SEF.eval_spline_2d_cross
+    eval_spline_2d_cross  = SEF.eval_spline_2d_cross
     eval_spline_2d_scalar = SEF.eval_spline_2d_scalar
+    eval_spline_2d_vector = SEF.eval_spline_2d_vector
     eval_spline_1d_scalar = SEF.eval_spline_1d_scalar
 
+if ('coordinates' in dir(coords)):
+    logical_to_pseudocart          = coords.coordinates.logical_to_pseudocart
+    pseudocart_to_logical          = coords.coordinates.pseudocart_to_logical
+    function_logical_to_pseudocart = coords.coordinates.function_logical_to_pseudocart
+    function_pseudocart_to_logical = coords.coordinates.function_pseudocart_to_logical
+else:
+    logical_to_pseudocart          = coords.logical_to_pseudocart
+    pseudocart_to_logical          = coords.pseudocart_to_logical
+    function_logical_to_pseudocart = coords.function_logical_to_pseudocart
+    function_pseudocart_to_logical = coords.function_pseudocart_to_logical
+
 from ..initialisation.mod_initialiser_funcs               import fEq
+
+@pure
+@types('double','double','double[:]','int','double[:]','int','double[:,:]','double','double','double')
+def poloidal_advection_pseudoDeriv( startPts_r, startPts_q, kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                              coeffsPhi, dPhi_r0_dx, dPhi_r0_dy, eps):
+    if (startPts_r == 0):
+        df_dx = dPhi_r0_dy
+        df_dy = -dPhi_r0_dx
+    elif (startPts_r < eps):
+        df_dx = dPhi_r0_dy
+        df_dy = -dPhi_r0_dx
+        """
+        drPhi = eval_spline_2d_scalar(startPts_q,eps,
+                                      kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                      coeffsPhi,0,1)
+        drPhi /= eps
+        
+        dqPhi = eval_spline_2d_scalar(startPts_q,eps,
+                                      kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                      coeffsPhi,1,0)
+        dqPhi /= eps
+        dx_eps, dy_eps = function_logical_to_pseudocart(dqPhi,-drPhi,eps, startPts_q )
+        df_dx =  (1 - startPts_r/eps) * dPhi_r0_dy + startPts_r/eps * dx_eps
+        df_dy = -(1 - startPts_r/eps) * dPhi_r0_dx + startPts_r/eps * dy_eps
+        """
+    else:
+        drPhi = eval_spline_2d_scalar(startPts_q, startPts_r,
+                                      kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                      coeffsPhi,0,1)
+        drPhi /= startPts_r
+        
+        dqPhi = eval_spline_2d_scalar(startPts_q, startPts_r,
+                                      kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                                      coeffsPhi,1,0)
+        dqPhi /= startPts_r
+        #print("dr,dq:",drPhi,dqPhi)
+        df_dx, df_dy = function_logical_to_pseudocart(dqPhi,-drPhi,startPts_r, startPts_q )
+    return df_dx, df_dy
 
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
@@ -46,54 +93,42 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     
     """
     
-    from numpy import pi
-    
+    from numpy import pi, empty, sin, cos, isfinite, atleast_2d
+
+    eps = 1e-12
+
     multFactor = dt/B0
     multFactor_half = 0.5*multFactor
     
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
-    
-    idx = nPts[1]-1
-    rMax = rPts[idx]
+
+    r0_dr = drPhi_0[:,0]
+
+    #TODO: Find sign error
+    print(max(abs(r0_dr-3.5*cos(qPts))))
+
+    determinant = cos(qPts[0]) * sin(qPts[1]) - cos(qPts[1]) * sin(qPts[0])
+    dPhi_r0_dx = (  sin(qPts[2]) * r0_dr[0] - sin(qPts[0]) * r0_dr[2]) / determinant
+    dPhi_r0_dy = (- cos(qPts[2]) * r0_dr[0] + cos(qPts[0]) * r0_dr[2]) / determinant
+
+    rMax = rPts[nPts[1]-1]
     
     for i in range(nPts[0]):
         for j in range(nPts[1]):
+            df1_dx, df1_dy = poloidal_advection_pseudoDeriv(rPts[j],qPts[i], kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                              coeffsPhi, dPhi_r0_dx, dPhi_r0_dy, eps)
             # Step one of Heun method
             # x' = x^n + f(x^n)
-            drPhi_0[i,j]/=rPts[j]
-            dthetaPhi_0[i,j]/=rPts[j]
-            endPts_k1_q[i,j] = qPts[i] - drPhi_0[i,j]*multFactor
-            endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
-            
-            # Handle theta boundary conditions
-            while (endPts_k1_q[i,j]<0):
-                endPts_k1_q[i,j]+=2*pi
-            while (endPts_k1_q[i,j]>2*pi):
-                endPts_k1_q[i,j]-=2*pi
-            
-            if (not (endPts_k1_r[i,j]<rPts[0] or 
-                     endPts_k1_r[i,j]>rMax)):
-                # Add the new value of phi to the derivatives
-                # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-                #                               ^^^^^^^^^^^^^^^
-                drPhi_k[i,j]     = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
-                                                        kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,0,1)
-                drPhi_k[i,j]     /= endPts_k1_r[i,j]
-                
-                dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
-                                                        kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                        coeffsPhi,1,0)
-                dthetaPhi_k[i,j] /= endPts_k1_r[i,j]
-            else:
-                drPhi_k[i,j]     = 0.0
-                dthetaPhi_k[i,j] = 0.0
-            
+            start_x, start_y = logical_to_pseudocart(rPts[j], qPts[i])
+            endPts_k1_r[i,j], endPts_k1_q[i,j] = pseudocart_to_logical(start_x + df1_dx * multFactor,
+                                                                       start_y + df1_dy * multFactor)
+            df2_dx, df2_dy = poloidal_advection_pseudoDeriv(endPts_k1_r[i,j], endPts_k1_q[i,j], kts1Phi, deg1Phi, kts2Phi, deg2Phi,
+                              coeffsPhi, dPhi_r0_dx, dPhi_r0_dy, eps)
             # Step two of Heun method
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
-            endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % (2*pi)
-            endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
+            endPts_k2_r[i,j], endPts_k2_q[i,j] = pseudocart_to_logical(start_x + (df1_dx + df2_dx) * multFactor_half,
+                                                                       start_y + (df1_dy + df2_dy) * multFactor_half)
     
     # Find value at the determined point
     if (nulBound):
@@ -104,10 +139,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                 elif (endPts_k2_r[i,j]>rMax):
                     f[i,j]=0.0
                 else:
-                    while (endPts_k2_q[i,j]>2*pi):
-                        endPts_k2_q[i,j]-=2*pi
-                    while (endPts_k2_q[i,j]<0):
-                        endPts_k2_q[i,j]+=2*pi
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
@@ -121,10 +152,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=fEq(endPts_k2_r[i,j],v,CN0,kN0,
                                     deltaRN0,rp,CTi,kTi,deltaRTi)
                 else:
-                    while (endPts_k2_q[i,j]>2*pi):
-                        endPts_k2_q[i,j]-=2*pi
-                    while (endPts_k2_q[i,j]<0):
-                        endPts_k2_q[i,j]+=2*pi
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
     
