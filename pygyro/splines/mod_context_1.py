@@ -1,6 +1,7 @@
-from pyccel.decorators import types
+from pyccel.decorators import types, pure, stack_array
 
 #==============================================================================
+@pure
 @types('double[:]','int','double')
 def find_span( knots, degree, x ):
     """
@@ -51,6 +52,8 @@ def find_span( knots, degree, x ):
     return returnVal
 
 #==============================================================================
+@pure
+@stack_array('left','right')
 @types('double[:]','int','double','int','double[:]')
 def basis_funs( knots, degree, x, span, values ):
     """
@@ -99,6 +102,8 @@ def basis_funs( knots, degree, x, span, values ):
             saved     = left[j-r] * temp
         values[j+1] = saved
 
+@pure
+@stack_array('values')
 @types('double[:]','int','double','int','double[:]')
 def basis_funs_1st_der( knots, degree, x, span, ders ):
     """
@@ -134,7 +139,8 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
     # up to degree deg-1
     from numpy      import empty
     values = empty(degree)
-    basis_funs( knots, degree-1, x, span, values )
+    degree_max = degree - 1
+    basis_funs( knots, degree_max, x, span, values )
 
     # Compute derivatives at x using formula based on difference of
     # splines of degree deg-1
