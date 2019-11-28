@@ -8,11 +8,8 @@ ACC := pycc
 # Use GNU or intel compilers? [gnu|intel]
 COMP := gnu
 
-# Use manually optimized Fortran files? [1|0]
-MOPT := 0
-
 # Use pyccel to generate files? [1|0]
-PYCC_GEN := 1
+PYCC_GEN := 0
 
 #----------------------------------------------------------
 # Compiler options
@@ -40,17 +37,6 @@ else
 endif
 
 #----------------------------------------------------------
-# Pyccel-generated Fortran files:
-# use originals or manually-optimized version?
-#----------------------------------------------------------
-
-ifeq ($(MOPT), 1)
-	_OPT := _opt
-else
-	_OPT :=
-endif
-
-#----------------------------------------------------------
 # Defaut command:
 # use pure python, pyccel, numba?
 #----------------------------------------------------------
@@ -73,7 +59,7 @@ endif
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT PYCC_GEN PYTHON
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP PYCC_GEN PYTHON ACC
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------
@@ -98,7 +84,8 @@ ALL = \
 
 all: $(ALL)
 
-$(ALL): $(TYPE)
+$(ALL): 
+	$(MAKE) -C pygyro $(TYPE)_$@
 
 pycc:
 	$(MAKE) -C pygyro $@

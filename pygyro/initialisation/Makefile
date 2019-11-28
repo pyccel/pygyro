@@ -8,9 +8,9 @@
 # Main targets
 #----------------------------------------------------------
 
-numba:
+numba: numba_initialiser_func
 
-pycc: initialiser_func
+pycc: pycc_initialiser_func mod_initialiser_funcs.o
 
 clean:
 	rm -f *.o *.so *.mod
@@ -22,7 +22,10 @@ endif
 # Pyccel targets
 #----------------------------------------------------------
 
-initialiser_func: initialiser_func.f90 mod_initialiser_funcs.o
+numba_initialiser_func:
+	$(PYTHON) numba_mod_initialiser_funcs.py
+
+pycc_initialiser_func: initialiser_func.f90 mod_initialiser_funcs.o
 	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func --fcompiler=$(FF_COMP) $^
 
 
