@@ -12,7 +12,7 @@ COMP := gnu
 MOPT := 0
 
 # Use pyccel to generate files? [1|0]
-PYCC_GEN := 0
+PYCC_GEN := 1
 
 #----------------------------------------------------------
 # Compiler options
@@ -100,20 +100,10 @@ all: $(ALL)
 
 $(ALL): $(TYPE)
 
-pyccel_generation:
+pycc:
 	$(MAKE) -C pygyro $@
 
-ifeq ($(PYCC_GEN), 1)
-pycc: pyccel_generation
-	$(PYTHON) moduleGenerator.py
-else
-pycc:
-endif
-	echo $(PYCC_GEN)
-	$(MAKE) -C pygyro pyccel
-
 numba:
-	echo $(PYTHON)
 	$(MAKE) -C pygyro $@
 
 clean:
