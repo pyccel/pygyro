@@ -3,8 +3,8 @@ import numpy as np
 
 from . import initialiser_func as IF_MOD
 
-if ('mod_pygyro_initialisation_initialiser_func' in dir(IF_MOD)):
-    IF_MOD = IF_MOD.mod_pygyro_initialisation_initialiser_func
+if ('initialiser_func' in dir(IF_MOD)):
+    IF_MOD = IF_MOD.initialiser_func
     modFunc = np.transpose
 else:
     modFunc = lambda c: c
