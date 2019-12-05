@@ -19,3 +19,4 @@ doc/*.toc
 doc/*.snm
 doc/*.nav
 doc/*.out
+tags
