@@ -419,7 +419,7 @@ class PoloidalAdvection:
         
         self._explicit = explicitTrap
         self._TOL = tol
-        
+
         self._nulEdge=nulEdge
         
         self._drPhi_0 = np.empty(self._nPoints)
@@ -434,6 +434,9 @@ class PoloidalAdvection:
         self._max_loops = 0
         
         self._phiSplines = [Spline2D(splines[0],splines[1]) for i in range(eta_vals[2].size)]
+
+    def allow_tests():
+        self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
     
     def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
         """
@@ -500,7 +503,7 @@ class PoloidalAdvection:
         
         for i,theta in enumerate(self._points[0]):
             for j,r in enumerate(self._points[1]):
-                f[i,j]=self.evalFunc(endPts[0][i,j],endPts[1][i,j],v)
+                f[i,j]=self._evalFunc(endPts[0][i,j],endPts[1][i,j],v)
     
     def gridStep ( self, grid: Grid, phi: Grid, dt: float ):
         gridLayout = grid.getLayout(grid.currentLayout)
@@ -522,3 +525,18 @@ class PoloidalAdvection:
         for i,v in grid.getCoords(0):
             for j,z in grid.getCoords(1):
                 self.step(grid.get2DSlice([i,j]),dt,self._phiSplines[j],v)
+
+    def evaluate( self, theta, r, v ):
+        if self._nulEdge:
+            if (r<self._points[1][0]):
+                return 0
+            elif (r>self._points[1][-1]):
+                return 0
+            else:
+                while (theta>2*pi):
+                    theta-=2*pi
+                while (theta<0):
+                    theta+=2*pi
+                return self._spline.eval(theta,r)
+        else:
+            raise NotImplementedError("Can't calculate exactly with fEq as background")
