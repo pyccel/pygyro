@@ -38,11 +38,11 @@ module list
 source ~/PYGYRO/bin/activate
 
 # Create simulation directory and move into it
-mkdir $SIM_DIR
-cd $SIM_DIR
+mkdir "$SIM_DIR"
+cd "$SIM_DIR"
 
 # Copy PyGyro repository into simulation directory
-cp -r $PYGYRO_DIR .
+cp -r "$PYGYRO_DIR" .
 
 # Compile Fortran files
 cd PyGyro; make COMP=intel MOPT=1; cd -

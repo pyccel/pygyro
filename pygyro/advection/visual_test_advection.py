@@ -1,5 +1,6 @@
 from mpi4py                 import MPI
 import pytest
+import numpy                as np
 from matplotlib             import rc        as pltFont
 import matplotlib.pyplot    as plt
 import matplotlib.colors    as colors
@@ -9,7 +10,7 @@ from math                 import pi
 from ..                         import splines as spl
 from ..initialisation.setups    import setupCylindricalGrid
 from ..initialisation.constants import get_constants
-from .advection                 import *
+from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():

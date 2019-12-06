@@ -2,7 +2,6 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.linalg        import solve_banded
 from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs
 from scipy.sparse        import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu

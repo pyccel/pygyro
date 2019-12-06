@@ -4,7 +4,7 @@ import pytest
 from  .                         import constants
 from  .setups                   import setupCylindricalGrid
 from  .mod_initialiser_funcs    import fEq, perturbation
-from ..utilities.grid_plotter   import SlicePlotter4d, SlicePlotter3d, Plotter2d
+from ..utilities.grid_plotter   import SlicePlotter4d, Plotter2d
 
 @pytest.mark.serial
 def test_Perturbation_FluxSurface():

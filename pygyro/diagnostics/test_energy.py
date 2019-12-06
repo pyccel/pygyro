@@ -8,7 +8,6 @@ from ..model.process_grid                   import compute_2d_process_grid_from_
 from ..model.grid                           import Grid
 from ..model.layout                         import LayoutSwapper
 from ..initialisation.setups                import setupCylindricalGrid
-from ..initialisation                       import constants
 
 @pytest.mark.parallel
 def test_KineticEnergy_NoVelocity():
@@ -17,7 +16,7 @@ def test_KineticEnergy_NoVelocity():
     size = comm.Get_size()
     
     npts = [10,20,10,11]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,consts,t = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
     grid._f[:]=0
     idx_v = np.where(abs(grid.eta_grid[3])<1e-14)[0][0]
@@ -42,7 +41,7 @@ def test_KineticEnergy_Positive():
     size = comm.Get_size()
     
     npts = [10,20,10,11]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,consts,t = setupCylindricalGrid(npts   = npts,
                                 vMax   = 4,
                                 vMin   = -4,
                                 layout = 'poloidal')
@@ -60,7 +59,7 @@ def test_KineticEnergy_Positive():
     KEResult = comm.reduce(KE_val,op=MPI.SUM, root=0)
     
     if (rank==0):
-        assert(abs(KEResult-0.5*((constants.rMax**2-constants.rMin**2)*np.pi*np.pi*constants.R0*2))<1e-7)
+        assert(abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)*np.pi*np.pi*consts.R0*2))<1e-7)
 
 @pytest.mark.parallel
 def test_KineticEnergy_Positive_VPar():
@@ -69,7 +68,7 @@ def test_KineticEnergy_Positive_VPar():
     size = comm.Get_size()
     
     npts = [5,20,10,11]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,consts,t = setupCylindricalGrid(npts   = npts,
                                 vMax   = 4,
                                 vMin   = -4,
                                 layout = 'v_parallel')
@@ -85,4 +84,4 @@ def test_KineticEnergy_Positive_VPar():
     KEResult = comm.reduce(KE_val,op=MPI.SUM, root=0)
     
     if (rank==0):
-        assert(abs(KEResult-0.5*((constants.rMax**2-constants.rMin**2)*np.pi*np.pi*constants.R0*2))<1e-7)
+        assert(abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)*np.pi*np.pi*consts.R0*2))<1e-7)

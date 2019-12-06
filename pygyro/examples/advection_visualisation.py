@@ -1,3 +1,7 @@
+import mpi4py
+import numpy as np
+
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 

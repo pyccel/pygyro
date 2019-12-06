@@ -724,13 +724,13 @@ def test_QuasiNeutralityEquation_pointConverge():
                            + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
                 plane = phi_exact.get2DSlice([i])
                 plane[:] = np.cos(rArg)**4*np.sin(q)**3
-                #~ plane[:] = -12*np.cos(rArg)**2*np.sin(rArg)**2*a*a \
-                           #~ + 4*np.cos(rArg)**4                *a*a \
-                           #~ + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
-                           #~ 4 * np.cos(rArg)**3*np.sin(rArg)*a \
-                           #~ + np.cos(rArg)**4 / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp)
-                #~ plane = phi_exact.get2DSlice([i])
-                #~ plane[:] = np.cos(rArg)**4
+                #plane[:] = -12*np.cos(rArg)**2*np.sin(rArg)**2*a*a \
+                #           + 4*np.cos(rArg)**4                *a*a \
+                #           + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
+                #           4 * np.cos(rArg)**3*np.sin(rArg)*a \
+                #           + np.cos(rArg)**4 / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp)
+                #plane = phi_exact.get2DSlice([i])
+                #plane[:] = np.cos(rArg)**4
             
             ps.getModes(rho)
             

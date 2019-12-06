@@ -1,8 +1,9 @@
 import pytest
 import timeit
 from scipy.integrate        import trapz
+import numpy                as np
 
-from .advection                     import *
+from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                             import splines as spl
 from ..initialisation.constants     import get_constants
 from ..model.layout                 import Layout
@@ -16,14 +17,14 @@ def iota0():
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
     npts = [NGrid,NGrid]
-    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*np.pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
     
     dt=0.1
     
     f_vals = np.ndarray(npts)
     
-    domain    = [ [0,2*pi], [0,20] ]
+    domain    = [ [0,2*np.pi], [0,20] ]
     nkts      = [n+1                           for n          in npts ]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,3,True )    for b          in breaks]
@@ -42,7 +43,7 @@ def test_fluxSurfaceAdvection():
     
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
     
-    f_vals[:,:] = np.sin(eta_vals[2]*pi/10)
+    f_vals[:,:] = np.sin(eta_vals[2]*np.pi/10)
     
     fTime = timeit.Timer(lambda: fluxAdv.step(f_vals,0)).timeit(NSteps)
     print(fTime/NSteps," per step, ",fTime," total")
@@ -89,8 +90,8 @@ def Phi(r,theta):
 
 def initConditions(r,theta):
     a=4
-    factor = pi/a/2
-    r=np.sqrt((r-7)**2+2*(theta-pi)**2)
+    factor = np.pi/a/2
+    r=np.sqrt((r-7)**2+2*(theta-np.pi)**2)
     
     if (r<=a):
         return np.cos(r*factor)**4
@@ -106,7 +107,7 @@ def test_explicitPoloidalAdvection():
     dt=0.1
     v=2
     
-    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
+    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*np.pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
     N = int(1/dt)
@@ -116,7 +117,7 @@ def test_explicitPoloidalAdvection():
     
     deg = 3
     
-    domain    = [ [1,14.5], [0,2*pi] ]
+    domain    = [ [1,14.5], [0,2*np.pi] ]
     periodic  = [ False, True ]
     nkts      = [n+1+deg*(int(p)-1)            for (n,p)      in zip( npts, periodic )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]

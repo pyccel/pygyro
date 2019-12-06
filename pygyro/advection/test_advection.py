@@ -1,10 +1,11 @@
 from mpi4py                 import MPI
 import pytest
 from scipy.integrate        import trapz
+import numpy                as np
 
 from ..initialisation.setups                    import setupCylindricalGrid
 from ..initialisation.mod_initialiser_funcs     import fEq
-from .advection                                 import *
+from .advection                                 import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                                         import splines as spl
 from ..initialisation.constants                 import get_constants, Constants
 

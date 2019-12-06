@@ -58,9 +58,9 @@ class BoundedSlider:
         
         ax.set_xlabel('{} : {:.2f} '.format(name,self.val))
         
-        cid = ax.figure.canvas.mpl_connect('button_press_event', self.on_press)
-        cid = ax.figure.canvas.mpl_connect('button_release_event', self.on_release)
-        cid = ax.figure.canvas.mpl_connect('motion_notify_event', self.on_move)
+        ax.figure.canvas.mpl_connect('button_press_event', self.on_press)
+        ax.figure.canvas.mpl_connect('button_release_event', self.on_release)
+        ax.figure.canvas.mpl_connect('motion_notify_event', self.on_move)
         
         self.changed = lambda val: None
         self.mem_changed = lambda val: None

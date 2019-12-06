@@ -9,7 +9,7 @@ import os
 import h5py
 #~ import cProfile, pstats, io
 
-from ..model.layout                    import LayoutSwapper, getLayoutHandler
+from ..model.layout                    import LayoutSwapper
 from ..model.grid                      import Grid
 from ..model.process_grid              import compute_2d_process_grid
 from ..initialisation.setups           import setupCylindricalGrid, setupFromFile

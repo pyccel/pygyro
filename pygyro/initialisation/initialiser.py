@@ -1,4 +1,3 @@
-from math import pi
 import numpy as np
 
 from . import initialiser_func as IF_MOD

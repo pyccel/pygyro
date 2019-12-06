@@ -16,7 +16,6 @@ from pygyro.initialisation.setups           import setupCylindricalGrid, setupFr
 from pygyro.advection.advection             import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
 from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralitySolver
 from pygyro.splines.splines                 import Spline2D
-from pygyro.splines.spline_interpolators    import SplineInterpolator2D
 from pygyro.utilities.savingTools           import setupSave
 
 def get_grid_slice(foldername,tEnd):
@@ -26,7 +25,6 @@ def get_grid_slice(foldername,tEnd):
     loadable = False
 
     comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
         
     distribFunc = setupFromFile(foldername,comm=comm,
                                 allocateSaveMemory = True,
