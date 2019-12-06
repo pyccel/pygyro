@@ -172,13 +172,13 @@ def test_vParallelAdvectionPeriodic(N):
     
     assert(max(abs(f-fEnd))<2e-3)
 
-def Phi(r,theta):
-    return - 5 * r**2 + np.sin(theta)
+def Phi(r,theta, omega, xc, yc):
+    return omega * (r*r/2 - r*np.sin(theta)*yc - r * np.cos(theta)*xc)
 
 def initConditions(r,theta):
-    a=4
+    a=2
     factor = pi/a/2
-    r=np.sqrt((r-7)**2+2*(theta-pi)**2)
+    r=np.sqrt((r-8)**2+8*(theta-pi)**2)
     
     if (r<=a):
         return np.cos(r*factor)**4
@@ -188,8 +188,8 @@ def initConditions(r,theta):
 initConds = np.vectorize(initConditions, otypes=[np.float])
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
-def test_poloidalAdvection(dt,v):
+@pytest.mark.parametrize( "dt,v,xc,yc", [(1,-5,0,0), (0.1,5,1,0), (0.1, 2, 2, 1)])
+def test_poloidalAdvection(dt,v,xc,yc):
     
     npts = [64,64]
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
@@ -201,6 +201,7 @@ def test_poloidalAdvection(dt,v):
     final_f_vals = np.ndarray([npts[1],npts[0]])
     
     deg = 3
+    omega = 1
     
     domain    = [ [1,14.5], [0,2*pi] ]
     periodic  = [ False, True ]
@@ -219,28 +220,34 @@ def test_poloidalAdvection(dt,v):
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
     interp = SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
     f_vals[:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
-    finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-    finalPts[0][:] = np.mod(polAdv._shapedQ   +     10*dt*N/constants.B0,2*pi)
-    finalPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                    + np.sin(finalPts[0])/5/constants.B0)
-    final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
     
     for n in range(N):
         polAdv.step(f_vals[:,:],dt,phi,v)
+    
+    x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
+    y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+    
+    x = xc + (x0 - xc) * np.cos(omega * -dt * N) - (y0 - yc) * np.sin(omega * -dt * N)
+    y = yc + (x0 - xc) * np.sin(omega * -dt * N) + (y0 - yc) * np.cos(omega * -dt * N)
+
+    finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
+    finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts[1][:] = np.sqrt(x * x + y * y)
+    final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
     
     l2=np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,eta_grids[1],axis=0)*eta_grids[0],eta_grids[0]))
     assert(l2<0.2)
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize( "dt,v", [(1,5),(1,0),(0.1,-5), (0.5,0)] )
-def test_poloidalAdvectionImplicit(dt,v):
+@pytest.mark.parametrize( "dt,v,xc,yc", [(1,-5,0,0), (0.1,5,1,0), (0.1, 2, 2, 1)])
+def test_poloidalAdvectionImplicit(dt,v,xc,yc):
     
     npts = [64,64]
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
@@ -252,6 +259,7 @@ def test_poloidalAdvectionImplicit(dt,v):
     final_f_vals = np.ndarray([npts[1],npts[0]])
     
     deg = 3
+    omega = 1
     
     domain    = [ [1,14.5], [0,2*pi] ]
     periodic  = [ False, True ]
@@ -266,27 +274,33 @@ def test_poloidalAdvectionImplicit(dt,v):
     
     constants = Constants()
     
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, True,False,1e-10)
+    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, True, False, 1e-10)
     
     phi = Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
-    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
     interp = SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
     f_vals[:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
-    finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-    finalPts[0][:] = np.mod(polAdv._shapedQ   +     10*dt*N/constants.B0,2*pi)
-    finalPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                    + np.sin(finalPts[0])/5/constants.B0)
-    final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
     
     for n in range(N):
         polAdv.step(f_vals[:,:],dt,phi,v)
     
+    x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
+    y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+    
+    x = xc + (x0 - xc) * np.cos(omega * -dt * N) - (y0 - yc) * np.sin(omega * -dt * N)
+    y = yc + (x0 - xc) * np.sin(omega * -dt * N) + (y0 - yc) * np.cos(omega * -dt * N)
+
+    finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
+    finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts[1][:] = np.sqrt(x * x + y * y)
+    final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
+    
     l2=np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,eta_grids[1],axis=0)*eta_grids[0],eta_grids[0]))
-    print(l2)
+    assert(l2<0.2)
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():

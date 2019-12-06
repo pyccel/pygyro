@@ -90,8 +90,8 @@ def test_vParallelAdvection():
         print("}$ & ",str.format('{0:.2f}',linforder[i])," \\\\")
         print("\\hline")
 
-def Phi_adv(r,theta):
-    return - 5 * r**2 + np.sin(theta)
+def Phi_adv(r,theta, omega, xc, yc):
+    return omega * (r*r/2 - r*np.sin(theta)*yc - r * np.cos(theta)*xc)
 
 def initConditions2(r,theta):
     a=6
@@ -109,9 +109,9 @@ def initConditions2(r,theta):
 
 
 def initConditions1(r,theta):
-    a=4
+    a=2
     factor = pi/a/2
-    r=np.sqrt((r-7)**2+2*(theta-pi)**2)
+    r=np.sqrt((r-6)**2+8*(theta-pi)**2)
     
     if (r<=a):
         return np.cos(r*factor)**4
@@ -119,13 +119,15 @@ def initConditions1(r,theta):
         return 0.0
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "initConditions", [initConditions1,initConditions2] )
-def test_poloidalAdvection_constantAdv(initConditions):
+@pytest.mark.parametrize( "initConditions,xc,yc", [(initConditions1,0,0),(initConditions1,1,1),(initConditions2,0,0)] )
+def test_poloidalAdvection_constantAdv(initConditions, xc, yc):
     initConds = np.vectorize(initConditions, otypes=[np.float])
     
     npts = [32,32]
     dt=0.01
     N=10
+
+    omega = 1
     
     nconvpts = 5
     
@@ -161,26 +163,35 @@ def test_poloidalAdvection_constantAdv(initConditions):
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
-        phiVals[:] = Phi_adv(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+        phiVals[:] = Phi_adv(eta_vals[0],np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
         interp = SplineInterpolator2D(bsplines[1],bsplines[0])
         
         interp.compute_interpolant(phiVals,phi)
         
         f_vals[:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+
+        x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
+        y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+
+        x = xc + (x0 - xc) * np.cos(omega * -dt * N) - (y0 - yc) * np.sin(omega * -dt * N)
+        y = yc + (x0 - xc) * np.sin(omega * -dt * N) + (y0 - yc) * np.cos(omega * -dt * N)
+
         finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-        finalPts[0][:] = np.mod(polAdv._shapedQ   +     10*dt*N/constants.B0,2*pi)
-        finalPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                        + np.sin(finalPts[0])/5/constants.B0)
+        finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+        finalPts[1][:] = np.sqrt(x * x + y * y)
         final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
         
+        x = xc + (x0 - xc) * np.cos(omega * -dt) - (y0 - yc) * np.sin(omega * -dt)
+        y = yc + (x0 - xc) * np.sin(omega * -dt) + (y0 - yc) * np.cos(omega * -dt)
+
         endPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-        endPts[0][:] = polAdv._shapedQ   +     10*dt/constants.B0
-        endPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                        + np.sin(endPts[0])/5/constants.B0)
+        endPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+        endPts[1][:] = np.sqrt(x * x + y * y)
         
+        polAdv.allow_tests()  # Vectorises exact_step
         for n in range(N):
             polAdv.exact_step(f_vals[:,:],endPts,v)
-        
+
         linf[i]=np.linalg.norm((f_vals-final_f_vals).flatten(),np.inf)
         l2[i]=np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,eta_grids[1],axis=0)*eta_grids[0],eta_grids[0]))
         
@@ -221,7 +232,11 @@ def test_poloidalAdvection_constantAdv(initConditions):
 
 @pytest.mark.serial
 def test_poloidalAdvection_constantAdv_dt():
-    dt=0.2
+    dt=1
+
+    omega = 4
+    xc = 1
+    yc = 1
     
     nconvpts = 5
     
@@ -263,21 +278,27 @@ def test_poloidalAdvection_constantAdv_dt():
         
         phi = Spline2D(bsplines[1],bsplines[0])
         phiVals = np.empty([npts[1],npts[0]])
-        phiVals[:] = Phi_adv(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+        phiVals[:] = Phi_adv(eta_vals[0],np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
         interp = SplineInterpolator2D(bsplines[1],bsplines[0])
         
         interp.compute_interpolant(phiVals,phi)
-        
+    
         f_vals[:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+        
+        x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
+        y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+        
+        x = xc + (x0 - xc) * np.cos(omega * -dt * N) - (y0 - yc) * np.sin(omega * -dt * N)
+        y = yc + (x0 - xc) * np.sin(omega * -dt * N) + (y0 - yc) * np.cos(omega * -dt * N)
+
         finalPts = ( np.ndarray([npts[1],npts[0]]), np.ndarray([npts[1],npts[0]]))
-        finalPts[0][:] = np.mod(polAdv._shapedQ   +     10*dt*N/constants.B0,2*pi)
-        finalPts[1][:] = np.sqrt(polAdv._points[1]**2-np.sin(polAdv._shapedQ)/5/constants.B0 \
-                        + np.sin(finalPts[0])/5/constants.B0)
+        finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+        finalPts[1][:] = np.sqrt(x * x + y * y)
         final_f_vals[:,:] = initConds(finalPts[1],finalPts[0])
         
         for n in range(N):
             polAdv.step(f_vals[:,:],dt,phi,v)
-        
+
         linf[i]=np.linalg.norm((f_vals-final_f_vals).flatten(),np.inf)
         l2[i]=np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,eta_grids[1],axis=0)*eta_grids[0],eta_grids[0]))
         
