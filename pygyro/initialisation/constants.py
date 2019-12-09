@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import integrate
-from math import exp, tanh
+import math
 import json
 import re
 
@@ -88,7 +88,7 @@ class Constants:
         self.CN0 = (self.rMax-self.rMin)/integrate.quad(self.normalisingFunc,self.rMin,self.rMax)[0]
     
     def normalisingFunc(self,r):
-        return exp(-self.kN0*self.deltaRN0*tanh((r-self.rp)/self.deltaRN0))
+        return math.exp(-self.kN0*self.deltaRN0*math.tanh((r-self.rp)/self.deltaRN0))
     
     def set_defaults(self):
         for key,val in defaults.items():
@@ -113,6 +113,11 @@ def eval_expr(mystr,constants):
                 f[i]=str(val)
             else:
                 return None
+        elif (el not in '([+*/\\-\\(\\)])'):
+            try:
+                float(el)
+            except:
+                f[i] = str(getattr(math,el))
     return eval(''.join(f))
     
 
