@@ -1,0 +1,55 @@
+sudo: required
+language: python
+
+# which python versions to test
+# Enable 3.7 without globally enabling 'dist: xenial' for other build jobs
+matrix:
+  include:
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+      dist: xenial
+
+# Cache directory $HOME/.cache/pip
+cache: pip
+
+# command before installation: install all dependencies
+before_install:
+  - sudo apt-get install gfortran
+  - sudo apt-get install openmpi-bin libopenmpi-dev
+  - sudo apt-get install libhdf5-openmpi-dev
+  - ompi_info
+  - h5pcc -showconfig -echo || true
+  - export CC="mpicc" HDF5_MPI="ON" HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+  - python -m pip install --upgrade pip
+  - python -m pip uninstall -y pygyro
+  - python -m pip install -r requirements.txt
+
+# command to install project
+install:
+  - python -m pip install .
+  - python -m pip install coverage
+
+before_script:
+  - mkdir __test__
+
+# command to run tests
+script:
+  - coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" -v --short
+  - coverage combine
+  - make
+  - coverage run -p --source=pygyro -m pytest pygyro -m serial
+  - coverage combine -a
+  - mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+  - coverage combine -a
+  - mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+  - coverage combine -a
+  - mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+  - coverage combine -a
+#  - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+#  - coverage combine -a
+  - python checkCoverage.py
+
+after_script:
+  - rm -r __test__
+  - make clean

@@ -1,7 +1,22 @@
-mpi4py==3.0.0
-matplotlib==2.2.2
-pyccel==0.1
-numpy==1.15.1
-scipy==1.1.0
-pytest==2.8.7
-h5py==2.8.0
+mpi4py>=3.0.0
+matplotlib>=2.2.2
+numpy>=1.15.1
+scipy>=1.1.0
+pytest>=2.8.7
+h5py>=2.8.0
+
+# h5py must be built from source using MPI compiler
+# and linked to parallel HDF5 library. To do so set
+#
+# CC="mpicc"
+# HDF5_MPI="ON"
+# HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+#
+--no-binary h5py
+
+# NOTE: PyGyro depends on "pyccel" library, to be
+#       installed manually from its git repository:
+#
+# wget https://raw.githubusercontent.com/pyccel/pyccel/master/requirements.txt -O requirements_pyccel.txt
+# python3 -m pip install -r requirements_pyccel.txt
+# python3 -m pip install git+https://github.com/pyccel/pyccel@master
