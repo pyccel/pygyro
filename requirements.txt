@@ -1,6 +1,6 @@
 mpi4py==3.0.0
 matplotlib==2.2.2
-pyccel==0.1
+#pyccel==0.1
 numpy==1.15.1
 scipy==1.1.0
 pytest==2.8.7
