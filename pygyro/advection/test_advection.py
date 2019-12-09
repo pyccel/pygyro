@@ -4,6 +4,7 @@ from scipy.integrate        import trapz
 import numpy                as np
 
 from ..initialisation.setups                    import setupCylindricalGrid
+from ..model.layout                             import Layout
 from ..initialisation.mod_initialiser_funcs     import fEq
 from .advection                                 import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                                         import splines as spl
@@ -219,10 +220,10 @@ def test_poloidalAdvection(dt,v,xc,yc):
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, True)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -277,10 +278,10 @@ def test_poloidalAdvectionImplicit(dt,v,xc,yc):
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, True, False, 1e-10)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -348,9 +349,9 @@ def test_poloidalAdvection_gridIntegration():
     
     polAdv = PoloidalAdvection(grid.eta_grid, basis,constants)
     
-    phi = Spline2D(basis[0],basis[1])
+    phi = spl.Spline2D(basis[0],basis[1])
     phiVals = np.full((npts[1],npts[0]),2)
-    interp = SplineInterpolator2D(basis[0],basis[1])
+    interp = spl.SplineInterpolator2D(basis[0],basis[1])
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -383,10 +384,10 @@ def test_equilibrium():
     vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
     polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
-    phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
+    phi = spl.Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:]=3*grid.eta_grid[0]**2
-    interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
+    interp = spl.SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -444,10 +445,10 @@ def test_perturbedEquilibrium():
     vParAdv = VParallelAdvection(grid.eta_grid, grid.getSpline(3))
     polAdv = PoloidalAdvection(grid.eta_grid, grid.getSpline(slice(1,None,-1)))
     
-    phi = Spline2D(grid.getSpline(1),grid.getSpline(0))
+    phi = spl.Spline2D(grid.getSpline(1),grid.getSpline(0))
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:]=3*grid.eta_grid[0]**2
-    interp = SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
+    interp = spl.SplineInterpolator2D(grid.getSpline(1),grid.getSpline(0))
     
     interp.compute_interpolant(phiVals,phi)
     
