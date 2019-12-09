@@ -435,7 +435,7 @@ class PoloidalAdvection:
         
         self._phiSplines = [Spline2D(splines[0],splines[1]) for i in range(eta_vals[2].size)]
 
-    def allow_tests():
+    def allow_tests( self ):
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
     
     def step( self, f: np.ndarray, dt: float, phi: Spline2D, v: float ):
