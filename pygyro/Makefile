@@ -18,6 +18,7 @@ numba:
 	$(MAKE) -C initialisation $@
 
 pycc:
+	echo "pycc " $@
 	$(MAKE) -C splines $@
 	$(MAKE) -C initialisation $@
 	$(MAKE) -C advection $@

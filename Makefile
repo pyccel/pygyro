@@ -74,9 +74,9 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 
 # List of main targets
 ALL = \
-	spline_eval_funcs \
-	initialiser_func  \
-	accelerated_advection_steps
+	$(TYPE)_spline_eval_funcs \
+	$(TYPE)_initialiser_func  \
+	$(TYPE)_accelerated_advection_steps
 
 #----------------------------------------------------------
 # Main targets
@@ -85,7 +85,7 @@ ALL = \
 all: $(ALL)
 
 $(ALL): 
-	$(MAKE) -C pygyro $(TYPE)_$@
+	$(MAKE) -C pygyro $(TYPE)
 
 pycc:
 	$(MAKE) -C pygyro $@
