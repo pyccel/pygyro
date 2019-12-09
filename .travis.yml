@@ -35,7 +35,7 @@ before_script:
 
 # command to run tests
 script:
-  - coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" -v --short
+  - coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" --short
   - coverage combine
   - make
   - coverage run -p --source=pygyro -m pytest pygyro -m serial
