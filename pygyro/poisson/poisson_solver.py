@@ -562,10 +562,10 @@ class QuasiNeutralitySolver(DiffEqSolver):
                     constants, adiabaticElectrons: bool = True,
                     n0 = None, B: float = 1.0,
                     Te = None, **kwargs):
-        if (n0==None):
+        if (n0 is None):
             n0 = lambda r: initialiser.n0(r,constants.CN0,constants.kN0,
                                         constants.deltaRN0,constants.rp)
-        if (Te==None):
+        if (Te is None):
             Te = lambda r: initialiser.Te(r,constants.CTe,constants.kTe,
                                         constants.deltaRTe,constants.rp)
         r = eta_grid[0]

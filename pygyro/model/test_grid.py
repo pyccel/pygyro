@@ -93,7 +93,6 @@ def test_Grid_max():
                np.linspace(0,10,npts[2]),
                np.linspace(0,10,npts[3])]
     comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
     
     nprocs = compute_2d_process_grid( npts, comm.Get_size() )
     
@@ -293,8 +292,8 @@ def test_PhiLayoutSwap():
     
     remapper = LayoutSwapper( comm, [layout_poisson, layout_advection], [nprocs,nproc], eta_grids, 'mode_find' )
     
-    fsLayout = remapper.getLayout('mode_find')
-    vLayout = remapper.getLayout('poloidal')
+    #fsLayout = remapper.getLayout('mode_find')
+    #vLayout = remapper.getLayout('poloidal')
     
     phi = Grid(eta_grids,[],remapper,'mode_find')
     
@@ -320,8 +319,8 @@ def test_h5py():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
     
-    fsLayout = remapper.getLayout('flux_surface')
-    vLayout = remapper.getLayout('v_parallel')
+    #fsLayout = remapper.getLayout('flux_surface')
+    #vLayout = remapper.getLayout('v_parallel')
     
     grid = Grid(eta_grids,[],remapper,'flux_surface')
     

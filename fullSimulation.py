@@ -84,7 +84,7 @@ if (loadable):
                                 allocateSaveMemory = True,
                                 layout = 'v_parallel')
 else:
-    assert(constantFile!=None)
+    assert(constantFile is not None)
 
     my_print(rank,"ready to setup new")
     

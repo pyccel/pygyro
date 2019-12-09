@@ -49,7 +49,7 @@ def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
     >>> setupGrid(256,512,32,128,Layout.FIELD_ALIGNED)
     """
     
-    if (constantFile==None):
+    if (constantFile is None):
         constants = Constants()
     else:
         constants = get_constants(constantFile)
@@ -137,7 +137,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     """
     comm=kwargs.pop('comm',MPI.COMM_WORLD)
     
-    if (constantFile==None):
+    if (constantFile is None):
         constantFile = "{0}/initParams.json".format(foldername)
     
     constants = get_constants(constantFile)
@@ -199,7 +199,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
             filename = None
             t = 0
     
-    if (filename!=None):
+    if (filename is not None):
         file = h5py.File(filename,'r')
         dataset=file['/dset']
         order = np.array(dataset.attrs['Layout'])
@@ -208,7 +208,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
             if ((dims_order==order).all()):
                 my_layout=name
         
-        if (my_layout==None):
+        if (my_layout is None):
             raise ArgumentError("The stored layout is not a standard layout")
         
         # Create grid

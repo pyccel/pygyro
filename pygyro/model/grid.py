@@ -197,7 +197,7 @@ class Grid(object):
         file.close()
     
     def loadFromFile( self, foldername, time: int = None, nameConvention = "grid" ):
-        if (time==None):
+        if (time is None):
             list_of_files = glob("{0}/{1}_*".format(foldername,nameConvention))
             filename = max(list_of_files)
         else:
@@ -250,7 +250,7 @@ class Grid(object):
         # be stored
         
         for i,dim_i in enumerate(dims):
-            if (dim_i==None):
+            if (dim_i is None):
                 dim_slices.append(slice(0,self._layout.ends[i]-self._layout.starts[i]))
                 dimSize.append(self._layout.ends[i]-self._layout.starts[i])
             else:
@@ -309,14 +309,14 @@ class Grid(object):
             comm.Gatherv(toSend,toSend, rank)
     
     def getMin(self,drawingRank = None,axis = None,fixValue = None):
-        if (drawingRank == None):
+        if (drawingRank is None):
             return self._f.min()
         else:
             if (self._f.size==0):
                 return self.global_comm.reduce(np.inf,op=MPI.MIN,root=drawingRank)
             else:
                 # if we want the total of all points on the grid
-                if (axis==None and fixValue==None):
+                if (axis is None and fixValue is None):
                     # return the min of the min found on each process
                     return self.global_comm.reduce(np.amin(np.real(self._f)),op=MPI.MIN,root=drawingRank)
                 
@@ -341,14 +341,14 @@ class Grid(object):
                     return self.global_comm.reduce(np.inf,op=MPI.MIN,root=drawingRank)
     
     def getMax(self,drawingRank = None,axis = None,fixValue = None):
-        if (drawingRank == None):
+        if (drawingRank is None):
             return self._f.max()
         else:
             if (self._f.size==0):
                 return self.global_comm.reduce(-np.inf,op=MPI.MAX,root=drawingRank)
             else:
                 # if we want the total of all points on the grid
-                if (axis==None and fixValue==None):
+                if (axis is None and fixValue is None):
                     # return the max of the max found on each process
                     return self.global_comm.reduce(np.amax(np.real(self._f)),op=MPI.MAX,root=drawingRank)
                 

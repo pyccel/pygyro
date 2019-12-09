@@ -3,7 +3,7 @@ import pytest
 from time   import sleep
 
 from ..initialisation.setups import setupCylindricalGrid
-from .grid_plotter           import SlicePlotter4d, SlicePlotter3d, Plotter2d, SlicePlotterNd
+from .grid_plotter           import SlicePlotterNd
 
 @pytest.mark.parallel
 def test_3DPlot():

@@ -111,12 +111,6 @@ def test_OddLayoutPaths():
     assert(layout1.name=='0123')
     layout2=remapper.getLayout('1230')
     
-    l1=remapper.getLayout('0123')
-    l2=remapper.getLayout('0321')
-    l3=remapper.getLayout('1320')
-    l4=remapper.getLayout('1302')
-    l5=remapper.getLayout('1230')
-    
     fStart = np.empty(remapper.bufferSize,int)
     fStart[:] = -1
     fEnd = np.empty(remapper.bufferSize,int)

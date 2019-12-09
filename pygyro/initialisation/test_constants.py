@@ -1,4 +1,3 @@
-import numpy as np
 from scipy          import integrate
 from math           import exp, tanh, pi
 import os
