@@ -1,23 +1,9 @@
-from pyccel.decorators  import types
-
-#~ def types(*args):
-    #~ def id(f):
-        #~ return f
-    #~ return id
-
-from ..splines  import spline_eval_funcs as SEF
-
-if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
-    eval_spline_2d_cross = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,z.T,der1,der2)
-    eval_spline_2d_scalar = lambda xVec,yVec,kts1,deg1,kts2,deg2,coeffs,der1,der2 : SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_2d_scalar(xVec,yVec,kts1,deg1,kts2,deg2,coeffs.T,der1,der2)
-    eval_spline_1d_scalar = SEF.mod_pygyro_splines_spline_eval_funcs.eval_spline_1d_scalar
-else:
-    eval_spline_2d_cross = SEF.eval_spline_2d_cross
-    eval_spline_2d_scalar = SEF.eval_spline_2d_scalar
-    eval_spline_1d_scalar = SEF.eval_spline_1d_scalar
-
+from pyccel.decorators  import types, pure, external
+from ..splines.mod_spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
 from ..initialisation.mod_initialiser_funcs               import fEq
 
+@pure
+@external
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
@@ -128,6 +114,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
     
+@pure
+@external
 @types('double[:]','double[:]','double','double','double','double[:]','int','double[:]','double','double','double','double','double','double','double','int')
 def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                         coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
@@ -158,8 +146,10 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
             f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
         
 
+@pure
+@external
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
-def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+def get_lagrange_vals(i,nz,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     from numpy import pi
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
@@ -168,8 +158,10 @@ def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
                 new_q+=2*pi
             while (new_q>2*pi):
                 new_q-=2*pi
-            vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
+            vals[(i-s)%nz,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
+@pure
+@external
 @types('int','int','double[:,:]','double[:]','double[:,:,:]')
 def flux_advection(nq,nr,f,coeffs,vals):
         for j in range(nq):
@@ -178,6 +170,8 @@ def flux_advection(nq,nr,f,coeffs,vals):
                 for k in range(1,len(coeffs)):
                     f[j,i] += coeffs[k]*vals[i,j,k]
 
+@pure
+@external
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int','double','double','double','double','double','double','double','double','double','bool')
 def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
