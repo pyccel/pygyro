@@ -17,14 +17,14 @@ def gauss(x):
 @pytest.mark.parametrize( "fact,dt", [(10,1),(10,0.1), (5,1)] )
 def test_fluxSurfaceAdvection(fact,dt):
     npts = [30,20]
-    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*np.pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,1,4)]
     
     N = 10
     
     f_vals = np.ndarray(npts)
     
-    domain    = [ [0,2*pi], [0,20] ]
+    domain    = [ [0,2*np.pi], [0,20] ]
     nkts      = [n+1                           for n          in npts ]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,3,True )    for b          in breaks]
@@ -43,8 +43,8 @@ def test_fluxSurfaceAdvection(fact,dt):
     
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
     
-    f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
-    f_end = np.sin((eta_vals[2]-c*dt*N)*pi/fact)
+    f_vals[:,:] = np.sin(eta_vals[2]*np.pi/fact)
+    f_end = np.sin((eta_vals[2]-c*dt*N)*np.pi/fact)
     
     for n in range(N):
         fluxAdv.step(f_vals,0)
@@ -60,14 +60,14 @@ def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
     constants.iotaVal=0.8
     constants.n=-11
     
-    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
-                np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]
+    eta_vals = [np.linspace(0,1,4),np.linspace(0,2*np.pi,npts[0],endpoint=False),
+                np.linspace(0,2*np.pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]
     
     N = 10
     
     f_vals = np.ndarray(npts)
     
-    domain    = [ [0,2*pi], [0,2*pi*constants.R0] ]
+    domain    = [ [0,2*np.pi], [0,2*np.pi*constants.R0] ]
     nkts      = [n+1                           for n          in npts ]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots     = [spl.make_knots( b,3,True )    for b          in breaks]
@@ -86,10 +86,10 @@ def test_fluxSurfaceAdvectionAligned(nptZ,dt,err):
     
     m, n = (5,-4)
     theta = eta_grids[0]
-    phi = eta_grids[1]*2*pi/domain[1][1]
+    phi = eta_grids[1]*2*np.pi/domain[1][1]
     f_vals[:,:] = np.sin( m*theta[:,None] + n*phi[None,:] )
     
-    #~ f_vals[:,:] = np.sin(eta_vals[2]*pi/fact)
+    #~ f_vals[:,:] = np.sin(eta_vals[2]*np.pi/fact)
     f_end = f_vals.copy()
     
     for n in range(N):
@@ -178,8 +178,8 @@ def Phi(r,theta, omega, xc, yc):
 
 def initConditions(r,theta):
     a=2
-    factor = pi/a/2
-    r=np.sqrt((r-8)**2+8*(theta-pi)**2)
+    factor = np.pi/a/2
+    r=np.sqrt((r-8)**2+8*(theta-np.pi)**2)
     
     if (r<=a):
         return np.cos(r*factor)**4
@@ -193,7 +193,7 @@ initConds = np.vectorize(initConditions, otypes=[np.float])
 def test_poloidalAdvection(dt,v,xc,yc):
     
     npts = [64,64]
-    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
+    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*np.pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
     N = int(1/dt)
@@ -204,7 +204,7 @@ def test_poloidalAdvection(dt,v,xc,yc):
     deg = 3
     omega = 1
     
-    domain    = [ [1,14.5], [0,2*pi] ]
+    domain    = [ [1,14.5], [0,2*np.pi] ]
     periodic  = [ False, True ]
     nkts      = [n+1+deg*(int(p)-1)            for (n,p)      in zip( npts, periodic )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
@@ -251,7 +251,7 @@ def test_poloidalAdvection(dt,v,xc,yc):
 def test_poloidalAdvectionImplicit(dt,v,xc,yc):
     
     npts = [64,64]
-    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*pi,npts[0],endpoint=False),
+    eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*np.pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
     
     N = int(1/dt)
@@ -262,7 +262,7 @@ def test_poloidalAdvectionImplicit(dt,v,xc,yc):
     deg = 3
     omega = 1
     
-    domain    = [ [1,14.5], [0,2*pi] ]
+    domain    = [ [1,14.5], [0,2*np.pi] ]
     periodic  = [ False, True ]
     nkts      = [n+1+deg*(int(p)-1)            for (n,p)      in zip( npts, periodic )]
     breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
@@ -506,7 +506,7 @@ def test_vParGradAligned():
     
     m, n = (5,-4)
     theta = grid.eta_grid[1]
-    phi = grid.eta_grid[2]*2*pi/constants.zMax
+    phi = grid.eta_grid[2]*2*np.pi/constants.zMax
     phiVals[:,:] = np.sin( m*theta[None,:] + n*phi[:,None] )
     
     der = np.empty([npts[2],npts[1]])
@@ -537,12 +537,12 @@ def test_vParGrad():
     assert((np.abs(der)<1e-12).all())
 
 def pg_Phi(theta,z):
-    #return np.cos(z*pi*0.1) + np.sin(theta)
-    return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
+    #return np.cos(z*np.pi*0.1) + np.sin(theta)
+    return np.sin(z*np.pi*0.1)**2 + np.cos(theta)**2
 
 def pg_dPhi(r,theta,z,btheta,bz):
-    #return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
-    return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
+    #return -np.sin(z*np.pi*0.1)*np.pi*0.1*bz + np.cos(theta)*btheta
+    return 2*np.sin(z*np.pi*0.1)*np.cos(z*np.pi*0.1)*np.pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
 
 @pytest.mark.serial
 @pytest.mark.long
@@ -559,7 +559,7 @@ def test_Phi_deriv_dz(phiOrder,zOrder):
     constants.n=-11
     
     for i in range(nconvpts):
-        breaks_theta = np.linspace(0,2*pi,npts[1]+1)
+        breaks_theta = np.linspace(0,2*np.pi,npts[1]+1)
         spline_theta = spl.BSplines(spl.make_knots(breaks_theta,phiOrder,True),phiOrder,True)
         breaks_z = np.linspace(0,20,npts[2]+1)
         spline_z = spl.BSplines(spl.make_knots(breaks_z,3,True),3,True)
