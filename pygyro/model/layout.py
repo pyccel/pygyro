@@ -447,10 +447,10 @@ class LayoutHandler(LayoutManager):
         """
         return tuple(self._subcomms)
 
-    def getLayout( self, layout: str ):
+    def getLayout( self, name: str ):
         """ Return the requested layout
         """
-        return self._layouts[layout]
+        return self._layouts[name]
 
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
@@ -531,7 +531,6 @@ class LayoutHandler(LayoutManager):
                 .format(source_name,dest_name,nSteps))
 
         # carry out the steps one by one
-        nowLayoutKey=source_name
         nowLayout=self._layouts[source_name]
 
         fromBuf = source
@@ -542,7 +541,6 @@ class LayoutHandler(LayoutManager):
             nextLayout=self._layouts[nextLayoutKey]
             self._transpose(fromBuf,toBuf,nowLayout,nextLayout)
             nowLayout=nextLayout
-            nowLayoutKey=nextLayoutKey
             fromBuf, toBuf = toBuf, fromBuf
 
         # Ensure the result is found in the expected place
@@ -648,7 +646,8 @@ class LayoutHandler(LayoutManager):
 
         return axis
 
-    def _extract_from_source(self, source, tobuffer, layout_source : Layout,
+    @staticmethod
+    def _extract_from_source( source, tobuffer, layout_source : Layout,
                             layout_dest : Layout, axis : list, comm : MPI.Comm):
         """
         Take the information from the source and save it blockwise into
@@ -699,7 +698,8 @@ class LayoutHandler(LayoutManager):
 
             start+=size
 
-    def _rearrange_from_buffer(self, data, buf, layout_source : Layout,
+    @staticmethod
+    def _rearrange_from_buffer( data, buf, layout_source : Layout,
                                 layout_dest : Layout, axis : list , comm: MPI.Comm):
         """
         Swap the axes of the blocks
@@ -1084,7 +1084,7 @@ class LayoutSwapper(LayoutManager):
             # Ensure that there is only 1 possible axis which is modified
             return len(idx_s)==1
 
-    def getLayout( self, name ):
+    def getLayout( self, name: str ):
         """ Return a requested layout
         """
         return self._managers[self._handlers[name]].getLayout(name)

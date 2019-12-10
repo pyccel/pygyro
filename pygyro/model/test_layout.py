@@ -15,16 +15,16 @@ def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
         inv_dims[j]=i
 
     # The loop ordering for the tests is not optimal but allows all layouts to use the same function
-    for i,eta1 in enumerate(Eta1[layout.starts[inv_dims[0]]:layout.ends[inv_dims[0]]]):
+    for i,_ in enumerate(Eta1[layout.starts[inv_dims[0]]:layout.ends[inv_dims[0]]]):
         # get global index
         I=i+layout.starts[inv_dims[0]]
-        for j,eta2 in enumerate(Eta2[layout.starts[inv_dims[1]]:layout.ends[inv_dims[1]]]):
+        for j,_ in enumerate(Eta2[layout.starts[inv_dims[1]]:layout.ends[inv_dims[1]]]):
             # get global index
             J=j+layout.starts[inv_dims[1]]
-            for k,eta3 in enumerate(Eta3[layout.starts[inv_dims[2]]:layout.ends[inv_dims[2]]]):
+            for k,_ in enumerate(Eta3[layout.starts[inv_dims[2]]:layout.ends[inv_dims[2]]]):
                 # get global index
                 K=k+layout.starts[inv_dims[2]]
-                for l,eta4 in enumerate(Eta4[layout.starts[inv_dims[3]]:layout.ends[inv_dims[3]]]):
+                for l,_ in enumerate(Eta4[layout.starts[inv_dims[3]]:layout.ends[inv_dims[3]]]):
                     # get global index
                     L=l+layout.starts[inv_dims[3]]
                     indices=[0,0,0,0]
@@ -38,7 +38,6 @@ def define_f(Eta1,Eta2,Eta3,Eta4,layout,f):
                             I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
 
 def compare_f(Eta1,Eta2,Eta3,Eta4,layout,f):
-    nEta1=len(Eta1)
     nEta2=len(Eta2)
     nEta3=len(Eta3)
     nEta4=len(Eta4)
@@ -48,16 +47,16 @@ def compare_f(Eta1,Eta2,Eta3,Eta4,layout,f):
 
     # The loop ordering for the tests is not optimal but allows all layouts to use the same function
 
-    for i,eta1 in enumerate(Eta1[layout.starts[inv_dims[0]]:layout.ends[inv_dims[0]]]):
+    for i,_ in enumerate(Eta1[layout.starts[inv_dims[0]]:layout.ends[inv_dims[0]]]):
         # get global index
         I=i+layout.starts[inv_dims[0]]
-        for j,eta2 in enumerate(Eta2[layout.starts[inv_dims[1]]:layout.ends[inv_dims[1]]]):
+        for j,_ in enumerate(Eta2[layout.starts[inv_dims[1]]:layout.ends[inv_dims[1]]]):
             # get global index
             J=j+layout.starts[inv_dims[1]]
-            for k,eta3 in enumerate(Eta3[layout.starts[inv_dims[2]]:layout.ends[inv_dims[2]]]):
+            for k,_ in enumerate(Eta3[layout.starts[inv_dims[2]]:layout.ends[inv_dims[2]]]):
                 # get global index
                 K=k+layout.starts[inv_dims[2]]
-                for l,eta4 in enumerate(Eta4[layout.starts[inv_dims[3]]:layout.ends[inv_dims[3]]]):
+                for l,_ in enumerate(Eta4[layout.starts[inv_dims[3]]:layout.ends[inv_dims[3]]]):
                     # get global index
                     L=l+layout.starts[inv_dims[3]]
                     indices=[0,0,0,0]
@@ -118,11 +117,8 @@ def test_OddLayoutPaths():
     fBuf = np.empty(remapper.bufferSize,int)
     fBuf[:] = -1
     f1_s = np.split(fStart,[layout1.size])[0].reshape(layout1.shape)
-    f1_e = np.split(fEnd  ,[layout1.size])[0].reshape(layout1.shape)
-    f1_b = np.split(fBuf  ,[layout1.size])[0].reshape(layout1.shape)
     f2_s = np.split(fStart,[layout2.size])[0].reshape(layout2.shape)
     f2_e = np.split(fEnd  ,[layout2.size])[0].reshape(layout2.shape)
-    f2_b = np.split(fBuf  ,[layout2.size])[0].reshape(layout2.shape)
 
     define_f(eta_grids[0],eta_grids[1],eta_grids[2],eta_grids[3],layout1,f1_s)
 
@@ -209,7 +205,6 @@ def test_OddLayoutPaths_IntactSource():
     fEnd = np.empty(remapper.bufferSize)
     fBuf = np.empty(remapper.bufferSize)
     f1_s = np.split(fStart,[layout1.size])[0].reshape(layout1.shape)
-    f1_e = np.split(fEnd  ,[layout1.size])[0].reshape(layout1.shape)
     f2_s = np.split(fStart,[layout2.size])[0].reshape(layout2.shape)
     f2_e = np.split(fEnd  ,[layout2.size])[0].reshape(layout2.shape)
 
@@ -495,9 +490,9 @@ def test_BadStepWarning():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( MPI.COMM_WORLD, layouts, nprocs, eta_grids )
 
-    fsLayout = remapper.getLayout('flux_surface')
-    vLayout = remapper.getLayout('v_parallel')
-    pLayout = remapper.getLayout('poloidal')
+    remapper.getLayout('flux_surface')
+    remapper.getLayout('v_parallel')
+    remapper.getLayout('poloidal')
 
     f1 = np.empty(remapper.bufferSize)
     f2 = np.empty(remapper.bufferSize)
@@ -634,7 +629,7 @@ def test_LayoutSwapper():
     eta_grids = [np.linspace( 0,10, num=num ) for num in npts ]
 
     # Create layout manager
-    remapper = LayoutSwapper( comm, [layouts1,layouts2], [nprocs,nprocs[0]], eta_grids, 'flux_surface2' )
+    LayoutSwapper( comm, [layouts1,layouts2], [nprocs,nprocs[0]], eta_grids, 'flux_surface2' )
 
 def define_phi(Eta1,Eta2,Eta3,layout,f):
     nEta1=len(Eta1)

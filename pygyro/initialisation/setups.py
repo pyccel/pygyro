@@ -237,7 +237,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
         elif (layout=='poloidal'):
             initialise_poloidal(grid,constants)
 
-    for name,value in kwargs.items():
+    for name in kwargs.keys():
         warnings.warn("{0} is not a recognised parameter for setupFromFile".format(name))
 
     return grid, constants, t

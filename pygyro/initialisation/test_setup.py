@@ -6,47 +6,33 @@ import pytest
 from  .constants              import Constants
 from  .setups                 import setupCylindricalGrid, setupFromFile
 
-@pytest.mark.serial
-def test_setup():
+def setup_test():
     npts = [10,20,10,10]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
 
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
 
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
+
+@pytest.mark.serial
+def test_setup_serial():
+    setup_test()
 
 @pytest.mark.parallel
-def test_setup():
-    npts = [10,20,10,10]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
-                                layout = 'flux_surface')
-
-    for (coord,npt) in zip(grid.eta_grid,npts):
-        assert(len(coord)==npt)
-
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
-                                layout = 'poloidal')
-
-    for (coord,npt) in zip(grid.eta_grid,npts):
-        assert(len(coord)==npt)
-
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
-                                layout = 'v_parallel')
-
-    for (coord,npt) in zip(grid.eta_grid,npts):
-        assert(len(coord)==npt)
+def test_setup_parallel():
+    setup_test()
 
 import os
 
@@ -56,22 +42,22 @@ from ..model.process_grid  import compute_2d_process_grid, compute_2d_process_gr
 from ..utilities.savingTools import setupSave
 
 def define_f(grid):
-    [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
+    [_,nEta2,nEta3,nEta4] = grid.nGlobalCoords
 
-    for i,x in grid.getCoords(0):
-        for j,y in grid.getCoords(1):
-            for k,z in grid.getCoords(2):
+    for i,_ in grid.getCoords(0):
+        for j,_ in grid.getCoords(1):
+            for k,_ in grid.getCoords(2):
                 Slice = grid.get1DSlice([i,j,k])
-                for l,a in enumerate(Slice):
+                for l,_ in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
                     Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
 
 def compare_f(grid,t):
-    [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
+    [_,nEta2,nEta3,nEta4] = grid.nGlobalCoords
 
-    for i,x in grid.getCoords(0):
-        for j,y in grid.getCoords(1):
-            for k,z in grid.getCoords(2):
+    for i,_ in grid.getCoords(0):
+        for j,_ in grid.getCoords(1):
+            for k,_ in grid.getCoords(2):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
@@ -118,7 +104,7 @@ def test_setupFromFolder():
     grid._f[:]+=20
     grid.writeH5Dataset('testValues',100)
 
-    grid2,constants,t = setupFromFile('testValues')
+    grid2,_,_ = setupFromFile('testValues')
     compare_f(grid2,100)
 
 @pytest.mark.parallel

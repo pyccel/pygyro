@@ -1,10 +1,8 @@
-from mpi4py                 import MPI
 import pytest
 import numpy                as np
 from matplotlib             import rc        as pltFont
 import matplotlib.pyplot    as plt
 import matplotlib.colors    as colors
-from mpl_toolkits.mplot3d import Axes3D
 from math                 import pi
 
 from ..                                     import splines as spl
@@ -515,11 +513,8 @@ def test_fluxAdvection_dz():
     layout = Layout('flux',[1],[0,3,1,2],eta_vals,[0])
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
 
-    dz = eta_vals[2][1]-eta_vals[2][0]
-    dtheta = iota0()*dz/constants.R0
-
-    btheta = dtheta/np.sqrt(dz**2+dtheta**2)
-    bz = dz/np.sqrt(dz**2+dtheta**2)
+    #dz = eta_vals[2][1]-eta_vals[2][0]
+    #dtheta = iota0()*dz/constants.R0
 
     f_vals[0,:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
 
@@ -565,8 +560,6 @@ def test_flux_aligned():
     CFL = dt*(npts[0]+npts[1])
 
     N = 100
-
-    v=0
 
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
             np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]
@@ -681,8 +674,8 @@ def test_Phi_deriv():
 
     eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
 
-    dz = eta_grid[2][1]-eta_grid[2][0]
-    dtheta = iota8()*dz/constants.R0
+    #dz = eta_grid[2][1]-eta_grid[2][0]
+    #dtheta = iota8()*dz/constants.R0
 
     r = eta_grid[0]
 

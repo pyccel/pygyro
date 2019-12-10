@@ -86,9 +86,9 @@ class DensityFinder:
 
         rIndices = grid.getGlobalIdxVals(0)
         for i,(r,rIdx) in enumerate(zip(grid.getCoordVals(0),rIndices)):
-            for j,z in grid.getCoords(1):
+            for j,_ in grid.getCoords(1): # z
                 rho_qv = rho.get1DSlice([i,j])
-                for k,theta in grid.getCoords(2):
+                for k,_ in grid.getCoords(2): # theta
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
                     SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
                             self._spline.coeffs,self._splineMem,0)
@@ -328,7 +328,8 @@ class DiffEqSolver:
         else:
             return vals==0
 
-    def getModes( self, rho: Grid ):
+    @staticmethod
+    def getModes( rho: Grid ):
         """
         Get the Fourier transform of the right hand side of the
         differential equation.
@@ -473,7 +474,8 @@ class DiffEqSolver:
 
             phi.get1DSlice([i,j])[:] = self._realMem+1j*self._imagMem
 
-    def findPotential( self, phi: Grid ):
+    @staticmethod
+    def findPotential( phi: Grid ):
         """
         Get the inverse Fourier transform of the (solved) unknown
 
@@ -485,11 +487,11 @@ class DiffEqSolver:
 
         """
 
-        assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
+        assert(isinstance(phi.get1DSlice([0,0])[0], np.complex128))
         assert(phi.getLayout(phi.currentLayout).dims_order==(0,2,1))
 
-        for i,r in phi.getCoords(0):
-            for j,z in phi.getCoords(1):
+        for i,_ in phi.getCoords(0): # r
+            for j,_ in phi.getCoords(1): # z
                 vec=phi.get1DSlice([i,j])
                 mode=ifft(vec,overwrite_x=True)
                 vec[:]=mode

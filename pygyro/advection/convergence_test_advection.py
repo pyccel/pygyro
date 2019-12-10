@@ -366,8 +366,6 @@ def test_fluxAdvection():
         N = int(1/dt)
         print(npts,dt,N)
 
-        v=0
-
         eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2,4)]
 

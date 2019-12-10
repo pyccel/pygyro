@@ -8,7 +8,6 @@ from ..model.process_grid                       import compute_2d_process_grid_f
 from ..model.grid                               import Grid
 from ..model.layout                             import LayoutSwapper
 from ..initialisation.setups                    import setupCylindricalGrid
-from ..initialisation                           import constants
 
 def args_norm_phi():
     for layout in ['v_parallel_2d','mode_solve','v_parallel_1d','poloidal']:
@@ -73,13 +72,13 @@ def test_l2Norm_is_volume(layout,R0,rMin,rMax):
 
 def args_norm_grid():
     for layout in ['poloidal','v_parallel','flux_surface','poloidal']:
-        for i in range(2):
+        for _ in range(2):
             R0 = np.random.rand()*1000
-            for j in range(2):
+            for _ in range(2):
                 rMin = np.random.rand()
-                for k in range(2):
+                for _ in range(2):
                     rMax = np.random.randint(10,200)/10
-                    for l in range(2):
+                    for _ in range(2):
                         vMax = np.random.randint(1,100)/10
                         yield (layout, R0, rMin,rMax,vMax)
 
@@ -97,7 +96,7 @@ def test_l1Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -133,7 +132,7 @@ def test_l2Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -169,7 +168,7 @@ def test_l2Norm_grid_is_v(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -212,7 +211,7 @@ def test_NParticles_is_volume(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -239,7 +238,6 @@ def test_NParticles_is_volume(layout,R0,rMin,rMax,vMax):
 def test_NParticles_grid_is_v(layout,R0,rMin,rMax,vMax):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    size = comm.Get_size()
 
     layout=comm.bcast(layout)
     R0=comm.bcast(R0)
@@ -248,7 +246,7 @@ def test_NParticles_grid_is_v(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,

@@ -8,7 +8,7 @@ from ..model.layout                             import Layout
 from ..initialisation.mod_initialiser_funcs     import fEq
 from .advection                                 import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                                         import splines as spl
-from ..initialisation.constants                 import get_constants, Constants
+from ..initialisation.constants                 import Constants
 
 def gauss(x):
     return np.exp(-x**2/4)
@@ -307,7 +307,7 @@ def test_poloidalAdvectionImplicit(dt,v,xc,yc):
 @pytest.mark.serial
 def test_fluxSurfaceAdvection_gridIntegration():
     npts = [10,20,10,10]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
 
     dt=0.1
@@ -315,14 +315,14 @@ def test_fluxSurfaceAdvection_gridIntegration():
     fluxAdv = FluxSurfaceAdvection(grid.eta_grid, grid.get2DSpline(),
                                     grid.getLayout('flux_surface'),dt,constants)
 
-    for i,r in grid.getCoords(0):
-        for j,v in grid.getCoords(1):
+    for i,_ in grid.getCoords(0): # r
+        for j,_ in grid.getCoords(1): # v
             fluxAdv.step(grid.get2DSlice([i,j]),j)
 
 @pytest.mark.serial
 def test_vParallelAdvection_gridIntegration():
     npts = [4,4,4,100]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
 
     dt=0.1
@@ -333,8 +333,8 @@ def test_vParallelAdvection_gridIntegration():
     vParAdv = VParallelAdvection(grid.eta_grid, grid.get1DSpline(),constants)
 
     for i,r in grid.getCoords(0):
-        for j,z in grid.getCoords(1):
-            for k,q in grid.getCoords(2):
+        for j,_ in grid.getCoords(1): # z
+            for k,_ in grid.getCoords(2): # q
                 vParAdv.step(grid.get1DSlice([i,j,k]),dt,c,r)
 
     assert(np.allclose(old_f,grid._f))
@@ -342,7 +342,7 @@ def test_vParallelAdvection_gridIntegration():
 @pytest.mark.serial
 def test_poloidalAdvection_gridIntegration():
     npts = [10,20,10,10]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
 
     basis = grid.get2DSpline()
@@ -357,7 +357,7 @@ def test_poloidalAdvection_gridIntegration():
 
     dt=0.1
 
-    for i,z in grid.getCoords(0):
+    for i,_ in grid.getCoords(0): # z
         for j,v in grid.getCoords(1):
             polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
 
@@ -368,7 +368,7 @@ def test_equilibrium():
     comm = MPI.COMM_WORLD
 
     npts = [20,20,10,8]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)
@@ -392,34 +392,34 @@ def test_equilibrium():
     interp.compute_interpolant(phiVals,phi)
 
     for n in range(N):
-        for i,r in grid.getCoords(0):
-            for j,v in grid.getCoords(1):
+        for i,_ in grid.getCoords(0): # r
+            for j,_ in grid.getCoords(1): # v
                 fluxAdv.step(grid.get2DSlice([i,j]),j)
 
         grid.setLayout('v_parallel')
 
         for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
+            for j,_ in grid.getCoords(1): # z
+                for k,_ in grid.getCoords(2): # q
                     vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
 
         grid.setLayout('poloidal')
 
         for i,v in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
+            for j,_ in grid.getCoords(1): # z
                 polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
 
         grid.setLayout('v_parallel')
 
         for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
+            for j,_ in grid.getCoords(1): # z
+                for k,_ in grid.getCoords(2): # q
                     vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
 
         grid.setLayout('flux_surface')
 
-        for i,r in grid.getCoords(0):
-            for j,v in grid.getCoords(1):
+        for i,_ in grid.getCoords(0): # r
+            for j,_ in grid.getCoords(1): # v
                 fluxAdv.step(grid.get2DSlice([i,j]),j)
 
     print(np.max(startVals-grid._f))
@@ -430,7 +430,7 @@ def test_perturbedEquilibrium():
     comm = MPI.COMM_WORLD
 
     npts = [20,20,10,8]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 comm   = comm)
 
@@ -453,34 +453,34 @@ def test_perturbedEquilibrium():
     interp.compute_interpolant(phiVals,phi)
 
     for n in range(N):
-        for i,r in grid.getCoords(0):
-            for j,v in grid.getCoords(1):
+        for i,_ in grid.getCoords(0): # r
+            for j,_ in grid.getCoords(1): # v
                 fluxAdv.step(grid.get2DSlice([i,j]),j)
 
         grid.setLayout('v_parallel')
 
         for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
+            for j,_ in grid.getCoords(1): # z
+                for k,_ in grid.getCoords(2): # q
                     vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
 
         grid.setLayout('poloidal')
 
         for i,v in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
+            for j,_ in grid.getCoords(1): # z
                 polAdv.step(grid.get2DSlice([i,j]),dt,phi,v)
 
         grid.setLayout('v_parallel')
 
         for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
+            for j,_ in grid.getCoords(1): # z
+                for k,_ in grid.getCoords(2): # q
                     vParAdv.step(grid.get1DSlice([i,j,k]),halfStep,0,r)
 
         grid.setLayout('flux_surface')
 
-        for i,r in grid.getCoords(0):
-            for j,v in grid.getCoords(1):
+        for i,_ in grid.getCoords(0): # r
+            for j,_ in grid.getCoords(1): # v
                 fluxAdv.step(grid.get2DSlice([i,j]),j)
 
     print(np.max(startVals-grid._f))
@@ -492,7 +492,7 @@ def test_vParGradAligned():
     comm = MPI.COMM_WORLD
 
     npts = [20,80,20,8]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout  = 'flux_surface',
                                 eps     = 0,
                                 iotaVal = 0.8,
@@ -520,7 +520,7 @@ def test_vParGrad():
     comm = MPI.COMM_WORLD
 
     npts = [20,20,10,8]
-    grid,constants,t = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
                                 eps    = 0,
                                 comm   = comm)

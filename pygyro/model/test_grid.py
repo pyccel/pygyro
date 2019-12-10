@@ -2,7 +2,6 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 from math import pi
-import h5py
 import os
 
 from .grid          import Grid
@@ -12,9 +11,9 @@ from .process_grid  import compute_2d_process_grid, compute_2d_process_grid_from
 def define_f(grid,t=0):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
 
-    for i,x in grid.getCoords(0):
-        for j,y in grid.getCoords(1):
-            for k,z in grid.getCoords(2):
+    for i,_ in grid.getCoords(0):
+        for j,_ in grid.getCoords(1):
+            for k,_ in grid.getCoords(2):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
@@ -23,19 +22,19 @@ def define_f(grid,t=0):
 def define_phi(grid):
     [nEta1,nEta2,nEta3] = grid.nGlobalCoords
 
-    for i,x in grid.getCoords(0):
-        for j,y in grid.getCoords(1):
+    for i,_ in grid.getCoords(0):
+        for j,_ in grid.getCoords(1):
             Slice = grid.get1DSlice([i,j])
-            for k,z in enumerate(Slice):
+            for k,_ in enumerate(Slice):
                 [I,J,K] = grid.getGlobalIndices([i,j,k])
                 Slice[k] = I*nEta3*nEta2+J*nEta3+K
 
 def compare_f(grid,t=0):
     [nEta1,nEta2,nEta3,nEta4] = grid.nGlobalCoords
 
-    for i,x in grid.getCoords(0):
-        for j,y in grid.getCoords(1):
-            for k,z in grid.getCoords(2):
+    for i,_ in grid.getCoords(0):
+        for j,_ in grid.getCoords(1):
+            for k,_ in grid.getCoords(2):
                 Slice = grid.get1DSlice([i,j,k])
                 for l,a in enumerate(Slice):
                     [I,J,K,L] = grid.getGlobalIndices([i,j,k,l])
@@ -44,8 +43,8 @@ def compare_f(grid,t=0):
 def compare_phi(grid):
     [nEta1,nEta2,nEta3] = grid.nGlobalCoords
 
-    for i,x in grid.getCoords(0):
-        for j,y in grid.getCoords(1):
+    for i,_ in grid.getCoords(0):
+        for j,_ in grid.getCoords(1):
             Slice = grid.get1DSlice([i,j])
             for k,a in enumerate(Slice):
                 [I,J,K] = grid.getGlobalIndices([i,j,k])
@@ -216,9 +215,6 @@ def test_LayoutSwap():
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
 
-    fsLayout = remapper.getLayout('flux_surface')
-    vLayout = remapper.getLayout('v_parallel')
-
     grid = Grid(eta_grids,[],remapper,'flux_surface')
 
     define_f(grid)
@@ -292,9 +288,6 @@ def test_PhiLayoutSwap():
 
     remapper = LayoutSwapper( comm, [layout_poisson, layout_advection], [nprocs,nproc], eta_grids, 'mode_find' )
 
-    #fsLayout = remapper.getLayout('mode_find')
-    #vLayout = remapper.getLayout('poloidal')
-
     phi = Grid(eta_grids,[],remapper,'mode_find')
 
     define_phi(phi)
@@ -318,9 +311,6 @@ def test_h5py():
                'v_parallel'  : [0,2,1,3],
                'poloidal'    : [3,2,1,0]}
     remapper = getLayoutHandler( comm, layouts, nprocs, eta_grids )
-
-    #fsLayout = remapper.getLayout('flux_surface')
-    #vLayout = remapper.getLayout('v_parallel')
 
     grid = Grid(eta_grids,[],remapper,'flux_surface')
 

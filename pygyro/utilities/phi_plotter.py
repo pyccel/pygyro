@@ -1,7 +1,6 @@
 from mpi4py                 import MPI
 from math                   import pi
 from enum                   import IntEnum
-from matplotlib.widgets     import Button
 import matplotlib.pyplot    as plt
 import numpy                as np
 
@@ -256,6 +255,7 @@ class PhiSlicePlotter3d(object):
                     self.updateDraw()
         plt.show()
 
-    def handle_close(self,_evt):
+    @staticmethod
+    def handle_close(_evt):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)

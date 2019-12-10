@@ -1,4 +1,3 @@
-from numba              import njit
 from numba.types        import Tuple, f8, i4, b1
 from numba.pycc         import CC
 from math               import pi
@@ -6,7 +5,7 @@ from numpy              import abs
 import sys
 sys.path.insert(0,'..')
 
-from initialisation.numba_mod_initialiser_funcs     import n0, Ti, fEq
+from initialisation.numba_mod_initialiser_funcs     import fEq
 from splines.numba_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
                                                             eval_spline_1d_scalar
 
@@ -96,8 +95,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
 
     # Find value at the determined point
     if (nulBound):
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]): # theta
+            for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
                 elif (endPts_k2_r[i,j]>rMax):
@@ -111,8 +110,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
     else:
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]): # theta
+            for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=fEq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
@@ -149,8 +148,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     elif (bound==2):
         vDiff = vMax-vMin
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             while (v<vMin):
                 v+=vDiff
             while (v>vMax):
@@ -279,8 +277,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
 
     # Find value at the determined point
     if (nulBound):
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]): # theta
+            for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
                 elif (endPts_k2_r[i,j]>rMax):
@@ -294,8 +292,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
     else:
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]): # theta
+            for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=fEq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)

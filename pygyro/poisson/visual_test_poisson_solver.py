@@ -2,21 +2,16 @@ from mpi4py                 import MPI
 import numpy                as np
 import pytest
 from math                   import pi
-from scipy.integrate        import trapz
-from numpy.polynomial.legendre      import leggauss
 
 import matplotlib.pyplot    as plt
 from matplotlib             import rc
 
-from ..model.process_grid           import compute_2d_process_grid
-from ..model.layout                 import LayoutSwapper, getLayoutHandler
+from ..model.layout                 import getLayoutHandler
 from ..model.grid                   import Grid
 from ..initialisation               import mod_initialiser_funcs as initialiser
 from ..initialisation.constants     import get_constants
 from ..                             import splines as spl
-from .poisson_solver                import DiffEqSolver, DensityFinder
-from ..splines.splines              import BSplines, Spline1D
-from ..splines.spline_interpolators import SplineInterpolator1D
+from .poisson_solver                import DiffEqSolver
 
 @pytest.mark.serial
 def test_QuasiNeutralityEquation_pointConverge():
@@ -96,7 +91,7 @@ def test_QuasiNeutralityEquation_pointConverge():
 
     splitFact = 10
 
-    fig = plt.figure()
+    plt.figure()
     ax = plt.subplot2grid((1, splitFact), (0, 0), colspan=splitFact-1, projection='polar')
     line1 = ax.pcolormesh(q,r,np.real(phiExact))
 

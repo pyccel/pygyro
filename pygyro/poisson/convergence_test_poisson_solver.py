@@ -431,7 +431,6 @@ def test_grad_r_pointConverge(deg):
             plane = phi_exact.get2DSlice([i])
             plane[:] = np.sin(a*(r-domain[0][0]))
 
-        q = eta_grid[1]
         ps.solveEquation(phi,rho)
 
         rspline=bsplines[0]

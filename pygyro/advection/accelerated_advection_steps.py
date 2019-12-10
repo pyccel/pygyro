@@ -96,8 +96,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
 
     # Find value at the determined point
     if (nulBound):
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]): # theta
+            for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
                 elif (endPts_k2_r[i,j]>rMax):
@@ -111,8 +111,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
     else:
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]): # theta
+            for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=fEq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)

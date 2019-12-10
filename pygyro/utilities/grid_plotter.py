@@ -1,15 +1,10 @@
 from mpi4py                     import MPI
-from math                       import pi
-from enum                       import IntEnum
 from matplotlib.widgets         import Button, CheckButtons
 from matplotlib.gridspec        import GridSpec, GridSpecFromSubplotSpec
-from matplotlib                 import rc
 from mpl_toolkits.axes_grid1    import make_axes_locatable
 import matplotlib.pyplot        as plt
 import numpy                    as np
-import sched,time
 
-from .discrete_slider import DiscreteSlider
 from .bounded_slider import BoundedSlider
 from ..model.grid     import Grid
 
@@ -228,7 +223,7 @@ class SlicePlotterNd(object):
 
     def prepare_data_reception(self):
         self.fig.canvas.stop_event_loop()
-        for j in range(1,self.comm_size):
+        for _ in range(1,self.comm_size):
             i = self.comm.recv(tag=2510)
             self.completedRanks[i] = True
         self.comm.Barrier()
@@ -318,7 +313,6 @@ class SlicePlotterNd(object):
 
             for l,ranks in enumerate(mpi_data):
                 layout_shape = list(layout.shape)
-                visited=False
                 for j,d in enumerate(ranks):
                     layout_shape[j]=layout.mpi_lengths(j)[d]
 
@@ -438,7 +432,6 @@ class SlicePlotterNd(object):
                 # first play
                 self.getData()
                 action = 3
-                pass
         return True
 
     def checkProgress(self):

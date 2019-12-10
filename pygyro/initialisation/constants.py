@@ -129,7 +129,7 @@ def get_constants(filename):
     while (len(data)>0):
         while (len(data)>0):
             item = data.popitem()
-            if (type(item[1])!=str):
+            if (not isinstance(item[1], str)):
                 setattr(constants,item[0],item[1])
             else:
                 res=eval_expr(item[1],constants)
