@@ -2,30 +2,17 @@ from mpi4py                 import MPI
 import time
 setup_time_start = time.clock()
 
-from glob                   import glob
-
-import numpy                as np
-import argparse
-import os
 import h5py
 #~ import cProfile, pstats, io
 
-from pygyro.model.layout                    import LayoutSwapper, getLayoutHandler
-from pygyro.model.grid                      import Grid
-from pygyro.initialisation.setups           import setupCylindricalGrid, setupFromFile
-from pygyro.advection.advection             import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
-from pygyro.poisson.poisson_solver          import DensityFinder, QuasiNeutralitySolver
-from pygyro.splines.splines                 import Spline2D
-from pygyro.utilities.savingTools           import setupSave
+from pygyro.initialisation.setups           import setupFromFile
 
 def get_grid_slice(foldername,tEnd):
 
     assert(len(foldername)>0)
 
-    loadable = False
-
     comm = MPI.COMM_WORLD
-        
+   
     distribFunc = setupFromFile(foldername,comm=comm,
                                 allocateSaveMemory = True,
                                 timepoint = tEnd)

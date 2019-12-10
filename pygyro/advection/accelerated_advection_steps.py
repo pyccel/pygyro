@@ -149,8 +149,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     elif (bound==2):
         vDiff = vMax-vMin
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             while (v<vMin):
                 v+=vDiff
             while (v>vMax):
@@ -240,8 +239,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     endPts_k1_q[i,j]+=2*pi
                 while (endPts_k1_q[i,j]>2*pi):
                     endPts_k1_q[i,j]-=2*pi
-                
-                if (not (endPts_k1_r[i,j]<rPts[0] or 
+
+                if (not (endPts_k1_r[i,j]<rPts[0] or
                          endPts_k1_r[i,j]>rMax)):
                     # Add the new value of phi to the derivatives
                     # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
@@ -278,7 +277,7 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     norm=diff
                 endPts_k1_q[i,j]=endPts_k2_q[i,j]
                 endPts_k1_r[i,j]=endPts_k2_r[i,j]
-    
+
     # Find value at the determined point
     if (nulBound):
         for i,theta in enumerate(qPts):

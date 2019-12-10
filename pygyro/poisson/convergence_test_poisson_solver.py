@@ -8,14 +8,13 @@ from numpy.polynomial.legendre      import leggauss
 import matplotlib.pyplot    as plt
 from matplotlib             import rc
 
-from ..model.process_grid           import compute_2d_process_grid
-from ..model.layout                 import LayoutSwapper, getLayoutHandler
+from ..model.layout                 import getLayoutHandler
 from ..model.grid                   import Grid
 from ..initialisation               import mod_initialiser_funcs as initialiser
 from ..initialisation.constants     import get_constants
 from ..                             import splines as spl
-from .poisson_solver                import DiffEqSolver, DensityFinder
-from ..splines.splines              import BSplines, Spline1D
+from .poisson_solver                import DiffEqSolver
+from ..splines.splines              import Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 
 @pytest.mark.serial
@@ -517,7 +516,7 @@ def test_grad_r_degreeConverge():
         phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         
-        for i,q in rho.getCoords(0):
+        for i,_ in rho.getCoords(0):
             plane = rho.get2DSlice([i])
             plane[:]=a*np.cos(a*(r-domain[0][0]))/r+np.sin(a*(r-domain[0][0]))
             plane = phi_exact.get2DSlice([i])
@@ -615,7 +614,7 @@ def test_ddTheta(deg):
         
         q = eta_grid[1]
         
-        for i,r in rho.getCoords(0):
+        for i,_ in rho.getCoords(0):
             plane = rho.get2DSlice([i])
             plane[:] = -6*np.sin(q)*np.cos(q)**2+4*np.sin(q)**3
             plane = phi_exact.get2DSlice([i])
@@ -908,7 +907,6 @@ def test_QuasiNeutralityEquation_degreeConverge():
         weights = np.tile(weights,startPoints.size)
         
         approxSpline = Spline1D(rspline)
-        exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
         
         assert(np.max(np.abs(np.imag(phi.get1DSlice([0,0]))))<1e-16)
@@ -943,13 +941,13 @@ def test_QuasiNeutralityEquation_degreeConverge():
     
     print(l2)
     print(lInf)
-    
+
     l2Order = np.log2(l2[:-1]/l2[1:])
     lInfOrder = np.log2(lInf[:-1]/lInf[1:])
-    
+
     print(l2Order)
     print(lInfOrder)
-    
+
     print(" ")
     print(deg," & & ",npts[0],"    & & $",end=' ')
     mag2Order = np.floor(np.log10(l2[0]))

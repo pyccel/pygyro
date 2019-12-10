@@ -1,5 +1,3 @@
-from scipy.integrate                import fixed_quad   # fixed_quad = fixed order
-#from scipy.integrate                import quadrature   # quadrature = fixed tolerance
 from scipy.fftpack                  import fft,ifft
 import scipy.sparse                 as sparse
 from scipy.sparse.linalg            import spsolve

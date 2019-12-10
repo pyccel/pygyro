@@ -116,7 +116,7 @@ def eval_expr(mystr,constants):
         elif (el not in '([+*/\\-\\(\\)])'):
             try:
                 float(el)
-            except:
+            except ValueError:
                 f[i] = str(getattr(math,el))
     return eval(''.join(f))
 

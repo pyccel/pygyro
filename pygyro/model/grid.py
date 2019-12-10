@@ -356,15 +356,15 @@ class Grid(object):
                     # value of eta_i is fixed ensure that the required index is
                     # covered by this process
                     dim = self._layout.inv_dims_order[ax]
-                    if (fix>=self._layout.starts[dim] and 
+                    if (fix>=self._layout.starts[dim] and
                         fix<self._layout.ends[dim]):
                         idx[dim] = (fix-self._layout.starts[dim],)
                     else:
                         hasData = False
-                
+
                 if hasData:
                     return self.global_comm.reduce(np.amax(np.real(self._f[tuple(idx)])),op=MPI.MAX,root=drawingRank)
-                
+
                 # if the data is not on this process then send the smallest possible value of f
                 # this way max will always choose an alternative
                 else:

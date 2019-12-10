@@ -2,33 +2,21 @@ from mpi4py                 import MPI
 import time
 setup_time_start = time.clock()
 
-from glob                   import glob
-
 import numpy                as np
-import os
 import h5py
 #~ import cProfile, pstats, io
 
 from ..model.layout                    import LayoutSwapper
 from ..model.grid                      import Grid
 from ..model.process_grid              import compute_2d_process_grid
-from ..initialisation.setups           import setupCylindricalGrid, setupFromFile
 from ..initialisation                  import constants
-from ..advection.advection             import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
-from ..poisson.poisson_solver          import DensityFinder, QuasiNeutralitySolver
-from ..splines.splines                 import Spline2D
-from ..splines.spline_interpolators    import SplineInterpolator2D
-from ..utilities.savingTools           import setupSave
-from ..                     import splines as spl
+from ..                                import splines as spl
 
 def get_phi_slice(foldername,tEnd):
 
     assert(len(foldername)>0)
 
-    loadable = False
-
     comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
     mpi_size = comm.Get_size()
 
     filename = "{0}/initParams.h5".format(foldername)
@@ -39,9 +27,6 @@ def get_phi_slice(foldername,tEnd):
     constants.rp = 0.5*(constants.rMin + constants.rMax)
 
     npts = save_file.attrs['npts']
-    dt = save_file.attrs['dt']
-
-    halfStep = dt*0.5
 
     save_file.close()
 

@@ -1,11 +1,5 @@
 from mpi4py import MPI
 import os
-import inspect
-import numpy        as np
-import h5py
-from glob import glob
-
-from ..initialisation          import constants
 
 def setupSave(constants,foldername: str = None,
                 comm: MPI.Comm = MPI.COMM_WORLD, root: int = 0):
