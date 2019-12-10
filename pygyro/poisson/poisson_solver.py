@@ -487,7 +487,7 @@ class DiffEqSolver:
 
         """
 
-        assert(type(phi.get1DSlice([0,0])[0])==np.complex128)
+        assert(isinstance(phi.get1DSlice([0,0])[0], np.complex128))
         assert(phi.getLayout(phi.currentLayout).dims_order==(0,2,1))
 
         for i,_ in phi.getCoords(0): # r
