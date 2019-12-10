@@ -1,10 +1,8 @@
-from mpi4py                 import MPI
 import pytest
 import numpy                as np
 from matplotlib             import rc        as pltFont
 import matplotlib.pyplot    as plt
 import matplotlib.colors    as colors
-from mpl_toolkits.mplot3d import Axes3D
 from math                 import pi
 
 from ..                                     import splines as spl

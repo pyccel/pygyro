@@ -8,7 +8,6 @@ from ..model.process_grid                       import compute_2d_process_grid_f
 from ..model.grid                               import Grid
 from ..model.layout                             import LayoutSwapper
 from ..initialisation.setups                    import setupCylindricalGrid
-from ..initialisation                           import constants
 
 def args_norm_phi():
     for layout in ['v_parallel_2d','mode_solve','v_parallel_1d','poloidal']:

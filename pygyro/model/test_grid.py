@@ -2,7 +2,6 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 from math import pi
-import h5py
 import os
 
 from .grid          import Grid

@@ -8,7 +8,7 @@ from ..model.layout                             import Layout
 from ..initialisation.mod_initialiser_funcs     import fEq
 from .advection                                 import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                                         import splines as spl
-from ..initialisation.constants                 import get_constants, Constants
+from ..initialisation.constants                 import Constants
 
 def gauss(x):
     return np.exp(-x**2/4)

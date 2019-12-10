@@ -12,8 +12,6 @@ from ..initialisation.constants             import Constants
 from ..initialisation.mod_initialiser_funcs import Te, fEq
 from ..                                     import splines as spl
 from .poisson_solver                        import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
-from ..splines.splines                      import BSplines, Spline1D
-from ..splines.spline_interpolators         import SplineInterpolator1D
 
 @pytest.mark.parallel
 def test_DensityFinder_poly_Rho(param_df_poly):

@@ -1,4 +1,3 @@
-from numba              import njit
 from numba.types        import Tuple, f8, i4, b1
 from numba.pycc         import CC
 from math               import pi
@@ -6,7 +5,7 @@ from numpy              import abs
 import sys
 sys.path.insert(0,'..')
 
-from initialisation.numba_mod_initialiser_funcs     import n0, Ti, fEq
+from initialisation.numba_mod_initialiser_funcs     import fEq
 from splines.numba_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
                                                             eval_spline_1d_scalar
 

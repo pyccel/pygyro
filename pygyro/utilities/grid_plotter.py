@@ -1,15 +1,10 @@
 from mpi4py                     import MPI
-from math                       import pi
-from enum                       import IntEnum
 from matplotlib.widgets         import Button, CheckButtons
 from matplotlib.gridspec        import GridSpec, GridSpecFromSubplotSpec
-from matplotlib                 import rc
 from mpl_toolkits.axes_grid1    import make_axes_locatable
 import matplotlib.pyplot        as plt
 import numpy                    as np
-import sched,time
 
-from .discrete_slider import DiscreteSlider
 from .bounded_slider import BoundedSlider
 from ..model.grid     import Grid
 

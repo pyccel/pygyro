@@ -1,7 +1,6 @@
 from mpi4py                 import MPI
 from math                   import pi
 from enum                   import IntEnum
-from matplotlib.widgets     import Button
 import matplotlib.pyplot    as plt
 import numpy                as np
 

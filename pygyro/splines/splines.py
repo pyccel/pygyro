@@ -2,7 +2,7 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.interpolate  import splev, bisplev
+#from scipy.interpolate  import splev, bisplev
 
 from .      import spline_eval_funcs as SEF
 

@@ -17,7 +17,6 @@ from mpi4py import MPI
 
 import pytest
 import traceback
-import warnings
 import sys
 import os
 import contextlib

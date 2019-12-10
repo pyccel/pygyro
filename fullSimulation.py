@@ -3,12 +3,9 @@ import time
 setup_time_start = time.clock()
 profilingOn = False
 
-from glob                   import glob
-
 import numpy                as np
 import argparse
 import os
-import h5py
 if (profilingOn):
     import cProfile, pstats, io
 
@@ -17,8 +14,6 @@ from pygyro.model.grid                          import Grid
 from pygyro.initialisation.setups               import setupCylindricalGrid, setupFromFile
 from pygyro.advection.advection                 import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
 from pygyro.poisson.poisson_solver              import DensityFinder, QuasiNeutralitySolver
-from pygyro.splines.splines                     import Spline2D
-from pygyro.splines.spline_interpolators        import SplineInterpolator2D
 from pygyro.utilities.savingTools               import setupSave
 from pygyro.diagnostics.diagnostic_collector    import DiagnosticCollector
 
