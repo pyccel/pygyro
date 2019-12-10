@@ -329,7 +329,7 @@ class DiffEqSolver:
             return vals==0
 
     @staticmethod
-    def getModes( self, rho: Grid ):
+    def getModes( rho: Grid ):
         """
         Get the Fourier transform of the right hand side of the
         differential equation.
@@ -475,7 +475,7 @@ class DiffEqSolver:
             phi.get1DSlice([i,j])[:] = self._realMem+1j*self._imagMem
 
     @staticmethod
-    def findPotential( self, phi: Grid ):
+    def findPotential( phi: Grid ):
         """
         Get the inverse Fourier transform of the (solved) unknown
 

@@ -647,7 +647,7 @@ class LayoutHandler(LayoutManager):
         return axis
 
     @staticmethod
-    def _extract_from_source(self, source, tobuffer, layout_source : Layout,
+    def _extract_from_source( source, tobuffer, layout_source : Layout,
                             layout_dest : Layout, axis : list, comm : MPI.Comm):
         """
         Take the information from the source and save it blockwise into
@@ -699,7 +699,7 @@ class LayoutHandler(LayoutManager):
             start+=size
 
     @staticmethod
-    def _rearrange_from_buffer(self, data, buf, layout_source : Layout,
+    def _rearrange_from_buffer( data, buf, layout_source : Layout,
                                 layout_dest : Layout, axis : list , comm: MPI.Comm):
         """
         Swap the axes of the blocks

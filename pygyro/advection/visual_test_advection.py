@@ -514,7 +514,7 @@ def test_fluxAdvection_dz():
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
 
     dz = eta_vals[2][1]-eta_vals[2][0]
-    dtheta = iota0()*dz/constants.R0
+    #dtheta = iota0()*dz/constants.R0
 
     f_vals[0,:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
 
@@ -675,7 +675,7 @@ def test_Phi_deriv():
     eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
 
     dz = eta_grid[2][1]-eta_grid[2][0]
-    dtheta = iota8()*dz/constants.R0
+    #dtheta = iota8()*dz/constants.R0
 
     r = eta_grid[0]
 

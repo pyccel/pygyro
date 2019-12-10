@@ -253,7 +253,7 @@ class Tester( object ):
 
     #---------------------------------------------------------------------------
     @staticmethod
-    def _launch_mpisub(self, args, site_dir):
+    def _launch_mpisub( args, site_dir):
 
         # extract the mpirun run argument
         parser = ArgumentParser(add_help=False)

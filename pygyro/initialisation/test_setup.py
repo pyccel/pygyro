@@ -8,19 +8,19 @@ from  .setups                 import setupCylindricalGrid, setupFromFile
 
 def setup_test():
     npts = [10,20,10,10]
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
 
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
 
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
 
     for (coord,npt) in zip(grid.eta_grid,npts):

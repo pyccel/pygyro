@@ -797,8 +797,6 @@ def test_phi(param_fft):
         plane = phi_exact.get2DSlice([i])
         plane[:] = np.sin(q)
 
-    r = eta_grid[0]
-
     ps.getModes(rho)
 
     rho.setLayout('mode_solve')
