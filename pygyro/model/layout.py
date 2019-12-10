@@ -646,6 +646,7 @@ class LayoutHandler(LayoutManager):
 
         return axis
 
+    @staticmethod
     def _extract_from_source(self, source, tobuffer, layout_source : Layout,
                             layout_dest : Layout, axis : list, comm : MPI.Comm):
         """
@@ -697,6 +698,7 @@ class LayoutHandler(LayoutManager):
 
             start+=size
 
+    @staticmethod
     def _rearrange_from_buffer(self, data, buf, layout_source : Layout,
                                 layout_dest : Layout, axis : list , comm: MPI.Comm):
         """

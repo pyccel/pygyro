@@ -253,6 +253,7 @@ class Tester( object ):
             sys.exit(code)
 
     #---------------------------------------------------------------------------
+    @staticmethod
     def _launch_mpisub(self, args, site_dir):
 
         # extract the mpirun run argument

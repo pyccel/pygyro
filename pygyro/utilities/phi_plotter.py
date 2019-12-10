@@ -255,6 +255,7 @@ class PhiSlicePlotter3d(object):
                     self.updateDraw()
         plt.show()
 
+    @staticmethod
     def handle_close(self,_evt):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)
