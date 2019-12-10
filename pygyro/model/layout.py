@@ -450,7 +450,7 @@ class LayoutHandler(LayoutManager):
     def getLayout( self, name: str ):
         """ Return the requested layout
         """
-        return self._layouts[layout]
+        return self._layouts[name]
 
     def transpose( self, source, dest, source_name, dest_name, buf = None ):
         """
