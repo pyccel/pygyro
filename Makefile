@@ -82,10 +82,11 @@ ALL = \
 # Main targets
 #----------------------------------------------------------
 
-all: $(ALL)
+all:
+	$(MAKE) -C pygyro $(TYPE)
 
 $(ALL): 
-	$(MAKE) -C pygyro $(TYPE)
+	$(MAKE) -C pygyro $@
 
 pycc:
 	$(MAKE) -C pygyro $@
