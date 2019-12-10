@@ -3,7 +3,7 @@ import timeit
 from scipy.integrate        import trapz
 import numpy                as np
 
-from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
+from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
 from ..                             import splines as spl
 from ..initialisation.constants     import get_constants
 from ..model.layout                 import Layout
