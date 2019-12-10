@@ -17,8 +17,8 @@ err = err.replace("\\n","\n")
 print(err)
 
 i = out.find("TOTAL")
-if (i==-1):
-    raise
+if ( i == -1 ):
+    assert(False)
 else:
     totline = out[i:]
     pc=float(totline[totline.rfind(" "):totline.rfind("%")])
