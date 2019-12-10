@@ -148,8 +148,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     elif (bound==2):
         vDiff = vMax-vMin
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             while (v<vMin):
                 v+=vDiff
             while (v>vMax):
