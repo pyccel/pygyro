@@ -1,7 +1,6 @@
 from mpi4py                 import MPI
 from math                   import pi
 from enum                   import IntEnum
-from matplotlib.widgets     import Button
 import matplotlib.pyplot    as plt
 import numpy                as np
 
@@ -18,11 +17,11 @@ class PhiSlicePlotter3d(object):
     def __init__(self,grid: Grid, *args, **kwargs):
         self.comm = kwargs.pop('comm',MPI.COMM_WORLD)
         self.drawRank = kwargs.pop('drawingRank',0)
-        
+
         self.grid = grid
-        
+
         self.nprocs = grid._layout_manager.nProcs
-        
+
         # use arguments to get coordinate values (including omitted coordinate)
         if (len(args)==0):
             # if no arguments are provided then assume (r,θ,z)
@@ -48,7 +47,7 @@ class PhiSlicePlotter3d(object):
                 self.x=grid.eta_grid[Dimension.ETA4]
             else:
                 raise TypeError("%s is not a valid dimension" % self.xVals)
-            
+
             # use arguments to get y values
             if (args[1]=='r'):
                 self.yVals=Dimension.ETA1
@@ -64,7 +63,7 @@ class PhiSlicePlotter3d(object):
                 self.y=grid.eta_grid[Dimension.ETA4]
             else:
                 raise TypeError("%s is not a valid dimension" % self.yVals)
-            
+
             # use arguments to get z values
             if (args[2]=='r'):
                 self.zVals=Dimension.ETA1
@@ -76,16 +75,16 @@ class PhiSlicePlotter3d(object):
                 self.zVals=Dimension.ETA4
             else:
                 raise TypeError("%s is not a valid dimension" % self.zVals)
-            
+
             # get unused dimensions identifier
             self.omit=(set(Dimension)-set([self.xVals,self.yVals,self.zVals])).pop()
-        
+
         # save x and y grid values
         nx=len(self.x)
         ny=len(self.y)
         self.x = np.repeat(self.x,ny).reshape(nx,ny)
         self.y = np.tile(self.y,nx).reshape(nx,ny)
-        
+
         # if (x,y) are (r,θ) or (θ,r) then print in polar coordinates
         self.polar=False
         if (self.xVals==Dimension.ETA1 and self.yVals==Dimension.ETA2):
@@ -100,17 +99,17 @@ class PhiSlicePlotter3d(object):
             self.x=x
             self.y=y
             self.polar=True
-        
+
         # get MPI values
         self.comm = MPI.COMM_WORLD
         self.rank = self.comm.Get_rank()
-        
+
         # get max and min values of f to avoid colorbar jumps
         self.minimum=grid.getMin(self.drawRank)
         self.maximum=grid.getMax(self.drawRank)
         print("min:",self.minimum)
         print("max:",self.maximum)
-        
+
         # on rank 0 set-up the graph
         if (self.rank==0):
             self.fig = plt.figure()
@@ -132,7 +131,7 @@ class PhiSlicePlotter3d(object):
                         values=grid.eta_grid[Dimension.ETA3])
             elif (self.zVals==Dimension.ETA4):
                 self.initVal = self.grid.nGlobalCoords[Dimension.ETA4]//2
-                self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$', 
+                self.slider = DiscreteSlider(self.sliderax1, r'$v_\parallel$',
                         valinit=grid.eta_grid[Dimension.ETA4][self.grid.nGlobalCoords[Dimension.ETA4]//2],
                         values=grid.eta_grid[Dimension.ETA4])
             self.slider.on_changed(self.updateVal)
@@ -146,7 +145,7 @@ class PhiSlicePlotter3d(object):
                     self.ax.set_xlabel("z [m]")
                 elif (self.xVals==Dimension.ETA4):
                     self.ax.set_xlabel(r'v [$ms^{-1}$]')
-                
+
                 # add y-axis label
                 if (self.yVals==Dimension.ETA1):
                     self.ax.set_ylabel("r [m]")
@@ -156,7 +155,7 @@ class PhiSlicePlotter3d(object):
                     self.ax.set_ylabel("z [m]")
                 elif (self.yVals==Dimension.ETA4):
                     self.ax.set_ylabel(r'v [$ms^{-1}$]')
-            else:            
+            else:
                 self.ax.set_xlabel("x [m]")
                 self.ax.set_ylabel("y [m]")
         else:
@@ -165,9 +164,9 @@ class PhiSlicePlotter3d(object):
                 self.initVal = self.grid.nGlobalCoords[Dimension.ETA4]//2
             else:
                 self.initVal = 0
-            
+
         self.plotFigure()
-    
+
     def updateVal(self, value):
         # alert non-0 ranks that they must receive the new value and update the drawing
         MPI.COMM_WORLD.bcast(1,root=0)
@@ -183,18 +182,18 @@ class PhiSlicePlotter3d(object):
         self.initVal=MPI.COMM_WORLD.bcast(self.initVal,root=0)
         # update plot
         self.updateDraw()
-    
+
     def updateDraw(self):
         self.plotFigure()
-    
+
     def plotFigure(self):
         # get slice by passing dictionary containing fixed dimensions and their values
         d = {self.zVals : self.initVal}
-        
+
         if (self.rank==self.drawRank):
             layout, starts, mpi_data, theSlice = self.grid.getSliceFromDict(d,self.comm,self.drawRank)
             baseShape = layout.shape
-            
+
             if (layout.inv_dims_order[self.zVals]==0):
                 idx = np.where(starts==0)[-1]
                 myShape = list(baseShape)
@@ -213,10 +212,10 @@ class PhiSlicePlotter3d(object):
                     else:
                         myShape[layout.inv_dims_order[self.zVals]]=1
                     concatReady[coords[0]][coords[1]]=chunk.reshape(myShape)
-                
+
                 concat1 = [np.concatenate(concat,axis=1) for concat in concatReady]
                 theSlice = np.squeeze(np.concatenate(concat1,axis=0))
-            
+
             if (layout.inv_dims_order[self.xVals]>layout.inv_dims_order[self.yVals]):
                 if (Dimension.ETA2 == self.xVals):
                     theSlice = np.append(theSlice, theSlice[:,0,None],axis=1).T
@@ -229,9 +228,9 @@ class PhiSlicePlotter3d(object):
                     theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
                 elif (Dimension.ETA2 == self.yVals):
                     theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
-            
+
             self.fig.canvas.draw()
-            
+
             if (hasattr(self,'plot')):
                 # remove the old plot
                 del self.plot
@@ -239,12 +238,12 @@ class PhiSlicePlotter3d(object):
             self.colorbarax2.clear()
             self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,vmin=self.minimum,vmax=self.maximum,cmap="jet")
             self.fig.colorbar(self.plot,cax=self.colorbarax2)
-            
+
             self.fig.canvas.draw()
-            
+
         else:
             self.grid.getSliceFromDict(d,self.comm,self.drawRank)
-    
+
     def show(self):
         # set-up non-0 ranks as listeners so they can react to interactions with the plot on rank 0
         if (self.rank!=0):
@@ -255,7 +254,8 @@ class PhiSlicePlotter3d(object):
                     self.initVal=MPI.COMM_WORLD.bcast(self.initVal,root=0)
                     self.updateDraw()
         plt.show()
-    
-    def handle_close(self,_evt):
+
+    @staticmethod
+    def handle_close(_evt):
         # broadcast 0 to break non-0 ranks listen loop
         MPI.COMM_WORLD.bcast(0,root=0)

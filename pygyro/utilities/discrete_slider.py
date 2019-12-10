@@ -14,7 +14,7 @@ class DiscreteSlider(Slider):
     def set_val(self, val):
         idx = (np.abs(val-self.vals)).argmin()
         discrete_val = self.vals[idx]
-        # We can't just call Slider.set_val(self, discrete_val), because this 
+        # We can't just call Slider.set_val(self, discrete_val), because this
         # will prevent the slider from updating properly (it will get stuck at
         # the first step and not "slide"). Instead, we'll keep track of the
         # the continuous value as self.val and pass in the discrete value to
@@ -25,11 +25,11 @@ class DiscreteSlider(Slider):
         self.poly.xy = xy
         self.valtext.set_text(self.valfmt % discrete_val)
         self.val = val
-        if not self.eventson: 
+        if not self.eventson:
             return
         for _cid, func in self.observers.items():
             func(discrete_val)
-    
+
     def _update(self, event):
         super(DiscreteSlider, self)._update(event)
         i = int(self.val)

@@ -4,7 +4,7 @@ import pytest
 from  .                         import constants
 from  .setups                   import setupCylindricalGrid
 from  .mod_initialiser_funcs    import fEq, perturbation
-from ..utilities.grid_plotter   import SlicePlotter4d, SlicePlotter3d, Plotter2d
+from ..utilities.grid_plotter   import SlicePlotter4d, Plotter2d
 
 @pytest.mark.serial
 def test_Perturbation_FluxSurface():
@@ -16,17 +16,17 @@ def test_Perturbation_FluxSurface():
                                 m      = m,
                                 n      = n)
     for i,r in grid.getCoords(0):
-        for j,v in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # v
             # Get surface
             FluxSurface = grid.get2DSlice([i,j])
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             FluxSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
-    
+
     p = Plotter2d(grid,0,3,False)
     p.setLabels('r','v')
     p.show()
@@ -47,11 +47,11 @@ def test_Perturbation_vPar():
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             Surface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
-    
+
     p = Plotter2d(grid,0,3,False)
     p.setLabels('r','v')
     p.show()
@@ -65,18 +65,18 @@ def test_Perturbation_Poloidal():
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
-    for i,v in grid.getCoords(0):
+    for i,_ in grid.getCoords(0): # v
         for j,z in grid.getCoords(1):
             # Get surface
             PoloidalSurface = grid.get2DSlice([i,j])
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             PoloidalSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
-    
+
     p = Plotter2d(grid,0,3,False)
     p.setLabels('r','v')
     p.show()
@@ -87,24 +87,24 @@ def test_FieldPlot_FluxSurface():
     m = 15
     n = -11
     iotaVal = 0.8
-    
+
     grid,constants,tStart = setupCylindricalGrid(npts   = npts,
                                 layout  = 'flux_surface',
                                 m       = m,
                                 n       = n,
                                 iotaVal = iotaVal)
     for i,r in grid.getCoords(0):
-        for j,v in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # v
             # Get surface
             FluxSurface = grid.get2DSlice([i,j])
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             FluxSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
-    
+
     p = Plotter2d(grid,1,2,False)
     p.setLabels('q','z')
     p.show()
@@ -127,11 +127,11 @@ def test_FieldPlot_vPar():
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             Surface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
-    
+
     p = Plotter2d(grid,1,2,False)
     p.setLabels('q','z')
     p.show()
@@ -147,18 +147,18 @@ def test_FieldPlot_Poloidal():
                                 m      = m,
                                 n      = n,
                                 iotaVal = iotaVal)
-    for i,v in grid.getCoords(0):
+    for i,_ in grid.getCoords(0): # v
         for j,z in grid.getCoords(1):
             # Get surface
             PoloidalSurface = grid.get2DSlice([i,j])
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             PoloidalSurface[:]=perturbation(r,theta,z,m,n,constants.rp,constants.deltaR,constants.R0)
-    
+
     p = Plotter2d(grid,1,2,False)
     p.setLabels('q','z')
     p.show()
@@ -179,14 +179,14 @@ def test_Equilibrium_FluxSurface():
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             FluxSurface[:]=fEq(r,v,constants.CN0,constants.kN0,
                                 constants.deltaRN0,constants.rp,
                                 constants.CTi,constants.kTi,
                                 constants.deltaRTi)
-    
+
     p = Plotter2d(grid,0,3,False)
     p.setLabels('r','v')
     p.show()
@@ -201,20 +201,20 @@ def test_Equilibrium_vPar():
                                 m      = m,
                                 n      = n)
     for i,r in grid.getCoords(0):
-        for j,z in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # z
             # Get surface
             Surface = grid.get2DSlice([i,j])
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             Surface[:]=fEq(r,v,constants.CN0,constants.kN0,
                             constants.deltaRN0,constants.rp,
                             constants.CTi,constants.kTi,
                             constants.deltaRTi)
-    
+
     p = Plotter2d(grid,0,3,False)
     p.setLabels('r','v')
     p.show()
@@ -229,20 +229,20 @@ def test_Equilibrium_Poloidal():
                                 m      = m,
                                 n      = n)
     for i,v in grid.getCoords(0):
-        for j,z in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # z
             # Get surface
             PoloidalSurface = grid.get2DSlice([i,j])
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             PoloidalSurface[:]=fEq(r,v,constants.CN0,constants.kN0,
                                     constants.deltaRN0,constants.rp,
                                     constants.CTi,constants.kTi,
                                     constants.deltaRTi)
-    
+
     p = Plotter2d(grid,0,3,False)
     p.setLabels('r','v')
     p.show()

@@ -2,7 +2,7 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.interpolate  import splev, bisplev
+#from scipy.interpolate  import splev, bisplev
 
 from .      import spline_eval_funcs as SEF
 
@@ -139,7 +139,7 @@ class BSplines():
         """
         breaks = self.breaks
         return breaks[0], breaks[-1]
-        
+
     @property
     def greville( self ):
         """ Coordinates of all Greville points.
@@ -215,7 +215,7 @@ class Spline1D():
         else:
             result = SEF.eval_spline_1d_scalar(x,self._basis.knots,self._basis.degree,self._coeffs,der)
         return result
-        
+
         """
         tck = (self._basis.knots, self._coeffs, self._basis.degree)
         return splev( x, tck, der )

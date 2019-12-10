@@ -56,7 +56,7 @@ class AnalyticalProfile1D_Poly( AnalyticalProfile ):
 
     @property
     def poly_order( self ):
-        return self_deg
+        return self._deg
 
     def eval( self, x, diff=0 ):
         d = diff

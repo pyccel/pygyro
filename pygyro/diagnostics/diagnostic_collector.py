@@ -11,7 +11,7 @@ class DiagnosticCollector:
         self.dt = dt
         self.comm = comm
         self.rank = comm.Get_rank()
-        
+
         self.diagnostics = np.zeros([8,saveStep])
         self.l2PhiResult=np.zeros(saveStep)
         self.l2GridResult=np.zeros(saveStep)
@@ -26,7 +26,7 @@ class DiagnosticCollector:
         self.l2_grid_class = l2(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
         self.npart = nParticles(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
         self.KEclass = KineticEnergy(distribFunc.eta_grid,distribFunc.getLayout('v_parallel'))
-    
+
     def collect ( self, f: Grid, phi: Grid, t: float):
         """
         Collect various diagnostics to be saved in the following order:
@@ -38,7 +38,7 @@ class DiagnosticCollector:
          5 - minimum value of the distribution function
          6 - maximum value of the distribution function
          7 - Kinetic Energy
-        
+
         Parameters
         ----------
         f : Grid
@@ -60,7 +60,7 @@ class DiagnosticCollector:
         self.diagnostics[5,idx]=f.getMin()
         self.diagnostics[6,idx]=f.getMax()
         self.diagnostics[7,idx]=self.KEclass.getKE(f)
-    
+
     def reduce(self):
         self.comm.Reduce(self.diagnostics[1,:],self.l2PhiResult,op=MPI.SUM, root=0)
         self.comm.Reduce(self.diagnostics[2,:],self.l2GridResult,op=MPI.SUM, root=0)
@@ -79,7 +79,7 @@ class DiagnosticCollector:
             myStr.append(self.getLine(i))
             myStr.append('\n')
         return ''.join(myStr)
-    
+
     def getLine(self,i):
         return "{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}". \
                         format(t=self.diagnostics[0,i],l2P=self.l2PhiResult[i],l2G=self.l2GridResult[i],

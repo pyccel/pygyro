@@ -1,6 +1,5 @@
 from pyccel.epyccel import ContextPyccel
 from pyccel.epyccel import epyccel
-from pyccel.decorators import types
 
 import initialiser_func
 from mod_initialiser_funcs import fEq, perturbation

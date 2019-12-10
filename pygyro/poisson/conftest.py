@@ -5,12 +5,12 @@ def pytest_generate_tests(metafunc):
         param_df_poly = []
         if metafunc.config.getoption('short'):
             for npts,tol in zip([10,20,50],[0.002,0.0003,2e-6]):
-                for i in range( 2 ):
+                for _ in range( 2 ):
                     coeffs = np.random.random(4)*3
                     param_df_poly.append( (npts, coeffs,tol) )
         else:
             for npts,tol in zip([10,20,50],[0.002,0.0003,2e-6]):
-                for i in range( 5 ):
+                for _ in range( 5 ):
                     coeffs = np.random.random(4)*3
                     param_df_poly.append( (npts, coeffs,tol) )
         metafunc.parametrize("param_df_poly", param_df_poly)

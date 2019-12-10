@@ -25,7 +25,7 @@ def test_make_knots_periodic( ncells, degree ):
 def test_make_knots_periodic_should_fail( ncells ):
     breaks = np.arange( ncells+1, dtype=float )
     with pytest.raises( AssertionError ):
-        knots = make_knots( breaks, degree=ncells+1, periodic=True )
+        _ = make_knots( breaks, degree=ncells+1, periodic=True )
 
 #===============================================================================
 @pytest.mark.serial

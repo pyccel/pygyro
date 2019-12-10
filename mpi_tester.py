@@ -17,7 +17,6 @@ from mpi4py import MPI
 
 import pytest
 import traceback
-import warnings
 import sys
 import os
 import contextlib
@@ -55,7 +54,7 @@ class Rotator(object):
         self.comm = comm
     def __enter__(self):
         self.comm.Barrier()
-        for i in range(self.comm.rank):
+        for _ in range(self.comm.rank):
             self.comm.Barrier()
     def __exit__(self, type, value, tb):
         for i in range(self.comm.rank, self.comm.size):
@@ -103,7 +102,6 @@ def MPITest(commsize):
     def test_stuff(comm):
         pass
     """
-    from mpi4py import MPI
     if not isinstance(commsize, (tuple, list)):
         commsize = (commsize,)
 
@@ -173,7 +171,7 @@ class Tester( object ):
         """
 
         # sort the tests
-        items[:] = sorted(items, key=lambda x: str(x))
+        items[:] = sorted(items, key=str)
 
     #---------------------------------------------------------------------------
     def __init__(self):
@@ -184,7 +182,6 @@ class Tester( object ):
     #---------------------------------------------------------------------------
     @property
     def comm(self):
-        from mpi4py import MPI
         return MPI.COMM_WORLD
 
     #---------------------------------------------------------------------------
@@ -255,7 +252,8 @@ class Tester( object ):
             sys.exit(code)
 
     #---------------------------------------------------------------------------
-    def _launch_mpisub(self, args, site_dir):
+    @staticmethod
+    def _launch_mpisub( args, site_dir):
 
         # extract the mpirun run argument
         parser = ArgumentParser(add_help=False)

@@ -6,7 +6,7 @@ import numpy as np
 
 from  .utilities              import horner, random_grid
 from  .splines_error_bounds   import spline_1d_error_bound, spline_2d_error_bound
-from  .analytical_profiles_1d import AnalyticalProfile1D_Cos, AnalyticalProfile1D_Poly
+from  .analytical_profiles_1d import AnalyticalProfile1D_Cos
 from  .analytical_profiles_2d import AnalyticalProfile2D_CosCos
 from ..splines                import make_knots, BSplines, Spline1D, Spline2D
 from ..spline_interpolators   import SplineInterpolator1D, SplineInterpolator2D

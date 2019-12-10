@@ -3,12 +3,9 @@ import time
 setup_time_start = time.clock()
 profilingOn = False
 
-from glob                   import glob
-
 import numpy                as np
 import argparse
 import os
-import h5py
 if (profilingOn):
     import cProfile, pstats, io
 
@@ -17,8 +14,6 @@ from pygyro.model.grid                          import Grid
 from pygyro.initialisation.setups               import setupCylindricalGrid, setupFromFile
 from pygyro.advection.advection                 import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, ParallelGradient
 from pygyro.poisson.poisson_solver              import DensityFinder, QuasiNeutralitySolver
-from pygyro.splines.splines                     import Spline2D
-from pygyro.splines.spline_interpolators        import SplineInterpolator2D
 from pygyro.utilities.savingTools               import setupSave
 from pygyro.diagnostics.diagnostic_collector    import DiagnosticCollector
 
@@ -78,25 +73,25 @@ rank = comm.Get_rank()
 
 if (loadable):
     my_print(rank,"ready to setup from loadable")
-    
+
     distribFunc,constants,t = setupFromFile(foldername,
                                 constantFile,comm=comm,
                                 allocateSaveMemory = True,
                                 layout = 'v_parallel')
 else:
-    assert(constantFile!=None)
+    assert(constantFile is not None)
 
     my_print(rank,"ready to setup new")
-    
+
     distribFunc,constants,t = setupCylindricalGrid(constantFile = constantFile,
                                 layout = 'v_parallel',
                                 comm   = comm,
                                 allocateSaveMemory = True)
 
     my_print(rank,"setup done, saving initParams")
-    
+
     foldername = setupSave(constants,foldername)
-    
+
     print("Saving in ",foldername)
 
 ti = t//constants.dt
@@ -214,13 +209,13 @@ average_output = 0
 startPrint = max(0,ti%saveStep)
 timeForLoop = True
 while (ti<tN and timeForLoop):
-    
+
     full_loop_start=time.clock()
-    
+
     t+=fullStep
     my_print(rank,"t=",t)
     loop_start=time.clock()
-    
+
     # Compute f^n+1/2 using lie splitting
     distribFunc.setLayout('flux_surface')
     distribFunc.saveGridValues()
@@ -231,7 +226,7 @@ while (ti<tN and timeForLoop):
     distribFunc.setLayout('poloidal')
     phi.setLayout('poloidal')
     polAdv.gridStep(distribFunc,phi,halfStep)
-    
+
     # Find phi from f^n+1/2 by solving QN eq again
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -242,7 +237,7 @@ while (ti<tN and timeForLoop):
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
-    
+
     # Compute f^n+1 using strang splitting
     distribFunc.restoreGridValues() # restored from flux_surface layout
     fluxAdv.gridStep(distribFunc)
@@ -256,7 +251,7 @@ while (ti<tN and timeForLoop):
     vParAdv.gridStepKeepGradient(distribFunc,parGradVals,halfStep)
     distribFunc.setLayout('flux_surface')
     fluxAdv.gridStep(distribFunc)
-    
+
     # Find phi from f^n by solving QN eq
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc,rho)
@@ -267,19 +262,19 @@ while (ti<tN and timeForLoop):
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
-    
+
     diagnostic_start=time.clock()
     # Calculate diagnostic quantities
     diagnostics.collect(distribFunc,phi,t)
-    
+
     diagnostic_time+=(time.clock()-diagnostic_start)
-    
+
     if (ti%saveStep==saveStepCut):
         my_print(rank,"save time",t)
         output_start=time.clock()
         distribFunc.writeH5Dataset(foldername,t)
         phi.writeH5Dataset(foldername,t,"phi")
-        
+
         diagnostics.reduce()
         if (rank == 0):
             diagnosticFile = open(diagnostic_filename,"a")
@@ -289,7 +284,7 @@ while (ti<tN and timeForLoop):
         startPrint = 0
         output_time+=(time.clock()-output_start)
         average_output = output_time*saveStep/nLoops
-    
+
     nLoops+=1
     ti+=1
     loop_time+=(time.clock()-loop_start)
