@@ -324,7 +324,7 @@ def test_BasicPoissonEquation_lNeumann_function(param_poisson_neumann):
         plane = phi_exact.get2DSlice([i])
         plane[:] = -0.5*r**2+domain[0][0]*r+domain[0][1]**2*0.5-domain[0][0]*domain[0][1]
 
-    ps.solveEquationForFunction(phi,lambda x: np.ones_like(x))
+    ps.solveEquationForFunction(phi, np.ones_like)
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert((np.abs(phi._f-phi_exact._f)<eps).all())
@@ -1057,7 +1057,7 @@ def test_WellPosedness():
 
     with pytest.raises(ValueError):
         DiffEqSolver(2*degree[0]+1,bsplines[0],npts[0],npts[1],drFactor=lambda r:0,
-                        rFactor = lambda r:np.zeros_like(r),ddThetaFactor = lambda r:0,
+                        rFactor = np.zeros_like,ddThetaFactor = lambda r:0,
                         lNeumannIdx = [0], uNeumannIdx = [0])
 
 

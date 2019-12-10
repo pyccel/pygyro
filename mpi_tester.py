@@ -172,7 +172,7 @@ class Tester( object ):
         """
 
         # sort the tests
-        items[:] = sorted(items, key=lambda x: str(x))
+        items[:] = sorted(items, key=str)
 
     #---------------------------------------------------------------------------
     def __init__(self):
