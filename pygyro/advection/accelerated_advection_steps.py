@@ -71,7 +71,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             while (endPts_k1_q[i,j]>2*pi):
                 endPts_k1_q[i,j]-=2*pi
             
-            if (not (endPts_k1_r[i,j]<rPts[0] or 
+            if (not (endPts_k1_r[i,j]<rPts[0] or
                      endPts_k1_r[i,j]>rMax)):
                 # Add the new value of phi to the derivatives
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
@@ -133,16 +133,14 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                         coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
     # Find value at the determined point
     if (bound==0):
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=fEq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
             else:
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     elif (bound==1):
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=0.0
             else:
@@ -268,7 +266,7 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     endPts_k2_r[i,j]=rPts[0]
                 elif (endPts_k2_r[i,j]>rMax):
                     endPts_k2_r[i,j]=rMax
-                
+
                 diff=abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
                 if (diff>norm):
                     norm=diff
@@ -280,8 +278,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
 
     # Find value at the determined point
     if (nulBound):
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]):
+            for j in range(nPts[1]):
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
                 elif (endPts_k2_r[i,j]>rMax):
@@ -295,8 +293,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
     else:
-        for i,theta in enumerate(qPts):
-            for j,r in enumerate(rPts):
+        for i in range(nPts[0]):
+            for j in range(nPts[1]):
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=fEq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)

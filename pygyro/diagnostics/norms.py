@@ -113,23 +113,23 @@ class nParticles:
         shape = [1,1,1,1]
         shape[idx_r] = mydrMult.size
         shape[idx_v] = mydvMult.size
-        
+
         self._factor1 = np.empty(shape)
         if (idx_r<idx_v):
             self._factor1.flat = ((mydrMult*my_r)[:,None] * mydvMult[None,:]).flat
         else:
             self._factor1.flat = ((mydrMult*my_r)[None,:] * mydvMult[:,None]).flat
-        
+
         self._layout = layout.name
-        
+
         dq = q[2]-q[1]
         assert(dq*eta_grid[1].size-2*np.pi<1e-7)
         dz = z[2]-z[1]
         assert(dq>0)
         assert(dz>0)
-        
+
         self._factor2 = dq*dz
-    
+
     def getN(self, f: Grid):
         assert(self._layout == f.currentLayout)
         points = np.real(f._f)*self._factor1

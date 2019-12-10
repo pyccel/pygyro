@@ -113,10 +113,10 @@ class DensityFinder:
         assert(grid.getLayout(grid.currentLayout).dims_order==(0,2,1,3))
         assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
         
-        for i,r in grid.getCoords(0):
-            for j,z in grid.getCoords(1):
+        for i,_ in grid.getCoords(0): # r
+            for j,_ in grid.getCoords(1): # z
                 rho_qv = rho.get1DSlice([i,j])
-                for k,theta in grid.getCoords(2):
+                for k,_ in grid.getCoords(2): # theta
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
                     SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
                             self._spline.coeffs,self._splineMem,0)
@@ -340,10 +340,10 @@ class DiffEqSolver:
             differential equation.
         
         """
-        assert(type(rho.get1DSlice([0,0])[0])==np.complex128)
+        assert(isinstance(rho.get1DSlice([0,0])[0],np.complex128))
         assert(rho.getLayout(rho.currentLayout).dims_order==(0,2,1))
-        for i,r in rho.getCoords(0):
-            for j,z in rho.getCoords(1):
+        for i,_ in rho.getCoords(0): # r
+            for j,_ in rho.getCoords(1): # z
                 vec=rho.get1DSlice([i,j])
                 mode=fft(vec,overwrite_x=True)
                 vec[:]=mode
@@ -501,8 +501,8 @@ class QuasiNeutralitySolver(DiffEqSolver):
     functions to handle the discrete Fourier transforms and a function
     which uses the finite elements method to solve the equation in Fourier
     space
-    
-    -[d_r^2+( 1/r+g'(r)/g(r) )d_r+1/r^2 d_\\theta^2]\\phi 
+
+    -[d_r^2+( 1/r+g'(r)/g(r) )d_r+1/r^2 d_\\theta^2]\\phi
     + 1/(g\\lambda_D^2) [\\phi-\\chi \\langle\\phi\\rangle_\\theta]=rho/g
     
     Parameters
@@ -605,7 +605,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
         """
         Solve the differential equation.
         The equation is solved in Fourier space. The application of the
-        Fourier transform and inverse Fourier transform is not handled 
+        Fourier transform and inverse Fourier transform is not handled
         by this function
         
         Parameters
@@ -636,5 +636,5 @@ class QuasiNeutralitySolver(DiffEqSolver):
             # will be overwritten
             self._coeffs[0] = 0
             self._coeffs[-1] = 0
-            
+
             self._solveMode(phi,rho,stiffnessMatrix,i,I)

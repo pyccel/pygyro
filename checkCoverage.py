@@ -1,6 +1,6 @@
 import os
 
-file = open("cov_out.txt", "r") 
+file = open("cov_out.txt", "r")
 out = file.read()
 file.close()
 os.remove("cov_out.txt")
@@ -8,7 +8,7 @@ out = out[2:-1]
 out = out.replace("\\n","\n")
 print(out)
 
-file = open("cov_err.txt", "r") 
+file = open("cov_err.txt", "r")
 err = file.read()
 file.close()
 os.remove("cov_err.txt")

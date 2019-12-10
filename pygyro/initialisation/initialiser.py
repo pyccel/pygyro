@@ -46,7 +46,7 @@ def initialise_v_parallel(grid,constants):
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
-            
+
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
             IF_MOD.init_f_vpar(modFunc(Surface),r,theta,z,v,

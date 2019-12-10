@@ -425,7 +425,7 @@ def test_grad_r_pointConverge(deg):
         phi_exact=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         rho=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
         
-        for i,q in rho.getCoords(0):
+        for i,_ in rho.getCoords(0): # q
             plane = rho.get2DSlice([i])
             plane[:]=a*np.cos(a*(r-domain[0][0]))/r+np.sin(a*(r-domain[0][0]))
             plane = phi_exact.get2DSlice([i])
@@ -620,8 +620,6 @@ def test_ddTheta(deg):
             plane = phi_exact.get2DSlice([i])
             plane[:] = np.sin(q)**3
         
-        r = eta_grid[0]
-        
         ps.getModes(rho)
         
         rho.setLayout('mode_solve')
@@ -750,7 +748,6 @@ def test_QuasiNeutralityEquation_pointConverge():
             weights = np.tile(weights,startPoints.size)
             
             approxSpline = Spline1D(rspline)
-            exactSpline = Spline1D(rspline)
             interp = SplineInterpolator1D(rspline)
             
             assert(np.max(np.abs(np.imag(phi.get1DSlice([0,0]))))<1e-16)
@@ -936,9 +933,9 @@ def test_QuasiNeutralityEquation_degreeConverge():
         
         l2[c] = np.sqrt(trapz(l2Q,eta_grid[1]))
         lInf[c] = lI
-        
+
         degree[0]*=2
-    
+
     print(l2)
     print(lInf)
 
