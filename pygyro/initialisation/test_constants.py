@@ -1,4 +1,3 @@
-import numpy as np
 from scipy          import integrate
 from math           import exp, tanh, pi
 import os
@@ -19,7 +18,7 @@ def test_constants_file():
     f.close()
     constants = get_constants("constants_test_file.json")
     os.remove("constants_test_file.json")
-    
+
     assert(constants.B0 == 1.0)
     assert(constants.R0 == 239.8081535)
     assert(constants.rMin == 0.1)
@@ -55,7 +54,7 @@ def test_constants_file():
 @pytest.mark.serial
 def test_constants_defaults():
     constants = Constants()
-    
+
     assert(constants.B0 == 1.0)
     assert(constants.R0 == 239.8081535)
     assert(constants.rMin == 0.1)

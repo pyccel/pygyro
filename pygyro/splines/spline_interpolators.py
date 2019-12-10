@@ -2,7 +2,6 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.linalg        import solve_banded
 from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs
 from scipy.sparse        import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
@@ -69,12 +68,12 @@ class SplineInterpolator1D():
 
     # ...
     def _solve_system_nonperiodic( self, ug, c ):
-        
+
         assert ug.shape[0] == self._bmat.shape[1]
 
         assert c.shape == ug.shape
         c[:], self._sinfo = self._solveFunc(self._bmat, self._l, self._u, ug, self._ipiv)
-    
+
     @staticmethod
     def collocation_matrix( knots, degree, xgrid, periodic ):
         """

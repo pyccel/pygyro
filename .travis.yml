@@ -35,7 +35,7 @@ before_script:
 
 # command to run tests
 script:
-  - coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" -v --short
+  - coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" --short
   - coverage combine
   - make
   - coverage run -p --source=pygyro -m pytest pygyro -m serial
@@ -48,6 +48,7 @@ script:
   - coverage combine -a
 #  - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
 #  - coverage combine -a
+  - coverage report -m > cov_out.txt 2> cov_err.txt
   - python checkCoverage.py
 
 after_script:

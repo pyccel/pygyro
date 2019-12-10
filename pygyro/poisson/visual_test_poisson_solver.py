@@ -26,28 +26,28 @@ def test_QuasiNeutralityEquation_pointConverge():
     rc('text', usetex=True)
     deg = 3
     npt = 128
-    
+
     npts = [npt,64,4]
     domain = [[1,15],[0,2*pi],[0,1]]
     degree = [deg,3,3]
     period = [False,True,False]
     comm = MPI.COMM_WORLD
-    
+
     # Compute breakpoints, knots, spline space and grid points
     nkts     = [n+1+d+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
     breaks   = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
     knots    = [spl.make_knots( b,d,p )       for (b,d,p)    in zip( breaks, degree, period )]
     bsplines = [spl.BSplines( k,d,p )         for (k,d,p)    in zip(  knots, degree, period )]
     eta_grid = [bspl.greville                 for bspl       in bsplines]
-    
+
     constants = get_constants('testSetups/iota0.json')
-    
+
     layout_poisson = {'mode_solve': [1,2,0],
                       'v_parallel': [0,2,1]}
     remapper = getLayoutHandler(comm,layout_poisson,[comm.Get_size()],eta_grid)
-    
+
     mVals = np.fft.fftfreq(eta_grid[1].size,1/eta_grid[1].size)
-    
+
     ps = DiffEqSolver(100,bsplines[0],eta_grid[0].size,
             eta_grid[1].size,lNeumannIdx=mVals,
             ddrFactor = lambda r:-1,
@@ -57,10 +57,10 @@ def test_QuasiNeutralityEquation_pointConverge():
     phi=Grid(eta_grid,bsplines,remapper,'mode_solve',comm,dtype=np.complex128)
     phi_exact=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
     rho=Grid(eta_grid,bsplines,remapper,'v_parallel',comm,dtype=np.complex128)
-    
+
     a=1.5*pi/(domain[0][1]-domain[0][0])
     q = eta_grid[1]
-    
+
     for i,r in rho.getCoords(0):
         rArg = a*(r-domain[0][0])
         plane = rho.get2DSlice([i])
@@ -74,43 +74,43 @@ def test_QuasiNeutralityEquation_pointConverge():
                    + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
         plane = phi_exact.get2DSlice([i])
         plane[:] = np.cos(rArg)**4*np.sin(q)**3
-    
+
     ps.getModes(rho)
-    
+
     rho.setLayout('mode_solve')
-    
+
     ps.solveEquation(phi,rho)
-    
+
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
-    
+
     r = eta_grid[0]
-    
+
     q = [*q, 2*pi]
     phiExact = np.concatenate([phi_exact._f[:,0,:],phi_exact._f[:,0,0,None]],axis=1)
     Error = np.concatenate([phi_exact._f[:,0,:]-phi._f[:,0,:],(phi_exact._f[:,0,0]-phi._f[:,0,0])[:,None]],axis=1)
-    
+
     font = {'size'   : 16}
     plt.rc('font', **font)
     plt.rc('text', usetex=True)
-    
+
     splitFact = 10
-    
+
     fig = plt.figure()
     ax = plt.subplot2grid((1, splitFact), (0, 0), colspan=splitFact-1, projection='polar')
     line1 = ax.pcolormesh(q,r,np.real(phiExact))
-    
+
     axc = plt.subplot2grid((1, splitFact), (0, splitFact-1))
-    
+
     plt.colorbar(line1, cax = axc )
     plt.tight_layout()
-    
+
     fig = plt.figure()
     ax = plt.subplot2grid((1, splitFact), (0, 0), colspan=splitFact-1, projection='polar')
     line1 = plt.pcolormesh(q,r,np.real(Error))
-    
+
     axc = plt.subplot2grid((1, splitFact), (0, splitFact-1))
     plt.colorbar(line1,aspect=0, cax=axc)
     plt.tight_layout()
-    
+
     plt.show()

@@ -8,16 +8,16 @@ class Result:
         self._output=float(vals[2])
         self._setup=float(vals[3])
         self._additional=float(vals[4])
-        
+
         self._nnodes=self._nprocs/32
-    
+
     def __lt__(self, other):
         assert(type(other).__name__ == 'Result')
         return self._nprocs<other._nprocs
-    
+
     def __eq__(self,n):
         return self._nprocs==n
-    
+
     def __str__(self):
         return "{nprocs:8}   {loop:16.10e}   {output:16.10e}   {setup:16.10e}   {additional:16.10e}". \
             format(nprocs=self._nprocs,loop=self._loop,output=self._output,setup=self._setup,additional=self._additional)

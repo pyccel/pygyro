@@ -8,10 +8,10 @@ from .savingTools                   import setupSave
 @pytest.mark.serial
 def test_Save_s():
     npts = [10,20,10,10]
-    
+
     constants = Constants()
     constants.npts = npts
-    
+
     n1=setupSave(constants)
     n2=setupSave(constants)
     n3=setupSave(constants,"testFilename")
@@ -28,10 +28,10 @@ def test_Save_s():
 @pytest.mark.parallel
 def test_Save_p():
     npts = [10,20,10,10]
-    
+
     constants = Constants()
     constants.npts = npts
-    
+
     n1=setupSave(constants)
     n2=setupSave(constants)
     n3=setupSave(constants,"testFilename")
