@@ -1,11 +1,9 @@
 from mpi4py         import MPI
 import numpy        as np
-from math           import pi
 import h5py
 from glob           import glob
 import os
 
-from ..                 import splines as spl
 from .layout            import LayoutManager
 
 class Grid(object):
@@ -225,7 +223,7 @@ class Grid(object):
         all values on that axis
         """
         dims = []
-        for i,dim_o in enumerate(self._layout.dims_order):
+        for dim_o in self._layout.dims_order:
             dim = d.get(dim_o,None)
             if (isinstance(dim,int)):
                 dim = range(dim,dim+1)
@@ -240,7 +238,6 @@ class Grid(object):
         # helper variables to correctly reshape the slice after gathering
         dimSize=[]
         dim_slices = []
-        shape = []
         
         # Get slices for each dimension (eta2_slice, eta1_slice, eta3_slice, eta4_slice)
         # If value is None then all values along that dimension should be returned

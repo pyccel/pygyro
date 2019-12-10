@@ -3,10 +3,11 @@ import timeit
 from scipy.integrate        import trapz
 import numpy                as np
 
-from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
-from ..                             import splines as spl
-from ..initialisation.constants     import get_constants
-from ..model.layout                 import Layout
+from .advection                             import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
+from ..                                     import splines as spl
+from ..initialisation.constants             import get_constants
+from ..initialisation.mod_initialiser_funcs import fEq
+from ..model.layout                         import Layout
 
 NSteps = 1000
 NGrid = 20
@@ -133,10 +134,10 @@ def test_explicitPoloidalAdvection():
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants, nulEdge=True)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     

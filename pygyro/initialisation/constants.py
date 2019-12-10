@@ -83,18 +83,18 @@ class Constants:
 
     def iota(self,r = rp):
         return np.full_like(r,self.iotaVal,dtype=float)
-    
+
     def getCN0(self):
         self.CN0 = (self.rMax-self.rMin)/integrate.quad(self.normalisingFunc,self.rMin,self.rMax)[0]
-    
+
     def normalisingFunc(self,r):
         return math.exp(-self.kN0*self.deltaRN0*math.tanh((r-self.rp)/self.deltaRN0))
-    
+
     def set_defaults(self):
         for key,val in defaults.items():
             if (getattr(self,key) is None):
                 setattr(self,key,val)
-    
+
     def __str__(self):
         s = "{\n"
         for obj in dir(self):
@@ -119,7 +119,6 @@ def eval_expr(mystr,constants):
             except:
                 f[i] = str(getattr(math,el))
     return eval(''.join(f))
-    
 
 def get_constants(filename):
     constants=Constants(False)

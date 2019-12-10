@@ -162,5 +162,5 @@ def test_setupFromFolderAtTime():
     grid._f[:]+=20
     grid.writeH5Dataset('testValues',100)
     
-    grid2,constants,t = setupFromFile('testValues',timepoint = 40)
+    grid2,constants,_ = setupFromFile('testValues',timepoint = 40)
     compare_f(grid2,40)

@@ -106,7 +106,7 @@ class ParallelGradient:
         # They can therefore be calculated in advance
         n = eta_grid[2].size
         
-        for k,z in enumerate(eta_grid[2]):
+        for k in range(eta_grid[2].size):
             for i,l in enumerate(self._shifts):
                 thetaVals[(k+l)%n,i,:]=fieldline(eta_grid[1],self._dz*l,iota,r,R0)
     
@@ -376,7 +376,7 @@ class VParallelAdvection:
     def gridStepKeepGradient( self, grid: Grid, parGradVals, dt: float):
         for i,r in grid.getCoords(0):
             for j,z in grid.getCoords(1):
-                for k,q in grid.getCoords(2):
+                for k,_ in grid.getCoords(2):
                     self.step(grid.get1DSlice([i,j,k]),dt,parGradVals[i,j,k],r)
 
 class PoloidalAdvection:

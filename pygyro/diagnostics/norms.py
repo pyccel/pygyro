@@ -17,7 +17,6 @@ class l2:
             v = eta_grid[3]
             dv = v[1:]-v[:-1]
             idx_v = layout.inv_dims_order[3]
-            my_v = eta_grid[3][layout.starts[idx_v]:layout.ends[idx_v]]
             dvMult = np.array([dv[0]*0.5, *((dv[1:]+dv[:-1])*0.5), dv[-1]*0.5])
             mydvMult = dvMult[layout.starts[idx_v]:layout.ends[idx_v]]
             
@@ -58,7 +57,6 @@ class l1:
         idx_r = layout.inv_dims_order[0]
         idx_v = layout.inv_dims_order[3]
         my_r = eta_grid[0][layout.starts[idx_r]:layout.ends[idx_r]]
-        my_v = eta_grid[3][layout.starts[idx_v]:layout.ends[idx_v]]
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
@@ -101,7 +99,6 @@ class nParticles:
         idx_r = layout.inv_dims_order[0]
         idx_v = layout.inv_dims_order[3]
         my_r = eta_grid[0][layout.starts[idx_r]:layout.ends[idx_r]]
-        my_v = eta_grid[3][layout.starts[idx_v]:layout.ends[idx_v]]
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
@@ -136,5 +133,5 @@ class nParticles:
     def getN(self, f: Grid):
         assert(self._layout == f.currentLayout)
         points = np.real(f._f)*self._factor1
-        
+
         return np.sum(points)*self._factor2

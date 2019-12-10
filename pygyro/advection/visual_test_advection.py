@@ -7,10 +7,12 @@ import matplotlib.colors    as colors
 from mpl_toolkits.mplot3d import Axes3D
 from math                 import pi
 
-from ..                         import splines as spl
-from ..initialisation.setups    import setupCylindricalGrid
-from ..initialisation.constants import get_constants
-from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
+from ..                                     import splines as spl
+from ..initialisation.setups                import setupCylindricalGrid
+from ..initialisation.constants             import get_constants
+from ..initialisation.mod_initialiser_funcs import fEq
+from ..model.layout                         import Layout
+from .advection                             import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
@@ -104,11 +106,11 @@ def test_poloidalAdvection_invariantPhi():
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],constants)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:]=3*eta_vals[0]**2 * (1+ 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T*2))
     #phiVals[:]=10*eta_vals[0]
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -182,10 +184,10 @@ def test_poloidalAdvection_vortex():
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],constants)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:]=10*eta_vals[0]
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -255,10 +257,10 @@ def test_poloidalAdvection_constantAdv():
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],constants)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     phiVals[:]=3*eta_vals[0]**2
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     
@@ -331,7 +333,7 @@ def test_vParallelAdvection():
         fig.canvas.draw()
         fig.canvas.flush_events()
 
-def Phi(r,theta,a,b,c,d):
+def positional_Phi(r,theta,a,b,c,d):
     return - a * (r-b)**2 + c*np.sin(d*theta)
 
 """
@@ -396,14 +398,14 @@ def test_poloidalAdvection():
     
     polAdv = PoloidalAdvection(eta_vals, bsplines[::-1],constants,True)
     
-    phi = Spline2D(bsplines[1],bsplines[0])
+    phi = spl.Spline2D(bsplines[1],bsplines[0])
     phiVals = np.empty([npts[1],npts[0]])
     a=5
     b=0
     c=40
     d=1
-    phiVals[:] = Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T,a,b,c,d)
-    interp = SplineInterpolator2D(bsplines[1],bsplines[0])
+    phiVals[:] = positional_Phi(eta_vals[0],np.atleast_2d(eta_vals[1]).T,a,b,c,d)
+    interp = spl.SplineInterpolator2D(bsplines[1],bsplines[0])
     
     interp.compute_interpolant(phiVals,phi)
     

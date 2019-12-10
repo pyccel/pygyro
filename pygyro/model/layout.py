@@ -1176,7 +1176,6 @@ class LayoutSwapper(LayoutManager):
         # Find the distribution patterns
         source_nprocs = list(layout_source.nprocs)
         source_ndims = self._managers[self._handlers[layout_source.name]].nDistributedDirections
-        dest_nprocs = list(layout_dest.nprocs)
         dest_ndims = self._managers[self._handlers[layout_dest.name]].nDistributedDirections
         
         if (dest_ndims==source_ndims):
@@ -1266,7 +1265,6 @@ class LayoutSwapper(LayoutManager):
         # Find the distribution patterns
         source_nprocs = list(layout_source.nprocs)
         source_ndims = self._managers[self._handlers[layout_source.name]].nDistributedDirections
-        dest_nprocs = list(layout_dest.nprocs)
         dest_ndims = self._managers[self._handlers[layout_dest.name]].nDistributedDirections
         
         if (dest_ndims==source_ndims):

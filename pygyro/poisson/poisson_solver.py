@@ -1,11 +1,10 @@
-from scipy.integrate                import fixed_quad, quadrature   # fixed_quad = fixed order
-                                                                    # quadrature = fixed tolerance
+from scipy.integrate                import fixed_quad   # fixed_quad = fixed order
+#from scipy.integrate                import quadrature   # quadrature = fixed tolerance
 from scipy.fftpack                  import fft,ifft
 import scipy.sparse                 as sparse
 from scipy.sparse.linalg            import spsolve
 import numpy                        as np
 from numpy.polynomial.legendre      import leggauss
-import warnings
 
 from ..model.grid                   import Grid
 from ..initialisation               import mod_initialiser_funcs    as initialiser
@@ -13,8 +12,6 @@ from ..initialisation               import initialiser_func as MOD_IF
 from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 from ..splines                      import spline_eval_funcs as SEF
-
-__all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
 if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
     SEF = SEF.mod_pygyro_splines_spline_eval_funcs

@@ -271,7 +271,7 @@ def test_NParticles_grid_is_v(layout,R0,rMin,rMax,vMax):
     
     l2Val = norm.getN(grid)
     l2Result = comm.reduce(l2Val,op=MPI.SUM, root=0)
-    
+
     if (rank==0):
         # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
         assert(abs(l2Result)<5e-7)

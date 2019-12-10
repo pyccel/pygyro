@@ -68,7 +68,7 @@ def test_KineticEnergy_Positive_VPar():
     size = comm.Get_size()
     
     npts = [5,20,10,11]
-    grid,consts,t = setupCylindricalGrid(npts   = npts,
+    grid,consts,_ = setupCylindricalGrid(npts   = npts,
                                 vMax   = 4,
                                 vMin   = -4,
                                 layout = 'v_parallel')
