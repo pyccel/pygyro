@@ -432,7 +432,6 @@ class SlicePlotterNd(object):
                 # first play
                 self.getData()
                 action = 3
-                pass
         return True
 
     def checkProgress(self):
