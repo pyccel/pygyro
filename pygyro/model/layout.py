@@ -531,7 +531,6 @@ class LayoutHandler(LayoutManager):
                 .format(source_name,dest_name,nSteps))
 
         # carry out the steps one by one
-        nowLayoutKey=source_name
         nowLayout=self._layouts[source_name]
 
         fromBuf = source
@@ -542,7 +541,6 @@ class LayoutHandler(LayoutManager):
             nextLayout=self._layouts[nextLayoutKey]
             self._transpose(fromBuf,toBuf,nowLayout,nextLayout)
             nowLayout=nextLayout
-            nowLayoutKey=nextLayoutKey
             fromBuf, toBuf = toBuf, fromBuf
 
         # Ensure the result is found in the expected place

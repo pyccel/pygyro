@@ -518,9 +518,6 @@ def test_fluxAdvection_dz():
     dz = eta_vals[2][1]-eta_vals[2][0]
     dtheta = iota0()*dz/constants.R0
 
-    btheta = dtheta/np.sqrt(dz**2+dtheta**2)
-    bz = dz/np.sqrt(dz**2+dtheta**2)
-
     f_vals[0,:,:] = initCondsF(np.atleast_2d(eta_vals[1]).T,eta_vals[2])
 
     for n in range(1,N+1):
@@ -565,8 +562,6 @@ def test_flux_aligned():
     CFL = dt*(npts[0]+npts[1])
 
     N = 100
-
-    v=0
 
     eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
             np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,1,4)]

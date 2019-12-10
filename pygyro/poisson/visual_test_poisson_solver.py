@@ -96,7 +96,7 @@ def test_QuasiNeutralityEquation_pointConverge():
 
     splitFact = 10
 
-    fig = plt.figure()
+    plt.figure()
     ax = plt.subplot2grid((1, splitFact), (0, 0), colspan=splitFact-1, projection='polar')
     line1 = ax.pcolormesh(q,r,np.real(phiExact))
 

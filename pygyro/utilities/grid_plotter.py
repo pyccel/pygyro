@@ -228,7 +228,7 @@ class SlicePlotterNd(object):
 
     def prepare_data_reception(self):
         self.fig.canvas.stop_event_loop()
-        for j in range(1,self.comm_size):
+        for _ in range(1,self.comm_size):
             i = self.comm.recv(tag=2510)
             self.completedRanks[i] = True
         self.comm.Barrier()
@@ -318,7 +318,6 @@ class SlicePlotterNd(object):
 
             for l,ranks in enumerate(mpi_data):
                 layout_shape = list(layout.shape)
-                visited=False
                 for j,d in enumerate(ranks):
                     layout_shape[j]=layout.mpi_lengths(j)[d]
 

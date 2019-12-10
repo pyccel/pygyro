@@ -9,7 +9,6 @@ from ..initialisation.setups                import setupCylindricalGrid
 def test_KineticEnergy_NoVelocity():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    size = comm.Get_size()
 
     npts = [10,20,10,11]
     grid,_,_ = setupCylindricalGrid(npts   = npts,
@@ -34,7 +33,6 @@ def test_KineticEnergy_NoVelocity():
 def test_KineticEnergy_Positive():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    size = comm.Get_size()
 
     npts = [10,20,10,11]
     grid,consts,_ = setupCylindricalGrid(npts   = npts,
@@ -61,7 +59,6 @@ def test_KineticEnergy_Positive():
 def test_KineticEnergy_Positive_VPar():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    size = comm.Get_size()
 
     npts = [5,20,10,11]
     grid,consts,_ = setupCylindricalGrid(npts   = npts,

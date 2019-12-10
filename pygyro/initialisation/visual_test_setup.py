@@ -16,7 +16,7 @@ def test_Perturbation_FluxSurface():
                                 m      = m,
                                 n      = n)
     for i,r in grid.getCoords(0):
-        for j,v in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # v
             # Get surface
             FluxSurface = grid.get2DSlice([i,j])
             # Get coordinate values
@@ -65,7 +65,7 @@ def test_Perturbation_Poloidal():
                                 layout = 'poloidal',
                                 m      = m,
                                 n      = n)
-    for i,v in grid.getCoords(0):
+    for i,_ in grid.getCoords(0): # v
         for j,z in grid.getCoords(1):
             # Get surface
             PoloidalSurface = grid.get2DSlice([i,j])
@@ -94,7 +94,7 @@ def test_FieldPlot_FluxSurface():
                                 n       = n,
                                 iotaVal = iotaVal)
     for i,r in grid.getCoords(0):
-        for j,v in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # v
             # Get surface
             FluxSurface = grid.get2DSlice([i,j])
             # Get coordinate values
@@ -147,7 +147,7 @@ def test_FieldPlot_Poloidal():
                                 m      = m,
                                 n      = n,
                                 iotaVal = iotaVal)
-    for i,v in grid.getCoords(0):
+    for i,_ in grid.getCoords(0): # v
         for j,z in grid.getCoords(1):
             # Get surface
             PoloidalSurface = grid.get2DSlice([i,j])
@@ -201,7 +201,7 @@ def test_Equilibrium_vPar():
                                 m      = m,
                                 n      = n)
     for i,r in grid.getCoords(0):
-        for j,z in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # z
             # Get surface
             Surface = grid.get2DSlice([i,j])
             # Get coordinate values
@@ -229,7 +229,7 @@ def test_Equilibrium_Poloidal():
                                 m      = m,
                                 n      = n)
     for i,v in grid.getCoords(0):
-        for j,z in grid.getCoords(1):
+        for j,_ in grid.getCoords(1): # z
             # Get surface
             PoloidalSurface = grid.get2DSlice([i,j])
             # Get coordinate values
