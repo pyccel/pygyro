@@ -102,7 +102,6 @@ def MPITest(commsize):
     def test_stuff(comm):
         pass
     """
-    from mpi4py import MPI
     if not isinstance(commsize, (tuple, list)):
         commsize = (commsize,)
 
