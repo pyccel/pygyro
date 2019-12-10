@@ -16,8 +16,10 @@ err = err[2:-1]
 err = err.replace("\\n","\n")
 print(err)
 
-if (process.returncode==0):
-    i = out.find("TOTAL")
+i = out.find("TOTAL")
+if (i==-1):
+    raise
+else:
     totline = out[i:]
     pc=float(totline[totline.rfind(" "):totline.rfind("%")])
     assert(pc>=90)
