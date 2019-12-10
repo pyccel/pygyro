@@ -16,7 +16,7 @@ def initialise_flux_surface(grid,constants):
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
-            
+
             IF_MOD.init_f_flux(modFunc(FluxSurface),r,theta,z,v,
                     constants.m,constants.n,constants.eps,
                     constants.CN0,constants.kN0,constants.deltaRN0,
@@ -31,7 +31,7 @@ def initialise_poloidal(grid,constants):
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
-            
+
             IF_MOD.init_f_pol(modFunc(PoloidalSurface),r,theta,z,v,
                     constants.m,constants.n,constants.eps,
                     constants.CN0,constants.kN0,constants.deltaRN0,

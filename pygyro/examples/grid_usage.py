@@ -65,10 +65,10 @@ for i,r in phase_space.getCoords(0):
         # Get coordinate values
         theta = phase_space.getCoordVals(2)
         z = phase_space.getCoordVals(3)
-        
+
         # transpose theta to use ufuncs
         theta = theta.reshape(theta.size,1)
-        
+
         # set phase_space to perturbation
         FluxSurface[:] = exp((r-7.3)**2/8.0)*np.cos(15.0*theta-11.0*z/239.8081535)
 
@@ -83,7 +83,7 @@ for i,r in phase_space.getCoords(0):
             VParSurface = phase_space.get1DSlice([i,j,k])
             # Get coordinate values
             vPar = phase_space.getCoordVals(3)
-            
+
             # set phase_space to equilibrium
             n0=0.9923780370404612*exp(-0.055*2.9*tanh((r-7.3)/2.9))
             Ti=exp(-0.27586*1.45*tanh((r-7.3)/1.45))

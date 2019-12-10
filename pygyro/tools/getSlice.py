@@ -12,7 +12,7 @@ def get_grid_slice(foldername,tEnd):
     assert(len(foldername)>0)
 
     comm = MPI.COMM_WORLD
-   
+
     distribFunc = setupFromFile(foldername,comm=comm,
                                 allocateSaveMemory = True,
                                 timepoint = tEnd)

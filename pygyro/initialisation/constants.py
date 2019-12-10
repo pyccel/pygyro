@@ -34,13 +34,13 @@ class Constants:
     _splineDegrees = None
     _npts = None
     dt = None
-    
+
     def __init__(self,setup = True):
         if (setup):
             self.set_defaults()
             if (self.CN0 is None):
                 self.getCN0()
-    
+
     @property
     def rMin(self):
         return self._rMin
@@ -50,7 +50,7 @@ class Constants:
         self._rMin = x
         if (self._rMax is not None):
             self.rp = 0.5*(self._rMin + self._rMax)
-    
+
     @property
     def rMax(self):
         return self._rMax
@@ -60,7 +60,7 @@ class Constants:
         self._rMax = x
         if (self._rMin is not None):
             self.rp = 0.5*(self._rMin + self._rMax)
-    
+
     @property
     def npts(self):
         return self._npts
@@ -70,7 +70,7 @@ class Constants:
         self._npts = x
         if (self._splineDegrees is not None):
             assert(len(self._npts)==len(self._splineDegrees))
-    
+
     @property
     def splineDegrees(self):
         return self._splineDegrees

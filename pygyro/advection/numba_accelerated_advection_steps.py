@@ -35,27 +35,27 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     f: array_like
         The current value of the function at the nodes.
         The result will be stored here
-    
+
     dt: float
         Time-step
-    
+
     phi: Spline2D
         Advection parameter d_tf + {phi,f}=0
-    
+
     r: float
         The parallel velocity coordinate
-    
+
     """
-    
+
     multFactor = dt/B0
     multFactor_half = 0.5*multFactor
-    
+
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
-    
+
     idx = nPts[1]-1
     rMax = rPts[idx]
-    
+
     for i in range(nPts[0]):
         for j in range(nPts[1]):
             # Step one of Heun method
@@ -64,14 +64,14 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             dthetaPhi_0[i,j]/=rPts[j]
             endPts_k1_q[i,j] = qPts[i] - drPhi_0[i,j]*multFactor
             endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
-            
+
             # Handle theta boundary conditions
             while (endPts_k1_q[i,j]<0):
                 endPts_k1_q[i,j]+=2*pi
             while (endPts_k1_q[i,j]>2*pi):
                 endPts_k1_q[i,j]-=2*pi
-            
-            if (not (endPts_k1_r[i,j]<rPts[0] or 
+
+            if (not (endPts_k1_r[i,j]<rPts[0] or
                      endPts_k1_r[i,j]>rMax)):
                 # Add the new value of phi to the derivatives
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
@@ -80,7 +80,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Phi, deg1Phi, kts2Phi, deg2Phi,
                                                         coeffsPhi,0,1)
                 drPhi_k[i,j]     /= endPts_k1_r[i,j]
-                
+
                 dthetaPhi_k[i,j] = eval_spline_2d_scalar(endPts_k1_q[i,j],endPts_k1_r[i,j],
                                                         kts1Phi, deg1Phi, kts2Phi, deg2Phi,
                                                         coeffsPhi,1,0)
@@ -88,12 +88,12 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
             else:
                 drPhi_k[i,j]     = 0.0
                 dthetaPhi_k[i,j] = 0.0
-            
+
             # Step two of Heun method
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
             endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % (2*pi)
             endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
-    
+
     # Find value at the determined point
     if (nulBound):
         for i,theta in enumerate(qPts):
@@ -197,26 +197,26 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
     f: array_like
         The current value of the function at the nodes.
         The result will be stored here
-    
+
     dt: float
         Time-step
-    
+
     phi: Spline2D
         Advection parameter d_tf + {phi,f}=0
-    
+
     r: float
         The parallel velocity coordinate
-    
+
     """
-    
+
     multFactor = dt/B0
-    
+
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
-    
+
     idx = nPts[1]-1
     rMax = rPts[idx]
-    
+
     for i in range(nPts[0]):
         for j in range(nPts[1]):
             # Step one of Heun method
@@ -227,7 +227,7 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
             endPts_k1_r[i,j] = rPts[j] + dthetaPhi_0[i,j]*multFactor
 
     multFactor *= 0.5
-    
+
     norm=tol+1
     while (norm>tol):
         norm=0.0
@@ -238,8 +238,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     endPts_k1_q[i,j]+=2*pi
                 while (endPts_k1_q[i,j]>2*pi):
                     endPts_k1_q[i,j]-=2*pi
-                
-                if (not (endPts_k1_r[i,j]<rPts[0] or 
+
+                if (not (endPts_k1_r[i,j]<rPts[0] or
                          endPts_k1_r[i,j]>rMax)):
                     # Add the new value of phi to the derivatives
                     # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
@@ -255,7 +255,7 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                 else:
                     drPhi_k[i,j]     = 0.0
                     dthetaPhi_k[i,j] = 0.0
-                
+
                 # Step two of Heun method
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                 # Clipping is one method of avoiding infinite loops due to
@@ -267,7 +267,7 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     endPts_k2_r[i,j]=rPts[0]
                 elif (endPts_k2_r[i,j]>rMax):
                     endPts_k2_r[i,j]=rMax
-                
+
                 diff=abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
                 if (diff>norm):
                     norm=diff
@@ -276,7 +276,7 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     norm=diff
                 endPts_k1_q[i,j]=endPts_k2_q[i,j]
                 endPts_k1_r[i,j]=endPts_k2_r[i,j]
-    
+
     # Find value at the determined point
     if (nulBound):
         for i,theta in enumerate(qPts):
