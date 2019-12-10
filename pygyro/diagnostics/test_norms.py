@@ -96,7 +96,7 @@ def test_l1Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -132,7 +132,7 @@ def test_l2Norm_grid_is_volume(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -168,7 +168,7 @@ def test_l2Norm_grid_is_v(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
@@ -211,7 +211,7 @@ def test_NParticles_is_volume(layout,R0,rMin,rMax,vMax):
     vMax=comm.bcast(vMax)
 
     npts = [10,11,12,13]
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
+    grid,_,_ = setupCylindricalGrid(npts   = npts,
                                 layout = layout,
                                 rMin = rMin,
                                 rMax = rMax,
