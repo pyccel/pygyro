@@ -393,6 +393,8 @@ subroutine eval_spline_2d_vector(n0_x, x, n0_y, y, n0_kts1, kts1, deg1, &
 
   deg1_copy = deg1
   deg2_copy = deg2
+
+
   if (der1 == 0 ) then
     if (der2 == 0 ) then
       do i = 0, size(x,1) - 1, 1

@@ -1,10 +1,10 @@
 module accelerated_advection_steps
 
+use mod_initialiser_funcs, only: fEq
+
 use mod_spline_eval_funcs, only: eval_spline_2d_cross
 use mod_spline_eval_funcs, only: eval_spline_2d_scalar
 use mod_spline_eval_funcs, only: eval_spline_1d_scalar
-
-use mod_initialiser_funcs, only: fEq
 implicit none
 
 
@@ -105,8 +105,6 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   real(kind=8) :: rMax  
   integer(kind=4) :: i  
   integer(kind=4) :: j  
-  real(kind=8) :: theta  
-  real(kind=8) :: r  
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -200,10 +198,8 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
   !x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
   !Find value at the determined point
   if (nulBound) then
-    do i = 0, size(qPts,1) - 1, 1
-      theta = qPts(i)
-      do j = 0, size(rPts,1) - 1, 1
-        r = rPts(j)
+    do i = 0, nPts(0) - 1, 1
+      do j = 0, nPts(1) - 1, 1
         if (endPts_k2_r(j, i) < rPts(0)) then
           f(j, i) = 0.0d0
         else if (endPts_k2_r(j, i) > rMax) then
@@ -224,10 +220,8 @@ subroutine poloidal_advection_step_expl(n0_f, n1_f, f, dt, v, n0_rPts, &
     end do
 
   else
-    do i = 0, size(qPts,1) - 1, 1
-      theta = qPts(i)
-      do j = 0, size(rPts,1) - 1, 1
-        r = rPts(j)
+    do i = 0, nPts(0) - 1, 1
+      do j = 0, nPts(1) - 1, 1
         if (endPts_k2_r(j, i) < rPts(0)) then
           f(j, i) = fEq(rPts(0), v, CN0, kN0, deltaRN0, rp, CTi, kTi, &
       deltaRTi)
@@ -510,8 +504,6 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
   integer(kind=4) :: i  
   integer(kind=4) :: j  
   real(kind=8) :: diff  
-  real(kind=8) :: theta  
-  real(kind=8) :: r  
 
   !_______________________CommentBlock_______________________!
   !                                                          !
@@ -635,10 +627,8 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
 
   end do
   if (nulBound) then
-    do i = 0, size(qPts,1) - 1, 1
-      theta = qPts(i)
-      do j = 0, size(rPts,1) - 1, 1
-        r = rPts(j)
+    do i = 0, nPts(0) - 1, 1
+      do j = 0, nPts(1) - 1, 1
         if (endPts_k2_r(j, i) < rPts(0)) then
           f(j, i) = 0.0d0
         else if (endPts_k2_r(j, i) > rMax) then
@@ -659,10 +649,8 @@ subroutine poloidal_advection_step_impl(n0_f, n1_f, f, dt, v, n0_rPts, &
     end do
 
   else
-    do i = 0, size(qPts,1) - 1, 1
-      theta = qPts(i)
-      do j = 0, size(rPts,1) - 1, 1
-        r = rPts(j)
+    do i = 0, nPts(0) - 1, 1
+      do j = 0, nPts(1) - 1, 1
         if (endPts_k2_r(j, i) < rPts(0)) then
           f(j, i) = fEq(rPts(0), v, CN0, kN0, deltaRN0, rp, CTi, kTi, &
       deltaRTi)
