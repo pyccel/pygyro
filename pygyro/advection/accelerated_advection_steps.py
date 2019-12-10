@@ -133,7 +133,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                         coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
     # Find value at the determined point
     if (bound==0):
-        for i in enumerate(vPts):
+        for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=fEq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
