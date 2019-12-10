@@ -30,7 +30,7 @@ numba_accelerated_advection_steps:
 # Pyccel targets
 #----------------------------------------------------------
 
-pycc_accelerated_advection_steps: accelerated_advection_steps.f90 ../initialisation/mod_initialiser_funcs.o ../splines/mod_spline_eval_funcs.o
+pycc_accelerated_advection_steps: accelerated_advection_steps.f90 ../initialisation/mod_initialiser_funcs.o ../splines/mod_spline_eval_funcs.o ../splines/mod_context_1.o
 	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m accelerated_advection_steps --fcompiler=$(FF_COMP) $^ -I../initialisation -I../splines
 
 
