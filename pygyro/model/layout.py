@@ -447,7 +447,7 @@ class LayoutHandler(LayoutManager):
         """
         return tuple(self._subcomms)
 
-    def getLayout( self, layout: str ):
+    def getLayout( self, name: str ):
         """ Return the requested layout
         """
         return self._layouts[layout]
@@ -1084,7 +1084,7 @@ class LayoutSwapper(LayoutManager):
             # Ensure that there is only 1 possible axis which is modified
             return len(idx_s)==1
 
-    def getLayout( self, name ):
+    def getLayout( self, name: str ):
         """ Return a requested layout
         """
         return self._managers[self._handlers[name]].getLayout(name)
