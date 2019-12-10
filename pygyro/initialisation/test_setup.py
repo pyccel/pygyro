@@ -6,47 +6,33 @@ import pytest
 from  .constants              import Constants
 from  .setups                 import setupCylindricalGrid, setupFromFile
 
-@pytest.mark.serial
-def test_setup():
+def setup_test():
     npts = [10,20,10,10]
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
 
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'poloidal')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
 
-    grid = setupCylindricalGrid(npts   = npts,
+    grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'v_parallel')
 
     for (coord,npt) in zip(grid.eta_grid,npts):
         assert(len(coord)==npt)
+
+@pytest.mark.serial
+def test_setup_serial():
+    setup_test()
 
 @pytest.mark.parallel
-def test_setup():
-    npts = [10,20,10,10]
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
-                                layout = 'flux_surface')
-
-    for (coord,npt) in zip(grid.eta_grid,npts):
-        assert(len(coord)==npt)
-
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
-                                layout = 'poloidal')
-
-    for (coord,npt) in zip(grid.eta_grid,npts):
-        assert(len(coord)==npt)
-
-    grid,constants,_ = setupCylindricalGrid(npts   = npts,
-                                layout = 'v_parallel')
-
-    for (coord,npt) in zip(grid.eta_grid,npts):
-        assert(len(coord)==npt)
+def test_setup_parallel():
+    setup_test()
 
 import os
 
