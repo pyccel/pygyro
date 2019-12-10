@@ -1,6 +1,5 @@
 import pytest
 import timeit
-from scipy.integrate        import trapz
 import numpy                as np
 
 from .advection                             import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
@@ -111,10 +110,7 @@ def test_explicitPoloidalAdvection():
     eta_vals = [np.linspace(0,20,npts[1],endpoint=False),np.linspace(0,2*np.pi,npts[0],endpoint=False),
                 np.linspace(0,1,4),np.linspace(0,1,4)]
 
-    N = int(1/dt)
-
     f_vals = np.ndarray([npts[1],npts[0]])
-    final_f_vals = np.ndarray([npts[1],npts[0]])
 
     deg = 3
 

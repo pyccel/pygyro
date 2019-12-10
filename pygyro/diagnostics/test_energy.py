@@ -3,10 +3,6 @@ import numpy    as np
 import pytest
 
 from .energy                                import KineticEnergy
-from ..                                     import splines as spl
-from ..model.process_grid                   import compute_2d_process_grid_from_max
-from ..model.grid                           import Grid
-from ..model.layout                         import LayoutSwapper
 from ..initialisation.setups                import setupCylindricalGrid
 
 @pytest.mark.parallel

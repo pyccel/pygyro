@@ -1,10 +1,7 @@
 import pytest
 import numpy                as np
-import matplotlib.pyplot    as plt
 from scipy.integrate        import trapz
 
-from ..initialisation.setups        import setupCylindricalGrid
-from ..initialisation.mod_initialiser_funcs     import fEq
 from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                             import splines as spl
 from ..initialisation.constants     import get_constants
@@ -403,7 +400,7 @@ def test_fluxAdvection():
         finalPts=[eta_vals[1]-c*N*dt*btheta,eta_vals[2]-c*N*dt*bz]
         final_f_vals = initCondsF(np.atleast_2d(finalPts[0]).T,finalPts[1])
 
-        for n in range(N):
+        for _ in range(N):
             fluxAdv.step(f_vals,0)
 
         linf[i]=np.linalg.norm((f_vals-final_f_vals).flatten(),np.inf)
@@ -469,8 +466,6 @@ def test_fluxAdvectionAligned():
         dts[i]=dt
         N = int(1/dt)
         print(npts,dt,N)
-
-        v=0
 
         eta_vals = [np.linspace(0,1,4),np.linspace(0,2*pi,npts[0],endpoint=False),
                 np.linspace(0,2*pi*constants.R0,npts[1],endpoint=False),np.linspace(0,2,4)]
