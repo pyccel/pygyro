@@ -80,7 +80,7 @@ pure subroutine basis_funs(knots, degree, x, span, values)
 
 implicit none
 real(kind=8), intent(in)  :: knots (0:)
-integer(kind=4), intent(inout)  :: degree 
+integer(kind=4), intent(in)  :: degree 
 real(kind=8), intent(in)  :: x 
 integer(kind=4), intent(in)  :: span 
 real(kind=8), intent(inout)  :: values (0:)
