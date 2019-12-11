@@ -116,7 +116,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         endPts_k2_q[i,j]+=2*pi
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
-    
+
 @pure
 @external
 @types('double[:]','double[:]','double','double','double','double[:]','int','double[:]',

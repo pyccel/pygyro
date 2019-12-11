@@ -57,7 +57,7 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
 
     span1  =  find_span( kts1, deg1, x )
     span2  =  find_span( kts2, deg2, y )
-    
+
     if (der1==0):
         basis_funs( kts1, deg1, x, span1, basis1 )
     elif (der1==1):
