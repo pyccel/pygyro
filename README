@@ -36,6 +36,23 @@ module load mpi4py
 module load hdf5-mpi
 ```
 
+If the module based system does not have parallel h5py installed, a virtual environment can be used. In this case the following modules must be loaded:
+```
+module load impi
+module load anaconda/3
+module load hdf5-mpi
+```
+Then the virtual environment with mpi4py and h5py can be created using the following commands:
+```
+export CC=$(which mpicc)
+export HDF5_MPI="ON"
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install --no-binary=mpi4py mpi4py
+python3 -m pip install --no-binary=h5py h5py
+```
+The virtual environment can be accessed using `source venv/bin/activate` and is deactivated with the command `deactivate`.
+
 
 Run
 ===
@@ -96,6 +113,6 @@ make pyccel PYCC_GEN=1
 
 can be used.
 
-When using the pyccel generated code there are two additional options that can be passed to make. These are `M_OPT=1` if the manually optimised fortran files are to be used and `COMP=intel` if the intel compiler should be used.
+When using the pyccel generated code the option `COMP=intel` can also be specified if the intel compiler should be used.
 
-These options can all be specified in the makefile. A simple `make` command defaults to `make pyccel PYCC_GEN=0 M_OPT=0 COMP=gnu`.
+These options can all be specified in the makefile. A simple `make` command defaults to `make pyccel PYCC_GEN=0 COMP=gnu`.

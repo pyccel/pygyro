@@ -8,9 +8,6 @@ ACC := pycc
 # Use GNU or intel compilers? [gnu|intel]
 COMP := gnu
 
-# Use manually optimized Fortran files? [1|0]
-MOPT := 0
-
 # Use pyccel to generate files? [1|0]
 PYCC_GEN := 0
 
@@ -40,17 +37,6 @@ else
 endif
 
 #----------------------------------------------------------
-# Pyccel-generated Fortran files:
-# use originals or manually-optimized version?
-#----------------------------------------------------------
-
-ifeq ($(MOPT), 1)
-	_OPT := _opt
-else
-	_OPT :=
-endif
-
-#----------------------------------------------------------
 # Defaut command:
 # use pure python, pyccel, numba?
 #----------------------------------------------------------
@@ -73,7 +59,7 @@ endif
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS FF_COMP _OPT PYCC_GEN PYTHON
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP PYCC_GEN PYTHON ACC
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------
@@ -88,32 +74,24 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 
 # List of main targets
 ALL = \
-	spline_eval_funcs \
-	initialiser_func  \
-	accelerated_advection_steps
+	$(TYPE)_spline_eval_funcs \
+	$(TYPE)_initialiser_func  \
+	$(TYPE)_accelerated_advection_steps
 
 #----------------------------------------------------------
 # Main targets
 #----------------------------------------------------------
 
-all: $(ALL)
+all:
+	$(MAKE) -C pygyro $(TYPE)
 
-$(ALL): $(TYPE)
-
-pyccel_generation:
+$(ALL): 
 	$(MAKE) -C pygyro $@
 
-ifeq ($(PYCC_GEN), 1)
-pycc: pyccel_generation
-	$(PYTHON) moduleGenerator.py
-else
 pycc:
-endif
-	echo $(PYCC_GEN)
-	$(MAKE) -C pygyro pyccel
+	$(MAKE) -C pygyro $@
 
 numba:
-	echo $(PYTHON)
 	$(MAKE) -C pygyro $@
 
 clean:

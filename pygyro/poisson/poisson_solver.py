@@ -11,14 +11,11 @@ from ..splines.splines              import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 from ..splines                      import spline_eval_funcs as SEF
 
-if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.mod_pygyro_splines_spline_eval_funcs
-    modFunc = np.transpose
-else:
-    modFunc = lambda c: c
+if ('spline_eval_funcs' in dir(SEF)):
+    SEF = SEF.spline_eval_funcs
 
-if ('mod_pygyro_initialisation_initialiser_func' in dir(MOD_IF)):
-    MOD_IF = MOD_IF.mod_pygyro_initialisation_initialiser_func
+if ('initialiser_func' in dir(MOD_IF)):
+    MOD_IF = MOD_IF.initialiser_func
     modFunc_init = np.transpose
 else:
     modFunc_init = lambda c: c

@@ -9,14 +9,14 @@ from ..model.layout                 import Layout
 from ..model.grid                   import Grid
 from .                              import accelerated_advection_steps as AAS
 
-if ('mod_pygyro_advection_accelerated_advection_steps' in dir(AAS)):
-    AAS = AAS.mod_pygyro_advection_accelerated_advection_steps
+if ('accelerated_advection_steps' in dir(AAS)):
+    AAS = AAS.accelerated_advection_steps
     modFunc = np.transpose
 else:
     modFunc = lambda x: x
 
-if ('mod_pygyro_splines_spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.mod_pygyro_splines_spline_eval_funcs
+if ('spline_eval_funcs' in dir(SEF)):
+    SEF = SEF.spline_eval_funcs
 
 def fieldline(theta,z_diff,iota,r,R0):
     return np.mod(theta+iota(r)*z_diff/R0,2*pi)
