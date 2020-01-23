@@ -1,6 +1,6 @@
 from mpi4py                 import MPI
 import time
-setup_time_start = time.clock()
+setup_time_start = time.time()
 profilingOn = False
 
 import numpy                as np
@@ -17,8 +17,6 @@ from pygyro.poisson.poisson_solver              import DensityFinder, QuasiNeutr
 from pygyro.utilities.savingTools               import setupSave
 from pygyro.diagnostics.diagnostic_collector    import DiagnosticCollector
 
-loop_start = 0
-loop_time = 0
 diagnostic_start = 0
 diagnostic_time = 0
 output_start = 0
@@ -43,7 +41,7 @@ parser.add_argument('-s', dest='saveStep',nargs=1,type=int,
 
 def my_print(rank,*args,**kwargs):
     if (rank==0):
-        print(time.clock(),*args,**kwargs,file=open("out{}.txt".format(MPI.COMM_WORLD.Get_size()),"a"))
+        print(time.time()-setup_time_start,*args,**kwargs,file=open("out{}.txt".format(MPI.COMM_WORLD.Get_size()),"a"))
 
 args = parser.parse_args()
 foldername = args.foldername[0]
@@ -60,7 +58,7 @@ stopTime = args.tMax[0]
 
 if (len(foldername)>0):
     print("To load from ",foldername)
-    if (os.path.isdir(foldername) and os.path.exists("{0}/initParams.h5".format(foldername))):
+    if (os.path.isdir(foldername) and os.path.exists("{0}/initParams.json".format(foldername))):
         loadable = True
 else:
     foldername = None
@@ -161,7 +159,7 @@ if (profilingOn):
 
 my_print(rank,"ready for setup")
 
-setup_time = time.clock()-setup_time_start
+setup_time = time.time()-setup_time_start
 
 # Find phi from f^n by solving QN eq
 distribFunc.setLayout('v_parallel')
@@ -180,28 +178,27 @@ my_print(rank,"ready to inv fourier")
 QNSolver.findPotential(phi)
 my_print(rank,"got phi")
 
-diagnostic_start=time.clock()
+diagnostic_start=time.time()
 # Calculate diagnostic quantities
 diagnostics.collect(distribFunc,phi,t)
 
-diagnostic_time+=(time.clock()-diagnostic_start)
+diagnostic_time+=(time.time()-diagnostic_start)
 
 if (not loadable):
     my_print(rank,"save time",t)
     print(rank,"save time",t)
-    output_start=time.clock()
+    output_start=time.time()
     distribFunc.writeH5Dataset(foldername,t)
     my_print(rank,"grid printed")
     #phi.writeH5Dataset(foldername,t,"phi")
     my_print(rank,"phi printed")
-    output_time+=(time.clock()-output_start)
 
     diagnostics.reduce()
     if (rank == 0):
         diagnosticFile = open(diagnostic_filename,"a")
         print(diagnostics.getLine(0),file=diagnosticFile)
         diagnosticFile.close()
-    output_time+=(time.clock()-output_start)
+    output_time+=(time.time()-output_start)
 
 nLoops = 0
 average_loop = 0
@@ -210,11 +207,10 @@ startPrint = max(0,ti%saveStep)
 timeForLoop = True
 while (ti<tN and timeForLoop):
 
-    full_loop_start=time.clock()
+    full_loop_start=time.time()
 
     t+=fullStep
     my_print(rank,"t=",t)
-    loop_start=time.clock()
 
     # Compute f^n+1/2 using lie splitting
     distribFunc.setLayout('flux_surface')
@@ -263,17 +259,17 @@ while (ti<tN and timeForLoop):
     rho.setLayout('v_parallel_2d')
     QNSolver.findPotential(phi)
 
-    diagnostic_start=time.clock()
+    diagnostic_start=time.time()
     # Calculate diagnostic quantities
     diagnostics.collect(distribFunc,phi,t)
 
-    diagnostic_time+=(time.clock()-diagnostic_start)
+    diagnostic_time+=(time.time()-diagnostic_start)
 
     if (ti%saveStep==saveStepCut):
         my_print(rank,"save time",t)
-        output_start=time.clock()
+        output_start=time.time()
         distribFunc.writeH5Dataset(foldername,t)
-        phi.writeH5Dataset(foldername,t,"phi")
+        #phi.writeH5Dataset(foldername,t,"phi")
 
         diagnostics.reduce()
         if (rank == 0):
@@ -282,19 +278,18 @@ while (ti<tN and timeForLoop):
                 print(diagnostics.getLine(i),file=diagnosticFile)
             diagnosticFile.close()
         startPrint = 0
-        output_time+=(time.clock()-output_start)
+        output_time+=(time.time()-output_start)
         average_output = output_time*saveStep/nLoops
 
     nLoops+=1
     ti+=1
-    loop_time+=(time.clock()-loop_start)
-    full_loop_time+=(time.clock()-full_loop_start)
+    full_loop_time+=(time.time()-full_loop_start)
     average_loop = full_loop_time/nLoops
-    timeForLoop = comm.allreduce(time.clock()+average_loop+2*average_output<stopTime,op=MPI.LAND)
+    timeForLoop = comm.allreduce((time.time() - setup_time_start + 2*average_loop + 2*average_output) < stopTime,op=MPI.LAND)
 
-loop_time+=(time.clock()-loop_start)
+full_loop_time+=(time.time()-full_loop_start)
 
-output_start=time.clock()
+output_start=time.time()
 
 if (ti%saveStep!=0):
 
@@ -307,8 +302,8 @@ if (ti%saveStep!=0):
 
 
     distribFunc.writeH5Dataset(foldername,t)
-    phi.writeH5Dataset(foldername,t,"phi")
-    output_time+=(time.clock()-output_start)
+    #phi.writeH5Dataset(foldername,t,"phi")
+    output_time+=(time.time()-output_start)
 
 #End profiling and print results
 if (profilingOn):
@@ -325,6 +320,6 @@ if (rank==0):
 MPI.COMM_WORLD.Barrier()
 
 print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {diagnostic:16.10e}".
-            format(loop=loop_time,output=output_time,setup=setup_time,
+            format(loop=full_loop_time,output=output_time,setup=setup_time,
             diagnostic=diagnostic_time),
         file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(),rank), "w"))
