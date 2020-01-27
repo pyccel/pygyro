@@ -12,12 +12,21 @@ numba: numba_accelerated_advection_steps
 
 pycc: pycc_accelerated_advection_steps
 
+pythran: pythran_accelerated_advection_steps
+
 clean:
 	rm -f *.o *.so *.mod
 ifeq ($(PYCC_GEN), 1)
 	rm -f *.f90
 endif
 
+
+#----------------------------------------------------------
+# Pythran targets
+#----------------------------------------------------------
+
+pythran_accelerated_advection_steps: pythran_deps/pythran_accelerated_advection_steps.py
+	pythran $^ -o accelerated_advection_steps.so
 
 #----------------------------------------------------------
 # Numba targets
