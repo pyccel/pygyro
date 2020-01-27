@@ -116,3 +116,18 @@ can be used.
 When using the pyccel generated code the option `COMP=intel` can also be specified if the intel compiler should be used.
 
 These options can all be specified in the makefile. A simple `make` command defaults to `make pyccel PYCC_GEN=0 COMP=gnu`.
+
+Pythran
+=======
+
+In order to run pygyro using pythran, the pythran package must be installed.
+
+The command
+
+```
+make numba
+```
+
+will compile the code using pythran.
+
+The code can then be run as previously described for the pure python setup.

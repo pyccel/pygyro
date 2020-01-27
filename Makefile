@@ -2,7 +2,7 @@
 # DEFAULT MAKE FLAGS
 #----------------------------------------------------------
 
-# Acceleration method? [none|numba|pycc]
+# Acceleration method? [none|numba|pycc|pythran]
 ACC := pycc
 
 # Use GNU or intel compilers? [gnu|intel]
@@ -50,7 +50,11 @@ else
 		ifeq ($(ACC), numba)
 			TYPE := numba
 		else
-			TYPE := clean
+			ifeq ($(ACC), pythran)
+				TYPE := pythran
+			else
+				TYPE := clean
+			endif
 		endif
 	endif
 endif
@@ -92,6 +96,9 @@ pycc:
 	$(MAKE) -C pygyro $@
 
 numba:
+	$(MAKE) -C pygyro $@
+
+pythran:
 	$(MAKE) -C pygyro $@
 
 clean:
