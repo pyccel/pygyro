@@ -1,4 +1,4 @@
-from numpy      import zeros
+from numpy      import zeros, empty
 
 #==============================================================================
 #pythran export find_span(float64[:], int, float64)
@@ -298,7 +298,7 @@ def eval_spline_2d_cross_11(X,Y,kts1,deg1,kts2,deg2,coeffs,z):
 #pythran export eval_spline_2d_cross(float64[:], float64[:], float64[:], int, float64[:], int, float64[:,:], float[:,:], int, int)
 def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
     if der1 == 0 and der2 ==0:
-        eval_spline_2d_cross_11(X,Y,kts1,deg1,kts2,deg2,coeffs,z)
+        eval_spline_2d_cross_00(X,Y,kts1,deg1,kts2,deg2,coeffs,z)
     elif der1 == 1 and der2 == 0:
         eval_spline_2d_cross_10(X,Y,kts1,deg1,kts2,deg2,coeffs,z)
     elif der1 == 0 and der2 == 1:
@@ -306,3 +306,52 @@ def eval_spline_2d_cross(X,Y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
     elif der1 == 1 and der2 == 1:
         eval_spline_2d_cross_11(X,Y,kts1,deg1,kts2,deg2,coeffs,z)
 
+#pythran export eval_spline_2d_vector(float64[:],float64[:],float64[:],int,float64[:],int,float64[:,:],int,int)
+def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
+    z = empty(len(x))
+    if (der1==0):
+        if (der2==0):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs( kts1, deg1, x[i], span1, basis1 )
+                basis_funs( kts2, deg2, y[i], span2, basis2 )
+
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
+
+                z[i] = 0.0
+                for j in range(deg1+1):
+                    theCoeffs[j,0] = theCoeffs[j,0]*basis2[0]
+                    for k in range(1,deg2+1):
+                        theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
+                    z[i]+=theCoeffs[j,0]*basis1[j]
+        elif(der2==1):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs( kts1, deg1, x[i], span1, basis1 )
+                basis_funs_1st_der( kts2, deg2, y[i], span2, basis2 )
+
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
+
+                z[i] = 0.0
+                for j in range(deg1+1):
+                    theCoeffs[j,0] = theCoeffs[j,0]*basis2[0]
+                    for k in range(1,deg2+1):
+                        theCoeffs[j,0] += theCoeffs[j,k]*basis2[k]
+                    z[i]+=theCoeffs[j,0]*basis1[j]
+    elif (der1==1):
+        if (der2==0):
+            for i in range(len(x)):
+                span1  =  find_span( kts1, deg1, x[i] )
+                span2  =  find_span( kts2, deg2, y[i] )
+                basis1  = empty( deg1+1 )
+                basis2  = empty( deg2+1 )
+                basis_funs_1st_der( kts1, deg1, x[i], span1, basis1 )
+                basis_funs( kts2, deg2, y[i], span2, basis2 )
+
+                theCoeffs = coeffs[span1-deg1:span1+1,span2-deg2:span2+1].copy()
