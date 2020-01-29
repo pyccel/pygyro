@@ -175,7 +175,7 @@ def eval_spline_1d_vector(x,knots,degree,coeffs,y,der=0):
             for j in range(degree+1):
                 y[i]+=coeffs[span-degree+j]*basis[j]
     elif (der==1):
-        for i in enumerate(x):
+        for i,xi in enumerate(x):
             span  =  find_span( knots, degree, xi )
             basis  = zeros( degree+1 )
             basis_funs( knots, degree, xi, span, basis )
