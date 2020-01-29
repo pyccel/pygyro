@@ -5,3 +5,5 @@
 #       we do not know if this is possible.
 skips:
   - B101  # Ignore assert statements
+exclude_paths:
+  - '*.md'
