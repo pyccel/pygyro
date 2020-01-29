@@ -22,7 +22,7 @@ def setup_package():
         author           = AUTHOR,
         author_email     = EMAIL,
         description      = DESCR,
-        long_description = open('README').read(),
+        long_description = open('README.md').read(),
     #    license          = LICENSE,
         keywords         = KEYWORDS,
         url              = URL,
