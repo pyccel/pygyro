@@ -29,18 +29,18 @@ def eval_spline_1d_vector(x,knots,degree,coeffs,y,der=0):
     basis  = empty( degree+1, dtype=float )
 
     if (der==0):
-        for i in range(len(x)):
-            span  =  find_span( knots, degree, x[i] )
-            basis_funs( knots, degree, x[i], span, basis )
+        for i,xi in enumerate(x):
+            span  =  find_span( knots, degree, xi )
+            basis_funs( knots, degree, xi, span, basis )
 
             y[i]=0.0
             for j in range(degree+1):
                 y[i]+=coeffs[span-degree+j]*basis[j]
     elif (der==1):
-        for i in range(len(x)):
-            span  =  find_span( knots, degree, x[i] )
-            basis_funs( knots, degree, x[i], span, basis )
-            basis_funs_1st_der( knots, degree, x[i], span, basis )
+        for i,xi in enumerate(x):
+            span  =  find_span( knots, degree, xi )
+            basis_funs( knots, degree, xi, span, basis )
+            basis_funs_1st_der( knots, degree, xi, span, basis )
 
             y[i]=0.0
             for j in range(degree+1):

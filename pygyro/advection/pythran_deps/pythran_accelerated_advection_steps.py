@@ -1,5 +1,5 @@
 from math               import pi
-from numpy              import abs
+from numpy              import abs as my_abs
 
 from pythran_initialiser_funcs     import fEq
 from pythran_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
@@ -118,16 +118,14 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                         coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
     # Find value at the determined point
     if (bound==0):
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=fEq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
             else:
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     elif (bound==1):
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=0.0
             else:
@@ -247,10 +245,10 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                 elif (endPts_k2_r[i,j]>rMax):
                     endPts_k2_r[i,j]=rMax
 
-                diff=abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
+                diff=my_abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
                 if (diff>norm):
                     norm=diff
-                diff=abs(endPts_k2_r[i,j]-endPts_k1_r[i,j])
+                diff=my_abs(endPts_k2_r[i,j]-endPts_k1_r[i,j])
                 if (diff>norm):
                     norm=diff
                 endPts_k1_q[i,j]=endPts_k2_q[i,j]
