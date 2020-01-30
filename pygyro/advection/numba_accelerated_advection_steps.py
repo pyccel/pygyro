@@ -1,7 +1,7 @@
 from numba.types        import Tuple, f8, i4, b1
 from numba.pycc         import CC
 from math               import pi
-from numpy              import abs
+from numpy              import abs as my_abs, shape
 import sys
 sys.path.insert(0,'..')
 
@@ -132,16 +132,14 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                         coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
     # Find value at the determined point
     if (bound==0):
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=fEq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
             else:
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
     elif (bound==1):
-        for i in range(len(vPts)):
-            v=vPts[i]
+        for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
                 f[i]=0.0
             else:
@@ -155,7 +153,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 v-=vDiff
             f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
 
-@cc.export('get_lagrange_vals','(i4,i4,i4[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:])')
+@cc.export('get_lagrange_vals','(i4,i4,i8[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:])')
 def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
@@ -259,17 +257,17 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                 # Clipping is one method of avoiding infinite loops due to
                 # boundary conditions
                 # Using the splines to extrapolate is not sufficient
-                endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor) % 2*pi
+                endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor) % (2*pi)
                 endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor
                 if (endPts_k2_r[i,j]<rPts[0]):
                     endPts_k2_r[i,j]=rPts[0]
                 elif (endPts_k2_r[i,j]>rMax):
                     endPts_k2_r[i,j]=rMax
 
-                diff=abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
+                diff=my_abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
                 if (diff>norm):
                     norm=diff
-                diff=abs(endPts_k2_r[i,j]-endPts_k1_r[i,j])
+                diff=my_abs(endPts_k2_r[i,j]-endPts_k1_r[i,j])
                 if (diff>norm):
                     norm=diff
                 endPts_k1_q[i,j]=endPts_k2_q[i,j]
