@@ -1,7 +1,7 @@
 from numba.types        import Tuple, f8, i4, b1
 from numba.pycc         import CC
 from math               import pi
-from numpy              import abs as my_abs, shape
+from numpy              import abs as my_abs
 import sys
 sys.path.insert(0,'..')
 
