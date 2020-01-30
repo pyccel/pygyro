@@ -11,6 +11,9 @@ COMP := gnu
 # Use pyccel to generate files? [1|0]
 PYCC_GEN := 0
 
+#PYTHRAN_FLAGS := -DUSE_XSIMD -fopenmp -march=native
+PYTHRAN_FLAGS := 
+
 #----------------------------------------------------------
 # Compiler options
 #----------------------------------------------------------
@@ -63,7 +66,7 @@ endif
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS FF_COMP PYCC_GEN PYTHON ACC
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP PYCC_GEN PYTHON ACC PYTHRAN_FLAGS
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------

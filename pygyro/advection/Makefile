@@ -26,7 +26,7 @@ endif
 #----------------------------------------------------------
 
 pythran_accelerated_advection_steps: pythran_deps/pythran_accelerated_advection_steps.py
-	pythran $^ -o accelerated_advection_steps.so
+	pythran $(PYTHRAN_FLAGS) $^ -o accelerated_advection_steps.so
 
 #----------------------------------------------------------
 # Numba targets

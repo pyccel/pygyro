@@ -26,7 +26,7 @@ endif
 #----------------------------------------------------------
 
 pythran_initialiser_funcs: pythran_initialiser_funcs.py
-	pythran $^ -o initialiser_func.so
+	pythran $(PYTHRAN_FLAGS) $^ -o initialiser_func.so
 
 #----------------------------------------------------------
 # Numba targets

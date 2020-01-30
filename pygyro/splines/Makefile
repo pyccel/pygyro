@@ -35,7 +35,7 @@ mod_spline_eval_funcs.o: mod_context_1.o mod_spline_eval_funcs.f90
 #----------------------------------------------------------
 
 pythran_spline_eval_funcs: pythran_spline_eval_funcs.py
-	pythran $^ -o spline_eval_funcs.so
+	pythran $(PYTHRAN_FLAGS) $^ -o spline_eval_funcs.so
 
 
 #----------------------------------------------------------
