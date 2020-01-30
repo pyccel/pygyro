@@ -8,6 +8,9 @@ omit = *test*
        pygyro/advection/numba_*
        pygyro/initialisation/numba_*
        pygyro/splines/numba_*
+       pygyro/advection/pythran_*
+       pygyro/initialisation/pythran_*
+       pygyro/splines/pythran_*
        pygyro/advection/accelerated_advection_steps.py
        pygyro/initialisation/initialiser_func.py
        pygyro/splines/spline_eval_funcs.py
