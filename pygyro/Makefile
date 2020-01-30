@@ -34,7 +34,7 @@ $(ACC)_spline_eval_funcs:
 $(ACC)_initialiser_func:
 	$(MAKE) -C initialisation $@
 
-$(ACC)_accelerated_advection_steps: pycc
+$(ACC)_accelerated_advection_steps: $(ACC)
 
 clean:
 	$(MAKE) -C splines $@
