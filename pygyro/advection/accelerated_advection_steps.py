@@ -258,8 +258,9 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                 # Clipping is one method of avoiding infinite loops due to
                 # boundary conditions
                 # Using the splines to extrapolate is not sufficient
-                endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor) % 2*pi
+                endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor) % (2*pi)
                 endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor
+
                 if (endPts_k2_r[i,j]<rPts[0]):
                     endPts_k2_r[i,j]=rPts[0]
                 elif (endPts_k2_r[i,j]>rMax):

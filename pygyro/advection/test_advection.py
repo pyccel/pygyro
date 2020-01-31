@@ -115,7 +115,7 @@ def test_vParallelAdvection(function,N):
     spline    = spl.BSplines( knots,3,False )
     x         = spline.greville
 
-    r = 4
+    r = 4.0
     fEdge = fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
     assert(fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
@@ -156,7 +156,7 @@ def test_vParallelAdvectionPeriodic(N):
     spline    = spl.BSplines( knots,3,False )
     x         = spline.greville
 
-    r = 4
+    r = 4.0
 
     f = gauss(x)
 
@@ -190,7 +190,7 @@ def initConditions(r,theta):
 initConds = np.vectorize(initConditions, otypes=[np.float])
 
 @pytest.mark.serial
-@pytest.mark.parametrize( "dt,v,xc,yc", [(1,-5,0,0), (0.1,5,1,0), (0.1, 2, 2, 1)])
+@pytest.mark.parametrize( "dt,v,xc,yc", [(1.0,-5.0,0,0), (0.1,5.0,1,0), (0.1, 2.0, 2, 1)])
 def test_poloidalAdvection(dt,v,xc,yc):
 
     npts = [64,64]
@@ -248,7 +248,7 @@ def test_poloidalAdvection(dt,v,xc,yc):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize( "dt,v,xc,yc", [(1,-5,0,0), (0.1,5,1,0), (0.1, 2, 2, 1)])
+@pytest.mark.parametrize( "dt,v,xc,yc", [(1.0,-5.0,0,0), (0.1,5.0,1,0), (0.1, 2.0, 2, 1)])
 def test_poloidalAdvectionImplicit(dt,v,xc,yc):
 
     npts = [64,64]
@@ -370,7 +370,7 @@ def test_equilibrium():
     npts = [20,20,10,8]
     grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
-                                eps    = 0,
+                                eps    = 0.0,
                                 comm   = comm)
 
     startVals = grid._f.copy()
@@ -494,7 +494,7 @@ def test_vParGradAligned():
     npts = [20,80,20,8]
     grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout  = 'flux_surface',
-                                eps     = 0,
+                                eps     = 0.0,
                                 iotaVal = 0.8,
                                 n       = -11,
                                 comm    = comm)
@@ -522,7 +522,7 @@ def test_vParGrad():
     npts = [20,20,10,8]
     grid,constants,_ = setupCylindricalGrid(npts   = npts,
                                 layout = 'flux_surface',
-                                eps    = 0,
+                                eps    = 0.0,
                                 comm   = comm)
 
     N=10

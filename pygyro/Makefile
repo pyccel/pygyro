@@ -17,6 +17,11 @@ numba:
 	$(MAKE) -C advection $@
 	$(MAKE) -C initialisation $@
 
+pythran:
+	$(MAKE) -C splines $@
+	$(MAKE) -C initialisation $@
+	$(MAKE) -C advection $@
+
 pycc:
 	echo "pycc " $@
 	$(MAKE) -C splines $@
@@ -29,7 +34,7 @@ $(ACC)_spline_eval_funcs:
 $(ACC)_initialiser_func:
 	$(MAKE) -C initialisation $@
 
-$(ACC)_accelerated_advection_steps: pycc
+$(ACC)_accelerated_advection_steps: $(ACC)
 
 clean:
 	$(MAKE) -C splines $@

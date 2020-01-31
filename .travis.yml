@@ -24,6 +24,8 @@ before_install:
   - python -m pip install --upgrade pip
   - python -m pip uninstall -y pygyro
   - python -m pip install -r requirements.txt
+  - python -m pip install numba
+  - python -m pip install pythran
 
 # command to install project
 install:
@@ -50,6 +52,12 @@ script:
 #  - coverage combine -a
   - coverage report -m > cov_out.txt 2> cov_err.txt
   - python checkCoverage.py
+  - make clean
+  - make ACC=numba
+  - pytest pygyro
+  - make clean
+  - make ACC=pythran
+  - pytest pygyro
 
 after_script:
   - rm -r __test__

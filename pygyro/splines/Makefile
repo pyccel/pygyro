@@ -12,6 +12,8 @@ numba: numba_spline_eval_funcs
 
 pycc: pycc_spline_eval_funcs mod_spline_eval_funcs.o pycc_context_1
 
+pythran: pythran_spline_eval_funcs
+
 clean:
 	rm -f *.o *.so *.mod
 ifeq ($(PYCC_GEN), 1)
@@ -27,6 +29,13 @@ numba_spline_eval_funcs:
 
 mod_spline_eval_funcs.o: mod_context_1.o mod_spline_eval_funcs.f90
 	$(FC) $(FC_FLAGS) -c $^ -o $@
+
+#----------------------------------------------------------
+# Pythran targets
+#----------------------------------------------------------
+
+pythran_spline_eval_funcs: pythran_spline_eval_funcs.py
+	pythran $(PYTHRAN_FLAGS) $^ -o spline_eval_funcs.so
 
 
 #----------------------------------------------------------

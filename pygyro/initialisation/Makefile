@@ -12,18 +12,32 @@ numba: numba_initialiser_func
 
 pycc: pycc_initialiser_func mod_initialiser_funcs.o
 
+pythran: pythran_initialiser_funcs
+
 clean:
 	rm -f *.o *.so *.mod
 ifeq ($(PYCC_GEN), 1)
 	rm -f *.f90
 endif
 
+
+#----------------------------------------------------------
+# Pythran targets
+#----------------------------------------------------------
+
+pythran_initialiser_funcs: pythran_initialiser_funcs.py
+	pythran $(PYTHRAN_FLAGS) $^ -o initialiser_func.so
+
+#----------------------------------------------------------
+# Numba targets
+#----------------------------------------------------------
+
+numba_initialiser_func: numba_mod_initialiser_funcs.py
+	$(PYTHON) $^
+
 #----------------------------------------------------------
 # Pyccel targets
 #----------------------------------------------------------
-
-numba_initialiser_func:
-	$(PYTHON) numba_mod_initialiser_funcs.py
 
 pycc_initialiser_func: initialiser_func.f90 mod_initialiser_funcs.o
 	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func --fcompiler=$(FF_COMP) $^

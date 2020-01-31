@@ -1,24 +1,11 @@
-from numba.types        import Tuple, f8, i4, b1
-from numba.pycc         import CC
 from math               import pi
 from numpy              import abs as my_abs
-import sys
-sys.path.insert(0,'..')
 
-from initialisation.numba_mod_initialiser_funcs     import fEq
-from splines.numba_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
+from pythran_initialiser_funcs     import fEq
+from pythran_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
                                                             eval_spline_1d_scalar
 
-shape2 = Tuple([i4,i4])
-
-cc = CC('accelerated_advection_steps')
-
-@cc.export('poloidal_advection_step_expl', (f8[:,:],f8,f8,f8[:],f8[:], \
-                                          shape2,f8[:,:],f8[:,:],f8[:,:],\
-                                          f8[:,:],f8[:,:],f8[:,:],f8[:,:],\
-                                          f8[:,:],f8[:],f8[:],f8[:,:],\
-                                          i4,i4, f8[:],f8[:],f8[:,:],\
-                                          i4,i4,f8,f8,f8,f8,f8,f8,f8,f8,b1))
+#pythran export poloidal_advection_step_expl(float64[:,:]order(C),float64,float64,float64[:],float64[:],(int,int),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:],float64[:],float64[:,:]order(C),int,int, float64[:],float64[:],float64[:,:]order(C),int,int,float64,float64,float64,float64,float64,float64,float64,float64,bool)
 def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
@@ -126,8 +113,7 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
 
-@cc.export('v_parallel_advection_eval_step','(f8[:],f8[:],f8,f8,f8,f8[:],i4,f8[:],\
-                                        f8,f8,f8,f8,f8,f8,f8,i4)')
+#pythran export v_parallel_advection_eval_step(float64[:],float64[:],float64,float64,float64,float64[:],int,float64[:],float64,float64,float64,float64,float64,float64,float64,int)
 def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                         coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
     # Find value at the determined point
@@ -153,7 +139,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 v-=vDiff
             f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
 
-@cc.export('get_lagrange_vals','(i4,i4,i8[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:])')
+#pythran export get_lagrange_vals(int,int,int[:],float64[:,:,:],float64[:],float64[:],float64[:],int,float64[:])
 def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
@@ -164,7 +150,7 @@ def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
                 new_q-=2*pi
             vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
-@cc.export('flux_advection','(i4,i4,f8[:,:],f8[:],f8[:,:,:])')
+#pythran export flux_advection(int,int,float64[:,:]order(C),float64[:],float64[:,:,:])
 def flux_advection(nq,nr,f,coeffs,vals):
     for j in range(nq):
         for i in range(nr):
@@ -172,12 +158,7 @@ def flux_advection(nq,nr,f,coeffs,vals):
             for k in range(1,len(coeffs)):
                 f[j,i] += coeffs[k]*vals[i,j,k]
 
-@cc.export('poloidal_advection_step_impl', (f8[:,:],f8,f8,f8[:],f8[:], \
-                                          shape2,f8[:,:],f8[:,:],f8[:,:],\
-                                          f8[:,:],f8[:,:],f8[:,:],f8[:,:],\
-                                          f8[:,:],f8[:],f8[:],f8[:,:],\
-                                          i4,i4, f8[:],f8[:],f8[:,:],\
-                                          i4,i4,f8,f8,f8,f8,f8,f8,f8,f8,f8,b1))
+#pythran export poloidal_advection_step_impl(float64[:,:]order(C),float64,float64,float64[:],float64[:],(int,int),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:],float64[:],float64[:,:]order(C),int,int, float64[:],float64[:],float64[:,:]order(C),int,int,float64,float64,float64,float64,float64,float64,float64,float64,float64,bool)
 def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
@@ -306,5 +287,3 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
 
-if __name__ == "__main__":
-    cc.compile()
