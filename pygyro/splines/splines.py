@@ -3,16 +3,9 @@
 
 import numpy as np
 #from scipy.interpolate  import splev, bisplev
-
-from .      import spline_eval_funcs as SEF
+from .spline_eval_funcs      import eval_spline_1d_scalar, eval_spline_1d_vector, eval_spline_2d_cross, eval_spline_2d_scalar
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
-
-if ('spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.spline_eval_funcs
-    modFunc = np.transpose
-else:
-    modFunc = lambda c: c
 
 #===============================================================================
 def make_knots( breaks, degree, periodic ):
@@ -211,9 +204,9 @@ class Spline1D():
     def eval( self, x, der=0 ):
         if (hasattr(x,'__len__')):
             result = np.empty_like(x)
-            SEF.eval_spline_1d_vector(x,self._basis.knots,self._basis.degree,self._coeffs,result,der)
+            eval_spline_1d_vector(x,self._basis.knots,self._basis.degree,self._coeffs,result,der)
         else:
-            result = SEF.eval_spline_1d_scalar(x,self._basis.knots,self._basis.degree,self._coeffs,der)
+            result = eval_spline_1d_scalar(x,self._basis.knots,self._basis.degree,self._coeffs,der)
         return result
 
         """
@@ -249,13 +242,13 @@ class Spline2D():
     def eval( self, x1, x2, der1=0, der2=0 ):
         if (hasattr(x1,'__len__')):
             result = np.empty((len(x1),len(x2)))
-            SEF.eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
+            eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
                                         self._basis2.knots,self._basis2.degree,
-                                        modFunc(self._coeffs),modFunc(result),der1,der2)
+                                        self._coeffs,result,der1,der2)
         else:
-            result = SEF.eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
+            result = eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
                                                  self._basis2.knots,self._basis2.degree,
-                                                 modFunc(self._coeffs),der1,der2)
+                                                 self._coeffs,der1,der2)
         return result
 
         """
