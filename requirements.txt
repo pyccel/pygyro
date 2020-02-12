@@ -4,7 +4,7 @@ numpy>=1.15.1
 scipy>=1.1.0
 pytest>=2.8.7
 h5py>=2.8.0
-pyccel
+pyccel>=0.9.7
 
 # h5py must be built from source using MPI compiler
 # and linked to parallel HDF5 library. To do so set
