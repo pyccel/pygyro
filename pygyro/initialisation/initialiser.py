@@ -1,5 +1,3 @@
-import numpy as np
-
 from .initialiser_funcs import init_f_flux, init_f_pol, init_f_vpar
 
 def initialise_flux_surface(grid,constants):
