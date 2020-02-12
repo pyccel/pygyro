@@ -10,14 +10,16 @@
 
 numba: numba_initialiser_func
 
-pycc: pycc_initialiser_func mod_initialiser_funcs.o
+pycc: pycc_initialiser_funcs
 
 pythran: pythran_initialiser_funcs
 
 clean:
 	rm -f *.o *.so *.mod
+	rm -f __pyccel__/*.o __pyccel__/*.so __pyccel__/*.mod
 ifeq ($(PYCC_GEN), 1)
 	rm -f *.f90
+	rm -rf __pyccel__
 endif
 
 
@@ -39,22 +41,20 @@ numba_initialiser_func: numba_mod_initialiser_funcs.py
 # Pyccel targets
 #----------------------------------------------------------
 
-pycc_initialiser_func: initialiser_func.f90 mod_initialiser_funcs.o
-	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func --fcompiler=$(FF_COMP) $^
 
 
 ifeq ($(PYCC_GEN), 1)
 
-mod_initialiser_funcs.o: mod_initialiser_funcs.py
-	pyccel mod_initialiser_funcs.py --fflags ' $(FC_FLAGS)'
-
-initialiser_func.f90: initialiser_func.py
-	pyccel initialiser_func.py -f --fflags ' $(FC_FLAGS)'
+pycc_initialiser_funcs: initialiser_funcs.py
+	pyccel $^ --fflags ' $(FC_FLAGS)'
 
 else
 
-mod_initialiser_funcs.o: mod_initialiser_funcs.f90
-	$(FC) $(FC_FLAGS) -c $^ -o $@
+pycc_initialiser_funcs: __pyccel__/initialiser_funcs.o __pyccel__/f2py_initialiser_funcs.f90
+	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_funcs --fcompiler=$(FF_COMP) $^
+
+__pyccel__/initialiser_funcs.o: __pyccel__/initialiser_funcs.f90
+	cd __pyccel__; $(FC) $(FC_FLAGS) -c initialiser_funcs.f90 -o initialiser_funcs.o
 
 endif
 
