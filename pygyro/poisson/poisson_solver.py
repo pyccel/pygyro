@@ -4,21 +4,11 @@ from scipy.sparse.linalg            import spsolve
 import numpy                        as np
 from numpy.polynomial.legendre      import leggauss
 
-from ..model.grid                   import Grid
-from ..initialisation               import mod_initialiser_funcs    as initialiser
-from ..initialisation               import initialiser_func as MOD_IF
-from ..splines.splines              import BSplines, Spline1D
-from ..splines.spline_interpolators import SplineInterpolator1D
-from ..splines                      import spline_eval_funcs as SEF
-
-if ('spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.spline_eval_funcs
-
-if ('initialiser_func' in dir(MOD_IF)):
-    MOD_IF = MOD_IF.initialiser_func
-    modFunc_init = np.transpose
-else:
-    modFunc_init = lambda c: c
+from ..model.grid                       import Grid
+from ..splines.splines                  import BSplines, Spline1D
+from ..splines.spline_interpolators     import SplineInterpolator1D
+from ..splines.spline_eval_funcs        import eval_spline_1d_vector
+from ..initialisation                   import initialiser_funcs as init
 
 class DensityFinder:
     """
@@ -60,7 +50,7 @@ class DensityFinder:
         self._splineMem = np.empty_like(self._points)
 
         self._fEq = np.empty([eta_grid[0].size,self._points.size])
-        MOD_IF.feq_vector(modFunc_init(self._fEq),eta_grid[0],self._points,constants.CN0,constants.kN0,
+        init.feq_vector(self._fEq,eta_grid[0],self._points,constants.CN0,constants.kN0,
                                 constants.deltaRN0,constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
 
     def getPerturbedRho ( self, grid: Grid , rho: Grid ):
@@ -87,7 +77,7 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,_ in grid.getCoords(2): # theta
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
+                    eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
                             self._spline.coeffs,self._splineMem,0)
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
                                         -self._fEq[rIdx]))
@@ -115,7 +105,7 @@ class DensityFinder:
                 rho_qv = rho.get1DSlice([i,j])
                 for k,_ in grid.getCoords(2): # theta
                     self._interpolator.compute_interpolant(grid.get1DSlice([i,j,k]),self._spline)
-                    SEF.eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
+                    eval_spline_1d_vector(self._points,self._spline.basis.knots,self._spline.basis.degree,
                             self._spline.coeffs,self._splineMem,0)
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem))
 
@@ -427,12 +417,12 @@ class DiffEqSolver:
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
             self._real_spline.coeffs[:] = np.real(self._coeffs)
-            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+            eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
                                     self._real_spline.basis.degree,self._real_spline.coeffs,
                                     self._realMem,0)
 
             self._real_spline.coeffs[:] = np.imag(self._coeffs)
-            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+            eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
                                     self._real_spline.basis.degree,self._real_spline.coeffs,
                                     self._imagMem,0)
 
@@ -444,7 +434,7 @@ class DiffEqSolver:
         rhoVec = np.zeros(self._rspline.greville.size)
 
         for j in range(self._rspline.nbasis):
-            SEF.eval_spline_1d_vector(self._evalPts.flatten(),self._rspline[j].basis.knots,
+            eval_spline_1d_vector(self._evalPts.flatten(),self._rspline[j].basis.knots,
                                     self._rspline[j].basis.degree,self._rspline[j].coeffs,
                                     self._evalRes,0)
             rhoVec[j]=np.sum(np.tile(self._weights,len(self._evalPts))*self._multFactor \
@@ -460,12 +450,12 @@ class DiffEqSolver:
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
             self._real_spline.coeffs[:] = np.real(self._coeffs)
-            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+            eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
                                     self._real_spline.basis.degree,self._real_spline.coeffs,
                                     self._realMem,0)
 
             self._real_spline.coeffs[:] = np.imag(self._coeffs)
-            SEF.eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
+            eval_spline_1d_vector(phi.getCoordVals(2),self._real_spline.basis.knots,
                                     self._real_spline.basis.degree,self._real_spline.coeffs,
                                     self._imagMem,0)
 
@@ -531,7 +521,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
 
     n0 : function handle - optional
         The ion/electron density at equilibrium
-        Default is initialiser.n0
+        Default is init.n0
 
     B: float - optional
         The intensity of the equilibrium magnetic field
@@ -539,17 +529,17 @@ class QuasiNeutralitySolver(DiffEqSolver):
 
     n0derivNormalised: function handle - optional
         n_0'(r)/n_0(r) where n_0(r) is the ion/electron density at equilibrium
-        Default is initialiser.n0derivNormalised
+        Default is init.n0deriv_normalised
 
     n0deriv: function handle - optional
         n_0'(r) where n_0(r) is the ion/electron density at equilibrium
         If n0derivNormalised is provided this will be ignored
-        Default is initialiser.n0derivNormalised*n0
+        Default is init.n0deriv_normalised*n0
 
     Te: function handle - optional
         The temperature of the electrons
         This parameter will be ignored if adiabaticElectrons = False.
-        Default is initialiser.Te
+        Default is init.te
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
@@ -557,21 +547,21 @@ class QuasiNeutralitySolver(DiffEqSolver):
                     n0 = None, B: float = 1.0,
                     Te = None, **kwargs):
         if (n0 is None):
-            n0 = lambda r: initialiser.n0(r,constants.CN0,constants.kN0,
+            n0 = lambda r: init.n0(r,constants.CN0,constants.kN0,
                                         constants.deltaRN0,constants.rp)
         if (Te is None):
-            Te = lambda r: initialiser.Te(r,constants.CTe,constants.kTe,
+            Te = lambda r: init.te(r,constants.CTe,constants.kTe,
                                         constants.deltaRTe,constants.rp)
         r = eta_grid[0]
 
         if ('n0derivNormalised' in kwargs):
             n0derivNormalised = kwargs.pop('n0derivNormalised',
-                                            lambda r:initialiser.n0derivNormalised(r,
+                                            lambda r:init.n0deriv_normalised(r,
                                         constants.kN0,constants.rp,constants.deltaRN0))
         elif ('n0deriv' in kwargs):
             n0derivNormalised = lambda r:kwargs.pop('n0deriv')(r)/n0(r)
         else:
-            n0derivNormalised = lambda r:initialiser.n0derivNormalised(r,
+            n0derivNormalised = lambda r:init.n0deriv_normalised(r,
                                         constants.kN0,constants.rp,constants.deltaRN0)
 
         if (not adiabaticElectrons):
