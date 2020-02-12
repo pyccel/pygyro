@@ -1,5 +1,7 @@
 from numpy import exp, sqrt, pi, tanh, cos
 
+#pythran export n0(float64,float64,float64,float64,float64)
+#pythran export n0(float64[:],float64,float64,float64,float64)
 def n0(r,CN0,kN0,deltaRN0,rp):
     return CN0*exp(-kN0*deltaRN0*tanh((r-rp)/deltaRN0))
 
@@ -13,6 +15,8 @@ def perturbation(r,theta,z,m,n,rp,deltaR,R0):
 def f_eq(r,vPar,CN0,kN0,deltaRN0,rp,Cti,kti,deltaRti):
     return CN0*exp(-kN0*deltaRN0*tanh((r-rp)/deltaRN0))*exp(-0.5*vPar*vPar/ti(r,Cti,kti,deltaRti,rp))/sqrt(2.0*pi*ti(r,Cti,kti,deltaRti,rp))
 
+#pythran export n0deriv_normalised(float64,float64,float64,float64)
+#pythran export n0deriv_normalised(float64[:],float64,float64,float64)
 def n0deriv_normalised(r,kN0,rp,deltaRN0):
     return -kN0 * (1 - tanh( (r - rp ) / deltaRN0 )**2)
 
