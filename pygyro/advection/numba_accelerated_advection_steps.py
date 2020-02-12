@@ -5,7 +5,7 @@ from numpy              import abs as my_abs
 import sys
 sys.path.insert(0,'..')
 
-from initialisation.numba_mod_initialiser_funcs     import fEq
+from initialisation.numba_initialiser_funcs     import fEq
 from splines.numba_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
                                                             eval_spline_1d_scalar
 

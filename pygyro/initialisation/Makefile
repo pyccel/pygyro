@@ -8,11 +8,30 @@
 # Main targets
 #----------------------------------------------------------
 
-numba: numba_initialiser_func
+all: initialiser_funcs$(SO_EXT)
 
-pycc: pycc_initialiser_funcs
+.ACC.$(ACC):
+	@rm -f .ACC.*
+	@touch $@
 
-pythran: pythran_initialiser_funcs
+ifeq ($(ACC)$(PYCC_GEN), pycc0)
+
+initialiser_funcs$(SO_EXT): __pyccel__/f2py_initialiser_funcs.f90 __pyccel__/initialiser_funcs.o .ACC.$(ACC)
+	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_funcs --fcompiler=$(FF_COMP) __pyccel__/f2py_initialiser_funcs.f90 __pyccel__/initialiser_funcs.o
+
+__pyccel__/initialiser_funcs.o: __pyccel__/initialiser_funcs.f90
+	cd __pyccel__; $(FC) $(FC_FLAGS) -c initialiser_funcs.f90 -o initialiser_funcs.o
+
+else
+
+initialiser_funcs$(SO_EXT): $(NAME_PREFIX)initialiser_funcs.py .ACC.$(ACC)
+ifneq ($(ACC), pythran)
+	$(TOOL) $< $(TOOL_FLAGS)
+else
+	$(TOOL) $< $(TOOL_FLAGS) -o $@
+endif
+endif
+
 
 clean:
 	rm -f *.o *.so *.mod
@@ -20,41 +39,5 @@ clean:
 ifeq ($(PYCC_GEN), 1)
 	rm -f *.f90
 	rm -rf __pyccel__
-endif
-
-
-#----------------------------------------------------------
-# Pythran targets
-#----------------------------------------------------------
-
-pythran_initialiser_funcs: pythran_initialiser_funcs.py
-	pythran $(PYTHRAN_FLAGS) $^ -o initialiser_func.so
-
-#----------------------------------------------------------
-# Numba targets
-#----------------------------------------------------------
-
-numba_initialiser_func: numba_mod_initialiser_funcs.py
-	$(PYTHON) $^
-
-#----------------------------------------------------------
-# Pyccel targets
-#----------------------------------------------------------
-
-
-
-ifeq ($(PYCC_GEN), 1)
-
-pycc_initialiser_funcs: initialiser_funcs.py
-	pyccel $^ --fflags ' $(FC_FLAGS)'
-
-else
-
-pycc_initialiser_funcs: __pyccel__/initialiser_funcs.o __pyccel__/f2py_initialiser_funcs.f90
-	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_funcs --fcompiler=$(FF_COMP) $^
-
-__pyccel__/initialiser_funcs.o: __pyccel__/initialiser_funcs.f90
-	cd __pyccel__; $(FC) $(FC_FLAGS) -c initialiser_funcs.f90 -o initialiser_funcs.o
-
 endif
 

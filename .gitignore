@@ -20,3 +20,5 @@ doc/*.snm
 doc/*.nav
 doc/*.out
 tags
+.ACC.*
+f2py_build
