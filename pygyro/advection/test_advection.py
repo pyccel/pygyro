@@ -5,7 +5,7 @@ import numpy                as np
 
 from ..initialisation.setups                    import setupCylindricalGrid
 from ..model.layout                             import Layout
-from ..initialisation.mod_initialiser_funcs     import fEq
+from ..initialisation.initialiser_funcs     import f_eq as fEq
 from .advection                                 import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 from ..                                         import splines as spl
 from ..initialisation.constants                 import Constants
@@ -123,7 +123,7 @@ def test_vParallelAdvection(function,N):
         == fEq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi))
 
-    f = function(x)+fEdge
+    f[:] = function(x)+fEdge
 
     vParAdv = VParallelAdvection([0,0,0,x], spline, constants, 'null')
 

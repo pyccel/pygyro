@@ -39,25 +39,31 @@ else
 	PYTHON := python3
 endif
 
+SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
+
 #----------------------------------------------------------
 # Defaut command:
 # use pure python, pyccel, numba?
 #----------------------------------------------------------
 
-ifeq ($(ACC), none)
-	TYPE := clean
+ifeq ($(ACC), pycc)
+	TOOL := pyccel
+	TOOL_FLAGS := --fflags ' $(FC_FLAGS)'
+	NAME_PREFIX := 
 else
-	ifeq ($(ACC), pycc)
-		TYPE := pycc
+	ifeq ($(ACC), numba)
+		TOOL := $(PYTHON)
+		TOOL_FLAGS :=
+		NAME_PREFIX := numba_
 	else
-		ifeq ($(ACC), numba)
-			TYPE := numba
+		ifeq ($(ACC), pythran)
+			TOOL := pythran
+			TOOL_FLAGS = $(PYTHRAN_FLAGS)
+			NAME_PREFIX := pythran_
 		else
-			ifeq ($(ACC), pythran)
-				TYPE := pythran
-			else
-				TYPE := clean
-			endif
+			TOOL := pyccel
+			TOOL_FLAGS := --fflags ' $(FC_FLAGS)'
+			NAME_PREFIX := 
 		endif
 	endif
 endif
@@ -66,7 +72,7 @@ endif
 # Export all relevant variables to children Makefiles
 #----------------------------------------------------------
 
-EXPORTED_VARS = CC FC FC_FLAGS FF_COMP PYCC_GEN PYTHON ACC PYTHRAN_FLAGS
+EXPORTED_VARS = CC FC FC_FLAGS FF_COMP PYCC_GEN PYTHON ACC PYTHRAN_FLAGS SO_EXT TOOL TOOL_FLAGS NAME_PREFIX
 export EXPORTED_VARS $(EXPORTED_VARS)
 
 #----------------------------------------------------------
@@ -81,9 +87,9 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 
 # List of main targets
 ALL = \
-	$(TYPE)_spline_eval_funcs \
-	$(TYPE)_initialiser_func  \
-	$(TYPE)_accelerated_advection_steps
+	splines \
+	initialisation  \
+	advection
 
 #----------------------------------------------------------
 # Main targets

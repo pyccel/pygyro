@@ -1,12 +1,4 @@
-import numpy as np
-
-from . import initialiser_func as IF_MOD
-
-if ('initialiser_func' in dir(IF_MOD)):
-    IF_MOD = IF_MOD.initialiser_func
-    modFunc = np.transpose
-else:
-    modFunc = lambda c: c
+from .initialiser_funcs import init_f_flux, init_f_pol, init_f_vpar
 
 def initialise_flux_surface(grid,constants):
     for i,r in grid.getCoords(0):
@@ -17,7 +9,7 @@ def initialise_flux_surface(grid,constants):
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
 
-            IF_MOD.init_f_flux(modFunc(FluxSurface),r,theta,z,v,
+            init_f_flux(FluxSurface,r,theta,z,v,
                     constants.m,constants.n,constants.eps,
                     constants.CN0,constants.kN0,constants.deltaRN0,
                     constants.rp,constants.CTi,constants.kTi,
@@ -32,7 +24,7 @@ def initialise_poloidal(grid,constants):
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
 
-            IF_MOD.init_f_pol(modFunc(PoloidalSurface),r,theta,z,v,
+            init_f_pol(PoloidalSurface,r,theta,z,v,
                     constants.m,constants.n,constants.eps,
                     constants.CN0,constants.kN0,constants.deltaRN0,
                     constants.rp,constants.CTi,constants.kTi,
@@ -47,7 +39,7 @@ def initialise_v_parallel(grid,constants):
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
 
-            IF_MOD.init_f_vpar(modFunc(Surface),r,theta,z,v,
+            init_f_vpar(Surface,r,theta,z,v,
                     constants.m,constants.n,constants.eps,
                     constants.CN0,constants.kN0,constants.deltaRN0,
                     constants.rp,constants.CTi,constants.kTi,

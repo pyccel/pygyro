@@ -57,7 +57,7 @@ class Rotator(object):
         for _ in range(self.comm.rank):
             self.comm.Barrier()
     def __exit__(self, type, value, tb):
-        for i in range(self.comm.rank, self.comm.size):
+        for _ in range(self.comm.rank, self.comm.size):
             self.comm.Barrier()
         self.comm.Barrier()
 

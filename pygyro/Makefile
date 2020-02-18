@@ -5,36 +5,25 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 .DELETE_ON_ERROR:
 
 # Define phony targets
-.PHONY: clean
+.PHONY: clean splines initialisation advection
 
 
 #----------------------------------------------------------
 # Main targets
 #----------------------------------------------------------
 
-numba:
-	$(MAKE) -C splines $@
-	$(MAKE) -C advection $@
-	$(MAKE) -C initialisation $@
+$(ACC):
+	$(MAKE) -C splines
+	$(MAKE) -C initialisation
+	$(MAKE) -C advection
 
-pythran:
-	$(MAKE) -C splines $@
-	$(MAKE) -C initialisation $@
-	$(MAKE) -C advection $@
+splines:
+	$(MAKE) -C $@
 
-pycc:
-	echo "pycc " $@
-	$(MAKE) -C splines $@
-	$(MAKE) -C initialisation $@
-	$(MAKE) -C advection $@
+initialisation:
+	$(MAKE) -C $@
 
-$(ACC)_spline_eval_funcs:
-	$(MAKE) -C splines $@
-
-$(ACC)_initialiser_func:
-	$(MAKE) -C initialisation $@
-
-$(ACC)_accelerated_advection_steps: $(ACC)
+advection: $(ACC)
 
 clean:
 	$(MAKE) -C splines $@

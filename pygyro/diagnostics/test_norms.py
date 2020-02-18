@@ -11,11 +11,11 @@ from ..initialisation.setups                    import setupCylindricalGrid
 
 def args_norm_phi():
     for layout in ['v_parallel_2d','mode_solve','v_parallel_1d','poloidal']:
-        for i in range(2):
+        for _ in range(2):
             R0 = np.random.rand()*1000
-            for j in range(2):
+            for _ in range(2):
                 rMin = np.random.rand()
-                for k in range(2):
+                for _ in range(2):
                     rMax = np.random.randint(10,200)/10
                     yield (layout, R0, rMin,rMax)
 
@@ -202,7 +202,6 @@ def test_l2Norm_grid_is_v(layout,R0,rMin,rMax,vMax):
 def test_NParticles_is_volume(layout,R0,rMin,rMax,vMax):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    size = comm.Get_size()
 
     layout=comm.bcast(layout)
     R0=comm.bcast(R0)

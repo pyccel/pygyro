@@ -8,53 +8,36 @@
 # Main targets
 #----------------------------------------------------------
 
-numba: numba_initialiser_func
+all: initialiser_funcs$(SO_EXT)
 
-pycc: pycc_initialiser_func mod_initialiser_funcs.o
+.ACC.$(ACC):
+	@rm -f .ACC.*
+	@touch $@
 
-pythran: pythran_initialiser_funcs
+ifeq ($(ACC)$(PYCC_GEN), pycc0)
 
-clean:
-	rm -f *.o *.so *.mod
-ifeq ($(PYCC_GEN), 1)
-	rm -f *.f90
-endif
+initialiser_funcs$(SO_EXT): __pyccel__/f2py_initialiser_funcs.f90 __pyccel__/initialiser_funcs.o .ACC.$(ACC)
+	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_funcs --fcompiler=$(FF_COMP) __pyccel__/f2py_initialiser_funcs.f90 __pyccel__/initialiser_funcs.o
 
-
-#----------------------------------------------------------
-# Pythran targets
-#----------------------------------------------------------
-
-pythran_initialiser_funcs: pythran_initialiser_funcs.py
-	pythran $(PYTHRAN_FLAGS) $^ -o initialiser_func.so
-
-#----------------------------------------------------------
-# Numba targets
-#----------------------------------------------------------
-
-numba_initialiser_func: numba_mod_initialiser_funcs.py
-	$(PYTHON) $^
-
-#----------------------------------------------------------
-# Pyccel targets
-#----------------------------------------------------------
-
-pycc_initialiser_func: initialiser_func.f90 mod_initialiser_funcs.o
-	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m initialiser_func --fcompiler=$(FF_COMP) $^
-
-
-ifeq ($(PYCC_GEN), 1)
-
-mod_initialiser_funcs.o: mod_initialiser_funcs.py
-	pyccel mod_initialiser_funcs.py --fflags ' $(FC_FLAGS)'
-
-initialiser_func.f90: initialiser_func.py
-	pyccel initialiser_func.py -f --fflags ' $(FC_FLAGS)'
+__pyccel__/initialiser_funcs.o: __pyccel__/initialiser_funcs.f90
+	cd __pyccel__; $(FC) $(FC_FLAGS) -c initialiser_funcs.f90 -o initialiser_funcs.o
 
 else
 
-mod_initialiser_funcs.o: mod_initialiser_funcs.f90
-	$(FC) $(FC_FLAGS) -c $^ -o $@
+initialiser_funcs$(SO_EXT): $(NAME_PREFIX)initialiser_funcs.py .ACC.$(ACC)
+ifneq ($(ACC), pythran)
+	$(TOOL) $< $(TOOL_FLAGS)
+else
+	$(TOOL) $< $(TOOL_FLAGS) -o $@
+endif
+endif
 
+
+clean:
+	rm -f *.o *.so *.mod
+	rm -f __pyccel__/*.o __pyccel__/*.so __pyccel__/*.mod
+ifeq ($(PYCC_GEN), 1)
+	rm -f *.f90
+	rm -rf __pyccel__
 endif
 

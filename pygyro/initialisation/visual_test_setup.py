@@ -1,7 +1,5 @@
-from mpi4py import MPI
 import pytest
 
-from  .                         import constants
 from  .setups                   import setupCylindricalGrid
 from  .mod_initialiser_funcs    import fEq, perturbation
 from ..utilities.grid_plotter   import SlicePlotter4d, Plotter2d

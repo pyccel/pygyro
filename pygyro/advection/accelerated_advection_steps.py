@@ -1,6 +1,6 @@
 from pyccel.decorators  import types, pure, external
-from ..splines.mod_spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
-from ..initialisation.mod_initialiser_funcs               import fEq
+from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
+from ..initialisation.initialiser_funcs               import f_eq
 
 @pure
 @external
@@ -104,10 +104,10 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
         for i in range(nPts[0]): # theta
             for j in range(nPts[1]): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
-                    f[i,j]=fEq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
+                    f[i,j]=f_eq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
                 elif (endPts_k2_r[i,j]>rMax):
-                    f[i,j]=fEq(endPts_k2_r[i,j],v,CN0,kN0,
+                    f[i,j]=f_eq(endPts_k2_r[i,j],v,CN0,kN0,
                                     deltaRN0,rp,CTi,kTi,deltaRTi)
                 else:
                     while (endPts_k2_q[i,j]>2*pi):
@@ -127,7 +127,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
     if (bound==0):
         for i,v in enumerate(vPts):
             if (v<vMin or v>vMax):
-                f[i]=fEq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
+                f[i]=f_eq(rPos,v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
             else:
                 f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
@@ -295,10 +295,10 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
         for i in range(nPts[0]):
             for j in range(nPts[1]):
                 if (endPts_k2_r[i,j]<rPts[0]):
-                    f[i,j]=fEq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
+                    f[i,j]=f_eq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
                 elif (endPts_k2_r[i,j]>rMax):
-                    f[i,j]=fEq(endPts_k2_r[i,j],v,CN0,kN0,
+                    f[i,j]=f_eq(endPts_k2_r[i,j],v,CN0,kN0,
                                     deltaRN0,rp,CTi,kTi,deltaRTi)
                 else:
                     while (endPts_k2_q[i,j]>2*pi):

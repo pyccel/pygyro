@@ -8,63 +8,36 @@
 # Main targets
 #----------------------------------------------------------
 
-numba: numba_spline_eval_funcs
+all: spline_eval_funcs$(SO_EXT)
 
-pycc: pycc_spline_eval_funcs mod_spline_eval_funcs.o pycc_context_1
+.ACC.$(ACC):
+	@rm -f .ACC.*
+	@touch $@
 
-pythran: pythran_spline_eval_funcs
+ifeq ($(ACC)$(PYCC_GEN), pycc0)
 
-clean:
-	rm -f *.o *.so *.mod
-ifeq ($(PYCC_GEN), 1)
-	rm -f *.f90
-endif
+spline_eval_funcs$(SO_EXT): __pyccel__/f2py_spline_eval_funcs.f90 __pyccel__/spline_eval_funcs.o .ACC.$(ACC)
+	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m spline_eval_funcs --fcompiler=$(FF_COMP) __pyccel__/f2py_spline_eval_funcs.f90 __pyccel__/spline_eval_funcs.o
 
-#----------------------------------------------------------
-# Numba targets
-#----------------------------------------------------------
-
-numba_spline_eval_funcs:
-	$(PYTHON) numba_spline_eval_funcs.py
-
-mod_spline_eval_funcs.o: mod_context_1.o mod_spline_eval_funcs.f90
-	$(FC) $(FC_FLAGS) -c $^ -o $@
-
-#----------------------------------------------------------
-# Pythran targets
-#----------------------------------------------------------
-
-pythran_spline_eval_funcs: pythran_spline_eval_funcs.py
-	pythran $(PYTHRAN_FLAGS) $^ -o spline_eval_funcs.so
-
-
-#----------------------------------------------------------
-# Pyccel targets
-#----------------------------------------------------------
-
-pycc_spline_eval_funcs: spline_eval_funcs.f90 mod_context_1.o
-	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m spline_eval_funcs --fcompiler=$(FF_COMP) $^
-
-pycc_context_1: context_1.f90
-	CC=$(CC) FC=$(FC) f2py -c --opt="$(FC_FLAGS)" -m context_1 --fcompiler=$(FF_COMP) $^
-
-ifeq ($(PYCC_GEN), 1)
-
-mod_context_1.o: mod_context_1.py
-	pyccel $^ --fflags ' $(FC_FLAGS)'
-
-mod_spline_eval_funcs.f90: mod_spline_eval_funcs.py
-	pyccel $^ --fflags ' $(FC_FLAGS)' -t
-
-spline_eval_funcs.f90: spline_eval_funcs.py
-	pyccel -f $^
-
-context_1.f90: context_1.py
-	pyccel -f $^
+__pyccel__/spline_eval_funcs.o: __pyccel__/spline_eval_funcs.f90
+	cd __pyccel__; $(FC) $(FC_FLAGS) -c spline_eval_funcs.f90 -o spline_eval_funcs.o
 
 else
 
-mod_context_1.o: mod_context_1.f90
-	$(FC) $(FC_FLAGS) -c $^ -o $@
-
+spline_eval_funcs$(SO_EXT): $(NAME_PREFIX)spline_eval_funcs.py .ACC.$(ACC)
+ifneq ($(ACC), pythran)
+	$(TOOL) $< $(TOOL_FLAGS)
+else
+	$(TOOL) $< $(TOOL_FLAGS) -o $@
 endif
+endif
+
+
+clean:
+	rm -f *.o *.so *.mod
+	rm -f __pyccel__/*.o __pyccel__/*.so __pyccel__/*.mod
+ifeq ($(PYCC_GEN), 1)
+	rm -f *.f90
+	rm -rf __pyccel__
+endif
+
