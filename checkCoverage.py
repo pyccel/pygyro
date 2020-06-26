@@ -1,5 +1,10 @@
 import os
 
+parser = argparse.ArgumentParser(description='Coverage checker')
+parser.add_argument('MinPercent', metavar='min',nargs=1,type=int,
+                   help='Minimum percentage of coverage required for a pass')
+args = parser.parse_args()
+
 file = open("cov_out.txt", "r")
 out = file.read()
 file.close()
@@ -22,4 +27,4 @@ if ( i == -1 ):
 else:
     totline = out[i:]
     pc=float(totline[totline.rfind(" "):totline.rfind("%")])
-    assert(pc>=90)
+    assert(pc>=args.min[0])
