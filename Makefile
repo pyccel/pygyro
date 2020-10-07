@@ -48,7 +48,7 @@ SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var
 
 ifeq ($(ACC), pycc)
 	TOOL := pyccel
-	TOOL_FLAGS := --fflags ' $(FC_FLAGS)'
+	TOOL_FLAGS := --flags ' $(FC_FLAGS)'
 	NAME_PREFIX := 
 else
 	ifeq ($(ACC), numba)
@@ -62,7 +62,7 @@ else
 			NAME_PREFIX := pythran_
 		else
 			TOOL := pyccel
-			TOOL_FLAGS := --fflags ' $(FC_FLAGS)'
+			TOOL_FLAGS := --flags ' $(FC_FLAGS)'
 			NAME_PREFIX := 
 		endif
 	endif
