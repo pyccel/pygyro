@@ -4,19 +4,13 @@ from math                           import pi
 
 from ..splines.splines              import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
-from ..splines                      import spline_eval_funcs as SEF
+from ..splines.spline_eval_funcs    import eval_spline_1d_vector
 from ..model.layout                 import Layout
 from ..model.grid                   import Grid
-from .                              import accelerated_advection_steps as AAS
-
-if ('accelerated_advection_steps' in dir(AAS)):
-    AAS = AAS.accelerated_advection_steps
-    modFunc = np.transpose
-else:
-    modFunc = lambda x: x
-
-if ('spline_eval_funcs' in dir(SEF)):
-    SEF = SEF.spline_eval_funcs
+from .accelerated_advection_steps   import get_lagrange_vals, flux_advection, \
+                                            v_parallel_advection_eval_step, \
+                                            poloidal_advection_step_expl, \
+                                            poloidal_advection_step_impl
 
 def fieldline(theta,z_diff,iota,r,R0):
     return np.mod(theta+iota(r)*z_diff/R0,2*pi)
@@ -137,21 +131,21 @@ class ParallelGradient:
         for i in range(self._fwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
+                eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
                                     self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
                 der[(i-s)%self._nz,:]+=c*tmp
 
         for i in range(self._fwdSteps,self._nz-self._bkwdSteps):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
+                eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
                                     self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
                 der[(i-s),:]+=c*tmp
 
         for i in range(self._nz-self._bkwdSteps,self._nz):
             self._interpolator.compute_interpolant(phi_r[i,:],self._thetaSpline)
             for j,(s,c) in enumerate(zip(self._shifts,self._coeffs)):
-                SEF.eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
+                eval_spline_1d_vector(thetaVals[i,j,:],self._thetaSpline.basis.knots,
                                     self._thetaSpline.basis.degree,self._thetaSpline.coeffs,tmp,0)
                 der[(i-s)%self._nz,:]+=c*tmp
 
@@ -274,15 +268,15 @@ class FluxSurfaceAdvection:
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
 
-            AAS.get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
-                                modFunc(self._LagrangeVals),self._points[0],
+            get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
+                                self._LagrangeVals,self._points[0],
                                 self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
                                 self._thetaSpline.basis.degree,
                                 self._thetaSpline.coeffs)
 
-        AAS.flux_advection(*self._nPoints,modFunc(f),
+        flux_advection(*self._nPoints,f,
                             self._lagrangeCoeffs[rIdx,cIdx],
-                            modFunc(self._LagrangeVals))
+                            self._LagrangeVals)
 
     def gridStep( self, grid: Grid ):
         assert(grid.getLayout(grid.currentLayout).dims_order==(0,3,1,2))
@@ -354,7 +348,7 @@ class VParallelAdvection:
         assert(f.shape==self._nPoints)
         self._interpolator.compute_interpolant(f,self._spline)
 
-        AAS.v_parallel_advection_eval_step(f,self._points-c*dt,r,self._points[0],
+        v_parallel_advection_eval_step(f,self._points-c*dt,r,self._points[0],
                                         self._points[-1],self._spline.basis.knots,
                                         self._spline.basis.degree,self._spline.coeffs,
                                         self._constants.CN0,self._constants.kN0,
@@ -461,32 +455,32 @@ class PoloidalAdvection:
         polBases = self._spline.basis
 
         if (self._explicit):
-            AAS.poloidal_advection_step_expl( modFunc(f), dt, v, self._points[1],
-                            self._points[0], self._nPoints, modFunc(self._drPhi_0),
-                            modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
-                            modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
-                            modFunc(self._endPts_k1_r), modFunc(self._endPts_k2_q),
-                            modFunc(self._endPts_k2_r), phiBases[0].knots,
-                            phiBases[1].knots, modFunc(phi.coeffs),
+            poloidal_advection_step_expl( f, dt, v, self._points[1],
+                            self._points[0], self._nPoints, self._drPhi_0,
+                            self._dqPhi_0, self._drPhi_k,
+                            self._dqPhi_k, self._endPts_k1_q,
+                            self._endPts_k1_r, self._endPts_k2_q,
+                            self._endPts_k2_r, phiBases[0].knots,
+                            phiBases[1].knots, phi.coeffs,
                             phiBases[0].degree, phiBases[1].degree,
                             polBases[0].knots, polBases[1].knots,
-                            modFunc(self._spline.coeffs), polBases[0].degree,
+                            self._spline.coeffs, polBases[0].degree,
                             polBases[1].degree, self._constants.CN0,
                             self._constants.kN0, self._constants.deltaRN0,
                             self._constants.rp, self._constants.CTi,
                             self._constants.kTi, self._constants.deltaRTi,
                             self._constants.B0, self._nulEdge)
         else:
-            AAS.poloidal_advection_step_impl( modFunc(f), dt, v, self._points[1],
-                            self._points[0], self._nPoints, modFunc(self._drPhi_0),
-                            modFunc(self._dqPhi_0), modFunc(self._drPhi_k),
-                            modFunc(self._dqPhi_k), modFunc(self._endPts_k1_q),
-                            modFunc(self._endPts_k1_r), modFunc(self._endPts_k2_q),
-                            modFunc(self._endPts_k2_r), phiBases[0].knots,
-                            phiBases[1].knots, modFunc(phi.coeffs),
+            poloidal_advection_step_impl( f, dt, v, self._points[1],
+                            self._points[0], self._nPoints, self._drPhi_0,
+                            self._dqPhi_0, self._drPhi_k,
+                            self._dqPhi_k, self._endPts_k1_q,
+                            self._endPts_k1_r, self._endPts_k2_q,
+                            self._endPts_k2_r, phiBases[0].knots,
+                            phiBases[1].knots, phi.coeffs,
                             phiBases[0].degree, phiBases[1].degree,
                             polBases[0].knots, polBases[1].knots,
-                            modFunc(self._spline.coeffs), polBases[0].degree,
+                            self._spline.coeffs, polBases[0].degree,
                             polBases[1].degree, self._constants.CN0,
                             self._constants.kN0, self._constants.deltaRN0,
                             self._constants.rp, self._constants.CTi,
