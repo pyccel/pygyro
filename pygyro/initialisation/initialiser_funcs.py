@@ -21,8 +21,8 @@ def perturbation(r,theta,z,m,n,rp,deltaR,R0):
 @pure
 @types('double','double','double','double','double','double','double','double','double')
 def f_eq(r,vPar,CN0,kN0,deltaRN0,rp,Cti,kti,deltaRti):
-    from numpy import exp, sqrt, pi
-    return n0(r,CN0,kN0,deltaRN0,rp)*exp(-0.5*vPar*vPar/ti(r,Cti,kti,deltaRti,rp))/float(sqrt(2.0*pi*ti(r,Cti,kti,deltaRti,rp)))
+    from numpy import exp, sqrt, pi, real
+    return n0(r,CN0,kN0,deltaRN0,rp)*exp(-0.5*vPar*vPar/ti(r,Cti,kti,deltaRti,rp))/real(sqrt(2.0*pi*ti(r,Cti,kti,deltaRti,rp)))
 
 @pure
 @types('double','double','double','double')
