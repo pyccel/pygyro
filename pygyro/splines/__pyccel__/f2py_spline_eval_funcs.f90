@@ -77,7 +77,6 @@ function eval_spline_1d_scalar(x, n0_knots, knots, degree, n0_coeffs, &
   integer(kind=8), intent(in) :: der
   real(kind=8) :: y
 
-  !f2py integer :: der = 0
   y = mod_eval_spline_1d_scalar(x, knots, degree, coeffs, der)
 
 end function eval_spline_1d_scalar
@@ -103,7 +102,6 @@ subroutine eval_spline_1d_vector(n0_x, x, n0_knots, knots, degree, &
   real(kind=8), intent(inout) :: y(0:n0_y-1)
   integer(kind=8), intent(in) :: der
 
-  !f2py integer :: der = 0
   call mod_eval_spline_1d_vector(x, knots, degree, coeffs, y, der)
 
 end subroutine eval_spline_1d_vector
@@ -136,8 +134,6 @@ function eval_spline_2d_scalar(x, y, n0_kts1, kts1, deg1, n0_kts2, kts2, &
   !f2py integer(kind=8) :: n0_coeffs=shape(coeffs,0)
   !f2py integer(kind=8) :: n1_coeffs=shape(coeffs,1)
   !f2py intent(c) coeffs
-  !f2py integer :: der1 = 0
-  !f2py integer :: der2 = 0
   z = mod_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, &
       der1, der2)
 
@@ -179,8 +175,6 @@ subroutine eval_spline_2d_cross(n0_xVec, xVec, n0_yVec, yVec, n0_kts1, &
   !f2py integer(kind=8) :: n0_z=shape(z,0)
   !f2py integer(kind=8) :: n1_z=shape(z,1)
   !f2py intent(c) z
-  !f2py integer :: der1 = 0
-  !f2py integer :: der2 = 0
   call mod_eval_spline_2d_cross(xVec, yVec, kts1, deg1, kts2, deg2, &
       coeffs, z, der1, der2)
 
@@ -218,8 +212,6 @@ subroutine eval_spline_2d_vector(n0_x, x, n0_y, y, n0_kts1, kts1, deg1, &
   !f2py integer(kind=8) :: n0_coeffs=shape(coeffs,0)
   !f2py integer(kind=8) :: n1_coeffs=shape(coeffs,1)
   !f2py intent(c) coeffs
-  !f2py integer :: der1 = 0
-  !f2py integer :: der2 = 0
   call mod_eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z &
       , der1, der2)
 
