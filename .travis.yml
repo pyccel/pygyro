@@ -46,8 +46,7 @@ script:
   - mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
 #  - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
   - coverage combine
-  - coverage report -m > cov_out.txt 2> cov_err.txt
-  - python checkCoverage.py
+  - coverage xml
   - make clean
   - make ACC=numba
   - pytest pygyro
@@ -56,5 +55,6 @@ script:
   - pytest pygyro
 
 after_script:
+  - bash <(wget -q -O - https://coverage.codacy.com/get.sh)
   - rm -r __test__
   - make clean
