@@ -23,6 +23,7 @@ before_install:
   - h5pcc -showconfig -echo || true
   - export CC="mpicc" HDF5_MPI="ON" HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
   - python -m pip install --upgrade pip
+  - python -m pip install Cython
   - python -m pip uninstall -y pygyro
   - python -m pip install -r requirements.txt
   - python -m pip install numba
