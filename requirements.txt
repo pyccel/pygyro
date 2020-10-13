@@ -15,9 +15,3 @@ pyccel>=0.10.0
 #
 --no-binary h5py
 
-# NOTE: PyGyro depends on "pyccel" library, to be
-#       installed manually from its git repository:
-#
-# wget https://raw.githubusercontent.com/pyccel/pyccel/master/requirements.txt -O requirements_pyccel.txt
-# python3 -m pip install -r requirements_pyccel.txt
-# python3 -m pip install git+https://github.com/pyccel/pyccel@master
