@@ -1,4 +1,6 @@
 sudo: required
+os: linux
+dist: xenial
 language: python
 
 # which python versions to test
@@ -7,9 +9,7 @@ matrix:
   include:
     - python: 3.6
     - python: 3.7
-      dist: xenial
     - python: 3.8
-      dist: xenial
 
 # Cache directory $HOME/.cache/pip
 cache: pip
