@@ -1,9 +1,8 @@
-from pyccel.decorators  import types, pure, external
+from pyccel.decorators  import types, pure
 from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
 from ..initialisation.initialiser_funcs               import f_eq
 
 @pure
-@external
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]',
         'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]',
         'double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int',
@@ -118,7 +117,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
 
 @pure
-@external
 @types('double[:]','double[:]','double','double','double','double[:]','int','double[:]',
         'double','double','double','double','double','double','double','int')
 def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
@@ -148,7 +146,6 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
 
 
 @pure
-@external
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
 def get_lagrange_vals(i,nz,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     from numpy import pi
@@ -162,7 +159,6 @@ def get_lagrange_vals(i,nz,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
             vals[(i-s)%nz,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
 @pure
-@external
 @types('int','int','double[:,:]','double[:]','double[:,:,:]')
 def flux_advection(nq,nr,f,coeffs,vals):
         for j in range(nq):
@@ -172,7 +168,6 @@ def flux_advection(nq,nr,f,coeffs,vals):
                     f[j,i] += coeffs[k]*vals[i,j,k]
 
 @pure
-@external
 @types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]',
         'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]',
         'double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]',

@@ -13,20 +13,15 @@ testimony:
     - mkdir __test__
   script:
     - coverage run -p --source=pygyro -m pytest pygyro -m serial -k 'not long' --short
-    - coverage combine
     - make
     - coverage run -p --source=pygyro -m pytest pygyro -m serial
-    - coverage combine -a
     - mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-    - coverage combine -a
     - mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-    - coverage combine -a
     - mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-    - coverage combine -a
     - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-    - coverage combine -a
+    - coverage combine
     - coverage report -m > cov_out.txt 2> cov_err.txt
-    - python checkCoverage.py
+    - python checkCoverage.py 90
     - make clean
     - make ACC=numba
     - pytest pygyro

@@ -1,14 +1,15 @@
 sudo: required
+os: linux
+dist: xenial
 language: python
 
 # which python versions to test
 # Enable 3.7 without globally enabling 'dist: xenial' for other build jobs
 matrix:
   include:
-    - python: 3.5
     - python: 3.6
     - python: 3.7
-      dist: xenial
+    - python: 3.8
 
 # Cache directory $HOME/.cache/pip
 cache: pip
@@ -22,6 +23,7 @@ before_install:
   - h5pcc -showconfig -echo || true
   - export CC="mpicc" HDF5_MPI="ON" HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
   - python -m pip install --upgrade pip
+  - python -m pip install Cython
   - python -m pip uninstall -y pygyro
   - python -m pip install -r requirements.txt
   - python -m pip install numba
@@ -38,20 +40,14 @@ before_script:
 # command to run tests
 script:
   - coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" --short
-  - coverage combine
   - make
   - coverage run -p --source=pygyro -m pytest pygyro -m serial
-  - coverage combine -a
   - mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-  - coverage combine -a
   - mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-  - coverage combine -a
   - mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-  - coverage combine -a
 #  - mpirun -n 20 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-#  - coverage combine -a
-  - coverage report -m > cov_out.txt 2> cov_err.txt
-  - python checkCoverage.py
+  - coverage combine
+  - coverage xml
   - make clean
   - make ACC=numba
   - pytest pygyro
@@ -60,5 +56,6 @@ script:
   - pytest pygyro
 
 after_script:
+  - bash <(wget -q -O - https://coverage.codacy.com/get.sh)
   - rm -r __test__
   - make clean

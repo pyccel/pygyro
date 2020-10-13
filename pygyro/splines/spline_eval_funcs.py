@@ -159,7 +159,7 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
 @pure
 @stack_array('basis')
 @types('double','double[:]','int','double[:]','int')
-def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
+def eval_spline_1d_scalar(x,knots,degree,coeffs,der):
     span  =  find_span( knots, degree, x )
 
     from numpy      import empty
@@ -177,7 +177,7 @@ def eval_spline_1d_scalar(x,knots,degree,coeffs,der=0):
 @pure
 @stack_array('basis')
 @types('double[:]','double[:]','int','double[:]','double[:]','int')
-def eval_spline_1d_vector(x,knots,degree,coeffs,y,der=0):
+def eval_spline_1d_vector(x,knots,degree,coeffs,y,der):
     from numpy      import empty
     basis  = empty( degree+1, dtype=float )
 
@@ -202,7 +202,7 @@ def eval_spline_1d_vector(x,knots,degree,coeffs,y,der=0):
 @pure
 @stack_array('basis1','basis2','theCoeffs')
 @types('double','double','double[:]','int','double[:]','int','double[:,:]','int','int')
-def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
+def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1,der2):
     from numpy      import empty
     basis1  = empty( deg1+1, dtype=float )
     basis2  = empty( deg2+1, dtype=float )
@@ -233,7 +233,7 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1=0,der2=0):
 @pure
 @stack_array('basis1','basis2','theCoeffs')
 @types('double[:]','double[:]','double[:]','int','double[:]','int','double[:,:]','double[:,:]','int','int')
-def eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
+def eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2):
     from numpy      import empty
     basis1  = empty( deg1+1 )
     basis2  = empty( deg2+1 )
@@ -307,7 +307,7 @@ def eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
 @pure
 @stack_array('basis1','basis2','theCoeffs')
 @types('double[:]','double[:]','double[:]','int','double[:]','int','double[:,:]','double[:]','int','int')
-def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1=0,der2=0):
+def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1,der2):
     from numpy      import empty
     basis1  = empty( deg1+1, dtype=float )
     basis2  = empty( deg2+1, dtype=float )
