@@ -16,7 +16,7 @@ runs:
       run: |
               ompi_info
               h5pcc -showconfig -echo || true
-              export CC="mpicc" HDF5_MPI="ON" HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+              export CC="mpicc" HDF5_MPI="ON"
               python -m pip install -r requirements.txt
               python -m pip install numba
               python -m pip install pythran
