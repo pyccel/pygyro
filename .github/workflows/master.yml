@@ -1,4 +1,4 @@
-name: Pure python tests
+name: Tests
 
 on:
   pull_request:
@@ -6,7 +6,46 @@ on:
 
 jobs:
 
-  Linux:
+  Coverage:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        uses: ./.github/actions/linux_install
+      - name: Cache pip
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pip
+        with:
+          path: ~/.local
+          key: ${{runner.os }}-build-${{ env.cache-name }}
+      - name: Install python dependencies
+        uses: ./.github/actions/pip_installation
+      - name: Coverage install
+        uses: ./.github/actions/coverage_install
+      - name: Unit tests
+        run: |
+          coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" --short
+          make
+          coverage run -p --source=pygyro -m pytest pygyro -m serial
+          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+      - name: Collect coverage information
+        continue-on-error: True
+        uses: ./.github/actions/coverage_collection
+      - name: Run codacy-coverage-reporter
+        uses: codacy/codacy-coverage-reporter-action@master
+        continue-on-error: True
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: cobertura.xml
+
+  Pyccel_Fortran:
 
     runs-on: ubuntu-latest
     strategy:
@@ -24,23 +63,86 @@ jobs:
       - name: Cache pip
         uses: actions/cache@v2
         env:
-                cache-name: cache-pip
+          cache-name: cache-pip
         with:
-                path: ~/.local
-                key: ${{runner.os }}-build-${{ env.cache-name }}
+          path: ~/.local
+          key: ${{runner.os }}-build-${{ env.cache-name }}
       - name: Install python dependencies
         uses: ./.github/actions/pip_installation
-      - name: Coverage install
-        uses: ./.github/actions/coverage_install
+      - name: Make with pyccel
+        run: |
+          make pycc
       - name: Unit tests
         run: |
-                coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" --short
-      - name: Collect coverage information
-        continue-on-error: True
-        uses: ./.github/actions/coverage_collection
-      - name: Run codacy-coverage-reporter
-        uses: codacy/codacy-coverage-reporter-action@master
-        continue-on-error: True
+          pytest pygyro -m serial
+          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+
+  Numba:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6,3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
         with:
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: cobertura.xml
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        uses: ./.github/actions/linux_install
+      - name: Cache pip
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pip
+        with:
+          path: ~/.local
+          key: ${{runner.os }}-build-${{ env.cache-name }}
+      - name: Install python dependencies
+        uses: ./.github/actions/pip_installation
+      - name: Make with numba
+        run: |
+          make numba
+      - name: Unit tests
+        run: |
+          pytest pygyro -m serial
+          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+
+  Pythran:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6,3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        uses: ./.github/actions/linux_install
+      - name: Cache pip
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pip
+        with:
+          path: ~/.local
+          key: ${{runner.os }}-build-${{ env.cache-name }}
+      - name: Install python dependencies
+        uses: ./.github/actions/pip_installation
+      - name: Make with pyccel
+        run: |
+          make pythran
+      - name: Unit tests
+        run: |
+          pytest pygyro -m serial
+          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
