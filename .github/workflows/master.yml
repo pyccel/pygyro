@@ -71,11 +71,7 @@ jobs:
         run: |
           make pycc
       - name: Unit tests
-        run: |
-          pytest pygyro -m serial
-          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+        uses: ./.github/actions/pytest_run
 
   Numba:
 
@@ -100,11 +96,7 @@ jobs:
         run: |
           make numba
       - name: Unit tests
-        run: |
-          pytest pygyro -m serial
-          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+        uses: ./.github/actions/pytest_run
 
   Pythran:
 
@@ -129,8 +121,4 @@ jobs:
         run: |
           make pythran
       - name: Unit tests
-        run: |
-          pytest pygyro -m serial
-          mpirun -n 1 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-          mpirun -n 4 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
-          mpirun -n 6 coverage run -p mpi_tester.py pygyro -m parallel --mpisub
+        uses: ./.github/actions/pytest_run
