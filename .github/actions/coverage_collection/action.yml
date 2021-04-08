@@ -1,0 +1,11 @@
+name: 'Coverage Collection'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Coverage collection
+      run: |
+        coverage combine
+        coverage xml
+      shell: bash
+
