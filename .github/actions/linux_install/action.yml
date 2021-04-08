@@ -18,12 +18,10 @@ runs:
     - name: Install MPI
       run: |
         sudo apt-get install libomp5 libopenmpi-dev openmpi-bin
-        echo "MPI_OPTS=--oversubscribe" >> $GITHUB_ENV
       shell: bash
     - name: Install HDF5
       run: |
         sudo apt-get install libhdf5-openmpi-dev
-        echo "MPI_OPTS=--oversubscribe" >> $GITHUB_ENV
       shell: bash
     - name: Install OpenMP
       run:
