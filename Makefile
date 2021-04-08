@@ -9,7 +9,10 @@ ACC := pycc
 COMP := gnu
 
 # Use pyccel to generate files? [1|0]
-PYCC_GEN := 0
+PYCC_GEN := 1
+
+# Target language
+LANGUAGE := fortran
 
 #PYTHRAN_FLAGS := -DUSE_XSIMD -fopenmp -march=native
 PYTHRAN_FLAGS := 
@@ -31,13 +34,7 @@ ifeq ($(COMP), intel)
         FF_COMP  := intelem
 endif
 
-python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python --version 2>&1)))
-python_version_major := $(word 1,${python_version_full})
-ifeq ($(python_version_major),3)
-	PYTHON := python
-else
-	PYTHON := python3
-endif
+PYTHON := python3
 
 SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
@@ -48,7 +45,7 @@ SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var
 
 ifeq ($(ACC), pycc)
 	TOOL := pyccel
-	TOOL_FLAGS := --flags ' $(FC_FLAGS)'
+	TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
 	NAME_PREFIX := 
 else
 	ifeq ($(ACC), numba)
@@ -62,7 +59,7 @@ else
 			NAME_PREFIX := pythran_
 		else
 			TOOL := pyccel
-			TOOL_FLAGS := --flags ' $(FC_FLAGS)'
+			TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language= --language=$(LANGUAGE)
 			NAME_PREFIX := 
 		endif
 	endif
