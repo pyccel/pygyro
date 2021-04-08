@@ -33,3 +33,7 @@ runs:
       run:
         sudo apt-get install valgrind
       shell: bash
+    - name: Create directory for mpi_tester.py
+      run:
+        mkdir __test__
+      shell: bash
