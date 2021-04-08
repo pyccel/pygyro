@@ -21,12 +21,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         uses: ./.github/actions/linux_install
+      - name: Cache pip
+        uses: actions/cache@v2
+        env:
+                cache-name: cache-pip
+        with:
+                path: ~/.local
+                key: ${{runner.os }}-build-${{ env.cache-name }}
       - name: Install python dependencies
         uses: ./.github/actions/pip_installation
       - name: Coverage install
         uses: ./.github/actions/coverage_install
       - name: Unit tests
-        uses: ./.github/actions/pytest_run
+        run: |
+                coverage run -p --source=pygyro -m pytest pygyro -m "serial and not long" --short
       - name: Collect coverage information
         continue-on-error: True
         uses: ./.github/actions/coverage_collection
