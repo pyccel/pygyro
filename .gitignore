@@ -26,4 +26,4 @@ doc/**/*.kilepr
 .kile
 tags
 .ACC.*
-f2py_build
+__pyccel__
