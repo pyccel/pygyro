@@ -94,7 +94,7 @@ jobs:
         uses: ./.github/actions/pip_installation
       - name: Make with numba
         run: |
-          make numba
+          make ACC=numba numba
       - name: Unit tests
         uses: ./.github/actions/pytest_run
 
@@ -119,6 +119,6 @@ jobs:
         uses: ./.github/actions/pip_installation
       - name: Make with pyccel
         run: |
-          make pythran
+          make ACC=pythran pythran
       - name: Unit tests
         uses: ./.github/actions/pytest_run
