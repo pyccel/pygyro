@@ -5,8 +5,8 @@ from pythran_initialiser_funcs     import f_eq
 from pythran_spline_eval_funcs                import eval_spline_2d_cross, eval_spline_2d_scalar, \
                                                             eval_spline_1d_scalar
 
-#pythran export poloidal_advection_step_expl(float64[:,:]order(C),float64,float64,float64[:],float64[:],(int,int),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:],float64[:],float64[:,:]order(C),int,int, float64[:],float64[:],float64[:,:]order(C),int,int,float64,float64,float64,float64,float64,float64,float64,float64,bool)
-def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
+#pythran export poloidal_advection_step_expl(float64[:,:]order(C),float64,float64,float64[:],float64[:],float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:],float64[:],float64[:,:]order(C),int,int, float64[:],float64[:],float64[:,:]order(C),int,int,float64,float64,float64,float64,float64,float64,float64,float64,bool)
+def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
@@ -38,6 +38,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
 
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
+
+    nPts = (rPts.size, qPts.size)
 
     idx = nPts[1]-1
     rMax = rPts[idx]
@@ -158,8 +160,8 @@ def flux_advection(nq,nr,f,coeffs,vals):
             for k in range(1,len(coeffs)):
                 f[j,i] += coeffs[k]*vals[i,j,k]
 
-#pythran export poloidal_advection_step_impl(float64[:,:]order(C),float64,float64,float64[:],float64[:],(int,int),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:],float64[:],float64[:,:]order(C),int,int, float64[:],float64[:],float64[:,:]order(C),int,int,float64,float64,float64,float64,float64,float64,float64,float64,float64,bool)
-def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
+#pythran export poloidal_advection_step_impl(float64[:,:]order(C),float64,float64,float64[:],float64[:],float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:,:]order(C),float64[:],float64[:],float64[:,:]order(C),int,int, float64[:],float64[:],float64[:,:]order(C),int,int,float64,float64,float64,float64,float64,float64,float64,float64,float64,bool)
+def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
@@ -190,6 +192,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
 
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
+
+    nPts = (rPts.size, qPts.size)
 
     idx = nPts[1]-1
     rMax = rPts[idx]

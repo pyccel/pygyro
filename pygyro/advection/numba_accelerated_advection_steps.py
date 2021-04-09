@@ -14,12 +14,12 @@ shape2 = Tuple([i4,i4])
 cc = CC('accelerated_advection_steps')
 
 @cc.export('poloidal_advection_step_expl', (f8[:,:],f8,f8,f8[:],f8[:], \
-                                          shape2,f8[:,:],f8[:,:],f8[:,:],\
+                                          f8[:,:],f8[:,:],f8[:,:],\
                                           f8[:,:],f8[:,:],f8[:,:],f8[:,:],\
                                           f8[:,:],f8[:],f8[:],f8[:,:],\
                                           i4,i4, f8[:],f8[:],f8[:,:],\
                                           i4,i4,f8,f8,f8,f8,f8,f8,f8,f8,b1))
-def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
+def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
@@ -51,6 +51,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
 
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
+
+    nPts = (rPts.size, qPts.size)
 
     idx = nPts[1]-1
     rMax = rPts[idx]
@@ -173,12 +175,12 @@ def flux_advection(nq,nr,f,coeffs,vals):
                 f[j,i] += coeffs[k]*vals[i,j,k]
 
 @cc.export('poloidal_advection_step_impl', (f8[:,:],f8,f8,f8[:],f8[:], \
-                                          shape2,f8[:,:],f8[:,:],f8[:,:],\
+                                          f8[:,:],f8[:,:],f8[:,:],\
                                           f8[:,:],f8[:,:],f8[:,:],f8[:,:],\
                                           f8[:,:],f8[:],f8[:],f8[:,:],\
                                           i4,i4, f8[:],f8[:],f8[:,:],\
                                           i4,i4,f8,f8,f8,f8,f8,f8,f8,f8,f8,b1))
-def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
+def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
@@ -209,6 +211,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
 
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
+
+    nPts = (rPts.size, qPts.size)
 
     idx = nPts[1]-1
     rMax = rPts[idx]
