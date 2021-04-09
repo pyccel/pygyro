@@ -1,0 +1,9 @@
+name: 'Coverage Setup'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Installation
+      run: |
+        python -m pip install coverage
+      shell: bash

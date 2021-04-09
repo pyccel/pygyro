@@ -1,0 +1,22 @@
+name: 'Pyccel pip commands for testing'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update pip
+      shell: bash
+      run:
+        python -m pip install --upgrade pip
+    - name: Install wheel
+      shell: bash
+      run:
+        python -m pip install wheel
+    - name: Install dependencies
+      shell: bash
+      run: |
+              export CC="mpicc" HDF5_MPI="ON"
+              python -m pip install Cython
+              python -m pip install -r requirements.txt
+              python -m pip install numba
+              python -m pip install pythran
+
