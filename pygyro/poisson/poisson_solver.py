@@ -316,7 +316,7 @@ class DiffEqSolver:
     def funcIsNull( self, f ):
         vals = f(self._evalPts)
         if (hasattr(vals,'__len__')):
-            return all(vals==0)
+            return (vals==0).all()
         else:
             return vals==0
 
