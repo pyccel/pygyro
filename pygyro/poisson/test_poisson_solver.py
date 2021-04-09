@@ -9,7 +9,7 @@ from ..model.layout                         import LayoutSwapper, getLayoutHandl
 from ..model.grid                           import Grid
 from ..initialisation.setups                import setupCylindricalGrid
 from ..initialisation.constants             import Constants
-from ..initialisation.initialiser_funcs import te as Te, f_eq as fEq
+from ..initialisation.initialiser_funcs import Te, f_eq as fEq
 from ..                                     import splines as spl
 from .poisson_solver                        import DiffEqSolver, DensityFinder, QuasiNeutralitySolver
 

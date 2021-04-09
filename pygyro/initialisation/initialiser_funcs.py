@@ -8,7 +8,7 @@ def n0(r,CN0,kN0,deltaRN0,rp):
 
 @pure
 @types('double','double','double','double','double')
-def ti(r,Cti,kti,deltaRti,rp):
+def Ti(r,Cti,kti,deltaRti,rp):
     from numpy import exp, tanh
     return Cti*exp(-kti*deltaRti*tanh((r-rp)/deltaRti))
 
@@ -22,7 +22,7 @@ def perturbation(r,theta,z,m,n,rp,deltaR,R0):
 @types('double','double','double','double','double','double','double','double','double')
 def f_eq(r,vPar,CN0,kN0,deltaRN0,rp,Cti,kti,deltaRti):
     from numpy import exp, sqrt, pi, real
-    return n0(r,CN0,kN0,deltaRN0,rp)*exp(-0.5*vPar*vPar/ti(r,Cti,kti,deltaRti,rp))/real(sqrt(2.0*pi*ti(r,Cti,kti,deltaRti,rp)))
+    return n0(r,CN0,kN0,deltaRN0,rp)*exp(-0.5*vPar*vPar/Ti(r,Cti,kti,deltaRti,rp))/real(sqrt(2.0*pi*Ti(r,Cti,kti,deltaRti,rp)))
 
 @pure
 @types('double','double','double','double')
@@ -32,7 +32,7 @@ def n0deriv_normalised(r,kN0,rp,deltaRN0):
 
 @pure
 @types('double','double','double','double','double')
-def te(r,Cte,kte,deltaRte,rp):
+def Te(r,Cte,kte,deltaRte,rp):
     from numpy import exp, tanh
     return Cte*exp(-kte*deltaRte*tanh((r-rp)/deltaRte))
 
