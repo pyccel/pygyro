@@ -1,0 +1,37 @@
+name: 'Linux installation commands'
+
+runs:
+  using: "composite"
+  steps:
+    - name: update the package list
+      run:
+        sudo apt-get update
+      shell: bash
+    - name: Install fortran
+      run:
+        sudo apt-get install gfortran
+      shell: bash
+    - name: Install LaPack
+      run:
+        sudo apt-get install libblas-dev liblapack-dev
+      shell: bash
+    - name: Install MPI
+      run: |
+        sudo apt-get install libomp5 libopenmpi-dev openmpi-bin
+      shell: bash
+    - name: Install HDF5
+      run: |
+        sudo apt-get install libhdf5-openmpi-dev
+      shell: bash
+    - name: Install OpenMP
+      run:
+        sudo apt-get install libomp-dev
+      shell: bash
+    - name: Install Valgrind
+      run:
+        sudo apt-get install valgrind
+      shell: bash
+    - name: Create directory for mpi_tester.py
+      run:
+        mkdir __test__
+      shell: bash
