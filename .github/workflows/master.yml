@@ -73,6 +73,31 @@ jobs:
       - name: Unit tests
         uses: ./.github/actions/pytest_run
 
+  Pyccel_C:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        uses: ./.github/actions/linux_install
+      - name: Cache pip
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pip
+        with:
+          path: ~/.local
+          key: ${{runner.os }}-build-${{ env.cache-name }}
+      - name: Install python dependencies
+        uses: ./.github/actions/pip_installation
+      - name: Make with pyccel
+        run: |
+          make LANGUAGE=c pycc
+      - name: Unit tests
+        uses: ./.github/actions/pytest_run
+
   Numba:
 
     runs-on: ubuntu-latest
