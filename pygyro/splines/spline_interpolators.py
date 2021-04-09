@@ -29,7 +29,7 @@ class SplineInterpolator1D():
             bmat = np.zeros( (1+self._u+2*self._l, cmat.shape[1]) )
             for i,j in zip( *cmat.nonzero() ):
                 bmat[self._u+self._l+i-j,j] = cmat[i,j]
-            if (dtype==np.complex):
+            if (dtype==complex):
                 self._bmat, self._ipiv, self._finfo = zgbtrf(bmat, self._l, self._u)
                 self._solveFunc = zgbtrs
             else:

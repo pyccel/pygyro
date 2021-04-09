@@ -187,7 +187,7 @@ def initConditions(r,theta):
     else:
         return 0.0
 
-initConds = np.vectorize(initConditions, otypes=[np.float])
+initConds = np.vectorize(initConditions, otypes=[float])
 
 @pytest.mark.serial
 @pytest.mark.parametrize( "dt,v,xc,yc", [(1.0,-5.0,0,0), (0.1,5.0,1,0), (0.1, 2.0, 2, 1)])
