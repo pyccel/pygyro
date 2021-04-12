@@ -46,7 +46,7 @@ jobs:
         continue-on-error: True
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: cobertura.xml
+          coverage-reports: current_coverage.xml
 
   Pyccel_Fortran:
 
