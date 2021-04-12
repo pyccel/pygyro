@@ -456,7 +456,7 @@ class PoloidalAdvection:
 
         if (self._explicit):
             poloidal_advection_step_expl( f, dt, v, self._points[1],
-                            self._points[0], self._nPoints, self._drPhi_0,
+                            self._points[0], self._drPhi_0,
                             self._dqPhi_0, self._drPhi_k,
                             self._dqPhi_k, self._endPts_k1_q,
                             self._endPts_k1_r, self._endPts_k2_q,
@@ -472,7 +472,7 @@ class PoloidalAdvection:
                             self._constants.B0, self._nulEdge)
         else:
             poloidal_advection_step_impl( f, dt, v, self._points[1],
-                            self._points[0], self._nPoints, self._drPhi_0,
+                            self._points[0], self._drPhi_0,
                             self._dqPhi_0, self._drPhi_k,
                             self._dqPhi_k, self._endPts_k1_q,
                             self._endPts_k1_r, self._endPts_k2_q,

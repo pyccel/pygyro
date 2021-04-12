@@ -8,9 +8,6 @@ ACC := pycc
 # Use GNU or intel compilers? [gnu|intel]
 COMP := gnu
 
-# Use pyccel to generate files? [1|0]
-PYCC_GEN := 0
-
 #PYTHRAN_FLAGS := -DUSE_XSIMD -fopenmp -march=native
 PYTHRAN_FLAGS := 
 
