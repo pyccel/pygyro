@@ -172,6 +172,11 @@ class DiffEqSolver:
                   ddrFactor = lambda r: -1, drFactor = lambda r: 0,
                   rFactor = lambda r: 0, ddThetaFactor = lambda r: -1,
                   rhoFactor = lambda r: 1):
+        ddrFactor = np.vectorize(ddrFactor)
+        drFactor  = np.vectorize(drFactor)
+        rFactor   = np.vectorize(rFactor)
+        ddThetaFactor = np.vectorize(ddThetaFactor)
+        rhoFactor = np.vectorize(rhoFactor)
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n=degree//2+1
@@ -300,7 +305,7 @@ class DiffEqSolver:
         self._stiffnessMatrix = self._dPhidPsi + self._dPhiPsi + self._PhiPsi
 
         # Create the tools required for the interpolation
-        self._interpolator = SplineInterpolator1D(rspline,dtype=np.complex)
+        self._interpolator = SplineInterpolator1D(rspline,dtype=complex)
         self._spline = Spline1D(rspline,np.complex128)
         self._real_spline = Spline1D(rspline)
 
@@ -311,7 +316,7 @@ class DiffEqSolver:
     def funcIsNull( self, f ):
         vals = f(self._evalPts)
         if (hasattr(vals,'__len__')):
-            return all(vals==0)
+            return (vals==0).all()
         else:
             return vals==0
 
@@ -539,7 +544,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
     Te: function handle - optional
         The temperature of the electrons
         This parameter will be ignored if adiabaticElectrons = False.
-        Default is init.te
+        Default is init.Te
 
     """
     def __init__( self, eta_grid: list, degree: int, rspline: BSplines,
@@ -550,7 +555,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
             n0 = lambda r: init.n0(r,constants.CN0,constants.kN0,
                                         constants.deltaRN0,constants.rp)
         if (Te is None):
-            Te = lambda r: init.te(r,constants.CTe,constants.kTe,
+            Te = lambda r: init.Te(r,constants.CTe,constants.kTe,
                                         constants.deltaRTe,constants.rp)
         r = eta_grid[0]
 

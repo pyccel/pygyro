@@ -3,11 +3,11 @@ from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_sca
 from ..initialisation.initialiser_funcs               import f_eq
 
 @pure
-@types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]','double[:,:]',
+@types('double[:,:]','double','double','double[:]','double[:]','double[:,:]','double[:,:]',
         'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]',
         'double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int',
         'double','double','double','double','double','double','double','double','bool')
-def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
+def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
@@ -42,11 +42,14 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
 
-    idx = nPts[1]-1
+    nPts_r = rPts.shape[0]
+    nPts_q = qPts.shape[0]
+
+    idx = nPts_r-1
     rMax = rPts[idx]
 
-    for i in range(nPts[0]):
-        for j in range(nPts[1]):
+    for i in range(nPts_q):
+        for j in range(nPts_r):
             # Step one of Heun method
             # x' = x^n + f(x^n)
             drPhi_0[i,j]/=rPts[j]
@@ -85,8 +88,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
 
     # Find value at the determined point
     if (nulBound):
-        for i in range(nPts[0]): # theta
-            for j in range(nPts[1]): # r
+        for i in range(nPts_q): # theta
+            for j in range(nPts_r): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
                 elif (endPts_k2_r[i,j]>rMax):
@@ -100,8 +103,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
     else:
-        for i in range(nPts[0]): # theta
-            for j in range(nPts[1]): # r
+        for i in range(nPts_q): # theta
+            for j in range(nPts_r): # r
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=f_eq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
@@ -168,12 +171,12 @@ def flux_advection(nq,nr,f,coeffs,vals):
                     f[j,i] += coeffs[k]*vals[i,j,k]
 
 @pure
-@types('double[:,:]','double','double','double[:]','double[:]','int[:]','double[:,:]',
+@types('double[:,:]','double','double','double[:]','double[:]','double[:,:]',
         'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]',
         'double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]',
         'double[:]','double[:,:]','int','int','double','double','double','double',
         'double','double','double','double','double','bool')
-def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
+def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
                         drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
                         endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
                         kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
@@ -206,11 +209,14 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,drPhi_0, 0,1)
     eval_spline_2d_cross(qPts,rPts, kts1Phi, deg1Phi, kts2Phi, deg2Phi, coeffsPhi,dthetaPhi_0, 1,0)
 
-    idx = nPts[1]-1
+    nPts_r = rPts.shape[0]
+    nPts_q = qPts.shape[0]
+
+    idx = nPts_r-1
     rMax = rPts[idx]
 
-    for i in range(nPts[0]):
-        for j in range(nPts[1]):
+    for i in range(nPts_q):
+        for j in range(nPts_r):
             # Step one of Heun method
             # x' = x^n + f(x^n)
             drPhi_0[i,j]/=rPts[j]
@@ -223,8 +229,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
     norm=tol+1
     while (norm>tol):
         norm=0.0
-        for i in range(nPts[0]):
-            for j in range(nPts[1]):
+        for i in range(nPts_q):
+            for j in range(nPts_r):
                 # Handle theta boundary conditions
                 while (endPts_k1_q[i,j]<0):
                     endPts_k1_q[i,j]+=2*pi
@@ -272,8 +278,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
 
     # Find value at the determined point
     if (nulBound):
-        for i in range(nPts[0]):
-            for j in range(nPts[1]):
+        for i in range(nPts_q):
+            for j in range(nPts_r):
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=0.0
                 elif (endPts_k2_r[i,j]>rMax):
@@ -287,8 +293,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts, nPts,
                                                         kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                         coeffsPol,0,0)
     else:
-        for i in range(nPts[0]):
-            for j in range(nPts[1]):
+        for i in range(nPts_q):
+            for j in range(nPts_r):
                 if (endPts_k2_r[i,j]<rPts[0]):
                     f[i,j]=f_eq(rPts[0],v,CN0,kN0,deltaRN0,rp,CTi,
                                     kTi,deltaRTi)
