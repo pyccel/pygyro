@@ -150,6 +150,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
 
 @pure
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
+@allow_negative_index('vals')
 def get_lagrange_vals(i,nz,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     from numpy import pi
     for j,s in enumerate(shifts):
