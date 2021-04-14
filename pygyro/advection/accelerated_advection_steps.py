@@ -84,6 +84,8 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
             # Step two of Heun method
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
             endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor_half) % (2*pi)
+            if endPts_k2_q[i,j]<0: # Needed for C due to pyccel issue #854
+                endPts_k2_q[i,j] += 2*pi
             endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor_half
 
     # Find value at the determined point
@@ -150,7 +152,7 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
 
 @pure
 @types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
-@allow_negative_index('vals')
+@allow_negative_index('vals') # Needed for C due to pyccel issue #854
 def get_lagrange_vals(i,nz,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     from numpy import pi
     for j,s in enumerate(shifts):
@@ -261,6 +263,8 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
                 # boundary conditions
                 # Using the splines to extrapolate is not sufficient
                 endPts_k2_q[i,j] = (qPts[i] - (drPhi_0[i,j]     + drPhi_k[i,j])*multFactor) % (2*pi)
+                if endPts_k2_q[i,j]<0: # Needed for C due to pyccel issue #854
+                    endPts_k2_q[i,j] += 2*pi
                 endPts_k2_r[i,j] = rPts[j] + (dthetaPhi_0[i,j] + dthetaPhi_k[i,j])*multFactor
 
                 if (endPts_k2_r[i,j]<rPts[0]):
