@@ -1,4 +1,4 @@
-from pyccel.decorators  import types, pure
+from pyccel.decorators  import types, pure, allow_negative_index
 from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
 from ..initialisation.initialiser_funcs               import f_eq
 
