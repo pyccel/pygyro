@@ -155,8 +155,9 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 v-=vDiff
             f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
 
-@cc.export('get_lagrange_vals','(i4,i4,i8[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:])')
-def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+@cc.export('get_lagrange_vals','(i4,i8[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:])')
+def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+    nz = vals.shape[0]
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
             new_q = q+thetaShifts[j]
@@ -164,7 +165,7 @@ def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
                 new_q+=2*pi
             while (new_q>2*pi):
                 new_q-=2*pi
-            vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
+            vals[(i-s)%nz,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
 @cc.export('flux_advection','(i4,i4,f8[:,:],f8[:],f8[:,:,:])')
 def flux_advection(nq,nr,f,coeffs,vals):

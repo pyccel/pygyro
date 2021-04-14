@@ -268,7 +268,7 @@ class FluxSurfaceAdvection:
         for i in range(self._nPoints[1]):
             self._interpolator.compute_interpolant(f[:,i],self._thetaSpline)
 
-            get_lagrange_vals(i,self._nPoints[1],self._shifts[rIdx,cIdx],
+            get_lagrange_vals(i,self._shifts[rIdx,cIdx],
                                 self._LagrangeVals,self._points[0],
                                 self._thetaShifts[rIdx,cIdx],self._thetaSpline.basis.knots,
                                 self._thetaSpline.basis.degree,

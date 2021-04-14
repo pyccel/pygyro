@@ -141,8 +141,9 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 v-=vDiff
             f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
 
-#pythran export get_lagrange_vals(int,int,int[:],float64[:,:,:],float64[:],float64[:],float64[:],int,float64[:])
-def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+#pythran export get_lagrange_vals(int,int[:],float64[:,:,:],float64[:],float64[:],float64[:],int,float64[:])
+def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+    nz = vals.shape[0]
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
             new_q = q+thetaShifts[j]
@@ -150,7 +151,7 @@ def get_lagrange_vals(i,nr,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
                 new_q+=2*pi
             while (new_q>2*pi):
                 new_q-=2*pi
-            vals[(i-s)%nr,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
+            vals[(i-s)%nz,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
 #pythran export flux_advection(int,int,float64[:,:]order(C),float64[:],float64[:,:,:])
 def flux_advection(nq,nr,f,coeffs,vals):
