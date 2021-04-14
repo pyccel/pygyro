@@ -151,10 +151,11 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
 
 
 @pure
-@types('int','int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
+@types('int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
 @allow_negative_index('vals') # Needed for C due to pyccel issue #854
-def get_lagrange_vals(i,nz,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
     from numpy import pi
+    nz = vals.shape[0]
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
             new_q = q+thetaShifts[j]
