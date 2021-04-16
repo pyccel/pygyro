@@ -40,23 +40,23 @@ SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var
 # use pure python, pyccel, numba?
 #----------------------------------------------------------
 
-ifeq ($(ACC), pycc)
-	TOOL := pyccel
-	TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
-	NAME_PREFIX := 
+ifeq ($(ACC), numba)
+	TOOL := $(PYTHON)
+	TOOL_FLAGS :=
+	NAME_PREFIX := numba_
 else
-	ifeq ($(ACC), numba)
-		TOOL := $(PYTHON)
-		TOOL_FLAGS :=
-		NAME_PREFIX := numba_
-	else
-		ifeq ($(ACC), pythran)
-			TOOL := pythran
-			TOOL_FLAGS = $(PYTHRAN_FLAGS)
-			NAME_PREFIX := pythran_
+	ifeq ($(ACC), pythran)
+		TOOL := pythran
+		TOOL_FLAGS = $(PYTHRAN_FLAGS)
+		NAME_PREFIX := pythran_
+	else # pycc is default
+		ifeq ($(LANGUAGE), c)
+			TOOL := pyccel
+			TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language=$(LANGUAGE) --compiler=$(CC)
+			NAME_PREFIX := 
 		else
 			TOOL := pyccel
-			TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language= --language=$(LANGUAGE)
+			TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language=$(LANGUAGE) --compiler=$(FC)
 			NAME_PREFIX := 
 		endif
 	endif
