@@ -1,19 +1,43 @@
+from numpy import pi, abs as np_abs
+
 from pyccel.decorators  import types, pure, allow_negative_index
 from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
 from ..initialisation.initialiser_funcs               import f_eq
 
 @pure
-@types('double[:,:]','double','double','double[:]','double[:]','double[:,:]','double[:,:]',
-        'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]',
-        'double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int',
-        'double','double','double','double','double','double','double','double','bool')
-def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
-                        drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
-                        endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
-                        kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
-                        kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol,
-                        CN0, kN0, deltaRN0, rp, CTi,
-                        kTi, deltaRTi, B0,nulBound = False ):
+def poloidal_advection_step_expl(
+    f           : 'double[:,:]',
+    dt          : 'double',
+    v           : 'double',
+    rPts        : 'const double[:]',
+    qPts        : 'const double[:]',
+    drPhi_0     : 'double[:,:]',
+    dthetaPhi_0 : 'double[:,:]',
+    drPhi_k     : 'double[:,:]',
+    dthetaPhi_k : 'double[:,:]',
+    endPts_k1_q : 'double[:,:]',
+    endPts_k1_r : 'double[:,:]',
+    endPts_k2_q : 'double[:,:]',
+    endPts_k2_r : 'double[:,:]',
+    kts1Phi     : 'const double[:]',
+    kts2Phi     : 'const double[:]',
+    coeffsPhi   : 'const double[:,:]',
+    deg1Phi     : 'int',
+    deg2Phi     : 'int',
+    kts1Pol     : 'const double[:]',
+    kts2Pol     : 'const double[:]',
+    coeffsPol   : 'const double[:,:]',
+    deg1Pol     : 'int',
+    deg2Pol     : 'int',
+    CN0         : 'double',
+    kN0         : 'double',
+    deltaRN0    : 'double',
+    rp          : 'double',
+    CTi         : 'double',
+    kTi         : 'double',
+    deltaRTi    : 'double',
+    B0          : 'double',
+    nulBound    : 'bool' = False ):
     """
     Carry out an advection step for the poloidal advection
 
@@ -33,8 +57,6 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
         The parallel velocity coordinate
 
     """
-
-    from numpy import pi
 
     multFactor = dt/B0
     multFactor_half = 0.5*multFactor
@@ -122,10 +144,23 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
 
 @pure
-@types('double[:]','double[:]','double','double','double','double[:]','int','double[:]',
-        'double','double','double','double','double','double','double','int')
-def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
-                        coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
+def v_parallel_advection_eval_step(
+        f        : 'double[:]',
+        vPts     : 'const double[:]',
+        rPos     : 'double',
+        vMin     : 'double',
+        vMax     : 'double',
+        kts      : 'const double[:]',
+        deg      : 'int',
+        coeffs   : 'double[:]',
+        CN0      : 'double',
+        kN0      : 'double',
+        deltaRN0 : 'double',
+        rp       : 'double',
+        CTi      : 'double',
+        kTi      : 'double',
+        deltaRTi : 'double',
+        bound    : 'int'):
     # Find value at the determined point
     if (bound==0):
         for i,v in enumerate(vPts):
@@ -151,10 +186,16 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
 
 
 @pure
-@types('int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
 @allow_negative_index('vals') # Needed for C due to pyccel issue #854
-def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
-    from numpy import pi
+def get_lagrange_vals(
+        i           : 'int',
+        shifts      : 'const int[:]',
+        vals        : 'double[:,:,:]',
+        qVals       : 'double[:]',
+        thetaShifts : 'double[:]',
+        kts         : 'double[:]',
+        deg         : 'int',
+        coeffs      : 'double[:]'):
     nz = vals.shape[0]
     for j,s in enumerate(shifts):
         for k,q in enumerate(qVals):
@@ -166,8 +207,12 @@ def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
             vals[(i-s)%nz,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
 @pure
-@types('int','int','double[:,:]','double[:]','double[:,:,:]')
-def flux_advection(nq,nr,f,coeffs,vals):
+def flux_advection(
+        nq     : 'int',
+        nr     : 'int',
+        f      : 'double[:,:]',
+        coeffs : 'const double[:]',
+        vals   : 'const double[:,:,:]'):
         for j in range(nq):
             for i in range(nr):
                 f[j,i] = coeffs[0]*vals[i,j,0]
@@ -175,18 +220,40 @@ def flux_advection(nq,nr,f,coeffs,vals):
                     f[j,i] += coeffs[k]*vals[i,j,k]
 
 @pure
-@types('double[:,:]','double','double','double[:]','double[:]','double[:,:]',
-        'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]',
-        'double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]',
-        'double[:]','double[:,:]','int','int','double','double','double','double',
-        'double','double','double','double','double','bool')
-def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
-                        drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
-                        endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
-                        kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
-                        kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol,
-                        CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi,
-                        B0, tol, nulBound = False ):
+def poloidal_advection_step_impl(
+    f           : 'double[:,:]',
+    dt          : 'double',
+    v           : 'double',
+    rPts        : 'const double[:]',
+    qPts        : 'const double[:]',
+    drPhi_0     : 'double[:,:]',
+    dthetaPhi_0 : 'double[:,:]',
+    drPhi_k     : 'double[:,:]',
+    dthetaPhi_k : 'double[:,:]',
+    endPts_k1_q : 'double[:,:]',
+    endPts_k1_r : 'double[:,:]',
+    endPts_k2_q : 'double[:,:]',
+    endPts_k2_r : 'double[:,:]',
+    kts1Phi     : 'const double[:]',
+    kts2Phi     : 'const double[:]',
+    coeffsPhi   : 'const double[:,:]',
+    deg1Phi     : 'int',
+    deg2Phi     : 'int',
+    kts1Pol     : 'const double[:]',
+    kts2Pol     : 'const double[:]',
+    coeffsPol   : 'const double[:,:]',
+    deg1Pol     : 'int',
+    deg2Pol     : 'int',
+    CN0         : 'double',
+    kN0         : 'double',
+    deltaRN0    : 'double',
+    rp          : 'double',
+    CTi         : 'double',
+    kTi         : 'double',
+    deltaRTi    : 'double',
+    B0          : 'double',
+    tol         : 'double',
+    nulBound    : 'bool' = False ):
     """
     Carry out an advection step for the poloidal advection
 
@@ -206,7 +273,6 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
         The parallel velocity coordinate
 
     """
-    from numpy import pi, abs
 
     multFactor = dt/B0
 
@@ -273,10 +339,10 @@ def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
                 elif (endPts_k2_r[i,j]>rMax):
                     endPts_k2_r[i,j]=rMax
 
-                diff=abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
+                diff=np_abs(endPts_k2_q[i,j]-endPts_k1_q[i,j])
                 if (diff>norm):
                     norm=diff
-                diff=abs(endPts_k2_r[i,j]-endPts_k1_r[i,j])
+                diff=np_abs(endPts_k2_r[i,j]-endPts_k1_r[i,j])
                 if (diff>norm):
                     norm=diff
                 endPts_k1_q[i,j]=endPts_k2_q[i,j]
