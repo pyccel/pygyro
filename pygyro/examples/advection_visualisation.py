@@ -1,6 +1,12 @@
 from mpi4py import MPI
 import numpy as np
+import matplotlib.pyplot as plt
 
+from ..initialisation.setups import setupCylindricalGrid
+from ..splines.splines import Spline2D
+from ..splines.spline_interpolators import SplineInterpolator2D
+from ..utilities.grid_plotter import SlicePlotterNd
+from ..advection.advection import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -38,9 +44,9 @@ if (rank!=drawRank):
     interp.compute_interpolant(phiVals,phi)
 
 if (rank==drawRank):
-    p.show()
+    plot.show()
 else:
-    while (p.calculation_complete()):
+    while (plot.calculation_complete()):
         for i,r in grid.getCoords(0):
             for j,v in grid.getCoords(1):
                 fluxAdv.step(grid.get2DSlice([i,j]),j)

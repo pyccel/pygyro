@@ -8,7 +8,7 @@ from math                 import pi
 from ..                                     import splines as spl
 from ..initialisation.setups                import setupCylindricalGrid
 from ..initialisation.constants             import get_constants
-from ..initialisation.mod_initialiser_funcs import fEq
+from ..initialisation.initialiser_funcs     import f_eq
 from ..model.layout                         import Layout
 from .advection                             import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
 
@@ -117,7 +117,7 @@ def test_poloidalAdvection_invariantPhi():
                                             #~ constants.deltaRN0,constants.rp,
                                             #~ constants.CTi,constants.kTi,
                                             #~ constants.deltaRTi)
-    f_vals[0,:,:] = phiVals + fEq(0.1,v,constants.CN0,constants.kN0,
+    f_vals[0,:,:] = phiVals + f_eq(0.1,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
@@ -190,7 +190,7 @@ def test_poloidalAdvection_vortex():
     interp.compute_interpolant(phiVals,phi)
 
     f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
-                        + fEq(0.1,v,constants.CN0,constants.kN0,
+                        + f_eq(0.1,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)
@@ -263,7 +263,7 @@ def test_poloidalAdvection_constantAdv():
     interp.compute_interpolant(phiVals,phi)
 
     f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
-                        + fEq(0.1,v,constants.CN0,constants.kN0,
+                        + f_eq(0.1,v,constants.CN0,constants.kN0,
                                             constants.deltaRN0,constants.rp,
                                             constants.CTi,constants.kTi,
                                             constants.deltaRTi)

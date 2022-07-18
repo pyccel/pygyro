@@ -5,7 +5,7 @@ import numpy                as np
 from .advection                             import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection
 from ..                                     import splines as spl
 from ..initialisation.constants             import get_constants
-from ..initialisation.mod_initialiser_funcs import fEq
+from ..initialisation.initialiser_funcs     import f_eq
 from ..model.layout                         import Layout
 
 NSteps = 1000
@@ -69,11 +69,11 @@ def test_vParallelAdvection():
     x         = spline.greville
 
     r = 4
-    fEdge = fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+    fEdge = f_eq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
-    assert(fEq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
+    assert(f_eq(r,x[0],constants.CN0,constants.kN0,constants.deltaRN0,
                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi)
-            ==fEq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
+            ==f_eq(r,x[-1],constants.CN0,constants.kN0,constants.deltaRN0,
                 constants.rp,constants.CTi,constants.kTi,constants.deltaRTi))
 
     f = gauss(x)+fEdge
