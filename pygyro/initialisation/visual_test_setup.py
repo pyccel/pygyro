@@ -1,7 +1,7 @@
 import pytest
 
 from  .setups                   import setupCylindricalGrid
-from  .mod_initialiser_funcs    import fEq, perturbation
+from  .initialiser_funcs        import f_eq, perturbation
 from ..utilities.grid_plotter   import SlicePlotter4d, Plotter2d
 
 @pytest.mark.serial
@@ -180,7 +180,7 @@ def test_Equilibrium_FluxSurface():
 
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            FluxSurface[:]=fEq(r,v,constants.CN0,constants.kN0,
+            FluxSurface[:]=f_eq(r,v,constants.CN0,constants.kN0,
                                 constants.deltaRN0,constants.rp,
                                 constants.CTi,constants.kTi,
                                 constants.deltaRTi)
@@ -208,7 +208,7 @@ def test_Equilibrium_vPar():
 
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            Surface[:]=fEq(r,v,constants.CN0,constants.kN0,
+            Surface[:]=f_eq(r,v,constants.CN0,constants.kN0,
                             constants.deltaRN0,constants.rp,
                             constants.CTi,constants.kTi,
                             constants.deltaRTi)
@@ -236,7 +236,7 @@ def test_Equilibrium_Poloidal():
 
             # transpose theta to use ufuncs
             theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=fEq(r,v,constants.CN0,constants.kN0,
+            PoloidalSurface[:]=f_eq(r,v,constants.CN0,constants.kN0,
                                     constants.deltaRN0,constants.rp,
                                     constants.CTi,constants.kTi,
                                     constants.deltaRTi)

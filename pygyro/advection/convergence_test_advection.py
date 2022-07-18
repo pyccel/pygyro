@@ -1,9 +1,12 @@
 import pytest
 import numpy                as np
 from scipy.integrate        import trapz
+from numpy                  import pi
 
-from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
+from .advection                     import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient, Layout
 from ..                             import splines as spl
+from ..splines.splines              import Spline2D
+from ..splines.spline_interpolators import SplineInterpolator2D
 from ..initialisation.constants     import get_constants
 
 def gaussLike(x):

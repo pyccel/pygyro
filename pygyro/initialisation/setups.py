@@ -1,3 +1,4 @@
+from argparse import ArgumentError
 from mpi4py     import MPI
 from math       import pi
 from glob       import glob
