@@ -1,19 +1,17 @@
-from pyccel.decorators  import types, pure, allow_negative_index
+from pyccel.decorators  import allow_negative_index
 from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
 from ..initialisation.initialiser_funcs               import f_eq
 
-@pure
-@types('double[:,:]','double','double','double[:]','double[:]','double[:,:]','double[:,:]',
-        'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:]',
-        'double[:]','double[:,:]','int','int','double[:]','double[:]','double[:,:]','int','int',
-        'double','double','double','double','double','double','double','double','bool')
-def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
-                        drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
-                        endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
-                        kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
-                        kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol,
-                        CN0, kN0, deltaRN0, rp, CTi,
-                        kTi, deltaRTi, B0,nulBound = False ):
+def poloidal_advection_step_expl(f : 'float[:,:]',
+                                 dt : 'float', v : 'float',
+                                 rPts : 'float[:]', qPts : 'float[:]',
+                                 drPhi_0 : 'float[:,:]', dthetaPhi_0 : 'float[:,:]',
+                                 drPhi_k : 'float[:,:]', dthetaPhi_k : 'float[:,:]',
+                        endPts_k1_q : 'float[:,:]', endPts_k1_r : 'float[:,:]', endPts_k2_q : 'float[:,:]', endPts_k2_r : 'float[:,:]',
+                        kts1Phi : 'float[:]', kts2Phi : 'float[:]', coeffsPhi : 'float[:]', deg1Phi : 'float', deg2Phi : 'float',
+                        kts1Pol : 'float[:]', kts2Pol : 'float[:]', coeffsPol : 'float[:]', deg1Pol : 'float', deg2Pol : 'float',
+                        CN0 : 'float', kN0 : 'float', deltaRN0 : 'float', rp : 'float', CTi : 'float',
+                        kTi : 'float', deltaRTi : 'float', B0 : 'float', nulBound : 'bool' = False ):
     """
     Carry out an advection step for the poloidal advection
 
@@ -121,11 +119,15 @@ def poloidal_advection_step_expl( f, dt, v, rPts, qPts,
                     f[i,j]=eval_spline_2d_scalar(endPts_k2_q[i,j],endPts_k2_r[i,j],
                                                 kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol,0,0)
 
-@pure
-@types('double[:]','double[:]','double','double','double','double[:]','int','double[:]',
-        'double','double','double','double','double','double','double','int')
-def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
-                        coeffs,CN0,kN0,deltaRN0,rp,CTi,kTi,deltaRTi,bound):
+def v_parallel_advection_eval_step( f : 'float[:]', vPts : 'float[:]',
+                                    rPos : 'float', vMin : 'float', vMax : 'float',
+                                    kts : 'float[:]', deg : 'int',
+                                    coeffs : 'float[:]',
+                                    CN0 : 'float', kN0 : 'float', deltaRN0 : 'float', rp : 'float',
+                                    CTi : 'float', kTi : 'float', deltaRTi : 'float', bound : 'int'):
+    """
+    TODO
+    """
     # Find value at the determined point
     if (bound==0):
         for i,v in enumerate(vPts):
@@ -149,11 +151,14 @@ def v_parallel_advection_eval_step( f, vPts, rPos,vMin, vMax,kts, deg,
                 v-=vDiff
             f[i]=eval_spline_1d_scalar(v,kts,deg,coeffs,0)
 
-
-@pure
-@types('int','int[:]','double[:,:,:]','double[:]','double[:]','double[:]','int','double[:]')
-@allow_negative_index('vals') # Needed for C due to pyccel issue #854
-def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
+# @allow_negative_index('vals') # Needed for C due to pyccel issue #854
+def get_lagrange_vals(i : 'int', shifts : 'int[:]',
+                      vals : 'float[:,:,:]', qVals : 'float[:]',
+                      thetaShifts : 'float[:]', kts : 'float[:]',
+                      deg : 'int', coeffs : 'float[:]'):
+    """
+    TODO
+    """
     from numpy import pi
     nz = vals.shape[0]
     for j,s in enumerate(shifts):
@@ -165,28 +170,24 @@ def get_lagrange_vals(i,shifts,vals,qVals,thetaShifts,kts,deg,coeffs):
                 new_q-=2*pi
             vals[(i-s)%nz,k,j]=eval_spline_1d_scalar(new_q,kts,deg,coeffs,0)
 
-@pure
-@types('int','int','double[:,:]','double[:]','double[:,:,:]')
-def flux_advection(nq,nr,f,coeffs,vals):
+def flux_advection(nq : 'int', nr : 'int',
+                   f : 'float[:,:]', coeffs : 'float[:]', vals : 'float[:,:,:]'):
+        """
+        TODO
+        """
         for j in range(nq):
             for i in range(nr):
                 f[j,i] = coeffs[0]*vals[i,j,0]
                 for k in range(1,len(coeffs)):
                     f[j,i] += coeffs[k]*vals[i,j,k]
 
-@pure
-@types('double[:,:]','double','double','double[:]','double[:]','double[:,:]',
-        'double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]','double[:,:]',
-        'double[:,:]','double[:]','double[:]','double[:,:]','int','int','double[:]',
-        'double[:]','double[:,:]','int','int','double','double','double','double',
-        'double','double','double','double','double','bool')
-def poloidal_advection_step_impl( f, dt, v, rPts, qPts,
-                        drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
-                        endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
-                        kts1Phi, kts2Phi, coeffsPhi, deg1Phi, deg2Phi,
-                        kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol,
-                        CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi,
-                        B0, tol, nulBound = False ):
+def poloidal_advection_step_impl(f : 'float[:,:]', dt : 'float', v : 'float', rPts : 'float[:]', qPts : 'float[:]',
+                                 drPhi_0 : 'float[:,:]', dthetaPhi_0 : 'float[:,:]', drPhi_k : 'float[:,:]', dthetaPhi_k : 'float[:,:]',
+                                 endPts_k1_q : 'float[:,:]', endPts_k1_r : 'float[:,:]', endPts_k2_q : 'float[:,:]', endPts_k2_r : 'float[:,:]',
+                                 kts1Phi : 'float[:]', kts2Phi : 'float[:,:]', coeffsPhi : 'float[:]', deg1Phi : 'int', deg2Phi : 'int',
+                                 kts1Pol : 'float[:]', kts2Pol : 'float[:,:]', coeffsPol : 'float[:]', deg1Pol : 'int', deg2Pol : 'int',
+                                 CN0 : 'float', kN0 : 'float', deltaRN0 : 'float', rp : 'float', CTi : 'float', kTi : 'float', deltaRTi : 'float',
+                                 B0 : 'float', tol : 'float', nulBound : 'bool' = False ):
     """
     Carry out an advection step for the poloidal advection
 
