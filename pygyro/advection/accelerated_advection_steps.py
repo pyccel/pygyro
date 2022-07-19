@@ -157,8 +157,6 @@ def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
             f[i] = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
 
 # @allow_negative_index('vals') # Needed for C due to pyccel issue #854
-
-
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',
                       vals: 'float[:,:,:]', qVals: 'float[:]',
                       thetaShifts: 'float[:]', kts: 'float[:]',
