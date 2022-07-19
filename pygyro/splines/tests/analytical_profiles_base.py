@@ -5,8 +5,13 @@ from abc import ABCMeta, abstractmethod
 
 __all__ = ['AnalyticalProfile']
 
-#===============================================================================
-class AnalyticalProfile( metaclass=ABCMeta ):
+# ===============================================================================
+
+
+class AnalyticalProfile(metaclass=ABCMeta):
+    """
+    TODO
+    """
 
     @property
     @abstractmethod

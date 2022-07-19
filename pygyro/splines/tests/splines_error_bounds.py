@@ -7,20 +7,21 @@
 __all__ = ['spline_1d_error_bound', 'spline_1d_error_bound_on_deriv',
            'spline_2d_error_bound', 'spline_2d_error_bounds_on_grad']
 
-#===============================================================================
+# ===============================================================================
 
-k = (     1 /          2.0,
-          1 /          8.0,
-          1 /         24.0,
-          5 /        384.0,
-          1 /        240.0,
-         61 /      46080.0,
-         17 /      40320.0,
-        277 /    2064384.0,
-         31 /     725760.0,
-      50521 / 3715891200.0 )
+k = (1 / 2.0,
+     1 / 8.0,
+     1 / 24.0,
+     5 / 384.0,
+     1 / 240.0,
+     61 / 46080.0,
+     17 / 40320.0,
+     277 / 2064384.0,
+     31 / 725760.0,
+     50521 / 3715891200.0)
 
-def tihomirov_error_bound( h, deg, norm_f ):
+
+def tihomirov_error_bound(h, deg, norm_f):
     """
     Error bound in max norm for spline interpolation of periodic functions from:
 
@@ -54,8 +55,10 @@ def tihomirov_error_bound( h, deg, norm_f ):
 
     return norm_e
 
-#===============================================================================
-def spline_1d_error_bound( profile_1d, dx, deg ):
+# ===============================================================================
+
+
+def spline_1d_error_bound(profile_1d, dx, deg):
     """
     Compute error bound for spline approximation of 1D analytical profile.
 
@@ -77,21 +80,25 @@ def spline_1d_error_bound( profile_1d, dx, deg ):
         Error bound: max-norm of error over domain should be smaller than this.
 
     """
-    max_norm  = profile_1d.max_norm( deg+1 )
-    max_error = tihomirov_error_bound( dx, deg, max_norm )
+    max_norm = profile_1d.max_norm(deg+1)
+    max_error = tihomirov_error_bound(dx, deg, max_norm)
     return max_error
 
-#===============================================================================
-def spline_1d_error_bound_on_deriv( profile_1d, dx, deg ):
+# ===============================================================================
+
+
+def spline_1d_error_bound_on_deriv(profile_1d, dx, deg):
     """ Compute error bound on first derivative, for spline approximation of 1D
         analytical profile. Signature is identical to 'spline_1d_error_bound'.
     """
-    max_norm  = profile_1d.max_norm( deg+1 )
-    max_error = tihomirov_error_bound( dx, deg-1, max_norm )
+    max_norm = profile_1d.max_norm(deg+1)
+    max_error = tihomirov_error_bound(dx, deg-1, max_norm)
     return max_error
 
-#===============================================================================
-def spline_2d_error_bound( profile_2d, dx1, dx2, deg1, deg2 ):
+# ===============================================================================
+
+
+def spline_2d_error_bound(profile_2d, dx1, dx2, deg1, deg2):
     """
     Compute error bound for spline approximation of 2D analytical profile.
 
@@ -120,12 +127,12 @@ def spline_2d_error_bound( profile_2d, dx1, dx2, deg1, deg2 ):
 
     """
     # Max norm of highest partial derivatives in x1 and x2 of analytical profile
-    max_norm1 = profile_2d.max_norm( (deg1+1, 0     ) )
-    max_norm2 = profile_2d.max_norm( (0     , deg2+1) )
+    max_norm1 = profile_2d.max_norm((deg1+1, 0))
+    max_norm2 = profile_2d.max_norm((0, deg2+1))
 
     # Error bound on function value
-    max_error = tihomirov_error_bound( dx1, deg1, max_norm1 ) \
-              + tihomirov_error_bound( dx2, deg2, max_norm2 )
+    max_error = tihomirov_error_bound(dx1, deg1, max_norm1) \
+        + tihomirov_error_bound(dx2, deg2, max_norm2)
 
     # Empirical correction: for linear interpolation increase estimate by 5%
     if (deg1 == 1 or deg2 == 1):
@@ -133,23 +140,25 @@ def spline_2d_error_bound( profile_2d, dx1, dx2, deg1, deg2 ):
 
     return max_error
 
-#===============================================================================
-def spline_2d_error_bounds_on_grad( profile_2d, dx1, dx2, deg1, deg2 ):
+# ===============================================================================
+
+
+def spline_2d_error_bounds_on_grad(profile_2d, dx1, dx2, deg1, deg2):
     """
     Compute error bound on gradient, for spline approximation of 2D
     analytical profile. Signature is identical to 'spline_2d_error_bound'.
 
     """
     # Max norm of highest partial derivatives in x1 and x2 of analytical profile
-    max_norm1 = profile_2d.max_norm( (deg1+1, 0     ) )
-    max_norm2 = profile_2d.max_norm( (0     , deg2+1) )
+    max_norm1 = profile_2d.max_norm((deg1+1, 0))
+    max_norm2 = profile_2d.max_norm((0, deg2+1))
 
     # Error bound on x1-derivative
-    max_error1 = tihomirov_error_bound( dx1, deg1-1, max_norm1 ) \
-               + tihomirov_error_bound( dx2, deg2  , max_norm2 )
+    max_error1 = tihomirov_error_bound(dx1, deg1-1, max_norm1) \
+        + tihomirov_error_bound(dx2, deg2, max_norm2)
 
     # Error bound on x2-derivative
-    max_error2 = tihomirov_error_bound( dx1, deg1  , max_norm1 ) \
-               + tihomirov_error_bound( dx2, deg2-1, max_norm2 )
+    max_error2 = tihomirov_error_bound(dx1, deg1, max_norm1) \
+        + tihomirov_error_bound(dx2, deg2-1, max_norm2)
 
     return (max_error1, max_error2)

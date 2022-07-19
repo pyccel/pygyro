@@ -1,13 +1,17 @@
-from scipy          import integrate
-from math           import exp, tanh, pi
+from scipy import integrate
+from math import exp, tanh, pi
 import os
 import pytest
 
-from .constants     import get_constants, Constants
+from .constants import get_constants, Constants
+
 
 @pytest.mark.serial
 def test_constants_file():
-    f= open("constants_test_file.json","w")
+    """
+    TODO
+    """
+    f = open("constants_test_file.json", "w")
     f.write("{\n\"B0\": 1.0,\n\"R0\":239.8081535,\n\"rMin\":0.1,\n\"rMax\":14.5,\n\
         \"zMin\":0.0,\n\"zMax\":\"R0*2*pi\",\n\"vMax\":7.32,\n\"vMin\":\"-vMax\",\n\
         \"eps\":1e-6,\n\"eps0\":8.854187817e-12,\n\"kN0\":0.055,\n\"kTi\":0.27586,\n\
@@ -16,6 +20,7 @@ def test_constants_file():
         \"CTi\":1.0,\n\"CTe\":\"CTi\",\n\"m\":15,\n\"n\":1,\n\"iotaVal\":0.0,\n\
         \"npts\":[256,512,32,128],\n\"splineDegrees\":[3,3,3,3],\n\"dt\":2\n}\n")
     f.close()
+
     constants = get_constants("constants_test_file.json")
     os.remove("constants_test_file.json")
 
@@ -42,17 +47,22 @@ def test_constants_file():
     assert(constants.m == 15)
     assert(constants.n == 1)
     assert(constants.iotaVal == 0.0)
-    assert(constants.npts == [256,512,32,128])
-    assert(constants.splineDegrees == [3,3,3,3])
+    assert(constants.npts == [256, 512, 32, 128])
+    assert(constants.splineDegrees == [3, 3, 3, 3])
     assert(constants.dt == 2)
 
     def normalisingFunc(r):
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
 
-    assert(constants.CN0 == (constants.rMax-constants.rMin)/integrate.quad(normalisingFunc,constants.rMin,constants.rMax)[0])
+    assert(constants.CN0 == (constants.rMax-constants.rMin) /
+           integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
+
 
 @pytest.mark.serial
 def test_constants_defaults():
+    """
+    TODO
+    """
     constants = Constants()
 
     assert(constants.B0 == 1.0)
@@ -78,11 +88,15 @@ def test_constants_defaults():
     assert(constants.m == 15)
     assert(constants.n == 1)
     assert(constants.iotaVal == 0.0)
-    assert(constants.npts == [256,512,32,128])
-    assert(constants.splineDegrees == [3,3,3,3])
+    assert(constants.npts == [256, 512, 32, 128])
+    assert(constants.splineDegrees == [3, 3, 3, 3])
     assert(constants.dt == 2)
 
     def normalisingFunc(r):
+        """
+        TODO
+        """
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
 
-    assert(constants.CN0 == (constants.rMax-constants.rMin)/integrate.quad(normalisingFunc,constants.rMin,constants.rMax)[0])
+    assert(constants.CN0 == (constants.rMax-constants.rMin) /
+           integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
