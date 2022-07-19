@@ -1,9 +1,4 @@
-from pyccel.decorators  import types, pure, stack_array
-
-#==============================================================================
-@pure
-@types('double[:]','int','double')
-def find_span( knots, degree, x ):
+def find_span(knots : 'float[:]', degree : 'int', x : 'float') -> int:
     """
     Determine the knot span index at location x, given the
     B-Splines' knot sequence and polynomial degree. See
@@ -51,11 +46,7 @@ def find_span( knots, degree, x ):
 
     return returnVal
 
-#==============================================================================
-@pure
-@stack_array('left','right')
-@types('double[:]','int','double','int','double[:]')
-def basis_funs( knots, degree, x, span, values ):
+def basis_funs(knots : 'float[:]', degree : 'int', x : 'float', span : 'int', values : 'float[:]'):
     """
     Compute the non-vanishing B-splines at location x,
     given the knot sequence, polynomial degree and knot
@@ -102,10 +93,7 @@ def basis_funs( knots, degree, x, span, values ):
             saved     = left[j-r] * temp
         values[j+1] = saved
 
-@pure
-@stack_array('values')
-@types('double[:]','int','double','int','double[:]')
-def basis_funs_1st_der( knots, degree, x, span, ders ):
+def basis_funs_1st_der(knots : 'float[:]', degree : 'int', x : 'float', span : 'int', ders : 'float[:]'):
     """
     Compute the first derivative of the non-vanishing B-splines
     at location x, given the knot sequence, polynomial degree
@@ -156,10 +144,10 @@ def basis_funs_1st_der( knots, degree, x, span, ders ):
     # j = degree
     ders[degree] = saved
 
-@pure
-@stack_array('basis')
-@types('double','double[:]','int','double[:]','int')
-def eval_spline_1d_scalar(x,knots,degree,coeffs,der):
+def eval_spline_1d_scalar(x : 'float', knots : 'float[:]', degree : 'int', coeffs : 'float[:]', der : 'int') -> 'float':
+    """
+    TODO
+    """
     span  =  find_span( knots, degree, x )
 
     from numpy      import empty
@@ -174,10 +162,10 @@ def eval_spline_1d_scalar(x,knots,degree,coeffs,der):
         y+=coeffs[span-degree+j]*basis[j]
     return y
 
-@pure
-@stack_array('basis')
-@types('double[:]','double[:]','int','double[:]','double[:]','int')
-def eval_spline_1d_vector(x,knots,degree,coeffs,y,der):
+def eval_spline_1d_vector(x : 'float[:]', knots : 'float[:]', degree : 'int', coeffs : 'float[:]', y : 'float[:]', der : 'int'):
+    """
+    TODO
+    """
     from numpy      import empty
     basis  = empty( degree+1, dtype=float )
 
@@ -199,10 +187,11 @@ def eval_spline_1d_vector(x,knots,degree,coeffs,y,der):
             for j in range(degree+1):
                 y[i]+=coeffs[span-degree+j]*basis[j]
 
-@pure
-@stack_array('basis1','basis2','theCoeffs')
-@types('double','double','double[:]','int','double[:]','int','double[:,:]','int','int')
-def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1,der2):
+def eval_spline_2d_scalar(x : 'float', y : 'float', kts1 : 'float[:]', deg1 : 'int', kts2 : 'float[:]', deg2 : 'int',
+                          coeffs : 'float[:,:]', der1 : 'int', der2 : 'int') -> 'float':
+    """
+    TODO
+    """
     from numpy      import empty
     basis1  = empty( deg1+1, dtype=float )
     basis2  = empty( deg2+1, dtype=float )
@@ -230,10 +219,11 @@ def eval_spline_2d_scalar(x,y,kts1,deg1,kts2,deg2,coeffs,der1,der2):
         z+=theCoeffs[i,0]*basis1[i]
     return z
 
-@pure
-@stack_array('basis1','basis2','theCoeffs')
-@types('double[:]','double[:]','double[:]','int','double[:]','int','double[:,:]','double[:,:]','int','int')
-def eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2):
+def eval_spline_2d_cross(xVec : 'float[:]', yVec : 'float[:]', kts1 : 'float[:]', deg1 : 'int', kts2 : 'float[:]', deg2 : 'int',
+                         coeffs : 'float[:,:]', z : 'float[:,:]', der1 : 'int', der2 : 'int'):
+    """
+    TODO
+    """
     from numpy      import empty
     basis1  = empty( deg1+1 )
     basis2  = empty( deg2+1 )
@@ -304,10 +294,11 @@ def eval_spline_2d_cross(xVec,yVec,kts1,deg1,kts2,deg2,coeffs,z,der1,der2):
                         theCoeffs[k,0] += theCoeffs[k,l]*basis2[l]
                     z[i,j]+=theCoeffs[k,0]*basis1[k]
 
-@pure
-@stack_array('basis1','basis2','theCoeffs')
-@types('double[:]','double[:]','double[:]','int','double[:]','int','double[:,:]','double[:]','int','int')
-def eval_spline_2d_vector(x,y,kts1,deg1,kts2,deg2,coeffs,z,der1,der2):
+def eval_spline_2d_vector(x : 'float[:]', y : 'float[:]', kts1 : 'float[:]', deg1 : 'int', kts2 : 'float[:]', deg2 : 'int',
+                          coeffs : 'float[:,:]', z : 'float[:]', der1 : 'int', der2 : 'int'):
+    """
+    TODO
+    """
     from numpy      import empty
     basis1  = empty( deg1+1, dtype=float )
     basis2  = empty( deg2+1, dtype=float )
