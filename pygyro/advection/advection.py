@@ -550,7 +550,7 @@ class PoloidalAdvection:
             elif (r > self._points[1][-1]):
                 return 0
             else:
-                theta %= 2*pi
+                theta = theta % 2*pi
                 return self._spline.eval(theta, r)
         else:
             raise NotImplementedError(
