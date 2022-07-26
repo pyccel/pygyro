@@ -1,3 +1,7 @@
+from pyccel.decorators import pure, stack_array
+
+
+@pure
 def find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
     """
     Determine the knot span index at location x, given the
@@ -49,6 +53,8 @@ def find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
     return returnVal
 
 
+@pure
+@stack_array('left','right')
 def basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', values: 'float[:]'):
     """
     Compute the non-vanishing B-splines at location x,
@@ -97,6 +103,8 @@ def basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', values
         values[j+1] = saved
 
 
+@pure
+@stack_array('values')
 def basis_funs_1st_der(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', ders: 'float[:]'):
     """
     Compute the first derivative of the non-vanishing B-splines
@@ -149,6 +157,8 @@ def basis_funs_1st_der(knots: 'float[:]', degree: 'int', x: 'float', span: 'int'
     ders[degree] = saved
 
 
+@pure
+@stack_array('basis')
 def eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', der: 'int') -> 'float':
     """
     TODO
@@ -168,6 +178,8 @@ def eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 
     return y
 
 
+@pure
+@stack_array('basis')
 def eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', y: 'float[:]', der: 'int'):
     """
     TODO
@@ -194,6 +206,8 @@ def eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeff
                 y[i] += coeffs[span-degree+j]*basis[j]
 
 
+@pure
+@stack_array('basis1','basis2','theCoeffs')
 def eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
                           coeffs: 'float[:,:]', der1: 'int', der2: 'int') -> 'float':
     """
@@ -227,6 +241,8 @@ def eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int',
     return z
 
 
+@pure
+@stack_array('basis1','basis2','theCoeffs')
 def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
                          coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int', der2: 'int'):
     """
@@ -307,6 +323,8 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
                     z[i, j] += theCoeffs[k, 0]*basis1[k]
 
 
+@pure
+@stack_array('basis1','basis2','theCoeffs')
 def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
                           coeffs: 'float[:,:]', z: 'float[:]', der1: 'int', der2: 'int'):
     """

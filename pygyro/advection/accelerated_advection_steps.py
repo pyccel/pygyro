@@ -1,8 +1,9 @@
-from pyccel.decorators import allow_negative_index
+from pyccel.decorators import pure
 from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
 from ..initialisation.initialiser_funcs import f_eq
 
 
+@pure
 def poloidal_advection_step_expl(f: 'float[:,:]',
                                  dt: 'float', v: 'float',
                                  rPts: 'float[:]', qPts: 'float[:]',
@@ -82,7 +83,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
             endPts_k2_q[i, j] = (
                 qPts[i] - (drPhi_0[i, j] + drPhi_k[i, j]) * multFactor_half) % (2*pi)
-                
+
             endPts_k2_r[i, j] = rPts[j] + \
                 (dthetaPhi_0[i, j] + dthetaPhi_k[i, j]) * multFactor_half
 
@@ -114,6 +115,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                                                     kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
 
 
+@pure
 def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                                    rPos: 'float', vMin: 'float', vMax: 'float',
                                    kts: 'float[:]', deg: 'int',
@@ -148,7 +150,8 @@ def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                 v -= vDiff
             f[i] = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
 
-# @allow_negative_index('vals') # Needed for C due to pyccel issue #854
+
+@pure
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',
                       vals: 'float[:,:,:]', qVals: 'float[:]',
                       thetaShifts: 'float[:]', kts: 'float[:]',
@@ -163,10 +166,13 @@ def get_lagrange_vals(i: 'int', shifts: 'int[:]',
         for k, q in enumerate(qVals):
             new_q = q + thetaShifts[j]
             new_q %= 2*pi
-            vals[(i-s) % nz, k, j] = eval_spline_1d_scalar(new_q,
-                                                           kts, deg, coeffs, 0)
+
+            # the first index can be negative, but allow_negative_index will take the necessary modulo
+            vals[(i - s) % nz, k, j] = eval_spline_1d_scalar(new_q,
+                                                             kts, deg, coeffs, 0)
 
 
+@pure
 def flux_advection(nq: 'int', nr: 'int',
                    f: 'float[:,:]', coeffs: 'float[:]', vals: 'float[:,:,:]'):
     """
@@ -179,6 +185,7 @@ def flux_advection(nq: 'int', nr: 'int',
                 f[j, i] += coeffs[k]*vals[i, j, k]
 
 
+@pure
 def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
                                  drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
                                  endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
