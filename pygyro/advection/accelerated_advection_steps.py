@@ -58,10 +58,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
             endPts_k1_r[i, j] = rPts[j] + dthetaPhi_0[i, j]*multFactor
 
             # Handle theta boundary conditions
-            while (endPts_k1_q[i, j] < 0):
-                endPts_k1_q[i, j] += 2*pi
-            while (endPts_k1_q[i, j] > 2*pi):
-                endPts_k1_q[i, j] -= 2*pi
+            endPts_k1_q[i, j] %= 2*pi
 
             if (not (endPts_k1_r[i, j] < rPts[0] or
                      endPts_k1_r[i, j] > rMax)):
@@ -85,7 +82,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
             endPts_k2_q[i, j] = (
                 qPts[i] - (drPhi_0[i, j] + drPhi_k[i, j])*multFactor_half) % (2*pi)
-            if endPts_k2_q[i, j] < 0:  # Needed for C due to pyccel issue #854
+            if endPts_k2_q[i, j] < 0:
                 endPts_k2_q[i, j] += 2*pi
             endPts_k2_r[i, j] = rPts[j] + \
                 (dthetaPhi_0[i, j] + dthetaPhi_k[i, j])*multFactor_half
@@ -99,10 +96,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                 elif (endPts_k2_r[i, j] > rMax):
                     f[i, j] = 0.0
                 else:
-                    while (endPts_k2_q[i, j] > 2*pi):
-                        endPts_k2_q[i, j] -= 2*pi
-                    while (endPts_k2_q[i, j] < 0):
-                        endPts_k2_q[i, j] += 2*pi
+                    endPts_k2_q[i, j] %= 2*pi
                     f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
                                                     kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                     coeffsPol, 0, 0)
@@ -116,10 +110,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                     f[i, j] = f_eq(endPts_k2_r[i, j], v, CN0, kN0,
                                    deltaRN0, rp, CTi, kTi, deltaRTi)
                 else:
-                    while (endPts_k2_q[i, j] > 2*pi):
-                        endPts_k2_q[i, j] -= 2*pi
-                    while (endPts_k2_q[i, j] < 0):
-                        endPts_k2_q[i, j] += 2*pi
+                    endPts_k2_q[i, j] %= 2*pi
                     f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
                                                     kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
 
@@ -150,6 +141,8 @@ def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
     elif (bound == 2):
         vDiff = vMax-vMin
         for i, v in enumerate(vPts):
+            v += vMin
+            v %= vDiff
             while (v < vMin):
                 v += vDiff
             while (v > vMax):
@@ -166,13 +159,11 @@ def get_lagrange_vals(i: 'int', shifts: 'int[:]',
     """
     from numpy import pi
     nz = vals.shape[0]
+
     for j, s in enumerate(shifts):
         for k, q in enumerate(qVals):
-            new_q = q+thetaShifts[j]
-            while (new_q < 0):
-                new_q += 2*pi
-            while (new_q > 2*pi):
-                new_q -= 2*pi
+            new_q = q + thetaShifts[j]
+            new_q %= 2*pi
             vals[(i-s) % nz, k, j] = eval_spline_1d_scalar(new_q,
                                                            kts, deg, coeffs, 0)
 
@@ -247,10 +238,7 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
         for i in range(nPts_q):
             for j in range(nPts_r):
                 # Handle theta boundary conditions
-                while (endPts_k1_q[i, j] < 0):
-                    endPts_k1_q[i, j] += 2*pi
-                while (endPts_k1_q[i, j] > 2*pi):
-                    endPts_k1_q[i, j] -= 2*pi
+                endPts_k1_q[i, j] %= 2*pi
 
                 if (not (endPts_k1_r[i, j] < rPts[0] or
                          endPts_k1_r[i, j] > rMax)):
@@ -304,10 +292,7 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                 elif (endPts_k2_r[i, j] > rMax):
                     f[i, j] = 0.0
                 else:
-                    while (endPts_k2_q[i, j] > 2*pi):
-                        endPts_k2_q[i, j] -= 2*pi
-                    while (endPts_k2_q[i, j] < 0):
-                        endPts_k2_q[i, j] += 2*pi
+                    endPts_k2_q[i, j] %= 2*pi
                     f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
                                                     kts1Pol, deg1Pol, kts2Pol, deg2Pol,
                                                     coeffsPol, 0, 0)
@@ -321,9 +306,6 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                     f[i, j] = f_eq(endPts_k2_r[i, j], v, CN0, kN0,
                                    deltaRN0, rp, CTi, kTi, deltaRTi)
                 else:
-                    while (endPts_k2_q[i, j] > 2*pi):
-                        endPts_k2_q[i, j] -= 2*pi
-                    while (endPts_k2_q[i, j] < 0):
-                        endPts_k2_q[i, j] += 2*pi
+                    endPts_k2_q[i, j] %= 2*pi
                     f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
                                                     kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
