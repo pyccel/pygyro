@@ -432,7 +432,7 @@ class DiffEqSolver:
 
             self._solveModeFunc(phi, rho, stiffnessMatrix, i, I)
 
-    def _solveMode(self, phi: Grid, rho: Grid, stiffnessMatrix: sparse.csc.csc_matrix, i: int, I: int):
+    def _solveMode(self, phi: Grid, rho: Grid, stiffnessMatrix: sparse.csc_matrix, i: int, I: int):
         """
         TODO
         """
@@ -463,7 +463,7 @@ class DiffEqSolver:
 
             phi.get1DSlice([i, j])[:] = self._realMem+1j*self._imagMem
 
-    def _solveModeFunc(self, phi: Grid, rho, stiffnessMatrix: sparse.csc.csc_matrix, i: int, I: int):
+    def _solveModeFunc(self, phi: Grid, rho, stiffnessMatrix: sparse.csc_matrix, i: int, I: int):
         """
         TODO
         """
