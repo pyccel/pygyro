@@ -1,4 +1,10 @@
 def main():
+    import os
+    import argparse
+    import numpy as np
+    from mpi4py import MPI
+    import time
+
     from pygyro.diagnostics.diagnostic_collector import DiagnosticCollector
     from pygyro.utilities.savingTools import setupSave
     from pygyro.poisson.poisson_solver import DensityFinder, QuasiNeutralitySolver
@@ -7,12 +13,6 @@ def main():
     from pygyro.model.grid import Grid
     from pygyro.model.layout import LayoutSwapper, getLayoutHandler
 
-    import os
-    import argparse
-    import numpy as np
-    from mpi4py import MPI
-    import time
-
     setup_time_start = time.time()
     profilingOn = False
 
@@ -20,7 +20,6 @@ def main():
         import cProfile
         import pstats
         import io
-
 
     diagnostic_start = 0
     diagnostic_time = 0
@@ -44,12 +43,10 @@ def main():
                         default=[5],
                         help='Number of time steps between writing output')
 
-
     def my_print(rank, *args, **kwargs):
         if (rank == 0):
             print(time.time()-setup_time_start, *args, **kwargs,
-                file=open("out{}.txt".format(MPI.COMM_WORLD.Get_size()), "a"))
-
+                  file=open("out{}.txt".format(MPI.COMM_WORLD.Get_size()), "a"))
 
     args = parser.parse_args()
     foldername = args.foldername[0]
@@ -63,7 +60,6 @@ def main():
     tEnd = args.tEnd[0]
 
     stopTime = args.tMax[0]
-    
 
     if (len(foldername) > 0):
         print("To load from ", foldername)
@@ -74,7 +70,6 @@ def main():
 
     if (len(constantFile) == 0):
         constantFile = None
-    
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -83,25 +78,24 @@ def main():
         my_print(rank, "ready to setup from loadable")
 
         distribFunc, constants, t = setupFromFile(foldername,
-                                                constantFile, comm=comm,
-                                                allocateSaveMemory=True,
-                                                layout='v_parallel')
+                                                  constantFile, comm=comm,
+                                                  allocateSaveMemory=True,
+                                                  layout='v_parallel')
     else:
         assert(constantFile is not None)
 
         my_print(rank, "ready to setup new")
 
         distribFunc, constants, t = setupCylindricalGrid(constantFile=constantFile,
-                                                        layout='v_parallel',
-                                                        comm=comm,
-                                                        allocateSaveMemory=True)
+                                                         layout='v_parallel',
+                                                         comm=comm,
+                                                         allocateSaveMemory=True)
 
         my_print(rank, "setup done, saving initParams")
 
         foldername = setupSave(constants, foldername)
 
         print("Saving in ", foldername)
-
 
     ti = t//constants.dt
     tN = int(tEnd//constants.dt)
@@ -114,7 +108,7 @@ def main():
     my_print(rank, "conditional setup done")
 
     fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
-                                distribFunc.getLayout('flux_surface'), halfStep, constants)
+                                   distribFunc.getLayout('flux_surface'), halfStep, constants)
     my_print(rank, "flux adv init done")
     vParAdv = VParallelAdvection(
         distribFunc.eta_grid, distribFunc.getSpline(3), constants)
@@ -127,7 +121,7 @@ def main():
     my_print(rank, "par grad vals done")
 
     layout_poisson = {'v_parallel_2d': [0, 2, 1],
-                    'mode_solve': [1, 2, 0]}
+                      'mode_solve': [1, 2, 0]}
     layout_vpar = {'v_parallel_1d': [0, 2, 1]}
     layout_poloidal = {'poloidal': [2, 1, 0]}
 
@@ -136,7 +130,7 @@ def main():
 
     remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
                                 [nprocs, nprocs[0], nprocs[1]
-                                ], distribFunc.eta_grid[:3],
+                                 ], distribFunc.eta_grid[:3],
                                 'mode_solve')
     my_print(rank, "remapper1 done")
     remapperRho = getLayoutHandler(
@@ -144,10 +138,10 @@ def main():
     my_print(rank, "remappers done")
 
     phi = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
-            remapperPhi, 'mode_solve', comm, dtype=np.complex128)
+               remapperPhi, 'mode_solve', comm, dtype=np.complex128)
     my_print(rank, "phi done")
     rho = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
-            remapperRho, 'v_parallel_2d', comm, dtype=np.complex128)
+               remapperRho, 'v_parallel_2d', comm, dtype=np.complex128)
     my_print(rank, "rho done")
 
     density = DensityFinder(6, distribFunc.getSpline(3),
@@ -155,17 +149,17 @@ def main():
     my_print(rank, "df ready")
 
     QNSolver = QuasiNeutralitySolver(distribFunc.eta_grid[:3], 7, distribFunc.getSpline(0),
-                                    constants, chi=0)
+                                     constants, chi=0)
     my_print(rank, "QN ready")
     parGrad = ParallelGradient(distribFunc.getSpline(1), distribFunc.eta_grid,
-                            remapperPhi.getLayout('v_parallel_1d'), constants)
+                               remapperPhi.getLayout('v_parallel_1d'), constants)
 
     my_print(rank, "par grad ready")
 
-    diagnostics = DiagnosticCollector(comm, saveStep, fullStep, distribFunc, phi)
+    diagnostics = DiagnosticCollector(
+        comm, saveStep, fullStep, distribFunc, phi)
 
     my_print(rank, "diagnostics ready")
-
 
     diagnostic_filename = "{0}/phiDat.txt".format(foldername)
 
@@ -207,7 +201,7 @@ def main():
         output_start = time.time()
 
         distribFunc.writeH5Dataset(foldername, t)
-        
+
         my_print(rank, "grid printed")
         # phi.writeH5Dataset(foldername,t,"phi")
         my_print(rank, "phi printed")
@@ -339,9 +333,10 @@ def main():
     MPI.COMM_WORLD.Barrier()
 
     print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {diagnostic:16.10e}".
-        format(loop=full_loop_time, output=output_time, setup=setup_time,
-                diagnostic=diagnostic_time),
-        file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(), rank), "w"))
+          format(loop=full_loop_time, output=output_time, setup=setup_time,
+                 diagnostic=diagnostic_time),
+          file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(), rank), "w"))
+
 
 if __name__ == "__main__":
     main()

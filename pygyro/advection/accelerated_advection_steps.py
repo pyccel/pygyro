@@ -35,8 +35,8 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
 
     from numpy import pi
 
-    multFactor = dt/B0
-    multFactor_half = 0.5*multFactor
+    multFactor = dt / B0
+    multFactor_half = 0.5 * multFactor
     eval_spline_2d_cross(qPts, rPts, kts1Phi, deg1Phi,
                          kts2Phi, deg2Phi, coeffsPhi, drPhi_0, 0, 1)
     eval_spline_2d_cross(qPts, rPts, kts1Phi, deg1Phi,
@@ -54,8 +54,8 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
             # x' = x^n + f(x^n)
             drPhi_0[i, j] /= rPts[j]
             dthetaPhi_0[i, j] /= rPts[j]
-            endPts_k1_q[i, j] = qPts[i] - drPhi_0[i, j]*multFactor
-            endPts_k1_r[i, j] = rPts[j] + dthetaPhi_0[i, j]*multFactor
+            endPts_k1_q[i, j] = qPts[i] - drPhi_0[i, j] * multFactor
+            endPts_k1_r[i, j] = rPts[j] + dthetaPhi_0[i, j] * multFactor
 
             # Handle theta boundary conditions
             endPts_k1_q[i, j] %= 2*pi
@@ -81,11 +81,10 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
             # Step two of Heun method
             # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
             endPts_k2_q[i, j] = (
-                qPts[i] - (drPhi_0[i, j] + drPhi_k[i, j])*multFactor_half) % (2*pi)
-            if endPts_k2_q[i, j] < 0:
-                endPts_k2_q[i, j] += 2*pi
+                qPts[i] - (drPhi_0[i, j] + drPhi_k[i, j]) * multFactor_half) % (2*pi)
+                
             endPts_k2_r[i, j] = rPts[j] + \
-                (dthetaPhi_0[i, j] + dthetaPhi_k[i, j])*multFactor_half
+                (dthetaPhi_0[i, j] + dthetaPhi_k[i, j]) * multFactor_half
 
     # Find value at the determined point
     if (nulBound):
@@ -263,11 +262,10 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                 # boundary conditions
                 # Using the splines to extrapolate is not sufficient
                 endPts_k2_q[i, j] = (
-                    qPts[i] - (drPhi_0[i, j] + drPhi_k[i, j])*multFactor) % (2*pi)
-                if endPts_k2_q[i, j] < 0:  # Needed for C due to pyccel issue #854
-                    endPts_k2_q[i, j] += 2*pi
+                    qPts[i] - (drPhi_0[i, j] + drPhi_k[i, j]) * multFactor) % (2*pi)
+
                 endPts_k2_r[i, j] = rPts[j] + \
-                    (dthetaPhi_0[i, j] + dthetaPhi_k[i, j])*multFactor
+                    (dthetaPhi_0[i, j] + dthetaPhi_k[i, j]) * multFactor
 
                 if (endPts_k2_r[i, j] < rPts[0]):
                     endPts_k2_r[i, j] = rPts[0]
