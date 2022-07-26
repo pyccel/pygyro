@@ -1,9 +1,6 @@
 from numpy import zeros, empty
 
-# ==============================================================================
-# pythran export find_span(float64[:], int, float64)
-
-
+#pythran export find_span(float64[:], int, float64)
 def find_span(knots, degree, x):
     """
     Determine the knot span index at location x, given the
@@ -54,10 +51,8 @@ def find_span(knots, degree, x):
 
     return returnVal
 
-# ==============================================================================
-# pythran export basis_funs(float64[:], int, float64, int, float64[:])
 
-
+#pythran export basis_funs(float64[:], int, float64, int, float64[:])
 def basis_funs(knots, degree, x, span, values):
     """
     Compute the non-vanishing B-splines at location x,
@@ -104,9 +99,8 @@ def basis_funs(knots, degree, x, span, values):
             saved = left[j-r] * temp
         values[j+1] = saved
 
-# pythran export basis_funs_1st_der(float64[:], int, float64, int, float64[:])
 
-
+#pythran export basis_funs_1st_der(float64[:], int, float64, int, float64[:])
 def basis_funs_1st_der(knots, degree, x, span, ders):
     """
     Compute the first derivative of the non-vanishing B-splines
@@ -156,9 +150,8 @@ def basis_funs_1st_der(knots, degree, x, span, ders):
     # j = degree
     ders[degree] = saved
 
-# pythran export eval_spline_1d_scalar(float64, float64[:], int, float64[:], int)
 
-
+#pythran export eval_spline_1d_scalar(float64, float64[:], int, float64[:], int)
 def eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
     span = find_span(knots, degree, x)
 
@@ -173,9 +166,8 @@ def eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
         y += coeffs[span-degree+j]*basis[j]
     return y
 
-# pythran export eval_spline_1d_vector(float64[:], float64[:], int, float64[:], float64[:], int)
 
-
+#pythran export eval_spline_1d_vector(float64[:], float64[:], int, float64[:], float64[:], int)
 def eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
     if (der == 0):
         for i, xi in enumerate(x):
@@ -197,9 +189,8 @@ def eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
             for j in range(degree+1):
                 y[i] += coeffs[span-degree+j]*basis[j]
 
-# pythran export eval_spline_2d_scalar(float64, float64, float64[:], int, float64[:], int, float64[:,:], int, int)
 
-
+#pythran export eval_spline_2d_scalar(float64, float64, float64[:], int, float64[:], int, float64[:,:], int, int)
 def eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=0):
     span1 = find_span(kts1, deg1, x)
     span2 = find_span(kts2, deg2, y)
@@ -312,7 +303,7 @@ def eval_spline_2d_cross_11(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
                 z[i, j] += 0
 
 
-# pythran export eval_spline_2d_cross(float64[:], float64[:], float64[:], int, float64[:], int, float64[:,:], float[:,:], int, int)
+#pythran export eval_spline_2d_cross(float64[:], float64[:], float64[:], int, float64[:], int, float64[:,:], float[:,:], int, int)
 def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
     if der1 == 0 and der2 == 0:
         eval_spline_2d_cross_00(X, Y, kts1, deg1, kts2, deg2, coeffs, z)
@@ -399,9 +390,8 @@ def eval_spline_2d_vector_11(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, de
                 theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
             z[i] += theCoeffs[j, 0]*basis1[j]
 
-# pythran export eval_spline_2d_vector(float64[:],float64[:],float64[:],int,float64[:],int,float64[:,:],float64[:],int,int)
 
-
+#pythran export eval_spline_2d_vector(float64[:],float64[:],float64[:],int,float64[:],int,float64[:,:],float64[:],int,int)
 def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
     if (der1 == 0 and der2 == 0):
         eval_spline_2d_vector_00(
