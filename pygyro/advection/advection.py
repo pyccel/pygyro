@@ -497,7 +497,7 @@ class PoloidalAdvection:
                                          self._constants.kTi, self._constants.deltaRTi,
                                          self._constants.B0, self._nulEdge)
         else:
-            poloidal_advection_step_impl(f, dt, v, self._points[1],
+            poloidal_advection_step_impl(f, float(dt), v, self._points[1],
                                          self._points[0], self._drPhi_0,
                                          self._dqPhi_0, self._drPhi_k,
                                          self._dqPhi_k, self._endPts_k1_q,

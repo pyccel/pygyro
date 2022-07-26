@@ -4,7 +4,7 @@ from mpi4py import MPI
 import time
 setup_time_start = time.clock()
 
-# ~ import cProfile, pstats, io
+# import cProfile, pstats, io
 
 
 def get_grid_slice(foldername, tEnd):

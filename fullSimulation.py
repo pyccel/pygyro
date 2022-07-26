@@ -203,7 +203,7 @@ def main():
         distribFunc.writeH5Dataset(foldername, t)
 
         my_print(rank, "grid printed")
-        # phi.writeH5Dataset(foldername,t,"phi")
+        # phi.writeH5Dataset(foldername, t, "phi")
         my_print(rank, "phi printed")
 
         diagnostics.reduce()
@@ -225,7 +225,7 @@ def main():
         t += fullStep
         my_print(rank, "t=", t)
 
-        # Compute f^n+1/2 using lie splitting
+        # Compute f^n+1/2 using Lie splitting
         distribFunc.setLayout('flux_surface')
         distribFunc.saveGridValues()
         fluxAdv.gridStep(distribFunc)
