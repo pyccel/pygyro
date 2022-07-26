@@ -481,7 +481,7 @@ class PoloidalAdvection:
         polBases = self._spline.basis
 
         if (self._explicit):
-            poloidal_advection_step_expl(f, dt, v, self._points[1],
+            poloidal_advection_step_expl(f, float(dt), v, self._points[1],
                                          self._points[0], self._drPhi_0,
                                          self._dqPhi_0, self._drPhi_k,
                                          self._dqPhi_k, self._endPts_k1_q,
@@ -550,10 +550,7 @@ class PoloidalAdvection:
             elif (r > self._points[1][-1]):
                 return 0
             else:
-                while (theta > 2*pi):
-                    theta -= 2*pi
-                while (theta < 0):
-                    theta += 2*pi
+                theta %= 2*pi
                 return self._spline.eval(theta, r)
         else:
             raise NotImplementedError(
