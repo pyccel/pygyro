@@ -1,15 +1,17 @@
+import h5py
+import numpy as np
+from mpi4py import MPI
+import time
+
 from .. import splines as spl
 from ..initialisation import constants
 from ..model.process_grid import compute_2d_process_grid
 from ..model.grid import Grid
 from ..model.layout import LayoutSwapper
-import h5py
-import numpy as np
-from mpi4py import MPI
-import time
+
 setup_time_start = time.clock()
 
-# ~ import cProfile, pstats, io
+# import cProfile, pstats, io
 
 
 def get_phi_slice(foldername, tEnd):
