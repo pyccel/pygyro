@@ -60,15 +60,9 @@ class SlicePlotterNd(object):
         self.polar=polar
         if (polar):
             self.x, self.y = np.meshgrid(self.x, [*self.y, self.y[0]])
-
-            self.xLab = "x"
-            self.yLab = "y"
         else:
             self.x = np.repeat(self.x,ny).reshape(nx,ny)
             self.y = np.tile(self.y,nx).reshape(nx,ny)
-
-            self.xLab = "r"
-            self.yLab = r'$\theta$ [rad]'
 
         # get max and min values of f to avoid colorbar jumps
         minimum=grid.getMin(self.drawRank,self.oDims,self.omitVals)
@@ -84,7 +78,8 @@ class SlicePlotterNd(object):
             gs_orig = GridSpec(1, 2, width_ratios = [9,1])
             gs = GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_orig[0], height_ratios = [3,1],hspace=0.3)
             gs_plot = GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0], width_ratios = [9,1])
-            gs_slider = GridSpecFromSubplotSpec(self.nSliders, 1, subplot_spec=gs[1],hspace=1)
+            if self.nSliders:
+                gs_slider = GridSpecFromSubplotSpec(self.nSliders, 1, subplot_spec=gs[1],hspace=1)
             gs_buttons = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs_orig[1])
 
 
@@ -93,7 +88,8 @@ class SlicePlotterNd(object):
             else:
                 self.ax = self.fig.add_subplot(gs_plot[0])
             self.colorbarax  = self.fig.add_subplot(gs_plot[1])
-            self.slider_axes = [self.fig.add_subplot(gs_slider[i]) for i in range(self.nSliders)]
+            if self.nSliders:
+                self.slider_axes = [self.fig.add_subplot(gs_slider[i]) for i in range(self.nSliders)]
             self.button_axes = [self.fig.add_subplot(gs_buttons[i]) for i in range(4)]
             # rc('font',size=30)
             self.button_axes[2].axis('off')
@@ -139,6 +135,9 @@ class SlicePlotterNd(object):
         self.getData()
         self.action = 1
 
+        self.xLab = None
+        self.yLab = None
+
         if (self.rank == self.drawRank):
             self.plotFigure()
             self.prepare_data_reception()
@@ -154,6 +153,8 @@ class SlicePlotterNd(object):
             self.ax.set_xlabel(self.xLab)
             # add y-axis label
             self.ax.set_ylabel(self.yLab)
+
+            self.fig.canvas.draw()
 
     def updateVal(self, value, dimension):
         self.fig.canvas.stop_event_loop()
@@ -334,7 +335,7 @@ class SlicePlotterNd(object):
 
             self._data = np.concatenate(concatReady.tolist(),axis=0)
 
-            self._data = self._data.transpose(layout.dims_order)
+            self._data = self._data.transpose(layout.inv_dims_order)
 
     def plotFigure(self):
         assert(self.rank==self.drawRank)
@@ -366,8 +367,8 @@ class SlicePlotterNd(object):
             self.plot = self.ax.contourf(self.x,self.y,theSlice,**self.plotParams)
         self.fig.colorbar(self.plot,cax=self.colorbarax)
 
-        self.ax.set_xlabel("x [m]")
-        self.ax.set_ylabel("y [m]")
+        self.ax.set_xlabel(self.xLab)
+        self.ax.set_ylabel(self.yLab)
 
         self.fig.canvas.draw()
 
