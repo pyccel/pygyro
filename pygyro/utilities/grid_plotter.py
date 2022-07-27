@@ -562,7 +562,7 @@ class SlicePlotterNd(object):
                 self.buttons[1].set_active(True)
             else:
                 self.prepare_data_reception()
-            for i in range(len(self.completedRanks)):
+            for i, x in enumerate(self.completedRanks):
                 self.completedRanks[i] = (i == self.drawRank)
 
         if (not self.mpi_playing):

@@ -61,7 +61,7 @@ class DiagnosticCollector:
         """
         ti = t//self.dt
         idx = ti % self.saveStep
-        
+
         self.diagnostics[0, idx] = t
         self.diagnostics[1, idx] = self.l2_phi_class.l2NormSquared(phi)
         self.diagnostics[2, idx] = self.l2_grid_class.l2NormSquared(f)
