@@ -59,12 +59,7 @@ class SlicePlotterNd(object):
         # if (x,y) are (r,θ) then print in polar coordinates
         self.polar=polar
         if (polar):
-            self.x = np.repeat(self.x,ny).reshape(nx,ny)
-            self.y = np.tile(self.y,nx).reshape(nx,ny)
-            x=self.x*np.cos(self.y)
-            y=self.x*np.sin(self.y)
-            self.x=x
-            self.y=y
+            self.x, self.y = np.meshgrid(self.x, [*self.y, self.y[0]])
 
             self.xLab = "x"
             self.yLab = "y"
@@ -88,18 +83,19 @@ class SlicePlotterNd(object):
             #Grid spec in Grid spec to guarantee size of plot
             gs_orig = GridSpec(1, 2, width_ratios = [9,1])
             gs = GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_orig[0], height_ratios = [3,1],hspace=0.3)
-            gs_plot = GridSpecFromSubplotSpec(1, 1, subplot_spec=gs[0])
+            gs_plot = GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0], width_ratios = [9,1])
             gs_slider = GridSpecFromSubplotSpec(self.nSliders, 1, subplot_spec=gs[1],hspace=1)
             gs_buttons = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs_orig[1])
 
 
-
-            self.ax = self.fig.add_subplot(gs_plot[0])
-            divider = make_axes_locatable(self.ax)
-            self.colorbarax = divider.append_axes("right",size="5%",pad=0.05)
+            if polar:
+                self.ax = self.fig.add_subplot(gs_plot[0], polar = True)
+            else:
+                self.ax = self.fig.add_subplot(gs_plot[0])
+            self.colorbarax  = self.fig.add_subplot(gs_plot[1])
             self.slider_axes = [self.fig.add_subplot(gs_slider[i]) for i in range(self.nSliders)]
             self.button_axes = [self.fig.add_subplot(gs_buttons[i]) for i in range(4)]
-            # ~ rc('font',size=30)
+            # rc('font',size=30)
             self.button_axes[2].axis('off')
             self.button_axes[3].axis('off')
             self.button_axes[3].text(0,0.66,'Memory\nrequired:',verticalalignment='center',fontsize='medium')
@@ -134,7 +130,7 @@ class SlicePlotterNd(object):
 
             gs_orig.tight_layout(self.fig,pad=1.0)
 
-            self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet", 'shading':'nearest'}
+            self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet", 'levels':20}
 
             self.setMemText()
 
@@ -350,9 +346,11 @@ class SlicePlotterNd(object):
         # if the storage dimensions are ordered differently to the plotting
         # dimensions
         if (self.xDim>self.yDim):
+            if (self.polar):
+                theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
             theSlice = theSlice.T
-        else:
-            theSlice = theSlice
+        elif self.polar:
+           theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
 
         # remove the old plot
         self.ax.clear()
@@ -362,7 +360,10 @@ class SlicePlotterNd(object):
         # (to avoid having a missing segment), and transposing the data
         # if the storage dimensions are ordered differently to the plotting
         # dimensions
-        self.plot = self.ax.pcolormesh(self.x,self.y,theSlice,**self.plotParams)
+        if self.polar:
+            self.plot = self.ax.contourf(self.y,self.x,theSlice.T,**self.plotParams)
+        else:
+            self.plot = self.ax.contourf(self.x,self.y,theSlice,**self.plotParams)
         self.fig.colorbar(self.plot,cax=self.colorbarax)
 
         self.ax.set_xlabel("x [m]")
