@@ -80,8 +80,8 @@ class SlicePlotterNd(object):
         # if (x,y) are (r,θ) then print in polar coordinates
         self.polar=polar
         if (polar):
-            self.x = np.repeat(self.x,ny+1).reshape(nx,ny+1)
-            self.y = np.tile([*self.y,self.y[0]],nx).reshape(nx,ny+1)
+            self.x = np.repeat(self.x,ny).reshape(nx,ny)
+            self.y = np.tile(self.y,nx).reshape(nx,ny)
             x=self.x*np.cos(self.y)
             y=self.x*np.sin(self.y)
             self.x=x
@@ -371,12 +371,8 @@ class SlicePlotterNd(object):
         # if the storage dimensions are ordered differently to the plotting
         # dimensions
         if (self.xDim>self.yDim):
-            if (self.polar):
-                theSlice = np.append(theSlice, theSlice[None,0,:],axis=0)
             theSlice = theSlice.T
         else:
-            if (self.polar):
-                theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
             theSlice = theSlice
 
         # remove the old plot
