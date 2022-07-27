@@ -75,7 +75,7 @@ class DensityFinder:
         assert(rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
 
         rIndices = grid.getGlobalIdxVals(0)
-        
+
         for i, (r, rIdx) in enumerate(zip(grid.getCoordVals(0), rIndices)):
             for j, _ in grid.getCoords(1):  # z
                 rho_qv = rho.get1DSlice([i, j])
@@ -83,10 +83,10 @@ class DensityFinder:
                 for k, _ in grid.getCoords(2):  # theta
                     self._interpolator.compute_interpolant(
                         grid.get1DSlice([i, j, k]), self._spline)
-                
+
                     eval_spline_1d_vector(self._points, self._spline.basis.knots, self._spline.basis.degree,
                                           self._spline.coeffs, self._splineMem, 0)
-                
+
                     rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
                                                                      - self._fEq[rIdx]))
 
@@ -111,14 +111,14 @@ class DensityFinder:
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # z
                 rho_qv = rho.get1DSlice([i, j])
-                
+
                 for k, _ in grid.getCoords(2):  # theta
                     self._interpolator.compute_interpolant(
                         grid.get1DSlice([i, j, k]), self._spline)
-                  
+
                     eval_spline_1d_vector(self._points, self._spline.basis.knots, self._spline.basis.degree,
                                           self._spline.coeffs, self._splineMem, 0)
-                  
+
                     rho_qv[k] = np.sum(
                         self._multFact*self._weights*(self._splineMem))
 
@@ -192,7 +192,7 @@ class DiffEqSolver:
         rFactor = np.vectorize(rFactor)
         ddThetaFactor = np.vectorize(ddThetaFactor)
         rhoFactor = np.vectorize(rhoFactor)
-        
+
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n = degree//2+1

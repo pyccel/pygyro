@@ -1065,7 +1065,7 @@ def test_quasiNeutrality():
             + np.cos(rArg)**4 * np.sin(q)**3 / Te(r, constants.CTe, constants.kTe, constants.deltaRTe, constants.rp) \
             - 6 * np.cos(rArg)**4 * np.sin(q) * np.cos(q)**2 / r**2 \
             + 3 * np.cos(rArg)**4 * np.sin(q)**3 / r**2
-        
+
         plane = phi_exact.get2DSlice([i])
         plane[:] = np.cos(rArg)**4 * np.sin(q)**3
 
@@ -1277,7 +1277,7 @@ def test_WellPosedness():
     domain = [[1, 3], [0, 2*pi], [0, 1]]
     degree = [3, 3, 3]
     period = [False, True, False]
-    comm = MPI.COMM_WORLD
+    # comm = MPI.COMM_WORLD
 
     # Compute breakpoints, knots, spline space and grid points
     nkts = [n+1+d*(int(p)-1) for (n, d, p) in zip(npts, degree, period)]
@@ -1286,11 +1286,11 @@ def test_WellPosedness():
              for (b, d, p) in zip(breaks, degree, period)]
     bsplines = [spl.BSplines(k, d, p)
                 for (k, d, p) in zip(knots, degree, period)]
-    eta_grid = [bspl.greville for bspl in bsplines]
+    # eta_grid = [bspl.greville for bspl in bsplines]
 
-    layout_poisson = {'mode_solve': [1, 2, 0]}
-    remapper = getLayoutHandler(comm, layout_poisson, [
-                                comm.Get_size()], eta_grid)
+    # layout_poisson = {'mode_solve': [1, 2, 0]}
+    # remapper = getLayoutHandler(comm, layout_poisson, [
+    #                             comm.Get_size()], eta_grid)
 
     with pytest.raises(ValueError):
         DiffEqSolver(2*degree[0]+1, bsplines[0], npts[0], npts[1], drFactor=lambda r: 0,

@@ -20,7 +20,7 @@ class BoundedSlider:
 
         self.n = len(self.poss_vals)-1
         self.midpoint = self.n//2
-        
+
         if ('valinit' in kwargs):
             self.idx = kwargs['valinit']
         else:
@@ -42,7 +42,7 @@ class BoundedSlider:
         self.grayed_e = Rectangle(
             (self.max_idx/self.n, 0), (self.n-self.max_idx)/self.n, 1, facecolor='gray')
         self.filled = Rectangle((0, 0), self.idx/self.n, 1, facecolor='blue')
-        
+
         self.start_box = Polygon(
             self.start_poly + [self.min_idx/self.n, 0], facecolor='grey')
         self.end_box = Polygon(
@@ -127,7 +127,7 @@ class BoundedSlider:
                         self.end_poly + [self.max_idx/self.n, 0])
                     self.ax.figure.canvas.draw()
                     self.mem_changed()
-            
+
             elif (self.moving == 'val'):
                 if (x_idx != self.idx and self.inMemory(x_idx)):
                     self.idx = x_idx
@@ -175,12 +175,12 @@ class BoundedSlider:
         """
         self.fix_max = self.max_idx
         self.fix_min = self.min_idx
-        
+
         if (self.idx < self.fix_min):
             self.idx = self.fix_min
         elif (self.idx > self.fix_max):
             self.idx = self.fix_max
-        
+
         if (self.bounds_active):
             self.filled_start = self.fix_min
 
