@@ -54,7 +54,7 @@ def find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
 
 
 @pure
-@stack_array('left','right')
+@stack_array('left', 'right')
 def basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', values: 'float[:]'):
     """
     Compute the non-vanishing B-splines at location x,
@@ -207,7 +207,7 @@ def eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeff
 
 
 @pure
-@stack_array('basis1','basis2','theCoeffs')
+@stack_array('basis1', 'basis2', 'theCoeffs')
 def eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
                           coeffs: 'float[:,:]', der1: 'int', der2: 'int') -> 'float':
     """
@@ -242,7 +242,7 @@ def eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int',
 
 
 @pure
-@stack_array('basis1','basis2','theCoeffs')
+@stack_array('basis1', 'basis2', 'theCoeffs')
 def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
                          coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int', der2: 'int'):
     """
@@ -324,7 +324,7 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
 
 
 @pure
-@stack_array('basis1','basis2','theCoeffs')
+@stack_array('basis1', 'basis2', 'theCoeffs')
 def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
                           coeffs: 'float[:,:]', z: 'float[:]', der1: 'int', der2: 'int'):
     """

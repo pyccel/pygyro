@@ -437,7 +437,8 @@ def test_fluxAdvection():
             eta_vals, bsplines, layout, dt, constants, zDegree=3)
 
         f_vals[:, :] = initCondsF(np.atleast_2d(eta_vals[1]).T, eta_vals[2])
-        finalPts = [eta_vals[1] - c * N * dt * btheta, eta_vals[2] - c * N * dt * bz]
+        finalPts = [eta_vals[1] - c * N * dt *
+                    btheta, eta_vals[2] - c * N * dt * bz]
         final_f_vals = initCondsF(np.atleast_2d(finalPts[0]).T, finalPts[1])
 
         for _ in range(N):
