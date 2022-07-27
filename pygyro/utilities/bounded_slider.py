@@ -45,15 +45,12 @@ class BoundedSlider:
         ax.add_patch(self.start_box)
         ax.add_patch(self.end_box)
 
-        self.min_text = plt.Text(0,0.5,'{:.2f} '.format(self.min_val),
+        self.min_text = ax.text(0,0.5,'{:.2f} '.format(self.min_val),
                             horizontalalignment='right',
                             verticalalignment='center')
-        self.max_text = plt.Text(1.0,0.5,' {:.2f}'.format(self.max_val),
+        self.max_text = ax.text(1.0,0.5,' {:.2f}'.format(self.max_val),
                             horizontalalignment='left',
                             verticalalignment='center')
-
-        ax.add_image(self.min_text)
-        ax.add_image(self.max_text)
 
         ax.set_xlabel('{} : {:.2f} '.format(name,self.val))
 
