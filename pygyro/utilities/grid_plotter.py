@@ -52,27 +52,6 @@ class SlicePlotterNd(object):
         self.memory_requirements[self.xDim] = grid.eta_grid[self.xDim].size
         self.memory_requirements[self.yDim] = grid.eta_grid[self.yDim].size
 
-        ## Shift the x/y values to centre the plotted squares on the data
-
-        # Get sorted values to avoid wrong dx values (found at periodic boundaries)
-        xSorted = np.sort(self.x)
-        ySorted = np.sort(self.y)
-
-        dx = xSorted[1:] - xSorted[:-1]
-        dy = ySorted[1:] - ySorted[:-1]
-
-        # The corner of the square should be shifted by (-dx/2,-dy/2) for the value
-        # to be found in the middle
-        shift = [dx[0]*0.5, *(dx[:-1]+dx[1:])*0.25, dx[-1]*0.5]
-        # The values are reordered to the original ordering to shift the relevant values
-        shift = [shift[i] for i in np.argsort(self.x)]
-        self.x = self.x - shift
-
-        # Ditto for y
-        shift = [dy[0]*0.5, *(dy[:-1]+dy[1:])*0.25, dy[-1]*0.5]
-        shift = [shift[i] for i in np.argsort(self.y)]
-        self.y = self.y - shift
-
         # save x and y grid values
         nx=len(self.x)
         ny=len(self.y)
@@ -155,7 +134,7 @@ class SlicePlotterNd(object):
 
             gs_orig.tight_layout(self.fig,pad=1.0)
 
-            self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet"}
+            self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet", 'shading':'nearest'}
 
             self.setMemText()
 
