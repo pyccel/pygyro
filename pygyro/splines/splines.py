@@ -3,12 +3,14 @@
 
 import numpy as np
 #from scipy.interpolate  import splev, bisplev
-from .spline_eval_funcs      import eval_spline_1d_scalar, eval_spline_1d_vector, eval_spline_2d_cross, eval_spline_2d_scalar
+from .spline_eval_funcs import eval_spline_1d_scalar, eval_spline_1d_vector, eval_spline_2d_cross, eval_spline_2d_scalar
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
-#===============================================================================
-def make_knots( breaks, degree, periodic ):
+# ===============================================================================
+
+
+def make_knots(breaks, degree, periodic):
     """
     Create spline knots from breakpoints, with appropriate boundary conditions.
     Let p be spline degree. If domain is periodic, knot sequence is extended
@@ -34,31 +36,33 @@ def make_knots( breaks, degree, periodic ):
 
     """
     # Type checking
-    assert isinstance( degree  , int  )
-    assert isinstance( periodic, bool )
+    assert isinstance(degree, int)
+    assert isinstance(periodic, bool)
 
     # Consistency checks
     assert len(breaks) > 1
-    assert all( np.diff(breaks) > 0 )
+    assert all(np.diff(breaks) > 0)
     assert degree > 0
     if periodic:
         assert len(breaks) > degree
 
     p = degree
-    T = np.zeros( len(breaks)+2*p )
+    T = np.zeros(len(breaks)+2*p)
     T[p:-p] = breaks
 
     if periodic:
         period = breaks[-1]-breaks[0]
-        T[0:p] = [xi-period for xi in breaks[-p-1:-1 ]]
-        T[-p:] = [xi+period for xi in breaks[   1:p+1]]
+        T[0:p] = [xi-period for xi in breaks[-p-1:-1]]
+        T[-p:] = [xi+period for xi in breaks[1:p+1]]
     else:
-        T[0:p] = breaks[ 0]
+        T[0:p] = breaks[0]
         T[-p:] = breaks[-1]
 
     return T
 
-#===============================================================================
+# ===============================================================================
+
+
 class BSplines():
     """
     B-splines: basis functions of 1D spline space.
@@ -80,78 +84,79 @@ class BSplines():
     future.
 
     """
-    def __init__( self, knots, degree, periodic ):
 
-        self._knots    = knots
-        self._degree   = degree
+    def __init__(self, knots, degree, periodic):
+
+        self._knots = knots
+        self._degree = degree
         self._periodic = periodic
-        self._ncells   = len(knots)-2*degree-1
-        self._nbasis   = self._ncells if periodic else self._ncells+degree
-        self._offset   = degree//2 if periodic else 0
+        self._ncells = len(knots)-2*degree-1
+        self._nbasis = self._ncells if periodic else self._ncells+degree
+        self._offset = degree//2 if periodic else 0
 
     @property
-    def degree( self ):
+    def degree(self):
         """ Degree of B-splines.
         """
         return self._degree
 
     @property
-    def ncells( self ):
+    def ncells(self):
         """ Number of cells in domain.
         """
         return self._ncells
 
     @property
-    def nbasis( self ):
+    def nbasis(self):
         """ Number of basis functions, taking into account periodicity.
         """
         return self._nbasis
 
     @property
-    def periodic( self ):
+    def periodic(self):
         """ True if domain is periodic, False otherwise.
         """
         return self._periodic
 
     @property
-    def knots( self ):
+    def knots(self):
         """ Knot sequence.
         """
         return self._knots
 
     @property
-    def breaks( self ):
+    def breaks(self):
         """ List of breakpoints.
         """
         p = self._degree
         return self._knots[p:-p]
 
     @property
-    def domain( self ):
+    def domain(self):
         """ Domain boundaries [a,b].
         """
         breaks = self.breaks
         return breaks[0], breaks[-1]
 
     @property
-    def greville( self ):
+    def greville(self):
         """ Coordinates of all Greville points.
         """
         p = self._degree
         n = self._nbasis
         T = self._knots
         s = 1+p//2 if self._periodic else 1
-        x = np.array( [np.sum(T[i:i+p])/p for i in range(s,s+n)] )
+        x = np.array([np.sum(T[i:i+p])/p for i in range(s, s+n)])
 
         if self._periodic:
-            a,b = self.domain
-            x = np.around( x, decimals=15 )
+            a, b = self.domain
+            x = np.around(x, decimals=15)
             x = (x-a) % (b-a) + a
 
-        return np.around( x, decimals=15 )
+        return np.around(x, decimals=15)
 
     # ...
-    def __getitem__( self, i ):
+    def __getitem__(self, i):
         """
         Get the i-th basis function as a 1D spline.
 
@@ -166,8 +171,8 @@ class BSplines():
             Basis function.
 
         """
-        assert isinstance( i, int )
-        spl = Spline1D( self )
+        assert isinstance(i, int)
+        spl = Spline1D(self)
         spl.coeffs[i] = 1.0
         if spl.basis.periodic:
             n = spl.basis.ncells
@@ -176,37 +181,52 @@ class BSplines():
         return spl
 
     # ...
-    def find_cell( self, x ):
+    def find_cell(self, x):
         """ Index i of cell $C_{i} := [x_{i},x_{i+1})$ that contains point x.
             Last cell includes right endpoint.
         """
         a, b = self.domain
-        assert( a <= x <= b )
-        return int( np.searchsorted( self.breaks, x, side='right' ) - 1 )
+        assert(a <= x <= b)
+        return int(np.searchsorted(self.breaks, x, side='right') - 1)
 
-#===============================================================================
+# ===============================================================================
+
 
 class Spline1D():
+    """
+    TODO
+    """
 
-    def __init__( self, basis, dtype = float ):
-        assert isinstance( basis, BSplines )
-        self._basis  = basis
-        self._coeffs = np.zeros( basis.ncells + basis.degree, dtype=dtype )
+    def __init__(self, basis, dtype=float):
+        assert isinstance(basis, BSplines)
+        self._basis = basis
+        self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=dtype)
 
     @property
-    def basis( self ):
+    def basis(self):
+        """
+        TODO
+        """
         return self._basis
 
     @property
-    def coeffs( self ):
+    def coeffs(self):
+        """
+        TODO
+        """
         return self._coeffs
 
-    def eval( self, x, der=0 ):
-        if (hasattr(x,'__len__')):
+    def eval(self, x, der=0):
+        """
+        TODO
+        """
+        if (hasattr(x, '__len__')):
             result = np.empty_like(x)
-            eval_spline_1d_vector(x,self._basis.knots,self._basis.degree,self._coeffs,result,der)
+            eval_spline_1d_vector(x, self._basis.knots,
+                                  self._basis.degree, self._coeffs, result, der)
         else:
-            result = eval_spline_1d_scalar(x,self._basis.knots,self._basis.degree,self._coeffs,der)
+            result = eval_spline_1d_scalar(
+                x, self._basis.knots, self._basis.degree, self._coeffs, der)
         return result
 
         """
@@ -214,41 +234,57 @@ class Spline1D():
         return splev( x, tck, der )
         """
 
-#===============================================================================
-class Spline2D():
+# ===============================================================================
 
-    def __init__( self, basis1, basis2 ):
-        assert isinstance( basis1, BSplines )
-        assert isinstance( basis2, BSplines )
+
+class Spline2D():
+    """
+    TODO
+    """
+
+    def __init__(self, basis1, basis2):
+        assert isinstance(basis1, BSplines)
+        assert isinstance(basis2, BSplines)
         shape = (basis1.ncells + basis1.degree, basis2.ncells + basis2.degree)
         self._basis1 = basis1
         self._basis2 = basis2
-        self._coeffs = np.zeros( shape )
+        self._coeffs = np.zeros(shape)
 
         if basis1.degree > 5:
-            raise NotImplementedError( "scipy.interpolate.bisplev needs p1 <= 5" )
+            raise NotImplementedError(
+                "scipy.interpolate.bisplev needs p1 <= 5")
 
         if basis2.degree > 5:
-            raise NotImplementedError( "scipy.interpolate.bisplev needs p2 <= 5" )
+            raise NotImplementedError(
+                "scipy.interpolate.bisplev needs p2 <= 5")
 
     @property
-    def basis( self ):
+    def basis(self):
+        """
+        TODO
+        """
         return self._basis1, self._basis2
 
     @property
-    def coeffs( self ):
+    def coeffs(self):
+        """
+        TODO
+        """
         return self._coeffs
 
-    def eval( self, x1, x2, der1=0, der2=0 ):
-        if (hasattr(x1,'__len__')):
-            result = np.empty((len(x1),len(x2)))
-            eval_spline_2d_cross(x1,x2,self._basis1.knots,self._basis1.degree,
-                                        self._basis2.knots,self._basis2.degree,
-                                        self._coeffs,result,der1,der2)
+    def eval(self, x1, x2, der1=0, der2=0):
+        """
+        TODO
+        """
+        if (hasattr(x1, '__len__')):
+            result = np.empty((len(x1), len(x2)))
+            eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
+                                 self._basis2.knots, self._basis2.degree,
+                                 self._coeffs, result, der1, der2)
         else:
-            result = eval_spline_2d_scalar(x1,x2,self._basis1.knots,self._basis1.degree,
-                                                 self._basis2.knots,self._basis2.degree,
-                                                 self._coeffs,der1,der2)
+            result = eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
+                                           self._basis2.knots, self._basis2.degree,
+                                           self._coeffs, der1, der2)
         return result
 
         """

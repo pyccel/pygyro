@@ -24,13 +24,15 @@ import shutil
 import time
 import re
 
-from argparse   import ArgumentParser
+from argparse import ArgumentParser
 from contextlib import contextmanager
-from io         import StringIO
+from io import StringIO
 
-#===============================================================================
+# ===============================================================================
 # UTILITIES
-#===============================================================================
+# ===============================================================================
+
+
 def _make_clean_dir(path):
     print("Purging %s ..." % path)
     try:
@@ -42,26 +44,35 @@ def _make_clean_dir(path):
     except OSError:
         pass
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 def fix_titles(s):
     pattern = '=====+'
     return re.sub(pattern, lambda x: x.group(0).replace('=', '-'), s)
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 class Rotator(object):
     """ in a rotator every range runs in terms """
+
     def __init__(self, comm):
         self.comm = comm
+
     def __enter__(self):
         self.comm.Barrier()
         for _ in range(self.comm.rank):
             self.comm.Barrier()
+
     def __exit__(self, type, value, tb):
         for _ in range(self.comm.rank, self.comm.size):
             self.comm.Barrier()
         self.comm.Barrier()
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+
 @contextmanager
 def nompi(comm):
     errored = False
@@ -80,9 +91,11 @@ def nompi(comm):
         else:
             raise error
 
-#===============================================================================
+
+# ===============================================================================
 # MPI TEST DECORATOR
-#===============================================================================
+# ===============================================================================
+
 def MPITest(commsize):
     """
     A decorator that repeatedly calls the wrapped function,
@@ -112,7 +125,8 @@ def MPITest(commsize):
         @pytest.mark.parametrize("size", sizes)
         def wrapped(size, *args):
             if MPI.COMM_WORLD.size < size:
-                pytest.skip("Test skipped because world is too small. Include the test with mpirun -n %d" % (size))
+                pytest.skip(
+                    "Test skipped because world is too small. Include the test with mpirun -n %d" % (size))
 
             color = 0 if MPI.COMM_WORLD.rank < size else 1
             comm = MPI.COMM_WORLD.Split(color)
@@ -131,10 +145,12 @@ def MPITest(commsize):
         return wrapped
     return dec
 
-#===============================================================================
+
+# ===============================================================================
 # MAIN TESTER CLASS
-#===============================================================================
-class Tester( object ):
+# ===============================================================================
+
+class Tester(object):
     """
     Run MPI-enabled tests using pytest, building the project first.
 
@@ -152,17 +168,18 @@ class Tester( object ):
         Add command-line options to specify MPI and coverage configuration
         """
         parser.addoption("--mpirun", default="mpirun -n 4",
-                help="Select MPI launcher, e.g. mpirun -n 4")
+                         help="Select MPI launcher, e.g. mpirun -n 4")
 
         parser.addoption("--single", default=False, action='store_true',
-                help="Do not run via MPI launcher. ")
+                         help="Do not run via MPI launcher. ")
 
         parser.addoption("--mpisub", action="store_true", default=False,
-                help="run process as a mpisub")
+                         help="run process as a mpisub")
 
-        parser.addoption("--mpisub-site-dir", default=None, help="site-dir in mpisub")
+        parser.addoption("--mpisub-site-dir", default=None,
+                         help="site-dir in mpisub")
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     @staticmethod
     def pytest_collection_modifyitems(session, config, items):
         """
@@ -173,18 +190,18 @@ class Tester( object ):
         # sort the tests
         items[:] = sorted(items, key=str)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def __init__(self):
 
-        self.ROOT_DIR = os.path.abspath( os.path.curdir )
-        self.TEST_DIR = os.path.join( self.ROOT_DIR, '__test__' )
+        self.ROOT_DIR = os.path.abspath(os.path.curdir)
+        self.TEST_DIR = os.path.join(self.ROOT_DIR, '__test__')
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     @property
     def comm(self):
         return MPI.COMM_WORLD
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def main(self, argv):
         # must bail after first dead test; avoiding a fault MPI collective state.
         argv.insert(1, '-x')
@@ -233,12 +250,13 @@ class Tester( object ):
         try:
             code = None
             with self._run_from_testdir(args):
-                code = config.hook.pytest_cmdline_main( config=config )
+                code = config.hook.pytest_cmdline_main(config=config)
 
         except:
             if args.mpisub:
                 self._sleep()
-                self.oldstderr.write("Fatal Error on Rank %d\n" % self.comm.rank)
+                self.oldstderr.write(
+                    "Fatal Error on Rank %d\n" % self.comm.rank)
                 self.oldstderr.write(traceback.format_exc())
                 self.oldstderr.flush()
                 self.comm.Abort(-1)
@@ -251,9 +269,9 @@ class Tester( object ):
         else:
             sys.exit(code)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     @staticmethod
-    def _launch_mpisub( args, site_dir):
+    def _launch_mpisub(args, site_dir):
 
         # extract the mpirun run argument
         parser = ArgumentParser(add_help=False)
@@ -282,11 +300,11 @@ class Tester( object ):
         # if we are here os.execvp has failed; bail
         sys.exit(1)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def _sleep(self):
         time.sleep(0.04 * self.comm.rank)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def _begin_capture(self):
         self.oldstdout = sys.stdout
         self.oldstderr = sys.stderr
@@ -297,13 +315,14 @@ class Tester( object ):
             sys.stdout = self.newstdout
             sys.stderr = self.newstderr
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def _end_capture_and_exit(self, code):
-        if code not in [0,5]:
+        if code not in [0, 5]:
             # if any rank has a failure, print the error and abort the world.
             self._sleep()
             if self.comm.rank != 0:
-                self.oldstderr.write("Test Failure due to rank %d\n" % self.comm.rank)
+                self.oldstderr.write(
+                    "Test Failure due to rank %d\n" % self.comm.rank)
                 self.oldstderr.write(self.newstdout.getvalue())
                 self.oldstderr.write(self.newstderr.getvalue())
                 self.oldstderr.flush()
@@ -313,7 +332,8 @@ class Tester( object ):
         with Rotator(self.comm):
             if self.comm.rank != 0:
                 self.oldstderr.write("\n")
-                self.oldstderr.write("=" * 32 + " Rank %d / %d " % (self.comm.rank, self.comm.size) + "=" * 32)
+                self.oldstderr.write("=" * 32 + " Rank %d / %d " %
+                                     (self.comm.rank, self.comm.size) + "=" * 32)
                 self.oldstderr.write("\n")
                 self.oldstderr.write(fix_titles(self.newstdout.getvalue()))
                 self.oldstderr.write(fix_titles(self.newstderr.getvalue()))
@@ -321,7 +341,7 @@ class Tester( object ):
 
         sys.exit(0)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     @contextlib.contextmanager
     def _run_from_testdir(self, args):
         if not args.mpisub:
@@ -338,7 +358,7 @@ class Tester( object ):
         finally:
             os.chdir(cwd)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def _get_pytest_config(self, argv):
         """
         Return the ``pytest`` configuration object based on the
@@ -373,14 +393,14 @@ class Tester( object ):
 
         return config
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def _initialize_dirs(self, args):
         """
         Initialize the ``build/test/`` directory
         """
         _make_clean_dir(self.TEST_DIR)
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     def _fix_test_paths(self, site_dir, args):
         """
         Fix the paths of tests to run to point to the corresponding
@@ -393,10 +413,11 @@ class Tester( object ):
             return '::'.join(p)
         return [fix_test_path(x) for x in args]
 
-#===============================================================================
+
+# ===============================================================================
 # SCRIPT FUNCTIONALITY
-#===============================================================================
+# ===============================================================================
 if __name__ == "__main__":
 
     tester = Tester()
-    tester.main( sys.argv[1:] )
+    tester.main(sys.argv[1:])
