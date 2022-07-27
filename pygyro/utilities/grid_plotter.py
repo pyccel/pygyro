@@ -361,10 +361,15 @@ class SlicePlotterNd(object):
         # (to avoid having a missing segment), and transposing the data
         # if the storage dimensions are ordered differently to the plotting
         # dimensions
+        kwargs = self.plotParams.copy()
+        vmin = kwargs.pop('vmin', theSlice.min())
+        vmax = kwargs.pop('vmax', theSlice.max())
+        levels = kwargs.pop('levels', 20)
+        clevels = np.linspace( vmin, vmax, levels)
         if self.polar:
-            self.plot = self.ax.contourf(self.y,self.x,theSlice.T,**self.plotParams)
+            self.plot = self.ax.contourf(self.y, self.x, theSlice.T, levels=clevels, **kwargs)
         else:
-            self.plot = self.ax.contourf(self.x,self.y,theSlice,**self.plotParams)
+            self.plot = self.ax.contourf(self.x, self.y, theSlice, levels=clevels, **kwargs)
         self.fig.colorbar(self.plot,cax=self.colorbarax)
 
         self.ax.set_xlabel(self.xLab)
