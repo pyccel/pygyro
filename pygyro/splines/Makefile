@@ -23,6 +23,6 @@ endif
 
 
 clean:
-	rm -f *.o *.so *.mod
+	rm -f *.o *.so *.mod .ACC.pycc .lock_acquisition.lock
 	pyccel-clean
 
