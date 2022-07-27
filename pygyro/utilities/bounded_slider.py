@@ -60,14 +60,14 @@ class BoundedSlider:
         ax.add_patch(self.start_box)
         ax.add_patch(self.end_box)
 
-        self.min_text = ax.text(0,0.5,'{:.2f} '.format(self.min_val),
-                            horizontalalignment='right',
-                            verticalalignment='center')
-        self.max_text = ax.text(1.0,0.5,' {:.2f}'.format(self.max_val),
-                            horizontalalignment='left',
-                            verticalalignment='center')
+        self.min_text = ax.text(0, 0.5, '{:.2f} '.format(self.min_val),
+                                horizontalalignment='right',
+                                verticalalignment='center')
+        self.max_text = ax.text(1.0, 0.5, ' {:.2f}'.format(self.max_val),
+                                horizontalalignment='left',
+                                verticalalignment='center')
 
-        ax.set_xlabel('{} : {:.2f} '.format(name,self.val))
+        ax.set_xlabel('{} : {:.2f} '.format(name, self.val))
 
         ax.figure.canvas.mpl_connect('button_press_event', self.on_press)
         ax.figure.canvas.mpl_connect('button_release_event', self.on_release)

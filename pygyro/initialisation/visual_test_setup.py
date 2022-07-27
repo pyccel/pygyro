@@ -1,7 +1,7 @@
 import pytest
-from  .setups                   import setupCylindricalGrid
-from  .initialiser_funcs        import f_eq, perturbation
-from ..utilities.grid_plotter   import SlicePlotterNd
+from .setups import setupCylindricalGrid
+from .initialiser_funcs import f_eq, perturbation
+from ..utilities.grid_plotter import SlicePlotterNd
 
 
 @pytest.mark.serial
@@ -29,8 +29,8 @@ def test_Perturbation_FluxSurface():
             FluxSurface[:] = perturbation(
                 r, theta, z, m, n, constants.rp, constants.deltaR, constants.R0)
 
-    p = SlicePlotterNd(grid,0,3,polar=False)
-    p.setLabels('r','v')
+    p = SlicePlotterNd(grid, 0, 3, polar=False)
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -59,8 +59,8 @@ def test_Perturbation_vPar():
             Surface[:] = perturbation(
                 r, theta, z, m, n, constants.rp, constants.deltaR, constants.R0)
 
-    p = SlicePlotterNd(grid,0,3,False)
-    p.setLabels('r','v')
+    p = SlicePlotterNd(grid, 0, 3, False)
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -89,8 +89,8 @@ def test_Perturbation_Poloidal():
             PoloidalSurface[:] = perturbation(
                 r, theta, z, m, n, constants.rp, constants.deltaR, constants.R0)
 
-    p = SlicePlotterNd(grid,0,3,False)
-    p.setLabels('r','v')
+    p = SlicePlotterNd(grid, 0, 3, False)
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -122,8 +122,8 @@ def test_FieldPlot_FluxSurface():
             FluxSurface[:] = perturbation(
                 r, theta, z, m, n, constants.rp, constants.deltaR, constants.R0)
 
-    p = SlicePlotterNd(grid,1,2,False)
-    p.setLabels('q','z')
+    p = SlicePlotterNd(grid, 1, 2, False)
+    p.setLabels('q', 'z')
     p.show()
 
 
@@ -154,8 +154,8 @@ def test_FieldPlot_vPar():
             Surface[:] = perturbation(
                 r, theta, z, m, n, constants.rp, constants.deltaR, constants.R0)
 
-    p = SlicePlotterNd(grid,1,2,False)
-    p.setLabels('q','z')
+    p = SlicePlotterNd(grid, 1, 2, False)
+    p.setLabels('q', 'z')
     p.show()
 
 
@@ -186,8 +186,8 @@ def test_FieldPlot_Poloidal():
             PoloidalSurface[:] = perturbation(
                 r, theta, z, m, n, constants.rp, constants.deltaR, constants.R0)
 
-    p = SlicePlotterNd(grid,1,2,False)
-    p.setLabels('q','z')
+    p = SlicePlotterNd(grid, 1, 2, False)
+    p.setLabels('q', 'z')
     p.show()
 
 
@@ -218,8 +218,8 @@ def test_Equilibrium_FluxSurface():
                                   constants.CTi, constants.kTi,
                                   constants.deltaRTi)
 
-    p = SlicePlotterNd(grid,0,3,False)
-    p.setLabels('r','v')
+    p = SlicePlotterNd(grid, 0, 3, False)
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -244,14 +244,14 @@ def test_Equilibrium_vPar():
             v = grid.getCoordVals(3)
 
             # transpose theta to use ufuncs
-            theta = theta.reshape(theta.size,1)
-            Surface[:]=f_eq(r,v,constants.CN0,constants.kN0,
-                            constants.deltaRN0,constants.rp,
-                            constants.CTi,constants.kTi,
-                            constants.deltaRTi)
+            theta = theta.reshape(theta.size, 1)
+            Surface[:] = f_eq(r, v, constants.CN0, constants.kN0,
+                              constants.deltaRN0, constants.rp,
+                              constants.CTi, constants.kTi,
+                              constants.deltaRTi)
 
-    p = SlicePlotterNd(grid,0,3,False)
-    p.setLabels('r','v')
+    p = SlicePlotterNd(grid, 0, 3, False)
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -276,14 +276,14 @@ def test_Equilibrium_Poloidal():
             r = grid.getCoordVals(3)
 
             # transpose theta to use ufuncs
-            theta = theta.reshape(theta.size,1)
-            PoloidalSurface[:]=f_eq(r,v,constants.CN0,constants.kN0,
-                                    constants.deltaRN0,constants.rp,
-                                    constants.CTi,constants.kTi,
-                                    constants.deltaRTi)
+            theta = theta.reshape(theta.size, 1)
+            PoloidalSurface[:] = f_eq(r, v, constants.CN0, constants.kN0,
+                                      constants.deltaRN0, constants.rp,
+                                      constants.CTi, constants.kTi,
+                                      constants.deltaRTi)
 
-    p = SlicePlotterNd(grid,0,3,False)
-    p.setLabels('r','v')
+    p = SlicePlotterNd(grid, 0, 3, False)
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -292,11 +292,12 @@ def test_FluxSurface():
     """
     TODO
     """
-    npts = [10,10,20,20]
-    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
-                                layout = 'flux_surface')
-    p = SlicePlotterNd(grid,1,2,False, sliderDimensions=[0,3], sliderNames=['r','v'])
-    p.setLabels('q','z')
+    npts = [10, 10, 20, 20]
+    grid, constants, tStart = setupCylindricalGrid(npts=npts,
+                                                   layout='flux_surface')
+    p = SlicePlotterNd(grid, 1, 2, False, sliderDimensions=[
+                       0, 3], sliderNames=['r', 'v'])
+    p.setLabels('q', 'z')
     p.show()
 
 
@@ -305,11 +306,12 @@ def test_vParallel():
     """
     TODO
     """
-    npts = [10,10,20,20]
-    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
-                                layout = 'v_parallel')
-    p = SlicePlotterNd(grid,0,3,False, sliderDimensions=[1,2], sliderNames=['q','z'])
-    p.setLabels('r','v')
+    npts = [10, 10, 20, 20]
+    grid, constants, tStart = setupCylindricalGrid(npts=npts,
+                                                   layout='v_parallel')
+    p = SlicePlotterNd(grid, 0, 3, False, sliderDimensions=[
+                       1, 2], sliderNames=['q', 'z'])
+    p.setLabels('r', 'v')
     p.show()
 
 
@@ -318,9 +320,10 @@ def test_Poloidal():
     """
     TODO
     """
-    npts = [10,10,20,20]
-    grid,constants,tStart = setupCylindricalGrid(npts   = npts,
-                                layout = 'poloidal')
-    p = SlicePlotterNd(grid,0,1,True, sliderDimensions=[2,3], sliderNames=['z','v'])
-    p.setLabels('x','y')
+    npts = [10, 10, 20, 20]
+    grid, constants, tStart = setupCylindricalGrid(npts=npts,
+                                                   layout='poloidal')
+    p = SlicePlotterNd(grid, 0, 1, True, sliderDimensions=[
+                       2, 3], sliderNames=['z', 'v'])
+    p.setLabels('x', 'y')
     p.show()

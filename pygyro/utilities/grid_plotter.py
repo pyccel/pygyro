@@ -85,23 +85,27 @@ class SlicePlotterNd(object):
             self.open = True
             self.fig = plt.figure()
             self.fig.canvas.mpl_connect('close_event', self.handle_close)
-            #Grid spec in Grid spec to guarantee size of plot
-            gs_orig = GridSpec(1, 2, width_ratios = [9,1])
-            gs = GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_orig[0], height_ratios = [3,1],hspace=0.3)
-            gs_plot = GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0], width_ratios = [9,1])
+            # Grid spec in Grid spec to guarantee size of plot
+            gs_orig = GridSpec(1, 2, width_ratios=[9, 1])
+            gs = GridSpecFromSubplotSpec(
+                2, 1, subplot_spec=gs_orig[0], height_ratios=[3, 1], hspace=0.3)
+            gs_plot = GridSpecFromSubplotSpec(
+                1, 2, subplot_spec=gs[0], width_ratios=[9, 1])
             if self.nSliders:
-                gs_slider = GridSpecFromSubplotSpec(self.nSliders, 1, subplot_spec=gs[1],hspace=1)
+                gs_slider = GridSpecFromSubplotSpec(
+                    self.nSliders, 1, subplot_spec=gs[1], hspace=1)
             gs_buttons = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs_orig[1])
 
-
             if polar:
-                self.ax = self.fig.add_subplot(gs_plot[0], polar = True)
+                self.ax = self.fig.add_subplot(gs_plot[0], polar=True)
             else:
                 self.ax = self.fig.add_subplot(gs_plot[0])
-            self.colorbarax  = self.fig.add_subplot(gs_plot[1])
+            self.colorbarax = self.fig.add_subplot(gs_plot[1])
             if self.nSliders:
-                self.slider_axes = [self.fig.add_subplot(gs_slider[i]) for i in range(self.nSliders)]
-            self.button_axes = [self.fig.add_subplot(gs_buttons[i]) for i in range(4)]
+                self.slider_axes = [self.fig.add_subplot(
+                    gs_slider[i]) for i in range(self.nSliders)]
+            self.button_axes = [self.fig.add_subplot(
+                gs_buttons[i]) for i in range(4)]
             # rc('font',size=30)
             self.button_axes[2].axis('off')
             self.button_axes[3].axis('off')
@@ -151,7 +155,8 @@ class SlicePlotterNd(object):
 
             gs_orig.tight_layout(self.fig, pad=1.0)
 
-            self.plotParams = {'vmin':minimum,'vmax':maximum, 'cmap':"jet", 'levels':20}
+            self.plotParams = {'vmin': minimum,
+                               'vmax': maximum, 'cmap': "jet", 'levels': 20}
 
             self.setMemText()
 
@@ -450,7 +455,7 @@ class SlicePlotterNd(object):
                 theSlice = np.append(theSlice, theSlice[None, 0, :], axis=0)
             theSlice = theSlice.T
         elif self.polar:
-           theSlice = np.append(theSlice, theSlice[:,0,None],axis=1)
+            theSlice = np.append(theSlice, theSlice[:, 0, None], axis=1)
 
         # remove the old plot
         self.ax.clear()
@@ -464,12 +469,14 @@ class SlicePlotterNd(object):
         vmin = kwargs.pop('vmin', theSlice.min())
         vmax = kwargs.pop('vmax', theSlice.max())
         levels = kwargs.pop('levels', 20)
-        clevels = np.linspace( vmin, vmax, levels)
+        clevels = np.linspace(vmin, vmax, levels)
         if self.polar:
-            self.plot = self.ax.contourf(self.y, self.x, theSlice.T, levels=clevels, **kwargs)
+            self.plot = self.ax.contourf(
+                self.y, self.x, theSlice.T, levels=clevels, **kwargs)
         else:
-            self.plot = self.ax.contourf(self.x, self.y, theSlice, levels=clevels, **kwargs)
-        self.fig.colorbar(self.plot,cax=self.colorbarax)
+            self.plot = self.ax.contourf(
+                self.x, self.y, theSlice, levels=clevels, **kwargs)
+        self.fig.colorbar(self.plot, cax=self.colorbarax)
 
         self.ax.set_xlabel(self.xLab)
         self.ax.set_ylabel(self.yLab)
