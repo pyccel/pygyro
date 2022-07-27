@@ -1065,7 +1065,7 @@ def test_quasiNeutrality():
             + np.cos(rArg)**4 * np.sin(q)**3 / Te(r, constants.CTe, constants.kTe, constants.deltaRTe, constants.rp) \
             - 6 * np.cos(rArg)**4 * np.sin(q) * np.cos(q)**2 / r**2 \
             + 3 * np.cos(rArg)**4 * np.sin(q)**3 / r**2
-        
+
         plane = phi_exact.get2DSlice([i])
         plane[:] = np.cos(rArg)**4 * np.sin(q)**3
 

@@ -49,7 +49,7 @@ def initialise_v_parallel(grid, constants):
         for j, z in grid.getCoords(1):
             # Get surface
             Surface = grid.get2DSlice([i, j])
-            
+
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
