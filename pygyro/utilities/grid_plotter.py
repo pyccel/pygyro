@@ -63,28 +63,6 @@ class SlicePlotterNd(object):
         self.memory_requirements[self.xDim] = grid.eta_grid[self.xDim].size
         self.memory_requirements[self.yDim] = grid.eta_grid[self.yDim].size
 
-        # Shift the x/y values to centre the plotted squares on the data
-
-        # Get sorted values to avoid wrong dx values (found at periodic boundaries)
-        xSorted = np.sort(self.x)
-        ySorted = np.sort(self.y)
-
-        dx = xSorted[1:] - xSorted[:-1]
-        dy = ySorted[1:] - ySorted[:-1]
-
-        # The corner of the square should be shifted by (-dx/2,-dy/2) for the value
-        # to be found in the middle
-        shift = [dx[0]*0.5, *(dx[:-1]+dx[1:])*0.25, dx[-1]*0.5]
-
-        # The values are reordered to the original ordering to shift the relevant values
-        shift = [shift[i] for i in np.argsort(self.x)]
-        self.x = self.x - shift
-
-        # Ditto for y
-        shift = [dy[0]*0.5, *(dy[:-1]+dy[1:])*0.25, dy[-1]*0.5]
-        shift = [shift[i] for i in np.argsort(self.y)]
-        self.y = self.y - shift
-
         # save x and y grid values
         nx = len(self.x)
         ny = len(self.y)
@@ -92,22 +70,10 @@ class SlicePlotterNd(object):
         # if (x,y) are (r,θ) then print in polar coordinates
         self.polar = polar
         if (polar):
-            self.x = np.repeat(self.x, ny+1).reshape(nx, ny+1)
-            self.y = np.tile([*self.y, self.y[0]], nx).reshape(nx, ny+1)
-            x = self.x*np.cos(self.y)
-            y = self.x*np.sin(self.y)
-            self.x = x
-            self.y = y
-
-            self.xLab = "x"
-            self.yLab = "y"
-
+            self.x, self.y = np.meshgrid(self.x, [*self.y, self.y[0]])
         else:
             self.x = np.repeat(self.x, ny).reshape(nx, ny)
             self.y = np.tile(self.y, nx).reshape(nx, ny)
-
-            self.xLab = "r"
-            self.yLab = r'$\theta$ [rad]'
 
         # get max and min values of f to avoid colorbar jumps
         minimum = grid.getMin(self.drawRank, self.oDims, self.omitVals)
@@ -119,24 +85,28 @@ class SlicePlotterNd(object):
             self.open = True
             self.fig = plt.figure()
             self.fig.canvas.mpl_connect('close_event', self.handle_close)
-
             # Grid spec in Grid spec to guarantee size of plot
             gs_orig = GridSpec(1, 2, width_ratios=[9, 1])
             gs = GridSpecFromSubplotSpec(
                 2, 1, subplot_spec=gs_orig[0], height_ratios=[3, 1], hspace=0.3)
-            gs_plot = GridSpecFromSubplotSpec(1, 1, subplot_spec=gs[0])
-            gs_slider = GridSpecFromSubplotSpec(
-                self.nSliders, 1, subplot_spec=gs[1], hspace=1)
+            gs_plot = GridSpecFromSubplotSpec(
+                1, 2, subplot_spec=gs[0], width_ratios=[9, 1])
+            if self.nSliders:
+                gs_slider = GridSpecFromSubplotSpec(
+                    self.nSliders, 1, subplot_spec=gs[1], hspace=1)
             gs_buttons = GridSpecFromSubplotSpec(4, 1, subplot_spec=gs_orig[1])
 
-            self.ax = self.fig.add_subplot(gs_plot[0])
-            divider = make_axes_locatable(self.ax)
-            self.colorbarax = divider.append_axes("right", size="5%", pad=0.05)
-            self.slider_axes = [self.fig.add_subplot(
-                gs_slider[i]) for i in range(self.nSliders)]
+            if polar:
+                self.ax = self.fig.add_subplot(gs_plot[0], polar=True)
+            else:
+                self.ax = self.fig.add_subplot(gs_plot[0])
+            self.colorbarax = self.fig.add_subplot(gs_plot[1])
+            if self.nSliders:
+                self.slider_axes = [self.fig.add_subplot(
+                    gs_slider[i]) for i in range(self.nSliders)]
             self.button_axes = [self.fig.add_subplot(
                 gs_buttons[i]) for i in range(4)]
-            # ~ rc('font',size=30)
+            # rc('font',size=30)
             self.button_axes[2].axis('off')
             self.button_axes[3].axis('off')
             self.button_axes[3].text(
@@ -185,7 +155,8 @@ class SlicePlotterNd(object):
 
             gs_orig.tight_layout(self.fig, pad=1.0)
 
-            self.plotParams = {'vmin': minimum, 'vmax': maximum, 'cmap': "jet"}
+            self.plotParams = {'vmin': minimum,
+                               'vmax': maximum, 'cmap': "jet", 'levels': 20}
 
             self.setMemText()
 
@@ -194,6 +165,9 @@ class SlicePlotterNd(object):
 
         self.getData()
         self.action = 1
+
+        self.xLab = None
+        self.yLab = None
 
         if (self.rank == self.drawRank):
             self.plotFigure()
@@ -216,6 +190,8 @@ class SlicePlotterNd(object):
             self.ax.set_xlabel(self.xLab)
             # add y-axis label
             self.ax.set_ylabel(self.yLab)
+
+            self.fig.canvas.draw()
 
     def updateVal(self, value, dimension):
         """
@@ -460,7 +436,7 @@ class SlicePlotterNd(object):
 
             self._data = np.concatenate(concatReady.tolist(), axis=0)
 
-            self._data = self._data.transpose(layout.dims_order)
+            self._data = self._data.transpose(layout.inv_dims_order)
 
     def plotFigure(self):
         """
@@ -478,10 +454,8 @@ class SlicePlotterNd(object):
             if (self.polar):
                 theSlice = np.append(theSlice, theSlice[None, 0, :], axis=0)
             theSlice = theSlice.T
-        else:
-            if (self.polar):
-                theSlice = np.append(theSlice, theSlice[:, 0, None], axis=1)
-            theSlice = theSlice
+        elif self.polar:
+            theSlice = np.append(theSlice, theSlice[:, 0, None], axis=1)
 
         # remove the old plot
         self.ax.clear()
@@ -491,12 +465,21 @@ class SlicePlotterNd(object):
         # (to avoid having a missing segment), and transposing the data
         # if the storage dimensions are ordered differently to the plotting
         # dimensions
-        self.plot = self.ax.pcolormesh(
-            self.x, self.y, theSlice, **self.plotParams)
+        kwargs = self.plotParams.copy()
+        vmin = kwargs.pop('vmin', theSlice.min())
+        vmax = kwargs.pop('vmax', theSlice.max())
+        levels = kwargs.pop('levels', 20)
+        clevels = np.linspace(vmin, vmax, levels)
+        if self.polar:
+            self.plot = self.ax.contourf(
+                self.y, self.x, theSlice.T, levels=clevels, **kwargs)
+        else:
+            self.plot = self.ax.contourf(
+                self.x, self.y, theSlice, levels=clevels, **kwargs)
         self.fig.colorbar(self.plot, cax=self.colorbarax)
 
-        self.ax.set_xlabel("x [m]")
-        self.ax.set_ylabel("y [m]")
+        self.ax.set_xlabel(self.xLab)
+        self.ax.set_ylabel(self.yLab)
 
         self.fig.canvas.draw()
 
