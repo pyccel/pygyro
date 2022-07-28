@@ -29,7 +29,8 @@ Nt = 400
 T = 2
 dt = T/Nt
 
-if verbose: print(f'dt = {dt}')
+if verbose:
+    print(f'dt = {dt}')
 
 # Parameters for the plot
 nb_plots = 100
@@ -37,52 +38,6 @@ movie_duration = 8
 
 # If plots should be shown or just saved
 show_plots = False
-
-
-def cart2pol(x, y):
-    """
-    Transforms cartesian coordinates x and y to polar coordinates theta and rho
-
-    Parameters
-    ---------
-        x : float
-            x-value
-
-        y : float
-            y-value
-
-    Returns
-    -------
-        [theta, rho] : list
-            a list containing the values for theta and rho
-    """
-    rho = np.sqrt(x**2 + y**2)
-    theta = np.arctan2(y, x)
-
-    return [theta, rho]
-
-
-def pol2cart(theta, rho):
-    """
-    Transforms polar coordinates theta and rho to cartesian coordinates x and y
-
-    Parameters
-    ---------
-        theta : float
-            theta-value
-
-        rho : float
-            rho-value
-
-    Returns
-    -------
-        [x, y] : list
-            a list containing the values for x and y
-    """
-    x = rho * np.cos(theta)
-    y = rho * np.sin(theta)
-
-    return [x, y]
 
 
 def init_f(rt):
@@ -145,7 +100,7 @@ grid_r = np.linspace(0.01, 1.01, num=N0_nodes_r)  # r
 
 if verbose:
     print(f'\ngrid for theta : \n {grid_theta}')
-    print(f'grid for r : \n {grid_r} \n')
+    print(f'\ngrid for r : \n {grid_r} \n')
 
 # compute grid spacing
 dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
@@ -181,7 +136,8 @@ else:
 
 plot_dir = './plots/polar_run_' + method + '/'
 if not os.path.exists(plot_dir):
-    if verbose: print('creating directory ' + plot_dir)
+    if verbose:
+        print('creating directory ' + plot_dir)
     os.makedirs(plot_dir)
 
 if nb_plots > 0:
@@ -198,7 +154,6 @@ frames_list = []
 # operators
 # scaling for the integrals
 r_scaling = [grid_r[k//N0_nodes_theta] for k in range(N_nodes)]
-r_scaling_inv = [1 / grid_r[k//N0_nodes_theta] for k in range(N_nodes)]
 
 # r_mat = np.diag(r_scaling)
 # print(r_mat.shape)
@@ -212,14 +167,15 @@ def get_total_f(f):
     ----------
         f : array[float]
             array containing the values of f
-    
+
     Returns
     -------
         float
             the sum over all values of f
     """
-    # f_s = f @ np.diag(r_scaling)
-    return np.sum(f)
+    f_s = f @ np.diag(r_scaling)
+
+    return np.sum(f_s)
 
 
 def get_total_f2(f):
@@ -230,16 +186,17 @@ def get_total_f2(f):
     ----------
         f : array[float]
             array containing the values of f
-    
+
     Returns
     -------
         float
             the sum over all squared values of f
     """
-    # f_s = f @ np.diag(r_scaling)
-    
+    f_s = f @ np.diag(r_scaling)
+
     # pointwise multiplication
-    f2 = np.multiply(f, f)
+    f2 = np.multiply(f, f_s)
+
     return np.sum(f2)
 
 
@@ -254,18 +211,17 @@ def get_total_energy(f, phi):
 
         phi : array[float]
             array containing the values of phi
-    
+
     Returns
     -------
         float
             the total energy
     """
-    # f_s = np.multiply(r_scaling, f)
-    phi_s = phi @ np.diag(r_scaling_inv)
-    
+    phi_s = phi @ np.diag(r_scaling)
+
     # pointwise multiplication
     f_phi = np.multiply(f, phi_s)
-    
+
     return np.sum(f_phi)
 
 
@@ -284,15 +240,16 @@ phi = np.array(list(map(phi_ex, grid)))
 plot_gridvals(grid_theta, grid_r, [phi], f_labels=['phi'], title='phi',
               show_plot=show_plots, plt_file_name=plot_dir+'phi.png')
 
-# give the correct r-factor to the bracket
-phi_hh = phi @ np.diag(r_scaling_inv) * 1/(4*dr*dtheta)
-
 # assemble discrete brackets as sparse matrices
 # for f -> J(phi,f) = d_y phi * d_x f - d_x phi * d_y f
 
-Jpp_phi = assemble_Jpp(phi_hh, N0_nodes_theta, N0_nodes_r, grid_r)
-Jpx_phi = -assemble_Jpx(phi_hh, N0_nodes_theta, N0_nodes_r, grid_r)
-Jxp_phi = -assemble_Jxp(phi_hh, N0_nodes_theta, N0_nodes_r, grid_r)
+Jpp_phi = assemble_Jpp(phi, N0_nodes_theta, N0_nodes_r, grid_r)
+Jpx_phi = -assemble_Jpx(phi, N0_nodes_theta, N0_nodes_r, grid_r)
+Jxp_phi = -assemble_Jxp(phi, N0_nodes_theta, N0_nodes_r, grid_r)
+
+Jpp_phi /= 4 * dr * dtheta
+Jpx_phi /= 4 * dr * dtheta
+Jxp_phi /= 4 * dr * dtheta
 
 if bracket == '++':
     J_phi = Jpp_phi
@@ -305,15 +262,14 @@ elif bracket == 'akw':
 else:
     raise NotImplementedError(f'{bracket} is not a valid bracket')
 
-# print(J_phi.shape)
-# print(r_scaling.shape)
+
 if verbose:
     print('tests:')
-    print(f'max of J_phi times unit matrix : {max(abs(J_phi @ np.ones(len(grid))))}')
-    print(f'max of J_phi times scaled phi: {max(abs(J_phi @ np.diag(r_scaling_inv) @ phi))}')
+    print(
+        f'max of J_phi times unit matrix : {max(abs(J_phi @ np.ones(len(grid))))}')
+    # print(f'max of J_phi times scaled phi: {max(abs(J_phi @ np.diag(r_scaling_inv) @ phi))}')
+    print(f'max of J_phi times phi: {max(abs(J_phi @ phi))}')
 
-#J_phi = J_phi
-# print(J_phi.shape)
 
 if explicit:
     I = A = B = None
@@ -328,6 +284,7 @@ plt_fn = plot_dir + 'f0.png'
 plot_gridvals(grid_theta, grid_r, [f], f_labels=['f0'], title='f0',
               show_plot=show_plots, plt_file_name=plt_fn)
 frames_list.append(plt_fn)
+
 # diags
 total_f = np.zeros(Nt + 1)
 total_energy = np.zeros(Nt + 1)
@@ -350,7 +307,7 @@ for nt in range(Nt):
     total_f2[nt+1] = get_total_f2(f)
 
     if explicit:
-        f[:] += dt*J_phi.dot(f)
+        f[:] += dt * J_phi.dot(f)
     else:
         # print('solving source problem with scipy.spsolve...')
         f[:] = spsolve(A, B.dot(f))
