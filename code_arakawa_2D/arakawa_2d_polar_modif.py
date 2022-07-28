@@ -6,7 +6,7 @@ from scipy.sparse import eye as sparse_id
 import matplotlib.pyplot as plt
 
 from utils_polar import plot_gridvals, plot_time_diag #, make_movie
-from discrete_brackets_polar import assemble_Jpp, assemble_Jpx, assemble_Jxp
+from discrete_brackets_polar_modif import assemble_Jpp, assemble_Jpx, assemble_Jxp
 import sys
 
 #bracket = '++'
