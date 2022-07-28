@@ -18,16 +18,18 @@ bracket = 'akw'
 verbose = True
 
 # Choose if explicit scheme should be used or not
-explicit = True
+explicit = False
 
 # Number of grid points for each variable
-N0_nodes0 = 100
-N0_nodes1 = 100
+N0_nodes_theta = 200
+N0_nodes_r = 100
 
 # Number of time steps, total time, and time stepping
-Nt = 1600
-T = 8
+Nt = 400
+T = 2
 dt = T/Nt
+
+if verbose: print(f'dt = {dt}')
 
 # Parameters for the plot
 nb_plots = 100
@@ -98,7 +100,7 @@ def init_f(rt):
             the  value for f at [theta, rho]
     """
     # center values (shifts) for Guassian
-    f0_c = [0, -.5]
+    f0_c = [0, -.1]
 
     # standard deviation for Gaussian
     f0_s = .1
@@ -138,25 +140,25 @@ def phi_ex(rt):
 
 
 # initialise the grid
-grid0 = np.linspace(0, 2*np.pi, num=N0_nodes0)  # theta
-grid1 = np.linspace(0.01, 1.01, num=N0_nodes1)  # r
+grid_theta = np.linspace(0, 2*np.pi, num=N0_nodes_theta)  # theta
+grid_r = np.linspace(0.01, 1.01, num=N0_nodes_r)  # r
 
 if verbose:
-    print(grid0)
-    print(grid1)
+    print(f'\ngrid for theta : \n {grid_theta}')
+    print(f'grid for r : \n {grid_r} \n')
 
 # compute grid spacing
-dtheta = (grid0[-1] - grid0[0]) / (len(grid0) - 1)
-dr = (grid1[-1] - grid1[0]) / (len(grid1) - 1)
+dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
+dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
 
 if verbose:
-    print(dr)
-    print(dtheta)
+    print(f'dtheta  = {dtheta}')
+    print(f'dr  = {dr}')
 
 # total number of nodes
-N_nodes = N0_nodes0 * N0_nodes1
+N_nodes = N0_nodes_theta * N0_nodes_r
 
-grid = np.array([[grid0[k % N0_nodes0], grid1[k//N0_nodes0]]
+grid = np.array([[grid_theta[k % N0_nodes_theta], grid_r[k//N0_nodes_theta]]
                 for k in range(N_nodes)])
 
 if verbose:
@@ -195,8 +197,8 @@ frames_list = []
 # ---- ---- ---- ---- ---- ---- ---- ----
 # operators
 # scaling for the integrals
-r_scaling = [grid1[k//N0_nodes0] for k in range(N_nodes)]
-r_scaling_inv = [1 / grid1[k//N0_nodes0] for k in range(N_nodes)]
+r_scaling = [grid_r[k//N0_nodes_theta] for k in range(N_nodes)]
+r_scaling_inv = [1 / grid_r[k//N0_nodes_theta] for k in range(N_nodes)]
 
 # r_mat = np.diag(r_scaling)
 # print(r_mat.shape)
@@ -279,7 +281,7 @@ phi = np.array(list(map(phi_ex, grid)))
 # fig.savefig('hi')
 # plt.show()
 
-plot_gridvals(grid0, grid1, [phi], f_labels=['phi'], title='phi',
+plot_gridvals(grid_theta, grid_r, [phi], f_labels=['phi'], title='phi',
               show_plot=show_plots, plt_file_name=plot_dir+'phi.png')
 
 # give the correct r-factor to the bracket
@@ -288,9 +290,9 @@ phi_hh = phi @ np.diag(r_scaling_inv) * 1/(4*dr*dtheta)
 # assemble discrete brackets as sparse matrices
 # for f -> J(phi,f) = d_y phi * d_x f - d_x phi * d_y f
 
-Jpp_phi = assemble_Jpp(phi_hh, N0_nodes0, N0_nodes1, grid1)
-Jpx_phi = -assemble_Jpx(phi_hh, N0_nodes0, N0_nodes1, grid1)
-Jxp_phi = -assemble_Jxp(phi_hh, N0_nodes0, N0_nodes1, grid1)
+Jpp_phi = assemble_Jpp(phi_hh, N0_nodes_theta, N0_nodes_r, grid_r)
+Jpx_phi = -assemble_Jpx(phi_hh, N0_nodes_theta, N0_nodes_r, grid_r)
+Jxp_phi = -assemble_Jxp(phi_hh, N0_nodes_theta, N0_nodes_r, grid_r)
 
 if bracket == '++':
     J_phi = Jpp_phi
@@ -323,7 +325,7 @@ else:
 # f0 on grid
 f = np.array(list(map(init_f, grid)))
 plt_fn = plot_dir + 'f0.png'
-plot_gridvals(grid0, grid1, [f], f_labels=['f0'], title='f0',
+plot_gridvals(grid_theta, grid_r, [f], f_labels=['f0'], title='f0',
               show_plot=show_plots, plt_file_name=plt_fn)
 frames_list.append(plt_fn)
 # diags
@@ -357,7 +359,7 @@ for nt in range(Nt):
     nt_vis = nt + 1
     if nt_vis % plot_period == 0 or nt_vis == Nt:
         plt_fn = plot_dir + 'f_{}.png'.format(nt_vis)
-        plot_gridvals(grid0, grid1, [f], f_labels=['f_end'], title='f end',
+        plot_gridvals(grid_theta, grid_r, [f], f_labels=['f_end'], title='f end',
                       show_plot=show_plots, plt_file_name=plt_fn)
         frames_list.append(plt_fn)
 
