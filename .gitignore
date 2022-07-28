@@ -27,3 +27,4 @@ doc/**/*.kilepr
 tags
 .ACC.*
 __pyccel__
+.lock_acquisition.lock
