@@ -36,8 +36,8 @@ def solve_Arakawa_advection(example, bc,
         print(f'dt = {dt}')
 
     # center values (shifts) for Guassian
-    f0_c = [.3, .4]
-
+    f0_c = [.4, -.5]
+    
     # standard deviation for Gaussian
     f0_s = .07
 
@@ -87,8 +87,8 @@ def solve_Arakawa_advection(example, bc,
             return np.exp(-((x - phi_c[0])**2 + (y - phi_c[1])**2) / (2 * phi_s**2))
 
     elif example == 'translation':
-        v1 = -.3
-        v2 = .4
+        v1 = .3
+        v2 = .6
 
         def phi_ex(rt):
             x = rt[1] * np.cos(rt[0])
@@ -110,8 +110,9 @@ def solve_Arakawa_advection(example, bc,
     # indexing: f[i0 + i1*N0_nodes] = f(i0*h,i1*h)
 
     # initialise the grid
-    grid_theta = np.linspace(
-        domain_theta[0], domain_theta[1], num=N_theta)  # theta
+
+    grid_theta = np.linspace(domain_theta[0], domain_theta[1], num=N_theta+1)  # theta
+    grid_theta = grid_theta[0:-1]
     grid_r = np.linspace(domain_r[0], domain_r[1], num=N_r)  # r
 
     if verbose:
@@ -320,11 +321,11 @@ def main():
 
     else:
         # Number of grid points for each variable
-        N_theta = [50, 100, 150]
-        N_r = [50, 100, 150]
+        N_theta = [50, 100, 150, 200, 250]
+        N_r = [50, 100, 150, 200, 250]
 
         # Number of time steps, total time, and time stepping
-        Nt = [100, 100, 100, 100]
+        Nt = [100, 100, 100, 100, 100, 100]
         T = 1
 
         err_f = []
