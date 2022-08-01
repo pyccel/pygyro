@@ -9,7 +9,28 @@ from .layout import LayoutManager
 
 class Grid(object):
     """
-    TODO
+    Grid class: grid and distribution function f are objects of this class.
+
+    Parameters
+    ----------
+        eta_grid : list
+            list of lists containing grid points, one entry for each variable
+
+        bsplines : list
+            list of splines.splines.Bsplines objects, one entry for each variable
+
+        layouts : model.layout.LayoutHandler
+            an object of the class model.layout.LayoutHandler which is a daughter class
+            of model.layout.LayoutManager
+
+        chosenLayout : str
+            string identifier of the chosen layout; must be key-value for layouts._layouts
+
+        comm : MPI.COMM_WORLD
+            MPI communicator object
+
+        kwargs : dict
+            should contain entries 'dtype' and 'allocateSaveMemory'
     """
 
     def __init__(self, eta_grid: list, bsplines: list, layouts: LayoutManager,
@@ -26,6 +47,7 @@ class Grid(object):
         self._layout_manager = layouts
         self._current_layout_name = chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
+
         if (self.hasSaveMemory):
             self._my_data = [np.empty(self._layout_manager.bufferSize, dtype=dtype),
                              np.empty(self._layout_manager.bufferSize,
@@ -91,7 +113,7 @@ class Grid(object):
         """
         result = indices.copy()
         for i, toAdd in enumerate(self._layout.starts):
-            result[self._layout.dims_order[i]] = indices[i]+toAdd
+            result[self._layout.dims_order[i]] = indices[i] + toAdd
         return result
 
     def get2DSlice(self, slices: list):
@@ -116,7 +138,7 @@ class Grid(object):
     def get1DSlice(self, slices: list):
         """ get the 1D slice at the provided list of coordinates
         """
-        assert(len(slices) == self._nDims-1)
+        assert(len(slices) == self._nDims - 1)
         slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
         return self._f[tuple(slices)]
 
@@ -142,6 +164,7 @@ class Grid(object):
                 self._my_data[self._buffIdx],
                 self._current_layout_name,
                 new_layout)
+
         self._dataIdx, self._buffIdx = self._buffIdx, self._dataIdx
         self._layout = self._layout_manager.getLayout(new_layout)
         self._f = np.split(self._my_data[self._dataIdx], [self._layout.size])[

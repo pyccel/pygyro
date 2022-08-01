@@ -1,7 +1,9 @@
 import numpy as np
 from numpy.linalg import solve
 from math import pi
+from scipy.sparse.linalg import spsolve
 
+from ..arakawa.discrete_brackets_polar import assemble_Jpp, assemble_Jpx, assemble_Jxp
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
@@ -420,7 +422,6 @@ class PoloidalAdvection:
 
     tol: float - optional
         The tolerance used for the implicit trapezoidal rule
-
     """
 
     def __init__(self, eta_vals: list, splines: list, constants, nulEdge=False,
@@ -452,6 +453,9 @@ class PoloidalAdvection:
                             for i in range(eta_vals[2].size)]
 
     def allow_tests(self):
+        """
+        TODO
+        """
         self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
 
     def step(self, f: np.ndarray, dt: float, phi: Spline2D, v: float):
@@ -475,6 +479,7 @@ class PoloidalAdvection:
 
         """
         assert(f.shape == self._nPoints)
+
         self._interpolator.compute_interpolant(f, self._spline)
 
         phiBases = phi.basis
@@ -514,7 +519,11 @@ class PoloidalAdvection:
                                          self._constants.B0, self._TOL, self._nulEdge)
 
     def exact_step(self, f, endPts, v):
+        """
+        TODO
+        """
         assert(f.shape == self._nPoints)
+
         self._interpolator.compute_interpolant(f, self._spline)
 
         for i in range(self._nPoints[0]):  # theta
@@ -522,28 +531,212 @@ class PoloidalAdvection:
                 f[i, j] = self._evalFunc(endPts[0][i, j], endPts[1][i, j], v)
 
     def gridStep(self, grid: Grid, phi: Grid, dt: float):
+        """
+        TODO
+        """
         gridLayout = grid.getLayout(grid.currentLayout)
         phiLayout = phi.getLayout(grid.currentLayout)
+
         assert(gridLayout.dims_order[1:] == phiLayout.dims_order)
         assert(gridLayout.dims_order == (3, 2, 1, 0))
+
         # Evaluate splines
         for j, _ in grid.getCoords(1):  # z
             self._interpolator.compute_interpolant(
                 np.real(phi.get2DSlice([j])), self._phiSplines[j])
+
         # Do step
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j], v)
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
+        """
+        TODO
+        """
         gridLayout = grid.getLayout(grid.currentLayout)
+
         assert(gridLayout.dims_order == (3, 2, 1, 0))
+
         # Do step
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j], v)
 
     def evaluate(self, theta, r, v):
+        """
+        TODO
+        """
+        if self._nulEdge:
+            if (r < self._points[1][0]):
+                return 0
+            elif (r > self._points[1][-1]):
+                return 0
+            else:
+                theta = theta % (2*pi)
+                return self._spline.eval(theta, r)
+        else:
+            raise NotImplementedError(
+                "Can't calculate exactly with fEq as background")
+
+
+class PoloidalAdvectionArakawa:
+    """
+    PoloidalAdvection: Class containing information necessary to carry out
+    an advection step along the poloidal surface using the Arakawa scheme.
+
+    Parameters
+    ----------
+    r_theta_vals: list of array_like
+        The coordinates r, theta of the grid points in each dimension
+
+    splines: list of BSplines
+        The spline approximations along theta and r
+
+    constants : Constant class
+        Class containing all the constants
+
+    edgeFunc: function handle - optional
+        Function returning the value at the boundary as a function of r and v
+        Default is fEquilibrium
+
+    explicitTrap: bool - optional
+        Indicates whether the explicit trapezoidal method (Heun's method)
+        should be used or the implicit trapezoidal method should be used
+        instead
+
+    tol: float - optional
+        The tolerance used for the implicit trapezoidal rule
+    """
+
+    def __init__(self, eta_vals: list, splines: list, constants, nulEdge=False,
+                 explicitTrap: bool = True, tol: float = 1e-10):
+        self._points = eta_vals[1::-1]
+        self._shapedQ = np.atleast_2d(self._points[0]).T
+        self._nPoints = (self._points[0].size, self._points[1].size)
+        self._interpolator = SplineInterpolator2D(splines[0], splines[1])
+        self._spline = Spline2D(splines[0], splines[1])
+        self._constants = constants
+
+        self._explicit = explicitTrap
+        self._TOL = tol
+
+        self._nulEdge = nulEdge
+
+        self._drPhi_0 = np.empty(self._nPoints)
+        self._dqPhi_0 = np.empty(self._nPoints)
+        self._drPhi_k = np.empty(self._nPoints)
+        self._dqPhi_k = np.empty(self._nPoints)
+        self._endPts_k1_q = np.empty(self._nPoints)
+        self._endPts_k1_r = np.empty(self._nPoints)
+        self._endPts_k2_q = np.empty(self._nPoints)
+        self._endPts_k2_r = np.empty(self._nPoints)
+
+        self._max_loops = 0
+
+        self._phiSplines = [Spline2D(splines[0], splines[1])
+                            for i in range(eta_vals[2].size)]
+
+    def allow_tests(self):
+        """
+        TODO
+        """
+        self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
+
+    def step(self, f: np.ndarray, dt: float, phi: Spline2D, v: float):
+        """
+        Carry out an advection step for the poloidal advection using the Arakawa scheme
+
+        Parameters
+        ----------
+        f: array_like
+            The current value of the function at the nodes.
+            The result will be stored here
+
+        dt: float
+            Time-step
+
+        phi: Spline2D
+            Advection parameter d_tf + {phi,f}=0
+
+        v: float
+            The parallel velocity coordinate
+
+        """
+        assert(f.shape == self._nPoints)
+
+        self._interpolator.compute_interpolant(f, self._spline)
+
+        phiBases = phi.basis
+        polBases = self._spline.basis
+
+        Jpp_phi = assemble_Jpp(phi, self.N0_nodes_theta,
+                               self.N0_nodes_r, self.grid_r)
+        Jpx_phi = -assemble_Jpx(phi, self.N0_nodes_theta,
+                                self.N0_nodes_r, self.grid_r)
+        Jxp_phi = -assemble_Jxp(phi, self.N0_nodes_theta,
+                                self.N0_nodes_r, self.grid_r)
+
+        Jpp_phi /= 4 * self.dr * self.dtheta
+        Jpx_phi /= 4 * self.dr * self.dtheta
+        Jxp_phi /= 4 * self.dr * self.dtheta
+
+        J_phi = (Jpp_phi + Jpx_phi + Jxp_phi) / 3
+
+        if (self._explicit):
+            f[:] += dt * J_phi.dot(f)
+        else:
+            f[:] = spsolve(A, B.dot(f))
+
+    def exact_step(self, f, endPts, v):
+        """
+        TODO
+        """
+        assert(f.shape == self._nPoints)
+
+        self._interpolator.compute_interpolant(f, self._spline)
+
+        for i in range(self._nPoints[0]):  # theta
+            for j in range(self._nPoints[1]):  # r
+                f[i, j] = self._evalFunc(endPts[0][i, j], endPts[1][i, j], v)
+
+    def gridStep(self, grid: Grid, phi: Grid, dt: float):
+        """
+        TODO
+        """
+        gridLayout = grid.getLayout(grid.currentLayout)
+        phiLayout = phi.getLayout(grid.currentLayout)
+
+        assert(gridLayout.dims_order[1:] == phiLayout.dims_order)
+        assert(gridLayout.dims_order == (3, 2, 1, 0))
+
+        # Evaluate splines
+        for j, _ in grid.getCoords(1):  # z
+            self._interpolator.compute_interpolant(
+                np.real(phi.get2DSlice([j])), self._phiSplines[j])
+
+        # Do step
+        for i, v in grid.getCoords(0):
+            for j, _ in grid.getCoords(1):  # z
+                self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j], v)
+
+    def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
+        """
+        TODO
+        """
+        gridLayout = grid.getLayout(grid.currentLayout)
+
+        assert(gridLayout.dims_order == (3, 2, 1, 0))
+
+        # Do step
+        for i, v in grid.getCoords(0):
+            for j, _ in grid.getCoords(1):  # z
+                self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j], v)
+
+    def evaluate(self, theta, r, v):
+        """
+        TODO
+        """
         if self._nulEdge:
             if (r < self._points[1][0]):
                 return 0

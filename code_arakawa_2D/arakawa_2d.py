@@ -12,7 +12,7 @@ from discrete_brackets import assemble_Jpp, assemble_Jpx, assemble_Jxp
 bracket = 'akw'
 
 explicit = False
-=
+
 N0_nodes = 50
 Nt = 100
 
@@ -56,7 +56,7 @@ else:
     method += '_imp'
 
 show_plots = False
-plot_dir = './plots/run_' + method + '/'
+plot_dir = './plots/cart_run_' + method + '/'
 if not os.path.exists(plot_dir):
     print('creating directory '+plot_dir)
     os.makedirs(plot_dir)
@@ -67,7 +67,7 @@ else:
     plot_period = Nt
 
 # movie_fn = plot_dir+'f_movie.gif'
-movie_fn = plot_dir+'f_movie.mp4'
+movie_fn = plot_dir + 'f_movie.mp4'
 frames_list = []
 
 
