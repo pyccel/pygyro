@@ -109,3 +109,70 @@ def make_movie(frames_list, movie_fn, frame_duration):
 #                                       '-vf',
 #                                       'format=gray|nv12,hwupload'],
 #                        pixelformat='vaapi_vld')
+
+
+##
+def get_total_f(dr, dtheta, r_scaling, f):
+    """
+    Compute the integral of f over the whole domain
+
+    Parameters
+    ----------
+        f : array[float]
+            array containing the values of f
+
+    Returns
+    -------
+        float
+            the sum over all values of f
+    """
+    f_s = np.multiply(r_scaling, f)
+
+    return dr*dtheta*sum(f_s)
+
+
+def get_total_f2(dr, dtheta, r_scaling, f):
+    """
+    Compute the integral of f^2 over the whole domain
+
+    Parameters
+    ----------
+        f : array[float]
+            array containing the values of f
+
+    Returns
+    -------
+        float
+            the sum over all squared values of f
+    """
+    f_s = np.multiply(r_scaling, f)
+
+    # pointwise multiplication
+    f2 = np.multiply(f, f_s)
+
+    return dr*dtheta*sum(f2)
+
+
+def get_total_energy(dr, dtheta, r_scaling, f, phi):
+    """
+    Compute the totoal energy, i.e. the integral of f times phi over the whole domain
+
+    Parameters
+    ----------
+        f : array[float]
+            array containing the values of f
+
+        phi : array[float]
+            array containing the values of phi
+
+    Returns
+    -------
+        float
+            the total energy
+    """
+    phi_s = np.multiply(r_scaling, phi)
+
+    # pointwise multiplication
+    f_phi = np.multiply(f, phi_s)
+
+    return dr*dtheta*sum(f_phi)
