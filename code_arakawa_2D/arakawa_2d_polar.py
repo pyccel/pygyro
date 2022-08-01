@@ -6,9 +6,9 @@ from scipy.sparse import eye as sparse_id
 import matplotlib.pyplot as plt
 
 from utils_polar import get_total_f, get_total_f2, get_total_energy, plot_gridvals, plot_time_diag, make_movie
-from discrete_brackets_polar import assemble_Jpp, assemble_Jpx, assemble_Jxp
+from discrete_brackets_polar import assemble_bracket
 
-def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r, nb_plots=10, movie_duration=8, bracket='akw', verbose = True, explicit=False, show_plots=False, plot_dir=None, convergence=False):
+def solve_Arakawa_advection(example, bc, N_theta, N_r, T, Nt, domain_theta, domain_r, nb_plots=10, movie_duration=8, bracket='akw', verbose = True, explicit=False, show_plots=False, plot_dir=None, convergence=False):
 
     dt = T/Nt
 
@@ -16,7 +16,7 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
         print(f'dt = {dt}')
 
     # center values (shifts) for Guassian
-    f0_c = [.4, .5]
+    f0_c = [.3, .4]
     
     # standard deviation for Gaussian
     f0_s = .07
@@ -58,7 +58,7 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
                     the  value for f at [theta, rho]
             """
             # shift and standard deviation values for Gaussian
-            phi_c = [0.5, 0.5]
+            phi_c = [0, 0]
             phi_s = .5
 
             x = rt[1] * np.cos(rt[0])
@@ -67,8 +67,8 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
             return np.exp(-((x - phi_c[0])**2 + (y - phi_c[1])**2) / (2 * phi_s**2))
 
     elif example == 'translation':
-        v1 = .3
-        v2 = -.2
+        v1 = -.3
+        v2 = .4
 
         def phi_ex(rt):
             x = rt[1] * np.cos(rt[0])
@@ -111,6 +111,14 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
 
     grid = np.array([[grid_theta[k % N_theta], grid_r[k//N_theta]]
                     for k in range(N_nodes)])
+    
+    #get boundary indices
+    if bc == 'dirichlet':
+        ind_bd = []
+        for k in range(N_nodes):
+            if k//N_theta == 0 or k//N_theta == N_r -1:
+                ind_bd.append(k)
+        ind_bd = np.array(ind_bd)
 
     # ---- ---- ---- ---- ---- ---- ---- ----
     # plots
@@ -131,7 +139,15 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
     # scaling for the integrals
     r_scaling = [grid_r[k//N_theta] for k in range(N_nodes)]
 
+    #phi on grid
     phi = np.array(list(map(phi_ex, grid)))
+
+    # f0 on grid
+    f = np.array(list(map(init_f, grid)))
+    #enforce dirichlet BC
+    if bc == 'dirichlet':
+        f[ind_bd] = np.zeros(len(ind_bd))
+        phi[ind_bd] = np.zeros(len(ind_bd))
 
     if nb_plots>0:
         plot_gridvals(grid_theta, grid_r, [phi], f_labels=['phi'], title='phi',
@@ -139,26 +155,8 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
 
     # assemble discrete brackets as sparse matrices
     # for f -> J(phi,f) = d_y phi * d_x f - d_x phi * d_y f
-
-    Jpp_phi = assemble_Jpp(phi, N_theta, N_r, grid_r)
-    Jpx_phi = -assemble_Jpx(phi, N_theta, N_r, grid_r)
-    Jxp_phi = -assemble_Jxp(phi, N_theta, N_r, grid_r)
-
-    Jpp_phi /= 4 * dr * dtheta
-    Jpx_phi /= 4 * dr * dtheta
-    Jxp_phi /= 4 * dr * dtheta
-
-    if bracket == '++':
-        J_phi = Jpp_phi
-    elif bracket == '+x':
-        J_phi = Jpx_phi
-    elif bracket == 'x+':
-        J_phi = Jxp_phi
-    elif bracket == 'akw':
-        J_phi = (Jpp_phi + Jpx_phi + Jxp_phi) / 3
-    else:
-        raise NotImplementedError(f'{bracket} is not a valid bracket')
-
+    phi_hh = 1/(4 * dr * dtheta) * phi
+    J_phi = assemble_bracket(bracket, bc, phi_hh, N_theta, N_r, grid_r)
 
     if verbose:
         print('tests:')
@@ -175,13 +173,13 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
         A = I - dt/2 * J_phi
         B = I + dt/2 * J_phi
 
-    # f0 on grid
-    f = np.array(list(map(init_f, grid)))
+
     if nb_plots > 0:
         plt_fn = plot_dir + 'f0.png'
         plot_gridvals(grid_theta, grid_r, [f], f_labels=['f0'], title='f0',
                     show_plot=show_plots, plt_file_name=plt_fn)
         frames_list.append(plt_fn)
+
 
     total_f = np.zeros(Nt + 1)
     total_energy = np.zeros(Nt + 1)
@@ -203,7 +201,7 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
         total_energy[nt+1] = get_total_energy(dr, dtheta, r_scaling, f, phi)
         total_f[nt+1] = get_total_f(dr, dtheta, r_scaling, f)
         total_f2[nt+1] = get_total_f2(dr, dtheta, r_scaling, f)
-
+    
         if explicit:
             f[:] += dt * J_phi.dot(f)
         else:
@@ -229,6 +227,7 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
 
     if convergence == True: 
         f_exact = np.array(list(map(f_ex, grid)))
+        f_exact[ind_bd] = np.zeros(len(ind_bd))
         if nb_plots >0: 
             plt_fn = plot_dir + 'f_ex_{}.png'.format(k)
             plot_gridvals(grid_theta, grid_r, [f_exact], f_labels=['fex'], title='fex',
@@ -239,8 +238,8 @@ def solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r
 
 if __name__ == '__main__':
     # what example to run
-    example = 'gaussian'
-    #example = 'translation'
+    #example = 'gaussian'
+    example = 'translation'
 
     domain_theta = [0, 2 * np.pi]
     domain_r = [0.1, 1.1]
@@ -259,17 +258,20 @@ if __name__ == '__main__':
     #bracket = 'x+'
     bracket = 'akw'
 
+    #bc = 'periodic'
+    bc = 'dirichlet'
+
     # if code should print information during execution
-    verbose = True
+    verbose = False
 
     # Choose if explicit scheme should be used or not
     explicit = False
 
     # Check for error (needs f_ex)
-    convergence = False
+    convergence = True
 
     # Parameters for the plot
-    nb_plots = 1
+    nb_plots = 2
     movie_duration = 0
 
     method = bracket
@@ -281,7 +283,7 @@ if __name__ == '__main__':
     if convergence:
         method += "_conv"
         
-    plot_dir = './plots/polar_'+example+'_' + method + '/'
+    plot_dir = './plots/polar_'+example+'_' + method +'_'+bc+ '/'
     if not os.path.exists(plot_dir):
         if verbose:
             print('creating directory ' + plot_dir)
@@ -293,14 +295,14 @@ if __name__ == '__main__':
 
 
     if not convergence:
-        solve_Arakawa_advection(example, N_theta, N_r, T, Nt, domain_theta, domain_r, 
+        solve_Arakawa_advection(example, bc, N_theta, N_r, T, Nt, domain_theta, domain_r, 
                             nb_plots, movie_duration, bracket, verbose, 
                             explicit, show_plots, plot_dir, convergence)
 
     else:
         # Number of grid points for each variable
-        N_theta = [50, 100, 150, 200]
-        N_r = [50, 100, 150, 200]
+        N_theta = [50, 100, 150]
+        N_r = [50, 100, 150]
 
         # Number of time steps, total time, and time stepping
         Nt = [100, 100, 100, 100]
@@ -314,7 +316,7 @@ if __name__ == '__main__':
             if not os.path.exists(plot_dir+'{}/'.format(k)):
                 os.makedirs(plot_dir+'{}/'.format(k))
 
-            dof, err = solve_Arakawa_advection(example, N_theta[k], N_r[k], T, Nt[k], domain_theta, domain_r, 
+            dof, err = solve_Arakawa_advection(example, bc, N_theta[k], N_r[k], T, Nt[k], domain_theta, domain_r, 
                             nb_plots, movie_duration, bracket, False, 
                             explicit, False, plot_dir+'{}/'.format(k), True)
             

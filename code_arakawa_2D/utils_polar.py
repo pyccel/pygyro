@@ -52,8 +52,9 @@ def plot_gridvals(grid0, grid1, fs, x0_label='x0', x1_label='x1', f_labels=None,
     plt.close() # or use ('all') ?
 
 
-fig2 = plt.figure()
+
 def plot_time_diag(diag, Nt, dt, plot_dir, name="diag"):
+    fig2 = plt.figure()
     fig2.clf()
     fname = plot_dir+name+".png"
     message = "> plotting diag: " + name
