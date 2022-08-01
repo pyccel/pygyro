@@ -38,11 +38,11 @@ def find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
     if x <= knots[low]:
         returnVal = low
     elif x >= knots[high]:
-        returnVal = high-1
+        returnVal = high - 1
     else:
         # Perform binary search
-        span = (low+high)//2
-        while x < knots[span] or x >= knots[span+1]:
+        span = (low + high)//2
+        while x < knots[span] or x >= knots[span + 1]:
             if x < knots[span]:
                 high = span
             else:
@@ -93,14 +93,14 @@ def basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', values
 
     values[0] = 1.0
     for j in range(0, degree):
-        left[j] = x - knots[span-j]
-        right[j] = knots[span+1+j] - x
+        left[j] = x - knots[span - j]
+        right[j] = knots[span + 1 + j] - x
         saved = 0.0
-        for r in range(0, j+1):
-            temp = values[r] / (right[r] + left[j-r])
+        for r in range(0, j + 1):
+            temp = values[r] / (right[r] + left[j - r])
             values[r] = saved + right[r] * temp
-            saved = left[j-r] * temp
-        values[j+1] = saved
+            saved = left[j - r] * temp
+        values[j + 1] = saved
 
 
 @pure
@@ -146,12 +146,13 @@ def basis_funs_1st_der(knots: 'float[:]', degree: 'int', x: 'float', span: 'int'
     # splines of degree deg-1
     # -------
     # j = 0
-    saved = degree * values[0] / (knots[span+1]-knots[span+1-degree])
+    saved = degree * values[0] / (knots[span + 1] - knots[span + 1 - degree])
     ders[0] = -saved
     # j = 1,...,degree-1
     for j in range(1, degree):
         temp = saved
-        saved = degree * values[j] / (knots[span+j+1]-knots[span+j+1-degree])
+        saved = degree * values[j] / \
+            (knots[span + j + 1] - knots[span + j + 1 - degree])
         ders[j] = temp - saved
     # j = degree
     ders[degree] = saved
@@ -166,15 +167,15 @@ def eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 
     span = find_span(knots, degree, x)
 
     from numpy import empty
-    basis = empty(degree+1, dtype=float)
+    basis = empty(degree + 1, dtype=float)
     if (der == 0):
         basis_funs(knots, degree, x, span, basis)
     elif (der == 1):
         basis_funs_1st_der(knots, degree, x, span, basis)
 
     y = 0.0
-    for j in range(degree+1):
-        y += coeffs[span-degree+j]*basis[j]
+    for j in range(degree + 1):
+        y += coeffs[span - degree + j] * basis[j]
     return y
 
 
@@ -193,8 +194,8 @@ def eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeff
             basis_funs(knots, degree, xi, span, basis)
 
             y[i] = 0.0
-            for j in range(degree+1):
-                y[i] += coeffs[span-degree+j]*basis[j]
+            for j in range(degree + 1):
+                y[i] += coeffs[span - degree + j] * basis[j]
     elif (der == 1):
         for i, xi in enumerate(x):
             span = find_span(knots, degree, xi)
@@ -202,8 +203,8 @@ def eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeff
             basis_funs_1st_der(knots, degree, xi, span, basis)
 
             y[i] = 0.0
-            for j in range(degree+1):
-                y[i] += coeffs[span-degree+j]*basis[j]
+            for j in range(degree + 1):
+                y[i] += coeffs[span - degree + j] * basis[j]
 
 
 @pure
@@ -214,8 +215,8 @@ def eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int',
     TODO
     """
     from numpy import empty
-    basis1 = empty(deg1+1, dtype=float)
-    basis2 = empty(deg2+1, dtype=float)
+    basis1 = empty(deg1 + 1, dtype=float)
+    basis2 = empty(deg2 + 1, dtype=float)
 
     span1 = find_span(kts1, deg1, x)
     span2 = find_span(kts2, deg2, y)
@@ -229,15 +230,15 @@ def eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int',
     elif (der2 == 1):
         basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-    theCoeffs = empty([deg1+1, deg2+1])
-    theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+    theCoeffs = empty([deg1 + 1, deg2 + 1])
+    theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1, span2 - deg2:span2 + 1]
 
     z = 0.0
-    for i in range(deg1+1):
-        theCoeffs[i, 0] = theCoeffs[i, 0]*basis2[0]
-        for j in range(1, deg2+1):
-            theCoeffs[i, 0] += theCoeffs[i, j]*basis2[j]
-        z += theCoeffs[i, 0]*basis1[i]
+    for i in range(deg1 + 1):
+        theCoeffs[i, 0] = theCoeffs[i, 0] * basis2[0]
+        for j in range(1, deg2 + 1):
+            theCoeffs[i, 0] += theCoeffs[i, j] * basis2[j]
+        z += theCoeffs[i, 0] * basis1[i]
     return z
 
 
@@ -249,9 +250,9 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
     TODO
     """
     from numpy import empty
-    basis1 = empty(deg1+1)
-    basis2 = empty(deg2+1)
-    theCoeffs = empty((deg1+1, deg2+1))
+    basis1 = empty(deg1 + 1)
+    basis2 = empty(deg2 + 1)
+    theCoeffs = empty((deg1 + 1, deg2 + 1))
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(xVec):
@@ -261,15 +262,15 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
                 span2 = find_span(kts2, deg2, y)
                 basis_funs(kts2, deg2, y, span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i, j] = 0.0
-                for k in range(deg1+1):
-                    theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                    for l in range(1, deg2+1):
-                        theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
-                    z[i, j] += theCoeffs[k, 0]*basis1[k]
+                for k in range(deg1 + 1):
+                    theCoeffs[k, 0] = theCoeffs[k, 0] * basis2[0]
+                    for l in range(1, deg2 + 1):
+                        theCoeffs[k, 0] += theCoeffs[k, l] * basis2[l]
+                    z[i, j] += theCoeffs[k, 0] * basis1[k]
     elif (der1 == 0 and der2 == 1):
         for i, x in enumerate(xVec):
             span1 = find_span(kts1, deg1, x)
@@ -278,15 +279,15 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
                 span2 = find_span(kts2, deg2, y)
                 basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i, j] = 0.0
-                for k in range(deg1+1):
-                    theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                    for l in range(1, deg2+1):
-                        theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
-                    z[i, j] += theCoeffs[k, 0]*basis1[k]
+                for k in range(deg1 + 1):
+                    theCoeffs[k, 0] = theCoeffs[k, 0] * basis2[0]
+                    for l in range(1, deg2 + 1):
+                        theCoeffs[k, 0] += theCoeffs[k, l] * basis2[l]
+                    z[i, j] += theCoeffs[k, 0] * basis1[k]
     elif (der1 == 1 and der2 == 0):
         for i, x in enumerate(xVec):
             span1 = find_span(kts1, deg1, x)
@@ -295,15 +296,15 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
                 span2 = find_span(kts2, deg2, y)
                 basis_funs(kts2, deg2, y, span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i, j] = 0.0
-                for k in range(deg1+1):
-                    theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                    for l in range(1, deg2+1):
-                        theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
-                    z[i, j] += theCoeffs[k, 0]*basis1[k]
+                for k in range(deg1 + 1):
+                    theCoeffs[k, 0] = theCoeffs[k, 0] * basis2[0]
+                    for l in range(1, deg2 + 1):
+                        theCoeffs[k, 0] += theCoeffs[k, l] * basis2[l]
+                    z[i, j] += theCoeffs[k, 0] * basis1[k]
     elif (der1 == 1 and der2 == 1):
         for i, x in enumerate(xVec):
             span1 = find_span(kts1, deg1, x)
@@ -312,15 +313,15 @@ def eval_spline_2d_cross(xVec: 'float[:]', yVec: 'float[:]', kts1: 'float[:]', d
                 span2 = find_span(kts2, deg2, y)
                 basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i, j] = 0.0
-                for k in range(deg1+1):
-                    theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                    for l in range(1, deg2+1):
-                        theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
-                    z[i, j] += theCoeffs[k, 0]*basis1[k]
+                for k in range(deg1 + 1):
+                    theCoeffs[k, 0] = theCoeffs[k, 0] * basis2[0]
+                    for l in range(1, deg2 + 1):
+                        theCoeffs[k, 0] += theCoeffs[k, l] * basis2[l]
+                    z[i, j] += theCoeffs[k, 0] * basis1[k]
 
 
 @pure
@@ -331,9 +332,9 @@ def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 
     TODO
     """
     from numpy import empty
-    basis1 = empty(deg1+1, dtype=float)
-    basis2 = empty(deg2+1, dtype=float)
-    theCoeffs = empty([deg1+1, deg2+1])
+    basis1 = empty(deg1 + 1, dtype=float)
+    basis2 = empty(deg2 + 1, dtype=float)
+    theCoeffs = empty([deg1 + 1, deg2 + 1])
 
     if (der1 == 0):
         if (der2 == 0):
@@ -343,15 +344,15 @@ def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 
                 basis_funs(kts1, deg1, x[i], span1, basis1)
                 basis_funs(kts2, deg2, y[i], span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i] = 0.0
-                for j in range(deg1+1):
-                    theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-                    for k in range(1, deg2+1):
-                        theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
-                    z[i] += theCoeffs[j, 0]*basis1[j]
+                for j in range(deg1 + 1):
+                    theCoeffs[j, 0] = theCoeffs[j, 0] * basis2[0]
+                    for k in range(1, deg2 + 1):
+                        theCoeffs[j, 0] += theCoeffs[j, k] * basis2[k]
+                    z[i] += theCoeffs[j, 0] * basis1[j]
         elif(der2 == 1):
             for i in range(len(x)):
                 span1 = find_span(kts1, deg1, x[i])
@@ -359,15 +360,15 @@ def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 
                 basis_funs(kts1, deg1, x[i], span1, basis1)
                 basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i] = 0.0
-                for j in range(deg1+1):
-                    theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-                    for k in range(1, deg2+1):
-                        theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
-                    z[i] += theCoeffs[j, 0]*basis1[j]
+                for j in range(deg1 + 1):
+                    theCoeffs[j, 0] = theCoeffs[j, 0] * basis2[0]
+                    for k in range(1, deg2 + 1):
+                        theCoeffs[j, 0] += theCoeffs[j, k] * basis2[k]
+                    z[i] += theCoeffs[j, 0] * basis1[j]
     elif (der1 == 1):
         if (der2 == 0):
             for i in range(len(x)):
@@ -376,15 +377,15 @@ def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 
                 basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
                 basis_funs(kts2, deg2, y[i], span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i] = 0.0
-                for j in range(deg1+1):
-                    theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-                    for k in range(1, deg2+1):
-                        theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
-                    z[i] += theCoeffs[j, 0]*basis1[j]
+                for j in range(deg1 + 1):
+                    theCoeffs[j, 0] = theCoeffs[j, 0] * basis2[0]
+                    for k in range(1, deg2 + 1):
+                        theCoeffs[j, 0] += theCoeffs[j, k] * basis2[k]
+                    z[i] += theCoeffs[j, 0] * basis1[j]
         elif(der2 == 1):
             for i in range(len(x)):
                 span1 = find_span(kts1, deg1, x[i])
@@ -392,12 +393,12 @@ def eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 
                 basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
                 basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
 
-                theCoeffs[:, :] = coeffs[span1 -
-                                         deg1:span1+1, span2-deg2:span2+1]
+                theCoeffs[:, :] = coeffs[span1 - deg1:span1 + 1,
+                                         span2 - deg2:span2 + 1]
 
                 z[i] = 0.0
-                for j in range(deg1+1):
-                    theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-                    for k in range(1, deg2+1):
-                        theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
-                    z[i] += theCoeffs[j, 0]*basis1[j]
+                for j in range(deg1 + 1):
+                    theCoeffs[j, 0] = theCoeffs[j, 0] * basis2[0]
+                    for k in range(1, deg2 + 1):
+                        theCoeffs[j, 0] += theCoeffs[j, k] * basis2[k]
+                    z[i] += theCoeffs[j, 0] * basis1[j]

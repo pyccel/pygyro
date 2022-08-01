@@ -98,13 +98,15 @@ def main():
                                                          allocateSaveMemory=True)
 
         if nosave:
-            print('Not saving results')
+            if rank == 0:
+                print('Not saving results')
         else:
             my_print(rank, nosave, "setup done, saving initParams")
 
             foldername = setupSave(constants, foldername)
 
-            print("Saving in ", foldername)
+            if rank == 0:
+                print("Saving in", foldername)
 
     ti = t//constants.dt
     tN = int(tEnd//constants.dt)
@@ -119,7 +121,7 @@ def main():
     fluxAdv = FluxSurfaceAdvection(distribFunc.eta_grid, distribFunc.get2DSpline(),
                                    distribFunc.getLayout('flux_surface'), halfStep, constants)
     my_print(rank, nosave, "flux adv init done")
-    
+
     vParAdv = VParallelAdvection(
         distribFunc.eta_grid, distribFunc.getSpline(3), constants)
     my_print(rank, nosave, "v par adv init done")
@@ -134,7 +136,11 @@ def main():
         polAdv = PoloidalAdvectionArakawa(
             distribFunc.eta_grid, distribFunc.getSpline(slice(1, None, -1)), constants)
         my_print(rank, nosave, "pol adv akw init done")
-    
+
+    else:
+        raise NotImplementedError(
+            f"{poloidal_method} is an unknown option for the poloidal advection step!")
+
     parGradVals = np.empty([distribFunc.getLayout(
         distribFunc.currentLayout).shape[0], constants.npts[2], constants.npts[1]])
     my_print(rank, nosave, "par grad vals done")
@@ -192,20 +198,27 @@ def main():
 
     setup_time = time.time() - setup_time_start
 
-    # Find phi from f^n by solving QN eq
+    # ============================================
+    # ==== Find phi from f^n by solving QN eq ====
+    # ============================================
     distribFunc.setLayout('v_parallel')
     density.getPerturbedRho(distribFunc, rho)
     my_print(rank, nosave, "pert rho")
+
     QNSolver.getModes(rho)
     my_print(rank, nosave, "got modes")
+
     rho.setLayout('mode_solve')
     phi.setLayout('mode_solve')
     my_print(rank, nosave, "ready to solve")
+
     QNSolver.solveEquation(phi, rho)
     my_print(rank, nosave, "solved")
+
     phi.setLayout('v_parallel_2d')
     rho.setLayout('v_parallel_2d')
     my_print(rank, nosave, "ready to inv fourier")
+
     QNSolver.findPotential(phi)
     my_print(rank, nosave, "got phi")
 
@@ -217,7 +230,10 @@ def main():
 
     if (not loadable) and (not nosave):
         my_print(rank, nosave, "save time", t)
-        print(rank, "save time", t)
+        
+        if rank == 0:
+            print(rank, "save time", t)
+        
         output_start = time.time()
 
         distribFunc.writeH5Dataset(foldername, t)
@@ -231,7 +247,7 @@ def main():
             diagnosticFile = open(diagnostic_filename, "a")
             print(diagnostics.getLine(0), file=diagnosticFile)
             diagnosticFile.close()
-        output_time += (time.time()-output_start)
+        output_time += (time.time() - output_start)
 
     nLoops = 0
     average_loop = 0
@@ -245,53 +261,73 @@ def main():
         t += fullStep
         my_print(rank, nosave, "t=", t)
 
-        # Compute f^n+1/2 using Lie splitting
+        # =============================================
+        # ==== Compute f^n+1/2 using Lie splitting ====
+        # =============================================
         distribFunc.setLayout('flux_surface')
         distribFunc.saveGridValues()
         fluxAdv.gridStep(distribFunc)
+
         distribFunc.setLayout('v_parallel')
         phi.setLayout('v_parallel_1d')
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
+
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
         polAdv.gridStep(distribFunc, phi, halfStep)
 
-        # Find phi from f^n+1/2 by solving QN eq again
+        # ======================================================
+        # ==== Find phi from f^n+1/2 by solving QN eq again ====
+        # ======================================================
         distribFunc.setLayout('v_parallel')
         density.getPerturbedRho(distribFunc, rho)
         QNSolver.getModes(rho)
+
         rho.setLayout('mode_solve')
         phi.setLayout('mode_solve')
         QNSolver.solveEquation(phi, rho)
+
         phi.setLayout('v_parallel_2d')
         rho.setLayout('v_parallel_2d')
         QNSolver.findPotential(phi)
 
-        # Compute f^n+1 using strang splitting
+        # ==============================================
+        # ==== Compute f^n+1 using strang splitting ====
+        # ==============================================
         distribFunc.restoreGridValues()  # restored from flux_surface layout
         fluxAdv.gridStep(distribFunc)
+
         distribFunc.setLayout('v_parallel')
         phi.setLayout('v_parallel_1d')
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
+
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
         polAdv.gridStep(distribFunc, phi, fullStep)
+
         distribFunc.setLayout('v_parallel')
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)
         distribFunc.setLayout('flux_surface')
         fluxAdv.gridStep(distribFunc)
 
-        # Find phi from f^n by solving QN eq
+        # ============================================
+        # ==== Find phi from f^n by solving QN eq ====
+        # ============================================
         distribFunc.setLayout('v_parallel')
         density.getPerturbedRho(distribFunc, rho)
         QNSolver.getModes(rho)
+
         rho.setLayout('mode_solve')
         phi.setLayout('mode_solve')
         QNSolver.solveEquation(phi, rho)
+
         phi.setLayout('v_parallel_2d')
         rho.setLayout('v_parallel_2d')
         QNSolver.findPotential(phi)
 
+        # =====================
+        # ==== Diagnostics ====
+        # =====================
         diagnostic_start = time.time()
         # Calculate diagnostic quantities
         diagnostics.collect(distribFunc, phi, t)
