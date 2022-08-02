@@ -51,7 +51,7 @@ else:
     while (plot.calculation_complete()):
         for i, r in grid.getCoords(0):
             for j, v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i, j]), j)
+                fluxAdv.step(grid.get2DSlice(i, j), j)
 
         print("rank ", rank, " has completed flux step 1")
 
@@ -60,7 +60,7 @@ else:
         for i, r in grid.getCoords(0):
             for j, z in grid.getCoords(1):
                 for k, q in grid.getCoords(2):
-                    vParAdv.step(grid.get1DSlice([i, j, k]), halfStep, 0, r)
+                    vParAdv.step(grid.get1DSlice(i, j, k), halfStep, 0, r)
 
         print("rank ", rank, " has completed v parallel step 1")
 
@@ -68,7 +68,7 @@ else:
 
         for i, v in grid.getCoords(0):
             for j, z in grid.getCoords(1):
-                polAdv.step(grid.get2DSlice([i, j]), dt, phi, v)
+                polAdv.step(grid.get2DSlice(i, j), dt, phi, v)
 
         print("rank ", rank, " has completed poloidal step")
 
@@ -77,7 +77,7 @@ else:
         for i, r in grid.getCoords(0):
             for j, z in grid.getCoords(1):
                 for k, q in grid.getCoords(2):
-                    vParAdv.step(grid.get1DSlice([i, j, k]), halfStep, 0, r)
+                    vParAdv.step(grid.get1DSlice(i, j, k), halfStep, 0, r)
 
         print("rank ", rank, " has completed v parallel step 2")
 
@@ -85,7 +85,7 @@ else:
 
         for i, r in grid.getCoords(0):
             for j, v in grid.getCoords(1):
-                fluxAdv.step(grid.get2DSlice([i, j]), j)
+                fluxAdv.step(grid.get2DSlice(i, j), j)
 
         print("rank ", rank, " has completed flux step 2")
 

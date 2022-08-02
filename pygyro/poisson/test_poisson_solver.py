@@ -49,7 +49,7 @@ def test_DensityFinder_poly_Rho(param_df_poly):
     for i, _ in grid.getCoords(0):  # r
         for j, _ in grid.getCoords(1):  # z
             for k, _ in grid.getCoords(2):  # q
-                vec = grid.get1DSlice([i, j, k])
+                vec = grid.get1DSlice(i, j, k)
                 for l, v in grid.getCoords(3):
                     vec[l] = coeffs[0]*v**3 + coeffs[1] * \
                         v**2 + coeffs[2]*v + coeffs[3]
@@ -100,7 +100,7 @@ def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
     for i, r in grid.getCoords(0):
         for j, z in grid.getCoords(1):
             for k, _ in grid.getCoords(2):  # q
-                vec = grid.get1DSlice([i, j, k])
+                vec = grid.get1DSlice(i, j, k)
                 for l, v in grid.getCoords(3):
                     vec[l] = fEq(r, v, constants.CN0, constants.kN0, constants.deltaRN0,
                                  constants.rp, constants.CTi, constants.kTi, constants.deltaRTi) \
@@ -153,7 +153,7 @@ def test_DensityFinder_cos_Rho(npts_v, tol):
     for i, _ in grid.getCoords(0):  # r
         for j, _ in grid.getCoords(1):  # z
             for k, _ in grid.getCoords(2):  # q
-                vec = grid.get1DSlice([i, j, k])
+                vec = grid.get1DSlice(i, j, k)
                 for l, v in grid.getCoords(3):
                     vec[l] = np.cos(v)
 
@@ -202,7 +202,7 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v, tol):
     for i, r in grid.getCoords(0):
         for j, _ in grid.getCoords(1):  # z
             for k, _ in grid.getCoords(2):  # q
-                vec = grid.get1DSlice([i, j, k])
+                vec = grid.get1DSlice(i, j, k)
                 for l, v in grid.getCoords(3):
                     vec[l] = fEq(r, v, constants.CN0, constants.kN0, constants.deltaRN0,
                                  constants.rp, constants.CTi, constants.kTi, constants.deltaRTi) \
@@ -253,7 +253,7 @@ def test_BasicPoissonEquation_Dirichlet_r_function(param_poisson_dirichlet):
     r = eta_grid[0]
 
     for i, _ in phi_exact.getCoords(0):  # q
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -0.5*r**2+0.5 * \
             (domain[0][0]+domain[0][1])*r-domain[0][0]*domain[0][1]*0.5
 
@@ -300,9 +300,9 @@ def test_BasicPoissonEquation_Dirichlet_r_discrete(param_poisson_dirichlet):
     r = eta_grid[0]
 
     for i, _ in rho.getCoords(0):  # q
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = 1
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -0.5*r**2+0.5 * \
             (domain[0][0]+domain[0][1])*r-domain[0][0]*domain[0][1]*0.5
 
@@ -350,9 +350,9 @@ def test_BasicPoissonEquation_lNeumann_discrete(param_poisson_neumann):
     r = eta_grid[0]
 
     for i, _ in rho.getCoords(0):  # q
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = 1
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -0.5*r**2+domain[0][0]*r + \
             domain[0][1]**2*0.5-domain[0][0]*domain[0][1]
 
@@ -398,7 +398,7 @@ def test_BasicPoissonEquation_lNeumann_function(param_poisson_neumann):
     r = eta_grid[0]
 
     for i, _ in phi_exact.getCoords(0):  # q
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -0.5*r**2+domain[0][0]*r + \
             domain[0][1]**2*0.5-domain[0][0]*domain[0][1]
 
@@ -447,9 +447,9 @@ def test_BasicPoissonEquation_rNeumann_discrete(param_poisson_neumann):
     r = eta_grid[0]
 
     for i, _ in rho.getCoords(0):  # q
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = 1
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -0.5*r**2+domain[0][1]*r + \
             domain[0][0]**2*0.5-domain[0][0]*domain[0][1]
 
@@ -495,7 +495,7 @@ def test_BasicPoissonEquation_rNeumann_function(param_poisson_neumann):
     r = eta_grid[0]
 
     for i, _ in phi_exact.getCoords(0):  # q
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -0.5*r**2+domain[0][1]*r + \
             domain[0][0]**2*0.5-domain[0][0]*domain[0][1]
 
@@ -545,9 +545,9 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
     q = eta_grid[1]
 
     for i, r in rho.getCoords(0):
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = 1
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = (-0.5*r**2+0.5*(domain[0][0]+domain[0][1])
                     * r-domain[0][0]*domain[0][1]*0.5)
 
@@ -608,9 +608,9 @@ def test_grad_discrete(param_grad):
     r = eta_grid[0]
 
     for i, _ in rho.getCoords(0):  # q
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = a*np.cos(a*(r-domain[0][0]))
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(a*(r-domain[0][0]))
 
     ps.solveEquation(phi, rho)
@@ -657,7 +657,7 @@ def test_grad_function(param_grad):
     r = eta_grid[0]
 
     for i, _ in phi_exact.getCoords(0):  # q
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(a*(r-domain[0][0]))
 
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0])))
@@ -705,9 +705,9 @@ def test_grad_r_discrete(param_grad_r):
                'mode_solve', comm, dtype=np.complex128)
 
     for i, _ in rho.getCoords(0):  # q
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = a*np.cos(a*(r-domain[0][0]))*r
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(a*(r-domain[0][0]))
 
     q = eta_grid[1]
@@ -754,7 +754,7 @@ def test_grad_r_function(param_grad_r):
                      'mode_solve', comm, dtype=np.complex128)
 
     for i, _ in phi_exact.getCoords(0):  # q
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(a*(r-domain[0][0]))
 
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0]))*r)
@@ -802,9 +802,9 @@ def test_grad_withFFT(deg, npt, eps):
                'v_parallel', comm, dtype=np.complex128)
 
     for i, r in rho.getCoords(0):
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = a*np.cos(a*(r-domain[0][0]))
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(a*(r-domain[0][0]))
 
     ps.getModes(rho)
@@ -860,9 +860,9 @@ def test_Sin_r_Sin_theta(param_sin_sin):
     q = eta_grid[1]
 
     for i, r in rho.getCoords(0):
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = a*np.cos(a*(r-domain[0][0]))*np.sin(q)
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(a*(r-domain[0][0]))*np.sin(q)
 
     r = eta_grid[0]
@@ -921,9 +921,9 @@ def test_ddTheta(param_fft):
     q = eta_grid[1]
 
     for i, r in rho.getCoords(0):
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = 2*np.sin(q)
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(q)
 
     r = eta_grid[0]
@@ -985,9 +985,9 @@ def test_phi(param_fft):
     q = eta_grid[1]
 
     for i, _ in rho.getCoords(0):  # r
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = np.sin(q)
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.sin(q)
 
     ps.getModes(rho)
@@ -1056,7 +1056,7 @@ def test_quasiNeutrality():
 
     for i, r in rho.getCoords(0):
         rArg = a*(r-domain[0][0])
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
 
         plane[:] = -12 * np.cos(rArg)**2 * np.sin(rArg)**2 * a * a * np.sin(q)**3 \
             + 4 * np.cos(rArg)**4 * a * a * np.sin(q)**3 \
@@ -1066,7 +1066,7 @@ def test_quasiNeutrality():
             - 6 * np.cos(rArg)**4 * np.sin(q) * np.cos(q)**2 / r**2 \
             + 3 * np.cos(rArg)**4 * np.sin(q)**3 / r**2
 
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = np.cos(rArg)**4 * np.sin(q)**3
 
     r = eta_grid[0]
@@ -1246,10 +1246,10 @@ def test_BasicPoissonEquation_exact(deg):
     coeffs = np.array([coeff1, coeff2, *coeffs])
 
     for i, q in rho.getCoords(0):
-        plane = rho.get2DSlice([i])
+        plane = rho.get2DSlice(i)
         plane[:] = np.sum(coeffs[2:]*np.power(np.atleast_2d(x).T,
                           np.arange(deg-1))*np.arange(2, deg+1)*np.arange(1, deg), axis=1)
-        plane = phi_exact.get2DSlice([i])
+        plane = phi_exact.get2DSlice(i)
         plane[:] = -np.sum(coeffs*np.power(np.atleast_2d(x).T,
                            np.arange(deg+1)), axis=1)
 

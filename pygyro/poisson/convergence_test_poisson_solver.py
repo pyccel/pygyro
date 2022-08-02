@@ -67,9 +67,9 @@ def test_BasicPoissonEquation_pointConverge(deg):
         a = 2*pi/(domain[0][1]-domain[0][0])
 
         for i, q in rho.getCoords(0):
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))*a*a
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         ps.solveEquation(phi, rho)
@@ -176,9 +176,9 @@ def test_BasicPoissonEquation_degreeConverge():
         r = eta_grid[0]
 
         for i, q in rho.getCoords(0):
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))*a*a
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         ps.solveEquation(phi, rho)
@@ -285,9 +285,9 @@ def test_grad_pointConverge(deg):
         r = eta_grid[0]
 
         for i, q in rho.getCoords(0):
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = a*np.cos(a*(r-domain[0][0]))+np.sin(a*(r-domain[0][0]))
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         q = eta_grid[1]
@@ -395,9 +395,9 @@ def test_grad_degreeConverge():
         r = eta_grid[0]
 
         for i, q in rho.getCoords(0):
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = a*np.cos(a*(r-domain[0][0]))+np.sin(a*(r-domain[0][0]))
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         ps.solveEquation(phi, rho)
@@ -509,10 +509,10 @@ def test_grad_r_pointConverge(deg):
                    'mode_solve', comm, dtype=np.complex128)
 
         for i, _ in rho.getCoords(0):  # q
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = a*np.cos(a*(r-domain[0][0]))/r + \
                 np.sin(a*(r-domain[0][0]))
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         ps.solveEquation(phi, rho)
@@ -618,10 +618,10 @@ def test_grad_r_degreeConverge():
                    'mode_solve', comm, dtype=np.complex128)
 
         for i, _ in rho.getCoords(0):
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = a*np.cos(a*(r-domain[0][0]))/r + \
                 np.sin(a*(r-domain[0][0]))
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         ps.solveEquation(phi, rho)
@@ -735,9 +735,9 @@ def test_ddTheta(deg):
         q = eta_grid[1]
 
         for i, _ in rho.getCoords(0):
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = -6*np.sin(q)*np.cos(q)**2+4*np.sin(q)**3
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.sin(q)**3
 
         ps.getModes(rho)
@@ -850,7 +850,7 @@ def test_QuasiNeutralityEquation_pointConverge():
 
             for i, r in rho.getCoords(0):
                 rArg = a*(r-domain[0][0])
-                plane = rho.get2DSlice([i])
+                plane = rho.get2DSlice(i)
                 plane[:] = -12*np.cos(rArg)**2*np.sin(rArg)**2*a*a*np.sin(q)**3 \
                     + 4*np.cos(rArg)**4 * a*a*np.sin(q)**3 \
                     + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
@@ -859,14 +859,14 @@ def test_QuasiNeutralityEquation_pointConverge():
                     / initialiser.Te(r, constants.CTe, constants.kTe, constants.deltaRTe, constants.rp) \
                     - 6 * np.cos(rArg)**4*np.sin(q)*np.cos(q)**2/r**2 \
                     + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
-                plane = phi_exact.get2DSlice([i])
+                plane = phi_exact.get2DSlice(i)
                 plane[:] = np.cos(rArg)**4*np.sin(q)**3
                 # plane[:] = -12*np.cos(rArg)**2*np.sin(rArg)**2*a*a \
                 #           + 4*np.cos(rArg)**4                *a*a \
                 #           + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                 #           4 * np.cos(rArg)**3*np.sin(rArg)*a \
                 #           + np.cos(rArg)**4 / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp)
-                #plane = phi_exact.get2DSlice([i])
+                #plane = phi_exact.get2DSlice(i)
                 #plane[:] = np.cos(rArg)**4
 
             ps.getModes(rho)
@@ -1037,7 +1037,7 @@ def test_QuasiNeutralityEquation_degreeConverge():
 
         for i, r in rho.getCoords(0):
             rArg = a*(r-domain[0][0])
-            plane = rho.get2DSlice([i])
+            plane = rho.get2DSlice(i)
             plane[:] = -12*np.cos(rArg)**2*np.sin(rArg)**2*a*a*np.sin(q)**3 \
                 + 4*np.cos(rArg)**4 * a*a*np.sin(q)**3 \
                 + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
@@ -1046,7 +1046,7 @@ def test_QuasiNeutralityEquation_degreeConverge():
                 / initialiser.Te(r, constants.CTe, constants.kTe, constants.deltaRTe, constants.rp) \
                 - 6 * np.cos(rArg)**4*np.sin(q)*np.cos(q)**2/r**2 \
                 + 3 * np.cos(rArg)**4*np.sin(q)**3/r**2
-            plane = phi_exact.get2DSlice([i])
+            plane = phi_exact.get2DSlice(i)
             plane[:] = np.cos(rArg)**4*np.sin(q)**3
 
         ps.getModes(rho)

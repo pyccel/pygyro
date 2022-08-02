@@ -78,11 +78,11 @@ class DensityFinder:
 
         for i, (r, rIdx) in enumerate(zip(grid.getCoordVals(0), rIndices)):
             for j, _ in grid.getCoords(1):  # z
-                rho_qv = rho.get1DSlice([i, j])
+                rho_qv = rho.get1DSlice(i, j)
 
                 for k, _ in grid.getCoords(2):  # theta
                     self._interpolator.compute_interpolant(
-                        grid.get1DSlice([i, j, k]), self._spline)
+                        grid.get1DSlice(i, j, k), self._spline)
 
                     eval_spline_1d_vector(self._points, self._spline.basis.knots, self._spline.basis.degree,
                                           self._spline.coeffs, self._splineMem, 0)
@@ -110,11 +110,11 @@ class DensityFinder:
 
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # z
-                rho_qv = rho.get1DSlice([i, j])
+                rho_qv = rho.get1DSlice(i, j)
 
                 for k, _ in grid.getCoords(2):  # theta
                     self._interpolator.compute_interpolant(
-                        grid.get1DSlice([i, j, k]), self._spline)
+                        grid.get1DSlice(i, j, k), self._spline)
 
                     eval_spline_1d_vector(self._points, self._spline.basis.knots, self._spline.basis.degree,
                                           self._spline.coeffs, self._splineMem, 0)
@@ -358,11 +358,11 @@ class DiffEqSolver:
             differential equation.
 
         """
-        assert(isinstance(rho.get1DSlice([0, 0])[0], np.complex128))
+        assert(isinstance(rho.get1DSlice(0, 0)[0], np.complex128))
         assert(rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
         for i, _ in rho.getCoords(0):  # r
             for j, _ in rho.getCoords(1):  # z
-                vec = rho.get1DSlice([i, j])
+                vec = rho.get1DSlice(i, j)
                 mode = fft(vec, overwrite_x=True)
                 vec[:] = mode
 
@@ -441,7 +441,7 @@ class DiffEqSolver:
         for j, z in rho.getCoords(1):
             # Calculate the coefficients related to rho
             self._interpolator.compute_interpolant(
-                rho.get1DSlice([i, j]), self._spline)
+                rho.get1DSlice(i, j), self._spline)
 
             # Save the solution to the preprepared buffer
             # The boundary values of this buffer are already set if
@@ -461,7 +461,7 @@ class DiffEqSolver:
                                   self._real_spline.basis.degree, self._real_spline.coeffs,
                                   self._imagMem, 0)
 
-            phi.get1DSlice([i, j])[:] = self._realMem+1j*self._imagMem
+            phi.get1DSlice(i, j)[:] = self._realMem+1j*self._imagMem
 
     def _solveModeFunc(self, phi: Grid, rho, stiffnessMatrix: sparse.csc_matrix, i: int, I: int):
         """
@@ -497,7 +497,7 @@ class DiffEqSolver:
                                   self._real_spline.basis.degree, self._real_spline.coeffs,
                                   self._imagMem, 0)
 
-            phi.get1DSlice([i, j])[:] = self._realMem+1j*self._imagMem
+            phi.get1DSlice(i, j)[:] = self._realMem+1j*self._imagMem
 
     @staticmethod
     def findPotential(phi: Grid):
@@ -512,12 +512,12 @@ class DiffEqSolver:
 
         """
 
-        assert(isinstance(phi.get1DSlice([0, 0])[0], np.complex128))
+        assert(isinstance(phi.get1DSlice(0, 0)[0], np.complex128))
         assert(phi.getLayout(phi.currentLayout).dims_order == (0, 2, 1))
 
         for i, _ in phi.getCoords(0):  # r
             for j, _ in phi.getCoords(1):  # z
-                vec = phi.get1DSlice([i, j])
+                vec = phi.get1DSlice(i, j)
                 mode = ifft(vec, overwrite_x=True)
                 vec[:] = mode
 

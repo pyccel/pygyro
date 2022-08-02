@@ -61,7 +61,7 @@ phase_space = Grid(eta_grids, remapper, 'flux_surface')
 for i, r in phase_space.getCoords(0):
     for j, v in phase_space.getCoords(1):
         # Get surface
-        FluxSurface = phase_space.get2DSlice([i, j])
+        FluxSurface = phase_space.get2DSlice(i, j)
         # Get coordinate values
         theta = phase_space.getCoordVals(2)
         z = phase_space.getCoordVals(3)
@@ -81,7 +81,7 @@ for i, r in phase_space.getCoords(0):
     for j, z in phase_space.getCoords(1):
         for k, theta in phase_space.getCoords(2):
             # Get surface
-            VParSurface = phase_space.get1DSlice([i, j, k])
+            VParSurface = phase_space.get1DSlice(i, j, k)
             # Get coordinate values
             vPar = phase_space.getCoordVals(3)
 

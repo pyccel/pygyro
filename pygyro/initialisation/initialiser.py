@@ -8,7 +8,7 @@ def initialise_flux_surface(grid, constants):
     for i, r in grid.getCoords(0):
         for j, v in grid.getCoords(1):
             # Get surface
-            FluxSurface = grid.get2DSlice([i, j])
+            FluxSurface = grid.get2DSlice(i, j)
 
             # Get coordinate values
             theta = grid.getCoordVals(2)
@@ -28,7 +28,7 @@ def initialise_poloidal(grid, constants):
     for i, v in grid.getCoords(0):
         for j, z in grid.getCoords(1):
             # Get surface
-            PoloidalSurface = grid.get2DSlice([i, j])
+            PoloidalSurface = grid.get2DSlice(i, j)
 
             # Get coordinate values
             theta = grid.getCoordVals(2)
@@ -48,7 +48,7 @@ def initialise_v_parallel(grid, constants):
     for i, r in grid.getCoords(0):
         for j, z in grid.getCoords(1):
             # Get surface
-            Surface = grid.get2DSlice([i, j])
+            Surface = grid.get2DSlice(i, j)
 
             # Get coordinate values
             theta = grid.getCoordVals(2)

@@ -305,7 +305,7 @@ class FluxSurfaceAdvection:
         assert(grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2))
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
-                self.step(grid.get2DSlice([i, j]), j)
+                self.step(grid.get2DSlice(i, j), j)
 
 
 class VParallelAdvection:
@@ -385,7 +385,7 @@ class VParallelAdvection:
     def gridStep(self, grid: Grid, phi: Grid, parGrad: ParallelGradient, parGradVals: np.array, dt: float):
         for i, r in grid.getCoords(0):
             parGrad.parallel_gradient(
-                np.real(phi.get2DSlice([i])), i, parGradVals[i])
+                np.real(phi.get2DSlice(i)), i, parGradVals[i])
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
                     self.step(grid.get1DSlice(
@@ -546,12 +546,11 @@ class PoloidalAdvection:
         # Evaluate splines
         for j, _ in grid.getCoords(1):  # z
             self._interpolator.compute_interpolant(
-                np.real(phi.get2DSlice([j])), self._phiSplines[j])
-
+                np.real(phi.get2DSlice(j)), self._phiSplines[j])
         # Do step
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
-                self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j], v)
+                self.step(grid.get2DSlice(i, j), dt, self._phiSplines[j], v)
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         """
@@ -564,7 +563,7 @@ class PoloidalAdvection:
         # Do step
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
-                self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j], v)
+                self.step(grid.get2DSlice(i, j), dt, self._phiSplines[j], v)
 
     def evaluate(self, theta, r, v):
         """

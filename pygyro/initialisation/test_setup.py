@@ -61,9 +61,9 @@ def define_f(grid):
     for i, _ in grid.getCoords(0):
         for j, _ in grid.getCoords(1):
             for k, _ in grid.getCoords(2):
-                Slice = grid.get1DSlice([i, j, k])
+                Slice = grid.get1DSlice(i, j, k)
                 for l, _ in enumerate(Slice):
-                    [I, J, K, L] = grid.getGlobalIndices([i, j, k, l])
+                    [I, J, K, L] = grid.getGlobalIndices(i, j, k, l)
                     Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L
 
 
@@ -76,9 +76,9 @@ def compare_f(grid, t):
     for i, _ in grid.getCoords(0):
         for j, _ in grid.getCoords(1):
             for k, _ in grid.getCoords(2):
-                Slice = grid.get1DSlice([i, j, k])
+                Slice = grid.get1DSlice(i, j, k)
                 for l, a in enumerate(Slice):
-                    [I, J, K, L] = grid.getGlobalIndices([i, j, k, l])
+                    [I, J, K, L] = grid.getGlobalIndices(i, j, k, l)
                     assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
 
 
