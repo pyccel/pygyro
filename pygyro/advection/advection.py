@@ -670,10 +670,9 @@ class PoloidalAdvectionArakawa:
         self._interpolator.compute_interpolant(f, self._spline)
 
         f = f.flatten()
-        
+
         assert(f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
-
 
         Jpp_phi = assemble_Jpp(phi.eval(self._points_r, self._points_theta).flatten(),
                                self._nPoints_theta, self._nPoints_r,
