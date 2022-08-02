@@ -89,7 +89,7 @@ class Grid(object):
     def getGlobalIndices(self, *indices: 'ints'):
         """ convert local indices to global indices
         """
-        result = indices.copy()
+        result = list(indices)
         for i, toAdd in enumerate(self._layout.starts):
             result[self._layout.dims_order[i]] = indices[i]+toAdd
         return result
