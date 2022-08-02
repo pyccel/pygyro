@@ -472,7 +472,7 @@ class PoloidalAdvection:
         """
         TODO
         """
-        self._evalFunc = np.vectorize(self.evaluate, otypes=[np.float])
+        self._evalFunc = np.vectorize(self.evaluate, otypes=[float])
 
     def step(self, f: np.ndarray, dt: float, phi: Spline2D, v: float):
         """
@@ -650,6 +650,7 @@ class PoloidalAdvectionArakawa:
         self._max_loops = 0
 
         # only physically sensible option. hard-coded for now; maybe remove later
+        # boundary conditions for r direction
         self.bc = 'dirichlet'
 
     def allow_tests(self):
@@ -682,7 +683,7 @@ class PoloidalAdvectionArakawa:
         # Scaling for the coefficient in the discrete
         phi_hh /= 4 * self._dr * self._dtheta
 
-        # still np.real is used for the phi to discard imaginary values. np.real allocates new memeory -> should be replaced
+        # still np.real is used for the phi to discard imaginary values. np.real allocates new memory -> should be replaced
         J_phi = assemble_bracket('akw', self.bc,
                                  np.real(phi_hh.ravel()),
                                  self._nPoints_theta, self._nPoints_r,
