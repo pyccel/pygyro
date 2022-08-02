@@ -86,20 +86,20 @@ class Grid(object):
         """
         return range(self._layout.starts[i], self._layout.ends[i])
 
-    def getGlobalIndices(self, indices: list):
+    def getGlobalIndices(self, *indices: 'ints'):
         """ convert local indices to global indices
         """
-        result = indices.copy()
+        result = list(indices)
         for i, toAdd in enumerate(self._layout.starts):
             result[self._layout.dims_order[i]] = indices[i]+toAdd
         return result
 
-    def get2DSlice(self, slices: list):
+    def get2DSlice(self, *slices: 'ints'):
         """ get the 2D slice at the provided list of coordinates
         """
         assert(len(slices) == self._nDims-2)
-        slices.extend([slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
-                      slice(self._nGlobalCoords[self._layout.dims_order[-1]])])
+        slices = slices + (slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
+                           slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
         return self._f[tuple(slices)]
 
     def get2DSpline(self):
@@ -113,11 +113,12 @@ class Grid(object):
         """
         return self._splines[i]
 
-    def get1DSlice(self, slices: list):
+    def get1DSlice(self, *slices: 'ints'):
         """ get the 1D slice at the provided list of coordinates
         """
         assert(len(slices) == self._nDims-1)
-        slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
+        slices = slices + \
+            (slice(self._nGlobalCoords[self._layout.dims_order[-1]]),)
         return self._f[tuple(slices)]
 
     def get1DSpline(self):
