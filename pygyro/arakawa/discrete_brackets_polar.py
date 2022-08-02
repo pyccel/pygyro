@@ -37,6 +37,7 @@ def assemble_bracket(scheme, bc, phi_hh, nPoints_theta, nPoints_r, r_grid):
     -------
         TODO
     """
+    
     if bc == 'periodic':
         if scheme == 'akw':
             Jpp = assemble_Jpp(phi_hh, nPoints_theta, nPoints_r, r_grid)

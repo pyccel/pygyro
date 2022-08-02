@@ -401,14 +401,14 @@ class VParallelAdvection:
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
                     self.step(grid.get1DSlice(
-                        [i, j, k]), dt, parGradVals[i, j, k], r)
+                        i, j, k), dt, parGradVals[i, j, k], r)
 
     def gridStepKeepGradient(self, grid: Grid, parGradVals, dt: float):
         for i, r in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
                     self.step(grid.get1DSlice(
-                        [i, j, k]), dt, parGradVals[i, j, k], r)
+                        i, j, k), dt, parGradVals[i, j, k], r)
 
 
 class PoloidalAdvection:
@@ -727,7 +727,7 @@ class PoloidalAdvectionArakawa:
         # Do step
         for i, _ in grid.getCoords(0):  # v
             for j, _ in grid.getCoords(1):  # z
-                self.step(grid.get2DSlice([i, j]), dt, phi.get2DSlice([j]))
+                self.step(grid.get2DSlice(i, j), dt, phi.get2DSlice(j))
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         """

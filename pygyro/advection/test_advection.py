@@ -569,7 +569,7 @@ def test_poloidalAdvectionArakawa_gridIntegration():
 
     for i, _ in grid.getCoords(0):  # z
         for j, _ in grid.getCoords(1):
-            grid_points = grid.get2DSlice([i, j])
+            grid_points = grid.get2DSlice(i, j)
             polAdv.step(grid_points, dt, np.array(phiVals, dtype=float))
 
 

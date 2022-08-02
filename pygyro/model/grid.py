@@ -138,8 +138,9 @@ class Grid(object):
     def get1DSlice(self, *slices: 'ints'):
         """ get the 1D slice at the provided list of coordinates
         """
-        assert(len(slices) == self._nDims - 1)
-        slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
+        assert(len(slices) == self._nDims-1)
+        slices = slices + \
+            (slice(self._nGlobalCoords[self._layout.dims_order[-1]]),)
         return self._f[tuple(slices)]
 
     def get1DSpline(self):
