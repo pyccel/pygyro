@@ -83,6 +83,9 @@ class ParallelGradient:
                 r, self._thetaVals[i], eta_grid, constants.iota, constants.R0)
 
     def getCoeffsFirstDeriv(self, n: int):
+        """
+        TODO
+        """
         b = np.zeros(n)
         b[1] = 1
 
@@ -104,6 +107,9 @@ class ParallelGradient:
         self._coeffs = solve(A, b)
 
     def _getThetaVals(self, r: float, thetaVals: np.ndarray, eta_grid: list, iota, R0):
+        """
+        TODO
+        """
         # The positions at which the spline will be evaluated are always the same.
         # They can therefore be calculated in advance
         n = eta_grid[2].size
@@ -212,6 +218,9 @@ class FluxSurfaceAdvection:
             [self._nPoints[1], self._nPoints[0], self._zLagrangePts])
 
     def _getLagrangePts(self, eta_grid: list, layout: Layout, dt: float, iota, R0):
+        """
+        TODO
+        """
         # Get z step
         dz = eta_grid[2][2]-eta_grid[2][1]
 
@@ -302,6 +311,9 @@ class FluxSurfaceAdvection:
                        self._LagrangeVals)
 
     def gridStep(self, grid: Grid):
+        """
+        TODO
+        """
         assert(grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2))
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
