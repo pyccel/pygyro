@@ -4,7 +4,7 @@ from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import eye as sparse_id
 
-from ..arakawa.discrete_brackets_polar import assemble_Jpp, assemble_Jpx, assemble_Jxp
+from ..arakawa.discrete_brackets_polar import assemble_bracket
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
@@ -590,11 +590,8 @@ class PoloidalAdvectionArakawa:
 
     Parameters
     ----------
-    r_theta_vals: list of array_like
-        The coordinates r, theta of the grid points in each dimension
-
-    splines: list of BSplines
-        The spline approximations along theta and r
+    eta_vals: list of array_like
+        The coordinates of the grid points in each dimension
 
     constants : Constant class
         Class containing all the constants
@@ -612,7 +609,7 @@ class PoloidalAdvectionArakawa:
         The tolerance used for the implicit trapezoidal rule
     """
 
-    def __init__(self, eta_vals: list, splines: list, constants, nulEdge=False,
+    def __init__(self, eta_vals: list, constants, nulEdge=False,
                  explicitTrap: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
@@ -631,8 +628,6 @@ class PoloidalAdvectionArakawa:
 
         self._nPoints = (self._nPoints_theta, self._nPoints_r)
 
-        self._interpolator = SplineInterpolator2D(splines[0], splines[1])
-        self._spline = Spline2D(splines[0], splines[1])
         self._constants = constants
 
         self._explicit = explicitTrap
@@ -642,8 +637,8 @@ class PoloidalAdvectionArakawa:
 
         self._max_loops = 0
 
-        self._phiSplines = [Spline2D(splines[0], splines[1])
-                            for i in range(eta_vals[2].size)]
+        # only physically sensible option. hard-coded for now; maybe remove later
+        self.bc = 'dirichlet'
 
     def allow_tests(self):
         """
@@ -651,7 +646,7 @@ class PoloidalAdvectionArakawa:
         """
         pass
 
-    def step(self, f: np.ndarray, dt: float, phi: Spline2D):
+    def step(self, f: np.ndarray, dt: float, phi_hh: np.ndarray):
         """
         Carry out an advection step for the poloidal advection using the Arakawa scheme
 
@@ -664,32 +659,22 @@ class PoloidalAdvectionArakawa:
         dt: float
             Time-step
 
-        phi: Spline2D
-            Advection parameter d_tf + {phi,f} = 0
+        phi_hh: array_like
+            Advection parameter d_tf + {phi,f} = 0; without scaling
         """
-        self._interpolator.compute_interpolant(f, self._spline)
+        f = f.ravel()
 
-        f = f.flatten()
-        
         assert(f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
+        # Scaling for the coefficient in the discrete
+        phi_hh /= 4 * self._dr * self._dtheta
 
-        Jpp_phi = assemble_Jpp(phi.eval(self._points_r, self._points_theta).flatten(),
-                               self._nPoints_theta, self._nPoints_r,
-                               self._points_r)
-        Jpx_phi = -assemble_Jpx(phi.eval(self._points_r, self._points_theta).flatten(),
-                                self._nPoints_theta,  self._nPoints_r,
-                                self._points_r)
-        Jxp_phi = -assemble_Jxp(phi.eval(self._points_r, self._points_theta).flatten(),
-                                self._nPoints_theta,  self._nPoints_r,
-                                self._points_r)
-
-        Jpp_phi /= 4 * self._dr * self._dtheta
-        Jpx_phi /= 4 * self._dr * self._dtheta
-        Jxp_phi /= 4 * self._dr * self._dtheta
-
-        J_phi = (Jpp_phi + Jpx_phi + Jxp_phi) / 3
+        # still np.real is used for the phi to discard imaginary values. np.real allocates new memeory -> should be replaced
+        J_phi = assemble_bracket('akw', self.bc,
+                                 np.real(phi_hh.ravel()),
+                                 self._nPoints_theta, self._nPoints_r,
+                                 self._points_r)
 
         if self._explicit:
             I = A = B = None
@@ -701,7 +686,7 @@ class PoloidalAdvectionArakawa:
         if (self._explicit):
             f[:] += dt * J_phi.dot(f)
         else:
-            f[:] = spsolve(A, B.dot(f.flatten()))
+            f[:] = spsolve(A, B.dot(f))
 
     def exact_step(self, f, endPts, v):
         """
@@ -712,6 +697,14 @@ class PoloidalAdvectionArakawa:
     def gridStep(self, grid: Grid, phi: Grid, dt: float):
         """
         TODO
+
+        Parameters
+        ----------
+            TODO
+
+        Returns
+        -------
+            TODO
         """
         gridLayout = grid.getLayout(grid.currentLayout)
         phiLayout = phi.getLayout(grid.currentLayout)
@@ -719,15 +712,10 @@ class PoloidalAdvectionArakawa:
         assert(gridLayout.dims_order[1:] == phiLayout.dims_order)
         assert(gridLayout.dims_order == (3, 2, 1, 0))
 
-        # Evaluate splines
-        for j, _ in grid.getCoords(1):  # z
-            self._interpolator.compute_interpolant(
-                np.real(phi.get2DSlice([j])), self._phiSplines[j])
-
         # Do step
-        for i, _ in grid.getCoords(0):
+        for i, _ in grid.getCoords(0):  # v
             for j, _ in grid.getCoords(1):  # z
-                self.step(grid.get2DSlice([i, j]), dt, self._phiSplines[j])
+                self.step(grid.get2DSlice([i, j]), dt, phi.get2DSlice([j]))
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         """
