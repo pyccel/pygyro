@@ -86,7 +86,7 @@ class Grid(object):
         """
         return range(self._layout.starts[i], self._layout.ends[i])
 
-    def getGlobalIndices(self, indices: list):
+    def getGlobalIndices(self, *indices: 'ints'):
         """ convert local indices to global indices
         """
         result = indices.copy()
@@ -94,7 +94,7 @@ class Grid(object):
             result[self._layout.dims_order[i]] = indices[i]+toAdd
         return result
 
-    def get2DSlice(self, slices: list):
+    def get2DSlice(self, *slices: 'ints'):
         """ get the 2D slice at the provided list of coordinates
         """
         assert(len(slices) == self._nDims-2)
@@ -113,7 +113,7 @@ class Grid(object):
         """
         return self._splines[i]
 
-    def get1DSlice(self, slices: list):
+    def get1DSlice(self, *slices: 'ints'):
         """ get the 1D slice at the provided list of coordinates
         """
         assert(len(slices) == self._nDims-1)

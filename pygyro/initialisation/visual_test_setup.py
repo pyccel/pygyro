@@ -19,7 +19,7 @@ def test_Perturbation_FluxSurface():
     for i, r in grid.getCoords(0):
         for j, _ in grid.getCoords(1):  # v
             # Get surface
-            FluxSurface = grid.get2DSlice([i, j])
+            FluxSurface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
@@ -49,7 +49,7 @@ def test_Perturbation_vPar():
     for i, r in grid.getCoords(0):
         for j, z in grid.getCoords(1):
             # Get surface
-            Surface = grid.get2DSlice([i, j])
+            Surface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
@@ -79,7 +79,7 @@ def test_Perturbation_Poloidal():
     for i, _ in grid.getCoords(0):  # v
         for j, z in grid.getCoords(1):
             # Get surface
-            PoloidalSurface = grid.get2DSlice([i, j])
+            PoloidalSurface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
@@ -112,7 +112,7 @@ def test_FieldPlot_FluxSurface():
     for i, r in grid.getCoords(0):
         for j, _ in grid.getCoords(1):  # v
             # Get surface
-            FluxSurface = grid.get2DSlice([i, j])
+            FluxSurface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
@@ -144,7 +144,7 @@ def test_FieldPlot_vPar():
     for i, r in grid.getCoords(0):
         for j, z in grid.getCoords(1):
             # Get surface
-            Surface = grid.get2DSlice([i, j])
+            Surface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
@@ -176,7 +176,7 @@ def test_FieldPlot_Poloidal():
     for i, _ in grid.getCoords(0):  # v
         for j, z in grid.getCoords(1):
             # Get surface
-            PoloidalSurface = grid.get2DSlice([i, j])
+            PoloidalSurface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
@@ -206,7 +206,7 @@ def test_Equilibrium_FluxSurface():
     for i, r in grid.getCoords(0):
         for j, v in grid.getCoords(1):
             # Get surface
-            FluxSurface = grid.get2DSlice([i, j])
+            FluxSurface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             z = grid.getCoordVals(3)
@@ -238,7 +238,7 @@ def test_Equilibrium_vPar():
     for i, r in grid.getCoords(0):
         for j, _ in grid.getCoords(1):  # z
             # Get surface
-            Surface = grid.get2DSlice([i, j])
+            Surface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             v = grid.getCoordVals(3)
@@ -270,7 +270,7 @@ def test_Equilibrium_Poloidal():
     for i, v in grid.getCoords(0):
         for j, _ in grid.getCoords(1):  # z
             # Get surface
-            PoloidalSurface = grid.get2DSlice([i, j])
+            PoloidalSurface = grid.get2DSlice(i, j)
             # Get coordinate values
             theta = grid.getCoordVals(2)
             r = grid.getCoordVals(3)
