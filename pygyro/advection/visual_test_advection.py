@@ -327,6 +327,7 @@ def test_poloidalAdvection_vortex():
         fig.canvas.draw()
         fig.canvas.flush_events()
 
+
 @pytest.mark.serial
 def test_poloidalAdvectionArakawa_vortex():
     """

@@ -14,14 +14,15 @@ def neighbor_index(pos0, pos1, i0, i1, nPoints_theta, nPoints_r):
     -------
         TODO
     """
-    index = (i0 + pos0) % nPoints_theta + ((i1 + pos1) % nPoints_r) * nPoints_theta
+    index = (i0 + pos0) % nPoints_theta + \
+        ((i1 + pos1) % nPoints_r) * nPoints_theta
     return index
 
 
 def assemble_bracket(scheme, bc, phi_hh, nPoints_theta, nPoints_r, r_grid):
     """
     TODO
-    
+
     Parameters
     ----------
         scheme : str
@@ -29,9 +30,9 @@ def assemble_bracket(scheme, bc, phi_hh, nPoints_theta, nPoints_r, r_grid):
 
         bc : str
             determines the boundary condition for r
-        
+
         TODO
-    
+
     Returns
     -------
         TODO
@@ -49,26 +50,37 @@ def assemble_bracket(scheme, bc, phi_hh, nPoints_theta, nPoints_r, r_grid):
         elif scheme == 'xp':
             J_phi = -assemble_Jxp(phi_hh, nPoints_theta, nPoints_r, r_grid)
         else:
-            raise NotImplementedError(f'Unknown option for the scheme : {scheme}')
+            raise NotImplementedError(
+                f'Unknown option for the scheme : {scheme}')
 
     elif bc == 'dirichlet':
         if scheme == 'akw':
-            Jpp = assemble_Jpp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid)
-            Jpx = -assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid)
-            Jxp = -assemble_Jxp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid)
+            Jpp = assemble_Jpp_dirichlet(
+                phi_hh, nPoints_theta, nPoints_r, r_grid)
+            Jpx = -assemble_Jpx_dirichlet(phi_hh,
+                                          nPoints_theta, nPoints_r, r_grid)
+            Jxp = -assemble_Jxp_dirichlet(phi_hh,
+                                          nPoints_theta, nPoints_r, r_grid)
             J_phi = 1/3 * (Jpp + Jpx + Jxp)
         elif scheme == 'pp':
-            J_phi = assemble_Jpp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid)
+            J_phi = assemble_Jpp_dirichlet(
+                phi_hh, nPoints_theta, nPoints_r, r_grid)
         elif scheme == 'px':
-            J_phi = -assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid)
+            J_phi = - \
+                assemble_Jpx_dirichlet(
+                    phi_hh, nPoints_theta, nPoints_r, r_grid)
         elif scheme == 'xp':
-            J_phi = -assemble_Jxp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid)
+            J_phi = - \
+                assemble_Jxp_dirichlet(
+                    phi_hh, nPoints_theta, nPoints_r, r_grid)
         else:
-            raise NotImplementedError(f'Unknown option for the scheme : {scheme}')
-    
+            raise NotImplementedError(
+                f'Unknown option for the scheme : {scheme}')
+
     else:
-        raise NotImplementedError(f'Unknown option for boundary conditions : {bc}')
-    
+        raise NotImplementedError(
+            f'Unknown option for boundary conditions : {bc}')
+
     return J_phi
 
 
@@ -112,7 +124,8 @@ def assemble_Jpp(phi_hh, nPoints_theta, nPoints_r, r_grid):
         data.append(-coef)
 
         # .. terms -(phi_+0 - phi_-0)/4h^2 * (f_0+ - f_0-)
-        coef = - phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
+        coef = - \
+            phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
         coef += phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
         coef *= 1/r_grid[i1]
 
@@ -173,7 +186,8 @@ def assemble_Jpx(phi_hh, nPoints_theta, nPoints_r, r_grid):
         data.append(-coef)
 
         # .. terms -phi_--/4h^2 * (f_-0 - f_0-)
-        coef = - phi_hh[neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r)]
+        coef = - \
+            phi_hh[neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r)]
         coef *= 1/r_grid[i1]
 
         row.append(ii)
@@ -185,7 +199,8 @@ def assemble_Jpx(phi_hh, nPoints_theta, nPoints_r, r_grid):
         data.append(-coef)
 
         # .. terms -phi_-+/4h^2 * (f_0+ - f_-0)
-        coef = - phi_hh[neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r)]
+        coef = - \
+            phi_hh[neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r)]
         coef *= 1/r_grid[i1]
 
         row.append(ii)
@@ -257,7 +272,8 @@ def assemble_Jxp(phi_hh, nPoints_theta, nPoints_r, r_grid):
         data.append(-coef)
 
         # .. terms -phi_-0/4h^2 * (f_-+ - f_--)
-        coef = - phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
+        coef = - \
+            phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
         coef *= 1/r_grid[i1]
 
         row.append(ii)
@@ -330,8 +346,10 @@ def assemble_Jpp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
 
         if i1 != 0 and i1 != nPoints_r-1:
             # .. terms (phi_0+ - phi_0-)/4h^2 * (f_+0 - f_-0)
-            coef = phi_hh[neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r)]
-            coef -= phi_hh[neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r)]
+            coef = phi_hh[neighbor_index(
+                0, +1, i0, i1, nPoints_theta, nPoints_r)]
+            coef -= phi_hh[neighbor_index(0, -1,
+                                          i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
@@ -343,8 +361,10 @@ def assemble_Jpp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
             data.append(-coef)
 
             # .. terms -(phi_+0 - phi_-0)/4h^2 * (f_0+ - f_0-)
-            coef = -phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
-            coef += phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
+            coef = - \
+                phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
+            coef += phi_hh[neighbor_index(-1, 0,
+                                          i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
@@ -393,7 +413,8 @@ def assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
 
         if i1 != 0 and i1 != nPoints_r-1:
             # .. terms phi_++/4h^2 * (f_0+ - f_+0)
-            coef = phi_hh[neighbor_index(+1, +1, i0, i1, nPoints_theta, nPoints_r)]
+            coef = phi_hh[neighbor_index(+1, +1,
+                                         i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
@@ -406,7 +427,8 @@ def assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
 
             # .. terms -phi_--/4h^2 * (f_-0 - f_0-)
             coef = - \
-                phi_hh[neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r)]
+                phi_hh[neighbor_index(-1, -1, i0, i1,
+                                      nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
@@ -419,7 +441,8 @@ def assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
 
             # .. terms -phi_-+/4h^2 * (f_0+ - f_-0)
             coef = - \
-                phi_hh[neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r)]
+                phi_hh[neighbor_index(-1, +1, i0, i1,
+                                      nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
@@ -431,7 +454,8 @@ def assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
             data.append(-coef)
 
             # .. terms phi_+-/4h^2 * (f_+0 - f_0-)
-            coef = phi_hh[neighbor_index(+1, -1, i0, i1, nPoints_theta, nPoints_r)]
+            coef = phi_hh[neighbor_index(+1, -1,
+                                         i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
@@ -476,51 +500,63 @@ def assemble_Jxp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
 
         if i1 != 0 and i1 != nPoints_r-1:
             # .. terms phi_+0/4h^2 * (f_++ - f_+-)
-            coef = phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
+            coef = phi_hh[neighbor_index(+1, 0, i0,
+                                         i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
-            col.append(neighbor_index(+1, +1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(+1, +1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(coef)
 
             row.append(ii)
-            col.append(neighbor_index(+1, -1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(+1, -1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(-coef)
 
             # .. terms -phi_-0/4h^2 * (f_-+ - f_--)
-            coef = -phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
+            coef = - \
+                phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
-            col.append(neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(-1, +1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(coef)
 
             row.append(ii)
-            col.append(neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(-1, -1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(-coef)
 
             # .. terms -phi_0+/4h^2 * (f_++ - f_-+)
-            coef = -phi_hh[neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r)]
+            coef = - \
+                phi_hh[neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
-            col.append(neighbor_index(+1, +1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(+1, +1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(coef)
 
             row.append(ii)
-            col.append(neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(-1, +1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(-coef)
 
             # .. terms phi_0-/4h^2 * (f_+- - f_--)
-            coef = phi_hh[neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r)]
+            coef = phi_hh[neighbor_index(
+                0, -1, i0, i1, nPoints_theta, nPoints_r)]
             coef *= 1/r_grid[i1]
 
             row.append(ii)
-            col.append(neighbor_index(+1, -1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(+1, -1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(coef)
 
             row.append(ii)
-            col.append(neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(-1, -1, i0,
+                       i1, nPoints_theta, nPoints_r))
             data.append(-coef)
 
     row = np.array(row)
