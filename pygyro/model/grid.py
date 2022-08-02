@@ -98,8 +98,8 @@ class Grid(object):
         """ get the 2D slice at the provided list of coordinates
         """
         assert(len(slices) == self._nDims-2)
-        slices.extend([slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
-                      slice(self._nGlobalCoords[self._layout.dims_order[-1]])])
+        slices = slices + (slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
+                      slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
         return self._f[tuple(slices)]
 
     def get2DSpline(self):
@@ -117,7 +117,7 @@ class Grid(object):
         """ get the 1D slice at the provided list of coordinates
         """
         assert(len(slices) == self._nDims-1)
-        slices.append(slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
+        slices = slices + (slice(self._nGlobalCoords[self._layout.dims_order[-1]]),)
         return self._f[tuple(slices)]
 
     def get1DSpline(self):
