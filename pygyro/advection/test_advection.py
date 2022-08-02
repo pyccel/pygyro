@@ -6,7 +6,7 @@ import numpy as np
 from ..initialisation.setups import setupCylindricalGrid
 from ..model.layout import Layout
 from ..initialisation.initialiser_funcs import f_eq as fEq
-from .advection import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
+from .advection import FluxSurfaceAdvection, PoloidalAdvection, PoloidalAdvectionArakawa, VParallelAdvection, ParallelGradient
 from .. import splines as spl
 from ..initialisation.constants import Constants
 
@@ -283,6 +283,70 @@ def test_poloidalAdvection(dt, v, xc, yc):
 
 
 @pytest.mark.serial
+@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+def test_poloidalAdvectionArakawa(dt, v, xc, yc):
+    """
+    TODO
+    """
+
+    npts = [64, 64]
+    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*np.pi, npts[0], endpoint=False),
+                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = int(1 / dt)
+
+    f_vals = np.ndarray([npts[1], npts[0]])
+    final_f_vals = np.ndarray([npts[1], npts[0]])
+
+    deg = 3
+    omega = 1
+
+    domain = [[1, 14.5], [0, 2*np.pi]]
+    periodic = [False, True]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
+    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    eta_vals[0] = eta_grids[0]
+    eta_vals[1] = eta_grids[1]
+
+    constants = Constants()
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, True)
+
+    phi = spl.Spline2D(bsplines[1], bsplines[0])
+    phiVals = np.empty([npts[1], npts[0]])
+    phiVals[:] = Phi(eta_vals[0], np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
+    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
+
+    for n in range(N):
+        polAdv.step(f_vals[:, :], dt, phi.eval(eta_vals[0], eta_vals[1]))
+
+    x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
+    y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+
+    x = xc + (x0 - xc) * np.cos(omega * -dt * N) - \
+        (y0 - yc) * np.sin(omega * -dt * N)
+    y = yc + (x0 - xc) * np.sin(omega * -dt * N) + \
+        (y0 - yc) * np.cos(omega * -dt * N)
+
+    finalPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
+    finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts[1][:] = np.sqrt(x * x + y * y)
+    final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
+
+    l2 = np.sqrt(trapz(trapz((f_vals - final_f_vals)**2,
+                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+    assert(l2 < 0.2)
+
+
+@pytest.mark.serial
 @pytest.mark.long
 @pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
 def test_poloidalAdvectionImplicit(dt, v, xc, yc):
@@ -329,6 +393,71 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 
     for n in range(N):
         polAdv.step(f_vals[:, :], dt, phi, v)
+
+    x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
+    y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+
+    x = xc + (x0 - xc) * np.cos(omega * -dt * N) - \
+        (y0 - yc) * np.sin(omega * -dt * N)
+    y = yc + (x0 - xc) * np.sin(omega * -dt * N) + \
+        (y0 - yc) * np.cos(omega * -dt * N)
+
+    finalPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
+    finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts[1][:] = np.sqrt(x * x + y * y)
+    final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
+
+    l2 = np.sqrt(trapz(trapz((f_vals - final_f_vals)**2,
+                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+    assert(l2 < 0.2)
+
+
+@pytest.mark.serial
+@pytest.mark.long
+@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+def test_poloidalAdvectionArakawaImplicit(dt, v, xc, yc):
+    """
+    TODO
+    """
+
+    npts = [64, 64]
+    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*np.pi, npts[0], endpoint=False),
+                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = int(1/dt)
+
+    f_vals = np.ndarray([npts[1], npts[0]])
+    final_f_vals = np.ndarray([npts[1], npts[0]])
+
+    deg = 3
+    omega = 1
+
+    domain = [[1, 14.5], [0, 2*np.pi]]
+    periodic = [False, True]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
+    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    eta_vals[0] = eta_grids[0]
+    eta_vals[1] = eta_grids[1]
+
+    constants = Constants()
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, True, False, 1e-10)
+
+    phi = spl.Spline2D(bsplines[1], bsplines[0])
+    phiVals = np.empty([npts[1], npts[0]])
+    phiVals[:] = Phi(eta_vals[0], np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
+    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
+
+    for n in range(N):
+        polAdv.step(f_vals[:, :], dt, phi.eval(eta_vals[0], eta_vals[1]))
 
     x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
     y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
@@ -415,6 +544,33 @@ def test_poloidalAdvection_gridIntegration():
     for i, _ in grid.getCoords(0):  # z
         for j, v in grid.getCoords(1):
             polAdv.step(grid.get2DSlice([i, j]), dt, phi, v)
+
+
+@pytest.mark.serial
+def test_poloidalAdvectionArakawa_gridIntegration():
+    """
+    TODO
+    """
+    npts = [10, 20, 10, 10]
+    grid, constants, _ = setupCylindricalGrid(npts=npts,
+                                              layout='poloidal')
+
+    basis = grid.get2DSpline()
+
+    polAdv = PoloidalAdvectionArakawa(grid.eta_grid, basis, constants)
+
+    phi = spl.Spline2D(basis[0], basis[1])
+    phiVals = np.full((npts[1], npts[0]), 2)
+    interp = spl.SplineInterpolator2D(basis[0], basis[1])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    dt = 0.1
+
+    for i, _ in grid.getCoords(0):  # z
+        for j, _ in grid.getCoords(1):
+            grid_points = grid.get2DSlice([i, j])
+            polAdv.step(grid_points, dt, np.array(phiVals, dtype=float))
 
 
 """
