@@ -587,8 +587,8 @@ def test_vParallelAdvection():
 
     for n in range(N):
         for i, r in grid.getCoords(0):
-            vParAdv.step(grid.get1DSlice([i, 0, 0]), dt, c, r)
-        f_vals[:, n] = grid.get1DSlice([0, 0, 0])
+            vParAdv.step(grid.get1DSlice(i, 0, 0), dt, c, r)
+        f_vals[:, n] = grid.get1DSlice(0, 0, 0)
 
     plt.ion()
 

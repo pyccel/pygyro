@@ -18,9 +18,9 @@ def define_f(grid, t=0):
     for i, _ in grid.getCoords(0):
         for j, _ in grid.getCoords(1):
             for k, _ in grid.getCoords(2):
-                Slice = grid.get1DSlice([i, j, k])
+                Slice = grid.get1DSlice(i, j, k)
                 for l, a in enumerate(Slice):
-                    [I, J, K, L] = grid.getGlobalIndices([i, j, k, l])
+                    [I, J, K, L] = grid.getGlobalIndices(i, j, k, l)
                     Slice[l] = I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t
 
 
@@ -32,9 +32,9 @@ def define_phi(grid):
 
     for i, _ in grid.getCoords(0):
         for j, _ in grid.getCoords(1):
-            Slice = grid.get1DSlice([i, j])
+            Slice = grid.get1DSlice(i, j)
             for k, _ in enumerate(Slice):
-                [I, J, K] = grid.getGlobalIndices([i, j, k])
+                [I, J, K] = grid.getGlobalIndices(i, j, k)
                 Slice[k] = I*nEta3*nEta2+J*nEta3+K
 
 
@@ -47,9 +47,9 @@ def compare_f(grid, t=0):
     for i, _ in grid.getCoords(0):
         for j, _ in grid.getCoords(1):
             for k, _ in grid.getCoords(2):
-                Slice = grid.get1DSlice([i, j, k])
+                Slice = grid.get1DSlice(i, j, k)
                 for l, a in enumerate(Slice):
-                    [I, J, K, L] = grid.getGlobalIndices([i, j, k, l])
+                    [I, J, K, L] = grid.getGlobalIndices(i, j, k, l)
                     assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
 
 
@@ -61,9 +61,9 @@ def compare_phi(grid):
 
     for i, _ in grid.getCoords(0):
         for j, _ in grid.getCoords(1):
-            Slice = grid.get1DSlice([i, j])
+            Slice = grid.get1DSlice(i, j)
             for k, a in enumerate(Slice):
-                [I, J, K] = grid.getGlobalIndices([i, j, k])
+                [I, J, K] = grid.getGlobalIndices(i, j, k)
                 assert(a == I*nEta3*nEta2+J*nEta3+K)
 
 
@@ -295,28 +295,28 @@ def test_Contiguous():
 
     grid = Grid(eta_grids, [], manager, 'flux_surface')
 
-    assert(grid.get2DSlice([0, 0]).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice([0, 0, 0]).flags['C_CONTIGUOUS'])
+    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('v_parallel')
 
-    assert(grid.get2DSlice([0, 0]).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice([0, 0, 0]).flags['C_CONTIGUOUS'])
+    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('poloidal')
 
-    assert(grid.get2DSlice([0, 0]).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice([0, 0, 0]).flags['C_CONTIGUOUS'])
+    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('v_parallel')
 
-    assert(grid.get2DSlice([0, 0]).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice([0, 0, 0]).flags['C_CONTIGUOUS'])
+    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('flux_surface')
 
-    assert(grid.get2DSlice([0, 0]).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice([0, 0, 0]).flags['C_CONTIGUOUS'])
+    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
 
 @pytest.mark.parallel
@@ -651,7 +651,7 @@ def compare_small_f(f, grid, idx, n_idx, val, layout, starts, mpi_data):
         for j, y in enumerate(runs[1]):
             for k, z in enumerate(runs[2]):
                 for l, a in enumerate(runs[3]):
-                    [I, J, K, L] = grid.getGlobalIndices([x, y, z, a])
+                    [I, J, K, L] = grid.getGlobalIndices(x, y, z, a)
                     assert(f[i, j, k, l] == I*nEta4*nEta3 *
                            nEta2+J*nEta4*nEta3+K*nEta4+L)
 

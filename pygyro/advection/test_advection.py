@@ -493,7 +493,7 @@ def test_fluxSurfaceAdvection_gridIntegration():
 
     for i, _ in grid.getCoords(0):  # r
         for j, _ in grid.getCoords(1):  # v
-            fluxAdv.step(grid.get2DSlice([i, j]), j)
+            fluxAdv.step(grid.get2DSlice(i, j), j)
 
 
 @pytest.mark.serial
@@ -515,7 +515,7 @@ def test_vParallelAdvection_gridIntegration():
     for i, r in grid.getCoords(0):
         for j, _ in grid.getCoords(1):  # z
             for k, _ in grid.getCoords(2):  # q
-                vParAdv.step(grid.get1DSlice([i, j, k]), dt, c, r)
+                vParAdv.step(grid.get1DSlice(i, j, k), dt, c, r)
 
     assert(np.allclose(old_f, grid._f))
 
@@ -543,7 +543,7 @@ def test_poloidalAdvection_gridIntegration():
 
     for i, _ in grid.getCoords(0):  # z
         for j, v in grid.getCoords(1):
-            polAdv.step(grid.get2DSlice([i, j]), dt, phi, v)
+            polAdv.step(grid.get2DSlice(i, j), dt, phi, v)
 
 
 @pytest.mark.serial
@@ -608,33 +608,33 @@ def test_equilibrium():
     for n in range(N):
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
-                fluxAdv.step(grid.get2DSlice([i, j]), j)
+                fluxAdv.step(grid.get2DSlice(i, j), j)
 
         grid.setLayout('v_parallel')
 
         for i, r in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
-                    vParAdv.step(grid.get1DSlice([i, j, k]), halfStep, 0, r)
+                    vParAdv.step(grid.get1DSlice(i, j, k), halfStep, 0, r)
 
         grid.setLayout('poloidal')
 
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
-                polAdv.step(grid.get2DSlice([i, j]), dt, phi, v)
+                polAdv.step(grid.get2DSlice(i, j), dt, phi, v)
 
         grid.setLayout('v_parallel')
 
         for i, r in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
-                    vParAdv.step(grid.get1DSlice([i, j, k]), halfStep, 0, r)
+                    vParAdv.step(grid.get1DSlice(i, j, k), halfStep, 0, r)
 
         grid.setLayout('flux_surface')
 
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
-                fluxAdv.step(grid.get2DSlice([i, j]), j)
+                fluxAdv.step(grid.get2DSlice(i, j), j)
 
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f) < 1e-8)
@@ -672,33 +672,33 @@ def test_perturbedEquilibrium():
     for n in range(N):
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
-                fluxAdv.step(grid.get2DSlice([i, j]), j)
+                fluxAdv.step(grid.get2DSlice(i, j), j)
 
         grid.setLayout('v_parallel')
 
         for i, r in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
-                    vParAdv.step(grid.get1DSlice([i, j, k]), halfStep, 0, r)
+                    vParAdv.step(grid.get1DSlice(i, j, k), halfStep, 0, r)
 
         grid.setLayout('poloidal')
 
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
-                polAdv.step(grid.get2DSlice([i, j]), dt, phi, v)
+                polAdv.step(grid.get2DSlice(i, j), dt, phi, v)
 
         grid.setLayout('v_parallel')
 
         for i, r in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
-                    vParAdv.step(grid.get1DSlice([i, j, k]), halfStep, 0, r)
+                    vParAdv.step(grid.get1DSlice(i, j, k), halfStep, 0, r)
 
         grid.setLayout('flux_surface')
 
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
-                fluxAdv.step(grid.get2DSlice([i, j]), j)
+                fluxAdv.step(grid.get2DSlice(i, j), j)
 
     print(np.max(startVals-grid._f))
     assert(np.max(startVals-grid._f) > 1e-8)
