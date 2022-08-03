@@ -133,8 +133,7 @@ def main():
         my_print(rank, nosave, "pol adv sl init done")
 
     elif poloidal_method == 'akw':
-        polAdv = PoloidalAdvectionArakawa(
-            distribFunc.eta_grid, distribFunc.getSpline(slice(1, None, -1)), constants)
+        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
         my_print(rank, nosave, "pol adv akw init done")
 
     else:

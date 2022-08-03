@@ -10,11 +10,14 @@ from ..initialisation.setups import setupCylindricalGrid
 from ..initialisation.constants import get_constants
 from ..initialisation.initialiser_funcs import f_eq
 from ..model.layout import Layout
-from .advection import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient
+from .advection import FluxSurfaceAdvection, PoloidalAdvection, PoloidalAdvectionArakawa, VParallelAdvection, ParallelGradient
 
 
 @pytest.mark.serial
 def test_fluxSurfaceAdvection():
+    """
+    TODO
+    """
     npts = [30, 20]
     eta_vals = [np.linspace(0, 1, 4), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 1, 4)]
@@ -25,10 +28,10 @@ def test_fluxSurfaceAdvection():
 
     c = 2
 
-    f_vals = np.ndarray([N+1, npts[0], npts[1]])
+    f_vals = np.ndarray([N + 1, npts[0], npts[1]])
 
     domain = [[0, 2*pi], [0, 20]]
-    nkts = [n+1 for n in npts]
+    nkts = [n + 1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
     bsplines = [spl.BSplines(k, 3, True) for k in knots]
@@ -47,8 +50,8 @@ def test_fluxSurfaceAdvection():
     f_vals[0, :, :] = np.sin(eta_vals[2]*pi/10)
 
     for n in range(N):
-        f_vals[n+1, :, :] = f_vals[n, :, :]
-        fluxAdv.step(f_vals[n+1, :, :], 0)
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        fluxAdv.step(f_vals[n + 1, :, :], 0)
 
     x, y = np.meshgrid(eta_vals[2], eta_vals[1])
 
@@ -78,6 +81,9 @@ def test_fluxSurfaceAdvection():
 
 @pytest.mark.serial
 def test_poloidalAdvection_invariantPhi():
+    """
+    TODO
+    """
     npts = [30, 20]
     eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
@@ -85,15 +91,15 @@ def test_poloidalAdvection_invariantPhi():
     N = 200
     dt = 0.1
 
-    v = 0
+    v = 0.0
 
-    f_vals = np.ndarray([N+1, npts[1], npts[0]])
+    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
 
     deg = 3
 
     domain = [[0.1, 14.5], [0, 2*pi]]
     periodic = [False, True]
-    nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
     bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
@@ -108,8 +114,8 @@ def test_poloidalAdvection_invariantPhi():
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
-    phiVals[:] = 3*eta_vals[0]**2 * \
-        (1 + 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T*2))
+    phiVals[:] = 3 * eta_vals[0]**2 * \
+        (1 + 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T * 2))
     # phiVals[:]=10*eta_vals[0]
     interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
 
@@ -126,8 +132,93 @@ def test_poloidalAdvection_invariantPhi():
                                      constants.deltaRTi)
 
     for n in range(N):
-        f_vals[n+1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n+1, :, :], dt, phi, v)
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, phi, v)
+
+    f_min = np.min(f_vals)
+    f_max = np.max(f_vals)
+
+    plt.ion()
+
+    fig = plt.figure()
+    ax = plt.subplot(111, projection='polar')
+    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+    plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
+
+    line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                        f_vals[0, :, :].T, 20, **plotParams)
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    fig.colorbar(line1, cax=colorbarax2)
+
+    for n in range(1, N):
+        for coll in line1.collections:
+            coll.remove()
+        del line1
+        line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                            f_vals[n, :, :].T, 20, **plotParams)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+
+@pytest.mark.serial
+def test_poloidalAdvectionArakawa_invariantPhi():
+    """
+    TODO
+    """
+    npts = [30, 20]
+    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
+                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = 200
+    dt = 0.1
+
+    v = 0.0
+
+    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
+
+    deg = 3
+
+    domain = [[0.1, 14.5], [0, 2*pi]]
+    periodic = [False, True]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
+    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    eta_vals[0] = eta_grids[0]
+    eta_vals[1] = eta_grids[1]
+
+    constants = get_constants('testSetups/iota0.json')
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
+
+    phi = spl.Spline2D(bsplines[1], bsplines[0])
+    phiVals = np.empty([npts[1], npts[0]])
+    phiVals[:] = 3 * eta_vals[0]**2 * \
+        (1 + 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T * 2))
+    # phiVals[:]=10*eta_vals[0]
+    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    # ~ f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+    # ~ + fEq(0.1,v,constants.CN0,constants.kN0,
+    #~ constants.deltaRN0,constants.rp,
+    #~ constants.CTi,constants.kTi,
+    # ~ constants.deltaRTi)
+    f_vals[0, :, :] = phiVals + f_eq(0.1, v, constants.CN0, constants.kN0,
+                                     constants.deltaRN0, constants.rp,
+                                     constants.CTi, constants.kTi,
+                                     constants.deltaRTi)
+
+    for n in range(N):
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -160,6 +251,9 @@ def test_poloidalAdvection_invariantPhi():
 
 @pytest.mark.serial
 def test_poloidalAdvection_vortex():
+    """
+    TODO
+    """
     npts = [30, 20]
     eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
@@ -167,15 +261,15 @@ def test_poloidalAdvection_vortex():
     N = 200
     dt = 0.1
 
-    v = 0
+    v = 0.0
 
-    f_vals = np.ndarray([N+1, npts[1], npts[0]])
+    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
 
     deg = 3
 
     domain = [[0.1, 14.5], [0, 2*pi]]
     periodic = [False, True]
-    nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
     bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
@@ -195,15 +289,94 @@ def test_poloidalAdvection_vortex():
 
     interp.compute_interpolant(phiVals, phi)
 
-    f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
+    f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1] - pi)**2).T - (eta_vals[0] - 7)**2) / 4 \
         + f_eq(0.1, v, constants.CN0, constants.kN0,
                constants.deltaRN0, constants.rp,
                constants.CTi, constants.kTi,
                constants.deltaRTi)
 
     for n in range(N):
-        f_vals[n+1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n+1, :, :], dt, phi, v)
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, phi, v)
+
+    f_min = np.min(f_vals)
+    f_max = np.max(f_vals)
+
+    plt.ion()
+
+    fig = plt.figure()
+    ax = plt.subplot(111, projection='polar')
+    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+    plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
+
+    line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                        f_vals[0, :, :].T, 20, **plotParams)
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    fig.colorbar(line1, cax=colorbarax2)
+
+    for n in range(1, N):
+        for coll in line1.collections:
+            coll.remove()
+        del line1
+        line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                            f_vals[n, :, :].T, 20, **plotParams)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+
+@pytest.mark.serial
+def test_poloidalAdvectionArakawa_vortex():
+    """
+    TODO
+    """
+    npts = [30, 20]
+    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
+                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = 200
+    dt = 0.1
+
+    v = 0.0
+
+    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
+
+    deg = 3
+
+    domain = [[0.1, 14.5], [0, 2*pi]]
+    periodic = [False, True]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
+    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    eta_vals[0] = eta_grids[0]
+    eta_vals[1] = eta_grids[1]
+
+    constants = get_constants('testSetups/iota0.json')
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, bsplines[::-1], constants)
+
+    phi = spl.Spline2D(bsplines[1], bsplines[0])
+    phiVals = np.empty([npts[1], npts[0]])
+    phiVals[:] = 10 * eta_vals[0]
+    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1] - pi)**2).T - (eta_vals[0] - 7)**2) / 4 \
+        + f_eq(0.1, v, constants.CN0, constants.kN0,
+               constants.deltaRN0, constants.rp,
+               constants.CTi, constants.kTi,
+               constants.deltaRTi)
+
+    for n in range(N):
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -236,6 +409,9 @@ def test_poloidalAdvection_vortex():
 
 @pytest.mark.serial
 def test_poloidalAdvection_constantAdv():
+    """
+    TODO
+    """
     npts = [30, 20]
     eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
@@ -243,15 +419,15 @@ def test_poloidalAdvection_constantAdv():
     N = 200
     dt = 0.1
 
-    v = 0
+    v = 0.0
 
-    f_vals = np.ndarray([N+1, npts[1], npts[0]])
+    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
 
     deg = 3
 
     domain = [[0.1, 14.5], [0, 2*pi]]
     periodic = [False, True]
-    nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
     bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
@@ -278,8 +454,87 @@ def test_poloidalAdvection_constantAdv():
                constants.deltaRTi)
 
     for n in range(N):
-        f_vals[n+1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n+1, :, :], dt, phi, v)
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, phi, v)
+
+    f_min = np.min(f_vals)
+    f_max = np.max(f_vals)
+
+    plt.ion()
+
+    fig = plt.figure()
+    ax = plt.subplot(111, projection='polar')
+    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+    plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
+
+    line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                        f_vals[0, :, :].T, 20, **plotParams)
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    fig.colorbar(line1, cax=colorbarax2)
+
+    for n in range(1, N):
+        for coll in line1.collections:
+            coll.remove()
+        del line1
+        line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                            f_vals[n, :, :].T, 20, **plotParams)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+
+@pytest.mark.serial
+def test_poloidalAdvectionArakawa_constantAdv():
+    """
+    TODO
+    """
+    npts = [30, 20]
+    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
+                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = 200
+    dt = 0.1
+
+    v = 0.0
+
+    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
+
+    deg = 3
+
+    domain = [[0.1, 14.5], [0, 2*pi]]
+    periodic = [False, True]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
+    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    eta_vals[0] = eta_grids[0]
+    eta_vals[1] = eta_grids[1]
+
+    constants = get_constants('testSetups/iota0.json')
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, bsplines[::-1], constants)
+
+    phi = spl.Spline2D(bsplines[1], bsplines[0])
+    phiVals = np.empty([npts[1], npts[0]])
+    phiVals[:] = 3*eta_vals[0]**2
+    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1] - pi)**2).T - (eta_vals[0]-7)**2) / 4 \
+        + f_eq(0.1, v, constants.CN0, constants.kN0,
+               constants.deltaRN0, constants.rp,
+               constants.CTi, constants.kTi,
+               constants.deltaRTi)
+
+    for n in range(N):
+        f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -312,6 +567,9 @@ def test_poloidalAdvection_constantAdv():
 
 @pytest.mark.serial
 def test_vParallelAdvection():
+    """
+    TODO
+    """
     npts = [4, 4, 4, 100]
     grid, constants = setupCylindricalGrid(constantFile='testSetups/iota0.json',
                                            npts=npts,
@@ -347,6 +605,9 @@ def test_vParallelAdvection():
 
 
 def positional_Phi(r, theta, a, b, c, d):
+    """
+    TODO
+    """
     return - a * (r-b)**2 + c*np.sin(d*theta)
 
 
@@ -368,6 +629,9 @@ def initConditions(r,theta):
 
 
 def initConditions(r, theta):
+    """
+    TODO
+    """
     a = 4
     factor = pi/a/2
     r = np.sqrt((r-7)**2+2*(theta-pi)**2)
@@ -378,11 +642,14 @@ def initConditions(r, theta):
         return 0.0
 
 
-initConds = np.vectorize(initConditions, otypes=[np.float])
+initConds = np.vectorize(initConditions, otypes=[float])
 
 
 @pytest.mark.serial
 def test_poloidalAdvection():
+    """
+    TODO
+    """
     # ~ npts = [128,128]
     npts = [16, 16]
 
@@ -393,16 +660,16 @@ def test_poloidalAdvection():
     N = 100
     dt = 0.01
 
-    v = 0
+    v = 0.0
 
-    f_vals = np.ndarray([N+1, npts[1]+1, npts[0]])
-    # ~ f_vals = np.ndarray([N+1,npts[1],npts[0]])
+    f_vals = np.ndarray([N + 1, npts[1]+1, npts[0]])
+    # ~ f_vals = np.ndarray([N + 1,npts[1],npts[0]])
 
     deg = 3
 
     domain = [[1, 13], [0, 2*pi]]
     periodic = [False, True]
-    nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
     bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
@@ -432,17 +699,19 @@ def test_poloidalAdvection():
     #f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
 
     endPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
-    endPts[0][:] = polAdv._shapedQ + 2*a*dt/constants.B0
-    endPts[1][:] = np.sqrt(polAdv._points[1]**2-c*np.sin(d*polAdv._shapedQ)/a/constants.B0
-                           + c*np.sin(d*endPts[0])/a/constants.B0)
+    endPts[0][:] = polAdv._shapedQ + 2 * a * dt / constants.B0
+    endPts[1][:] = np.sqrt(polAdv._points[1]**2 - c * np.sin(d * polAdv._shapedQ) / a / constants.B0
+                           + c * np.sin(d * endPts[0]) / a / constants.B0)
+
+    polAdv.allow_tests()
 
     for n in range(N):
-        f_vals[n+1, :-1, :] = f_vals[n, :-1, :]
-        # f_vals[:,:,n+1]=f_vals[:,:,n]
-        polAdv.exact_step(f_vals[n+1, :-1, :], endPts, v)
-        polAdv.step(f_vals[n+1, :-1, :], dt, phi, v)
-        # polAdv.step(f_vals[:,:,n+1],dt,phi,v)
-        # polAdv.exact_step(f_vals[:,:,n+1],endPts,v)
+        f_vals[n + 1, :-1, :] = f_vals[n, :-1, :]
+        # f_vals[:,:,n + 1]=f_vals[:,:,n]
+        polAdv.exact_step(f_vals[n + 1, :-1, :], endPts, v)
+        polAdv.step(f_vals[n + 1, :-1, :], dt, phi, v)
+        # polAdv.step(f_vals[:,:,n + 1],dt,phi,v)
+        # polAdv.exact_step(f_vals[:,:,n + 1],endPts,v)
 
     f_vals[:, -1, :] = f_vals[:, 0, :]
     f_min = np.min(f_vals)
@@ -475,7 +744,117 @@ def test_poloidalAdvection():
 
     fig.colorbar(line1, cax=colorbarax2)
 
-    for n in range(1, N+1):
+    for n in range(1, N + 1):
+        for coll in line1.collections:
+            coll.remove()
+        del line1
+        line1 = ax.contourf(
+            theta, eta_vals[0], f_vals[n, :, :].T, 20, **plotParams)
+        print(f_vals[n, :, :])
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+
+@pytest.mark.serial
+def test_poloidalAdvectionArakawa():
+    """
+    TODO
+    """
+    # ~ npts = [128,128]
+    npts = [16, 16]
+
+    print(npts)
+    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
+                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = 100
+    dt = 0.01
+
+    v = 0.0
+
+    f_vals = np.ndarray([N + 1, npts[1] + 1, npts[0]])
+    # ~ f_vals = np.ndarray([N + 1,npts[1],npts[0]])
+
+    deg = 3
+
+    domain = [[1, 13], [0, 2*pi]]
+    periodic = [False, True]
+    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
+    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    eta_vals[0] = eta_grids[0]
+    eta_vals[1] = eta_grids[1]
+
+    constants = get_constants('testSetups/iota0.json')
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, True)
+
+    phi = spl.Spline2D(bsplines[1], bsplines[0])
+    phiVals = np.empty([npts[1], npts[0]])
+    a = 5
+    b = 0
+    c = 40
+    d = 1
+    phiVals[:] = positional_Phi(
+        eta_vals[0], np.atleast_2d(eta_vals[1]).T, a, b, c, d)
+    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+
+    interp.compute_interpolant(phiVals, phi)
+
+    f_vals[0, :-1, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
+    f_vals[0, -1, :] = f_vals[0, 0, :]
+    #f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+
+    endPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
+    endPts[0][:] = polAdv._shapedQ + 2 * a * dt / constants.B0
+    endPts[1][:] = np.sqrt(polAdv._points[1]**2 - c * np.sin(d * polAdv._shapedQ) / a / constants.B0
+                           + c * np.sin(d * endPts[0]) / a / constants.B0)
+
+    polAdv.allow_tests()
+
+    for n in range(N):
+        f_vals[n + 1, :-1, :] = f_vals[n, :-1, :]
+        # f_vals[:,:,n + 1]=f_vals[:,:,n]
+        polAdv.exact_step(f_vals[n + 1, :-1, :], endPts, v)
+        polAdv.step(f_vals[n + 1, :-1, :], dt, np.array(phiVals, dtype=float))
+        # polAdv.step(f_vals[:,:,n + 1],dt,phi,v)
+        # polAdv.exact_step(f_vals[:,:,n + 1],endPts,v)
+
+    f_vals[:, -1, :] = f_vals[:, 0, :]
+    f_min = np.min(f_vals)
+    f_max = np.max(f_vals)
+
+    print(f_min, f_max)
+
+    theta = np.append(eta_vals[1], eta_vals[1][0])
+    # theta=eta_vals[1]
+
+    plt.ion()
+
+    font = {'size': 16}
+
+    pltFont('font', **font)
+
+    fig = plt.figure()
+    ax = plt.subplot(111, projection='polar')
+    ax.set_rlim(0, 13)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+    norm = colors.BoundaryNorm(
+        boundaries=np.linspace(-1, 1, 41), ncolors=256, clip=True)
+    plotParams = {'vmin': -1, 'vmax': 1, 'norm': norm, 'cmap': "jet"}
+
+    line1 = ax.contourf(theta, eta_vals[0],
+                        f_vals[0, :, :].T, 20, **plotParams)
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    fig.colorbar(line1, cax=colorbarax2)
+
+    for n in range(1, N + 1):
         for coll in line1.collections:
             coll.remove()
         del line1
@@ -487,28 +866,40 @@ def test_poloidalAdvection():
 
 
 def initConditionsFlux(theta, z):
+    """
+    TODO
+    """
     a = 4
     factor = pi/a/2
-    r = np.sqrt((z-10)**2+2*(theta-4)**2)
+    r = np.sqrt((z - 10)**2 + 2 * (theta - 4)**2)
     if (r <= 4):
-        return np.cos(r*factor)**6
+        return np.cos(r * factor)**6
     else:
         return 0.0
 
 
-initCondsF = np.vectorize(initConditionsFlux, otypes=[np.float])
+initCondsF = np.vectorize(initConditionsFlux, otypes=[float])
 
 
 def iota0(r=6.0):
+    """
+    TODO
+    """
     return np.full_like(r, 0.0, dtype=float)
 
 
 def iota8(r=6.0):
+    """
+    TODO
+    """
     return np.full_like(r, 0.8, dtype=float)
 
 
 @pytest.mark.serial
 def test_fluxAdvection_dz():
+    """
+    TODO
+    """
     dt = 0.1
     npts = [64, 64]
 
@@ -523,10 +914,10 @@ def test_fluxAdvection_dz():
 
     c = 2
 
-    f_vals = np.ndarray([N+1, npts[0], npts[1]])
+    f_vals = np.ndarray([N + 1, npts[0], npts[1]])
 
     domain = [[0, 2*pi], [0, 20]]
-    nkts = [n+1 for n in npts]
+    nkts = [n + 1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
     bsplines = [spl.BSplines(k, 3, True) for k in knots]
@@ -546,7 +937,7 @@ def test_fluxAdvection_dz():
 
     f_vals[0, :, :] = initCondsF(np.atleast_2d(eta_vals[1]).T, eta_vals[2])
 
-    for n in range(1, N+1):
+    for n in range(1, N + 1):
         f_vals[n, :, :] = f_vals[n-1, :, :]
         fluxAdv.step(f_vals[n, :, :], 0)
 
@@ -572,7 +963,7 @@ def test_fluxAdvection_dz():
 
     #~ plt.show()
 
-    for n in range(1, N+1):
+    for n in range(1, N + 1):
         del line1
         line1 = ax.pcolormesh(x, y, f_vals[n, :, :], vmin=f_min, vmax=f_max)
         # ~ line1 = ax.pcolormesh(y,x,f_vals[n,:,:],vmin=f_min,vmax=f_max)
@@ -581,6 +972,9 @@ def test_fluxAdvection_dz():
 
 
 def test_flux_aligned():
+    """
+    TODO
+    """
     dt = 0.1
     npts = [64, 64]
 
@@ -591,14 +985,14 @@ def test_flux_aligned():
     N = 100
 
     eta_vals = [np.linspace(0, 1, 4), np.linspace(0, 2*pi, npts[0], endpoint=False),
-                np.linspace(0, 2*pi*constants.R0, npts[1], endpoint=False), np.linspace(0, 1, 4)]
+                np.linspace(0, 2*pi * constants.R0, npts[1], endpoint=False), np.linspace(0, 1, 4)]
 
     c = 2
 
-    f_vals = np.ndarray([N+1, npts[0], npts[1]])
+    f_vals = np.ndarray([N + 1, npts[0], npts[1]])
 
-    domain = [[0, 2*pi], [0, 2*pi*constants.R0]]
-    nkts = [n+1 for n in npts]
+    domain = [[0, 2*pi], [0, 2*pi * constants.R0]]
+    nkts = [n + 1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
     bsplines = [spl.BSplines(k, 3, True) for k in knots]
@@ -613,8 +1007,8 @@ def test_flux_aligned():
 
     m, n = (5, 4)
     theta = eta_grids[0]
-    phi = eta_grids[1]*2*pi/domain[1][1]
-    f_vals[0, :, :] = 0.5 + 0.5 * np.sin(m*theta[:, None] - n*phi[None, :])
+    phi = eta_grids[1] * 2*pi / domain[1][1]
+    f_vals[0, :, :] = 0.5 + 0.5 * np.sin(m * theta[:, None] - n * phi[None, :])
 
     # ~ m, n = (4, 5)
     # ~ m, n = (0, 5)
@@ -622,7 +1016,7 @@ def test_flux_aligned():
     # ~ phi = eta_grids[1]*2*pi/domain[1][1]
     # ~ f_vals[:,:,0] = 0.5+ 0.5*np.sin( m*theta[:,None] + n*phi[None,:] )
 
-    for n in range(1, N+1):
+    for n in range(1, N + 1):
         f_vals[n, :, :] = f_vals[n-1, :, :]
         fluxAdv.step(f_vals[n, :, :], 0)
 
@@ -664,7 +1058,7 @@ def test_flux_aligned():
 
     #~ plt.show()
 
-    for n in range(1, N+1):
+    for n in range(1, N + 1):
         del line1
         del line2
         # ~ line1 = ax.pcolormesh(phi,theta,f_vals[:,:,n],vmin=f_min,vmax=f_max)
@@ -681,23 +1075,32 @@ def test_flux_aligned():
 
 
 def Phi(theta, z):
+    """
+    TODO
+    """
     # return np.cos(z*pi*0.1) + np.sin(theta)
     # ~ return np.sin(z*pi*0.1)**2 + np.cos(theta)**2
     m, n = (5, 4)
-    phi = z*2*np.pi/20
-    return 0.5 + 0.5*np.sin(m*theta - n*phi)
+    phi = z * 2*np.pi / 20
+    return 0.5 + 0.5 * np.sin(m * theta - n * phi)
 
 
 def dPhi(r, theta, z, btheta, bz):
+    """
+    TODO
+    """
     # return -np.sin(z*pi*0.1)*pi*0.1*bz + np.cos(theta)*btheta
     # ~ return 2*np.sin(z*pi*0.1)*np.cos(z*pi*0.1)*pi*0.1*bz - 2*np.cos(theta)*np.sin(theta)*btheta/r
     m, n = (5, 4)
-    phi = z*2*np.pi/20
-    return 0.5*np.cos(m*theta - n*phi)*(m*btheta/r - bz*n*2*np.pi/20)
+    phi = z * 2*np.pi / 20
+    return 0.5 * np.cos(m * theta - n * phi) * (m * btheta / r - bz * n * 2*np.pi / 20)
 
 
 @pytest.mark.serial
 def test_Phi_deriv():
+    """
+    TODO
+    """
     npts = [1, 64, 128]
 
     constants = get_constants('testSetups/iota8.json')
