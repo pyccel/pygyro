@@ -22,7 +22,7 @@ ifeq ($(COMP), GNU)
 	CC       := gcc
 	FC       := gfortran
 	FC_FLAGS := -Wall -O3 -fPIC -fstack-arrays
-        FF_COMP  := GNU95
+        FF_COMP  := gnu95
 else \
 ifeq ($(COMP), intel)
 	CC       := icc
