@@ -682,31 +682,32 @@ class PoloidalAdvectionArakawa:
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
         N_points = np.prod(self._nPoints)
-        r_scaling = np.array([self._points_r[k % self._nPoints_r] for k in range(N_points)])
-           
-        # get boundary indices for manipulation and plotting, more elegant way? 
+        r_scaling = np.array([self._points_r[k % self._nPoints_r]
+                             for k in range(N_points)])
+
+        # get boundary indices for manipulation and plotting, more elegant way?
         ind_bd = []
         for k in range(N_points):
-            if k%self._nPoints_r == 0 or k % self._nPoints_r == self._nPoints_r - 1:
+            if k % self._nPoints_r == 0 or k % self._nPoints_r == self._nPoints_r - 1:
                 ind_bd.append(k)
         ind_bd = np.array(ind_bd)
-        
-        #for the reduced bracket, scale by 1/2
-        if self.bc =='dirichlet':
+
+        # for the reduced bracket, scale by 1/2
+        if self.bc == 'dirichlet':
             r_scaling[ind_bd] *= 1/2
-            #enforce bc?
+            # enforce bc?
             f[ind_bd] = np.zeros(len(ind_bd))
             phi[ind_bd] = np.zeros(len(ind_bd))
 
-
         # still np.real is used for the phi to discard imaginary values. np.real allocates new memory -> should be replaced
         J_phi = assemble_bracket_arakawa(self.bc, phi,
-                                 self._points_theta, self._points_r)
+                                         self._points_theta, self._points_r)
 
         print('conservation tests global:')
         print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
         print(f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
-        print(f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
+        print(
+            f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
 
         if self._explicit:
             I = A = B = None

@@ -1,11 +1,13 @@
 import numpy as np
 import scipy.sparse as sparse
 
+
 def ind_to_tp_ind(i0, i1, N_r):
     """
     Convert one-dimensional indices to tensorproduct index
     """
     return i0 + i1*N_r
+
 
 def neighbor_index(pos0, pos1, i0, i1, N_theta, N_r):
     """
@@ -13,7 +15,8 @@ def neighbor_index(pos0, pos1, i0, i1, N_theta, N_r):
     given two one-dimensional indices and a positional offset
     with periodic continuation
     """
-    return (i0+pos0)%N_r + (i1+pos1)%N_theta*N_r
+    return (i0+pos0) % N_r + (i1+pos1) % N_theta*N_r
+
 
 def assemble_bracket_arakawa(bc, phi, grid_theta, grid_r):
     """
@@ -23,7 +26,7 @@ def assemble_bracket_arakawa(bc, phi, grid_theta, grid_r):
     ----------
         bc : str
             'periodic' or 'dirichlet'
-        
+
         phi : np.array of length N_theta*N_r
             point values of the potential on the grid
 
@@ -43,6 +46,7 @@ def assemble_bracket_arakawa(bc, phi, grid_theta, grid_r):
     elif bc == 'dirichlet':
         return assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r)
 
+
 def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     """
     Assemble the periodic Arakawa bracket J: f -> {phi, f} as a sparse matrix
@@ -51,7 +55,7 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     ----------
         bc : str
             'periodic' or 'dirichlet'
-        
+
         phi : np.array of length N_theta*N_r
             point values of the potential on the grid
 
@@ -69,7 +73,7 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     N_theta = len(grid_theta)
     N_r = len(grid_r)
     N_nodes = N_theta*N_r
-    
+
     dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
     dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
 
@@ -106,18 +110,18 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
                 - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
             br6 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
             br7 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
             br8 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] 
+                - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)]
 
             ii = ind_to_tp_ind(i0, i1, N_r)
 
             #f_i0, i1
-            coef = -br1 + br2 -br3 +br4 -br5 +br6 -br7 +br8
+            coef = -br1 + br2 - br3 + br4 - br5 + br6 - br7 + br8
             row.append(ii)
             col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
             data.append(coef)
@@ -134,37 +138,37 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
             col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0,i1+1
+            # f_i0,i1+1
             coef = br3
             row.append(ii)
             col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0+1,i1+1
+            # f_i0+1,i1+1
             coef = br5
             row.append(ii)
             col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0-1,i1+1
+            # f_i0-1,i1+1
             coef = br7
             row.append(ii)
             col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0-1,i1-1
+            # f_i0-1,i1-1
             coef = -br6
             row.append(ii)
             col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0,i1-1
+            # f_i0,i1-1
             coef = -br4
             row.append(ii)
             col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0+1,i1-1
+            # f_i0+1,i1-1
             coef = -br8
             row.append(ii)
             col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
@@ -175,6 +179,7 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     data = factor * np.array(data)
     return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
 
+
 def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     """
     Assemble the periodic Arakawa bracket J: f -> {phi, f} as a sparse matrix
@@ -183,7 +188,7 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     ----------
         bc : str
             'periodic' or 'dirichlet'
-        
+
         phi : np.array of length N_theta*N_r
             point values of the potential on the grid
 
@@ -201,7 +206,7 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     N_theta = len(grid_theta)
     N_r = len(grid_r)
     N_nodes = N_theta*N_r
-    
+
     dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
     dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
 
@@ -237,18 +242,18 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
                 - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
             br6 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
             br7 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
             br8 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] 
+                - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)]
 
             ii = ind_to_tp_ind(i0, i1, N_r)
 
             #f_i0, i1
-            coef = -br1 + br2 -br3 +br4 -br5 +br6 -br7 +br8
+            coef = -br1 + br2 - br3 + br4 - br5 + br6 - br7 + br8
             row.append(ii)
             col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
             data.append(coef)
@@ -265,37 +270,37 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
             col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0,i1+1
+            # f_i0,i1+1
             coef = br3
             row.append(ii)
             col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0+1,i1+1
+            # f_i0+1,i1+1
             coef = br5
             row.append(ii)
             col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0-1,i1+1
+            # f_i0-1,i1+1
             coef = br7
             row.append(ii)
             col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0-1,i1-1
+            # f_i0-1,i1-1
             coef = -br6
             row.append(ii)
             col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0,i1-1
+            # f_i0,i1-1
             coef = -br4
             row.append(ii)
             col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
             data.append(coef)
 
-            #f_i0+1,i1-1
+            # f_i0+1,i1-1
             coef = -br8
             row.append(ii)
             col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
@@ -324,39 +329,39 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
             - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
         br5 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
-        
-        #f_i,0
-        coef = br1 +br2 +br3 +br4 +br5
+            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
+
+        # f_i,0
+        coef = br1 + br2 + br3 + br4 + br5
         row.append(ii)
         col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i+1,0
+        # f_i+1,0
         coef = br1
         row.append(ii)
         col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i-1,0
+        # f_i-1,0
         coef = br2
         row.append(ii)
         col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i,1
+        # f_i,1
         coef = br3
         row.append(ii)
         col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i+1,1
+        # f_i+1,1
         coef = br4
         row.append(ii)
         col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i-1,1
+        # f_i-1,1
         coef = br5
         row.append(ii)
         col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
@@ -385,39 +390,39 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
             + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
         br5 = -phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] 
+            + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)]
 
-        #f_i,N-1
+        # f_i,N-1
         coef = br1 + br2 + br3 + br4 + br5
         row.append(ii)
         col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i+1,N-1
+        # f_i+1,N-1
         coef = br1
         row.append(ii)
         col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i-1,N-1
+        # f_i-1,N-1
         coef = br2
         row.append(ii)
         col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i,N-2
+        # f_i,N-2
         coef = br3
         row.append(ii)
         col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i-1,N-2
+        # f_i-1,N-2
         coef = br4
         row.append(ii)
         col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
-        #f_i+1,N-2
+        # f_i+1,N-2
         coef = br5
         row.append(ii)
         col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
