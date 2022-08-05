@@ -452,7 +452,7 @@ def assemble_Jxp2(phi_hh, N0_nodes0, N0_nodes1, r_grid):
 
 def assemble_Jpp1_dirichlet(phi_hh, N0_nodes0, N0_nodes1, r_grid):
     """
-    assemble J_++(phi, . ) as sparse matrix 
+    assemble J_++(phi, . ) as sparse matrix
 
     phi_hh: phi/(2h)**2
     """
@@ -503,7 +503,7 @@ def assemble_Jpp1_dirichlet(phi_hh, N0_nodes0, N0_nodes1, r_grid):
 
 def assemble_Jpx1_dirichlet(phi_hh, N0_nodes0, N0_nodes1, r_grid):
     """
-    assemble J_+x(phi, . ) as sparse matrix 
+    assemble J_+x(phi, . ) as sparse matrix
 
     phi_hh: phi/(2h)**2
     """
@@ -578,7 +578,7 @@ def assemble_Jpx1_dirichlet(phi_hh, N0_nodes0, N0_nodes1, r_grid):
 
 def assemble_Jxp1_dirichlet(phi_hh, N0_nodes0, N0_nodes1, r_grid):
     """
-    assemble J_x+(phi, . ) as sparse matrix 
+    assemble J_x+(phi, . ) as sparse matrix
 
     phi_hh: phi/(2h)**2
     """
