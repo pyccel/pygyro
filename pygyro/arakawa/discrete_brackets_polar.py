@@ -1,566 +1,429 @@
 import numpy as np
 import scipy.sparse as sparse
 
-
-def neighbor_index(pos0, pos1, i0, i1, nPoints_theta, nPoints_r):
+def ind_to_tp_ind(i0, i1, N_r):
     """
-    TODO
+    Convert one-dimensional indices to tensorproduct index
+    """
+    return i0 + i1*N_r
+
+def neighbor_index(pos0, pos1, i0, i1, N_theta, N_r):
+    """
+    Calculate the tensorproduct index 
+    given two one-dimensional indices and a positional offset
+    with periodic continuation
+    """
+    return (i0+pos0)%N_r + (i1+pos1)%N_theta*N_r
+
+def assemble_bracket_arakawa(bc, phi, grid_theta, grid_r):
+    """
+    Assemble the Arakawa bracket J: f -> {phi, f} as a sparse matrix
 
     Parameters
     ----------
-        TODO
-
-    Returns
-    -------
-        TODO
-    """
-    index = (i0 + pos0) % nPoints_theta + \
-        ((i1 + pos1) % nPoints_r) * nPoints_theta
-    return index
-
-
-def assemble_bracket(scheme, bc, phi_hh, nPoints_theta, nPoints_r, r_grid):
-    """
-    TODO
-
-    Parameters
-    ----------
-        scheme : str
-            which scheme for the stencil matrix is to be used ('pp', 'px', 'xp', 'akw')
-
         bc : str
-            determines the boundary condition for r
+            'periodic' or 'dirichlet'
+        
+        phi : np.array of length N_theta*N_r
+            point values of the potential on the grid
 
-        TODO
+        grid_theta: np.array of length N_theta
+            grid of theta
+
+        grid_r : np.array of length N_r
+            grid of r
 
     Returns
     -------
-        TODO
+        J : sparse array
     """
 
     if bc == 'periodic':
-        if scheme == 'akw':
-            Jpp = assemble_Jpp(phi_hh, nPoints_theta, nPoints_r, r_grid)
-            Jpx = -assemble_Jpx(phi_hh, nPoints_theta, nPoints_r, r_grid)
-            Jxp = -assemble_Jxp(phi_hh, nPoints_theta, nPoints_r, r_grid)
-            J_phi = 1/3 * (Jpp + Jpx + Jxp)
-        elif scheme == 'pp':
-            J_phi = assemble_Jpp(phi_hh, nPoints_theta, nPoints_r, r_grid)
-        elif scheme == 'px':
-            J_phi = -assemble_Jpx(phi_hh, nPoints_theta, nPoints_r, r_grid)
-        elif scheme == 'xp':
-            J_phi = -assemble_Jxp(phi_hh, nPoints_theta, nPoints_r, r_grid)
-        else:
-            raise NotImplementedError(
-                f'Unknown option for the scheme : {scheme}')
-
+        return assemble_awk_bracket_periodic(phi, grid_theta, grid_r)
     elif bc == 'dirichlet':
-        if scheme == 'akw':
-            Jpp = assemble_Jpp_dirichlet(
-                phi_hh, nPoints_theta, nPoints_r, r_grid)
-            Jpx = -assemble_Jpx_dirichlet(phi_hh,
-                                          nPoints_theta, nPoints_r, r_grid)
-            Jxp = -assemble_Jxp_dirichlet(phi_hh,
-                                          nPoints_theta, nPoints_r, r_grid)
-            J_phi = 1/3 * (Jpp + Jpx + Jxp)
-        elif scheme == 'pp':
-            J_phi = assemble_Jpp_dirichlet(
-                phi_hh, nPoints_theta, nPoints_r, r_grid)
-        elif scheme == 'px':
-            J_phi = - \
-                assemble_Jpx_dirichlet(
-                    phi_hh, nPoints_theta, nPoints_r, r_grid)
-        elif scheme == 'xp':
-            J_phi = - \
-                assemble_Jxp_dirichlet(
-                    phi_hh, nPoints_theta, nPoints_r, r_grid)
-        else:
-            raise NotImplementedError(
-                f'Unknown option for the scheme : {scheme}')
+        return assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r)
 
-    else:
-        raise NotImplementedError(
-            f'Unknown option for boundary conditions : {bc}')
-
-    return J_phi
-
-
-def assemble_Jpp(phi_hh, nPoints_theta, nPoints_r, r_grid):
+def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     """
-    assemble J_++(phi, . ) as sparse matrix 
-
-    phi_hh: phi/(2h)**2
+    Assemble the periodic Arakawa bracket J: f -> {phi, f} as a sparse matrix
 
     Parameters
     ----------
-        TODO
+        bc : str
+            'periodic' or 'dirichlet'
+        
+        phi : np.array of length N_theta*N_r
+            point values of the potential on the grid
+
+        grid_theta: np.array of length N_theta
+            grid of theta
+
+        grid_r : np.array of length N_r
+            grid of r
 
     Returns
     -------
-        TODO
+        J : sparse array
     """
 
-    N_nodes = nPoints_theta * nPoints_r
+    N_theta = len(grid_theta)
+    N_r = len(grid_r)
+    N_nodes = N_theta*N_r
+    
+    dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
+    dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
+
+    factor = -1/(12 * dr * dtheta)
 
     row = list()
     col = list()
     data = list()
 
-    for ii in range(N_nodes):
+    for i0 in range(N_r):
+        for i1 in range(N_theta):
 
-        i0 = ii % nPoints_theta
-        i1 = ii // nPoints_theta
+            br1 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
 
-        # .. terms (phi_0+ - phi_0-)/4h^2 * (f_+0 - f_-0)
-        coef = phi_hh[neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r)]
-        coef -= phi_hh[neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
+            br2 = phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
-        row.append(ii)
-        col.append(neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
+            br3 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)]
 
-        row.append(ii)
-        col.append(neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
+            br4 = phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
-        # .. terms -(phi_+0 - phi_-0)/4h^2 * (f_0+ - f_0-)
-        coef = - \
-            phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
-        coef += phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
+            br5 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
-        row.append(ii)
-        col.append(neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
+            br6 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
 
-        row.append(ii)
-        col.append(neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
+            br7 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+
+            br8 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] 
+
+            ii = ind_to_tp_ind(i0, i1, N_r)
+
+            #f_i0, i1
+            coef = -br1 + br2 -br3 +br4 -br5 +br6 -br7 +br8
+            row.append(ii)
+            col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0+1, i1
+            coef = br1
+            row.append(ii)
+            col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0-1, i1
+            coef = -br2
+            row.append(ii)
+            col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0,i1+1
+            coef = br3
+            row.append(ii)
+            col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0+1,i1+1
+            coef = br5
+            row.append(ii)
+            col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0-1,i1+1
+            coef = br7
+            row.append(ii)
+            col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0-1,i1-1
+            coef = -br6
+            row.append(ii)
+            col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0,i1-1
+            coef = -br4
+            row.append(ii)
+            col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0+1,i1-1
+            coef = -br8
+            row.append(ii)
+            col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
+            data.append(coef)
 
     row = np.array(row)
     col = np.array(col)
-    data = np.array(data)
-
-    res = (sparse.coo_matrix((data, (row, col)),
-           shape=(N_nodes, N_nodes))).tocsr()
-
-    return res
-
-
-def assemble_Jpx(phi_hh, nPoints_theta, nPoints_r, r_grid):
-    """
-    assemble J_+x(phi, . ) as sparse matrix 
-
-    phi_hh: phi/(2h)**2
-
-    Parameters
-    ----------
-        TODO
-
-    Returns
-    -------
-        TODO
-    """
-
-    N_nodes = nPoints_theta*nPoints_r
-
-    row = list()
-    col = list()
-    data = list()
-
-    for ii in range(N_nodes):
-
-        i0 = ii % nPoints_theta
-        i1 = ii // nPoints_theta
-
-        # .. terms phi_++/4h^2 * (f_0+ - f_+0)
-        coef = phi_hh[neighbor_index(+1, +1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-        # .. terms -phi_--/4h^2 * (f_-0 - f_0-)
-        coef = - \
-            phi_hh[neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-        # .. terms -phi_-+/4h^2 * (f_0+ - f_-0)
-        coef = - \
-            phi_hh[neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-        # .. terms phi_+-/4h^2 * (f_+0 - f_0-)
-        coef = phi_hh[neighbor_index(+1, -1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-    row = np.array(row)
-    col = np.array(col)
-    data = np.array(data)
-
-    res = (sparse.coo_matrix((data, (row, col)),
-           shape=(N_nodes, N_nodes))).tocsr()
-
-    return res
-
-
-def assemble_Jxp(phi_hh, nPoints_theta, nPoints_r, r_grid):
-    """
-    assemble J_x+(phi, . ) as sparse matrix 
-
-    phi_hh: phi/(2h)**2
-
-    Parameters
-    ----------
-        TODO
-
-    Returns
-    -------
-        TODO
-    """
-
-    N_nodes = nPoints_theta*nPoints_r
-
-    row = list()
-    col = list()
-    data = list()
-
-    for ii in range(N_nodes):
-
-        i0 = ii % nPoints_theta
-        i1 = ii // nPoints_theta
-
-        # .. terms phi_+0/4h^2 * (f_++ - f_+-)
-        coef = phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(+1, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(+1, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-        # .. terms -phi_-0/4h^2 * (f_-+ - f_--)
-        coef = - \
-            phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-        # .. terms -phi_0+/4h^2 * (f_++ - f_-+)
-        coef = -phi_hh[neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(+1, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(-1, +1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-        # .. terms phi_0-/4h^2 * (f_+- - f_--)
-        coef = phi_hh[neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r)]
-        coef *= 1/r_grid[i1]
-
-        row.append(ii)
-        col.append(neighbor_index(+1, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(coef)
-
-        row.append(ii)
-        col.append(neighbor_index(-1, -1, i0, i1, nPoints_theta, nPoints_r))
-        data.append(-coef)
-
-    row = np.array(row)
-    col = np.array(col)
-    data = np.array(data)
-
-    res = (sparse.coo_matrix((data, (row, col)),
-           shape=(N_nodes, N_nodes))).tocsr()
-
-    return res
-
-
-def assemble_Jpp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
-    """
-    assemble J_++(phi, . ) as sparse matrix 
-
-    phi_hh: phi/(2h)**2
-
-    Parameters
-    ----------
-        TODO
-
-    Returns
-    -------
-        TODO
-    """
-
-    N_nodes = nPoints_theta * nPoints_r
-
-    row = list()
-    col = list()
-    data = list()
-
-    for ii in range(N_nodes):
-
-        i0 = ii % nPoints_theta
-        i1 = ii // nPoints_theta
-
-        if i1 != 0 and i1 != nPoints_r-1:
-            # .. terms (phi_0+ - phi_0-)/4h^2 * (f_+0 - f_-0)
-            coef = phi_hh[neighbor_index(
-                0, +1, i0, i1, nPoints_theta, nPoints_r)]
-            coef -= phi_hh[neighbor_index(0, -1,
-                                          i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r))
-            data.append(coef)
-
-            row.append(ii)
-            col.append(neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms -(phi_+0 - phi_-0)/4h^2 * (f_0+ - f_0-)
-            coef = - \
-                phi_hh[neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r)]
-            coef += phi_hh[neighbor_index(-1, 0,
-                                          i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r))
-            data.append(coef)
-
-            row.append(ii)
-            col.append(neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-    row = np.array(row)
-    col = np.array(col)
-    data = np.array(data)
-
-    res = (sparse.coo_matrix((data, (row, col)),
-           shape=(N_nodes, N_nodes))).tocsr()
-
-    return res
-
-
-def assemble_Jpx_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
-    """
-    assemble J_+x(phi, . ) as sparse matrix 
-
-    phi_hh: phi/(2h)**2
-
-    Parameters
-    ----------
-        TODO
-
-    Returns
-    -------
-        TODO
-    """
-
-    N_nodes = nPoints_theta*nPoints_r
-
-    row = list()
-    col = list()
-    data = list()
-
-    for ii in range(N_nodes):
-
-        i0 = ii % nPoints_theta
-        i1 = ii//nPoints_theta
-
-        if i1 != 0 and i1 != nPoints_r-1:
-            # .. terms phi_++/4h^2 * (f_0+ - f_+0)
-            coef = phi_hh[neighbor_index(+1, +1,
-                                         i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r))
-            data.append(coef)
-
-            row.append(ii)
-            col.append(neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms -phi_--/4h^2 * (f_-0 - f_0-)
-            coef = - \
-                phi_hh[neighbor_index(-1, -1, i0, i1,
-                                      nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r))
-            data.append(coef)
-
-            row.append(ii)
-            col.append(neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms -phi_-+/4h^2 * (f_0+ - f_-0)
-            coef = - \
-                phi_hh[neighbor_index(-1, +1, i0, i1,
-                                      nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r))
-            data.append(coef)
-
-            row.append(ii)
-            col.append(neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms phi_+-/4h^2 * (f_+0 - f_0-)
-            coef = phi_hh[neighbor_index(+1, -1,
-                                         i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(+1, 0, i0, i1, nPoints_theta, nPoints_r))
-            data.append(coef)
-
-            row.append(ii)
-            col.append(neighbor_index(0, -1, i0, i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-    row = np.array(row)
-    col = np.array(col)
-    data = np.array(data)
+    data = factor * np.array(data)
     return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
 
-
-def assemble_Jxp_dirichlet(phi_hh, nPoints_theta, nPoints_r, r_grid):
+def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     """
-    assemble J_x+(phi, . ) as sparse matrix 
-
-    phi_hh: phi/(2h)**2
+    Assemble the periodic Arakawa bracket J: f -> {phi, f} as a sparse matrix
 
     Parameters
     ----------
-        TODO
+        bc : str
+            'periodic' or 'dirichlet'
+        
+        phi : np.array of length N_theta*N_r
+            point values of the potential on the grid
+
+        grid_theta: np.array of length N_theta
+            grid of theta
+
+        grid_r : np.array of length N_r
+            grid of r
 
     Returns
     -------
-        TODO
+        J : sparse array
     """
 
-    N_nodes = nPoints_theta*nPoints_r
+    N_theta = len(grid_theta)
+    N_r = len(grid_r)
+    N_nodes = N_theta*N_r
+    
+    dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
+    dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
+
+    factor = -1/(12 * dr * dtheta)
 
     row = list()
     col = list()
     data = list()
 
-    for ii in range(N_nodes):
+    for i0 in range(N_r)[1:-1]:
+        for i1 in range(N_theta):
+            br1 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
 
-        i0 = ii % nPoints_theta
-        i1 = ii//nPoints_theta
+            br2 = phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
-        if i1 != 0 and i1 != nPoints_r-1:
-            # .. terms phi_+0/4h^2 * (f_++ - f_+-)
-            coef = phi_hh[neighbor_index(+1, 0, i0,
-                                         i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
+            br3 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)]
 
+            br4 = phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+                + phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
+
+            br5 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
+
+            br6 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+
+            br7 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+
+            br8 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+                - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] 
+
+            ii = ind_to_tp_ind(i0, i1, N_r)
+
+            #f_i0, i1
+            coef = -br1 + br2 -br3 +br4 -br5 +br6 -br7 +br8
             row.append(ii)
-            col.append(neighbor_index(+1, +1, i0,
-                       i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
             data.append(coef)
 
+            #f_i0+1, i1
+            coef = br1
             row.append(ii)
-            col.append(neighbor_index(+1, -1, i0,
-                       i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms -phi_-0/4h^2 * (f_-+ - f_--)
-            coef = - \
-                phi_hh[neighbor_index(-1, 0, i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(-1, +1, i0,
-                       i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
             data.append(coef)
 
+            #f_i0-1, i1
+            coef = -br2
             row.append(ii)
-            col.append(neighbor_index(-1, -1, i0,
-                       i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms -phi_0+/4h^2 * (f_++ - f_-+)
-            coef = - \
-                phi_hh[neighbor_index(0, +1, i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(+1, +1, i0,
-                       i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
             data.append(coef)
 
+            #f_i0,i1+1
+            coef = br3
             row.append(ii)
-            col.append(neighbor_index(-1, +1, i0,
-                       i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
-
-            # .. terms phi_0-/4h^2 * (f_+- - f_--)
-            coef = phi_hh[neighbor_index(
-                0, -1, i0, i1, nPoints_theta, nPoints_r)]
-            coef *= 1/r_grid[i1]
-
-            row.append(ii)
-            col.append(neighbor_index(+1, -1, i0,
-                       i1, nPoints_theta, nPoints_r))
+            col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
             data.append(coef)
 
+            #f_i0+1,i1+1
+            coef = br5
             row.append(ii)
-            col.append(neighbor_index(-1, -1, i0,
-                       i1, nPoints_theta, nPoints_r))
-            data.append(-coef)
+            col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0-1,i1+1
+            coef = br7
+            row.append(ii)
+            col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0-1,i1-1
+            coef = -br6
+            row.append(ii)
+            col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0,i1-1
+            coef = -br4
+            row.append(ii)
+            col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+            #f_i0+1,i1-1
+            coef = -br8
+            row.append(ii)
+            col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
+            data.append(coef)
+
+    # Treatment of the left boundary
+    i1 = 0
+    for i1 in range(N_theta):
+        ii = ind_to_tp_ind(i0, i1, N_r)
+        br1 = phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
+
+        br2 = -phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
+
+        br3 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)]
+
+        br4 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
+
+        br5 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] 
+        
+        #f_i,0
+        coef = br1 +br2 +br3 +br4 +br5
+        row.append(ii)
+        col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i+1,0
+        coef = br1
+        row.append(ii)
+        col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i-1,0
+        coef = br2
+        row.append(ii)
+        col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i,1
+        coef = br3
+        row.append(ii)
+        col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i+1,1
+        coef = br4
+        row.append(ii)
+        col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i-1,1
+        coef = br5
+        row.append(ii)
+        col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+    # Treatment of the right boundary
+    i1 = N_r-1
+    for i1 in range(N_theta):
+        ii = ind_to_tp_ind(i0, i1, N_r)
+        br1 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)]
+
+        br2 = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)]
+
+        br3 = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
+
+        br4 = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
+
+        br5 = -phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] 
+
+        #f_i,N-1
+        coef = br1 + br2 + br3 + br4 + br5
+        row.append(ii)
+        col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i+1,N-1
+        coef = br1
+        row.append(ii)
+        col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i-1,N-1
+        coef = br2
+        row.append(ii)
+        col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i,N-2
+        coef = br3
+        row.append(ii)
+        col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i-1,N-2
+        coef = br4
+        row.append(ii)
+        col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
+        data.append(coef)
+
+        #f_i+1,N-2
+        coef = br5
+        row.append(ii)
+        col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
     row = np.array(row)
     col = np.array(col)
-    data = np.array(data)
+    data = factor * np.array(data)
     return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()

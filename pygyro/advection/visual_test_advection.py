@@ -62,6 +62,7 @@ def test_fluxSurfaceAdvection():
 
     fig = plt.figure()
     ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    ax.set_title("fluxSurfaceAdvection")
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     line1 = ax.pcolormesh(x, y, f_vals[0, :, :], vmin=f_min, vmax=f_max)
@@ -227,6 +228,7 @@ def test_poloidalAdvectionArakawa_invariantPhi():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvection_invariantPhi")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -306,6 +308,7 @@ def test_poloidalAdvection_vortex():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvection_vortex")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -385,6 +388,7 @@ def test_poloidalAdvectionArakawa_vortex():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvectionArakawa_vortex")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -464,6 +468,7 @@ def test_poloidalAdvection_constantAdv():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvection_constantAdv")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -496,7 +501,7 @@ def test_poloidalAdvectionArakawa_constantAdv():
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = 200
-    dt = 0.1
+    dt = 0.01
 
     v = 0.0
 
@@ -543,6 +548,7 @@ def test_poloidalAdvectionArakawa_constantAdv():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvectionArakawa_constantAdv")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -595,6 +601,7 @@ def test_vParallelAdvection():
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
+    ax.set_title("vParallelAdvection")
     # Returns a tuple of line objects, thus the comma
     line1, = ax.plot(grid.eta_grid[3], f_vals[:, 0])
 
@@ -730,6 +737,7 @@ def test_poloidalAdvection():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvection")
     ax.set_rlim(0, 13)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -840,6 +848,7 @@ def test_poloidalAdvectionArakawa():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvectionArakawa")
     ax.set_rlim(0, 13)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 

@@ -3,8 +3,9 @@ from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import eye as sparse_id
+from scipy.sparse import diags
 
-from ..arakawa.discrete_brackets_polar import assemble_bracket
+from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
@@ -658,7 +659,7 @@ class PoloidalAdvectionArakawa:
         """
         pass
 
-    def step(self, f: np.ndarray, dt: float, phi_hh: np.ndarray):
+    def step(self, f: np.ndarray, dt: float, phi: np.ndarray):
         """
         Carry out an advection step for the poloidal advection using the Arakawa scheme
 
@@ -671,29 +672,48 @@ class PoloidalAdvectionArakawa:
         dt: float
             Time-step
 
-        phi_hh: array_like
+        phi: array_like
             Advection parameter d_tf + {phi,f} = 0; without scaling
         """
         f = f.ravel()
+        phi = np.real(phi.ravel())
 
         assert(f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
-        # Scaling for the coefficient in the discrete
-        phi_hh /= 4 * self._dr * self._dtheta
+        N_points = np.prod(self._nPoints)
+        r_scaling = np.array([self._points_r[k % self._nPoints_r] for k in range(N_points)])
+           
+        # get boundary indices for manipulation and plotting, more elegant way? 
+        ind_bd = []
+        for k in range(N_points):
+            if k%self._nPoints_r == 0 or k % self._nPoints_r == self._nPoints_r - 1:
+                ind_bd.append(k)
+        ind_bd = np.array(ind_bd)
+        
+        #for the reduced bracket, scale by 1/2
+        if self.bc =='dirichlet':
+            r_scaling[ind_bd] *= 1/2
+            #enforce bc?
+            f[ind_bd] = np.zeros(len(ind_bd))
+            phi[ind_bd] = np.zeros(len(ind_bd))
+
 
         # still np.real is used for the phi to discard imaginary values. np.real allocates new memory -> should be replaced
-        J_phi = assemble_bracket('akw', self.bc,
-                                 np.real(phi_hh.ravel()),
-                                 self._nPoints_theta, self._nPoints_r,
-                                 self._points_r)
+        J_phi = assemble_bracket_arakawa(self.bc, phi,
+                                 self._points_theta, self._points_r)
+
+        print('conservation tests global:')
+        print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
+        print(f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
+        print(f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
 
         if self._explicit:
             I = A = B = None
         else:
-            I = sparse_id(np.prod(self._nPoints), np.prod(self._nPoints))
-            A = I - dt/2 * J_phi
-            B = I + dt/2 * J_phi
+            I_s = diags(r_scaling, 0)
+            A = I_s - dt/2 * J_phi
+            B = I_s + dt/2 * J_phi
 
         if (self._explicit):
             f[:] += dt * J_phi.dot(f)
