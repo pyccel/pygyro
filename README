@@ -50,6 +50,7 @@ python3 -m venv venv
 source venv/bin/activate
 python3 -m pip install --no-binary=mpi4py mpi4py
 python3 -m pip install --no-binary=h5py h5py
+python3 -m pip install -r requirements.py
 ```
 The virtual environment can be accessed using `source venv/bin/activate` and is deactivated with the command `deactivate`.
 
