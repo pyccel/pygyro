@@ -311,25 +311,25 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     for i1 in range(N_theta):
         ii = ind_to_tp_ind(i0, i1, N_r)
         br1 = phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
             - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
 
-        br2 = -phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+        br2 = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
             - phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
+            + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)]
 
-        br3 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+        br3 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
             + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)]
+            - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
 
-        br4 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
+        br4 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)]
 
-        br5 = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
+        br5 = phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)]
 
         # f_i,0
         coef = br1 + br2 + br3 + br4 + br5
@@ -340,19 +340,19 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
         # f_i+1,0
         coef = br1
         row.append(ii)
-        col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i-1,0
         coef = br2
         row.append(ii)
-        col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i,1
         coef = br3
         row.append(ii)
-        col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i+1,1
@@ -364,33 +364,33 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
         # f_i-1,1
         coef = br5
         row.append(ii)
-        col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
     # Treatment of the right boundary
     i0 = N_r-1
     for i1 in range(N_theta):
         ii = ind_to_tp_ind(i0, i1, N_r)
-        br1 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+        br1 = phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
             - phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)]
+            - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
 
         br2 = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
             + phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)]
 
-        br3 = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
+        br3 = -phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
             + phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
-
-        br4 = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
-
-        br5 = -phi[neighbor_index(1, 0, i0, i1, N_theta, N_r)] \
             + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)]
+
+        br4 = -phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)]
+
+        br5 = -phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)]
 
         # f_i,N-1
         coef = br1 + br2 + br3 + br4 + br5
@@ -401,19 +401,19 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
         # f_i+1,N-1
         coef = br1
         row.append(ii)
-        col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i-1,N-1
         coef = br2
         row.append(ii)
-        col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i,N-2
         coef = br3
         row.append(ii)
-        col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i-1,N-2
@@ -425,7 +425,7 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
         # f_i+1,N-2
         coef = br5
         row.append(ii)
-        col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
+        col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
         data.append(coef)
 
     row = np.array(row)
