@@ -307,7 +307,7 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
             data.append(coef)
 
     # Treatment of the left boundary
-    i1 = 0
+    i0 = 0
     for i1 in range(N_theta):
         ii = ind_to_tp_ind(i0, i1, N_r)
         br1 = phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
@@ -368,7 +368,7 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
         data.append(coef)
 
     # Treatment of the right boundary
-    i1 = N_r-1
+    i0 = N_r-1
     for i1 in range(N_theta):
         ii = ind_to_tp_ind(i0, i1, N_r)
         br1 = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
