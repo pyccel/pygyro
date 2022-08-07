@@ -561,6 +561,7 @@ def assemble_awk_bracket_4th_order_periodic(phi, grid_theta, grid_r):
     data = factor * np.array(data)
     return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
 
+
 def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
     """
     Assemble the addition for periodic Arakawa bracket no get fourth order
@@ -666,148 +667,113 @@ def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
             row.append(ii)
             col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
             data.append(coef)
-    
+
     i0 = 0
     for i1 in range(N_theta):
+        ii = ind_to_tp_ind(i0, i1, N_r)
 
-            ii = ind_to_tp_ind(i0, i1, N_r)
+        #f_i0, i1-2
+        coef = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(0, -2, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0-2, i1 -> f_i0, i1
-            coef = phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
-            data.append(coef)
+        #f_i0, i1+2
+        coef = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(0, 2, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0, i1-2 -> fine
-            coef = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, -2, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0+2,i1
+        coef = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(2, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0-1, i1-1 -> 0, -1
-            coef = -phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0+1,i1+1
+        coef = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0, i1+2
-            coef = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, 2, i0, i1, N_theta, N_r))
-            data.append(coef)
-
-            # f_i0-1,i1+1
-            coef = phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
-            data.append(coef)
-
-            # f_i0+2,i1
-            coef = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(2, 0, i0, i1, N_theta, N_r))
-            data.append(coef)
-
-            # f_i0+1,i1+1
-            coef = phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
-            data.append(coef)
-
-            # f_i0+1,i1-1
-            coef = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0+1,i1-1
+        coef = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
     i0 = 1
     for i1 in range(N_theta):
+        ii = ind_to_tp_ind(i0, i1, N_r)
 
-            ii = ind_to_tp_ind(i0, i1, N_r)
+        #f_i0, i1-2
+        coef = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(0, -2, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0-2, i1
-            coef = phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(-1, 0, i0, i1, N_theta, N_r))
-            data.append(coef)
+        #f_i0-1, i1-1
+        coef = -phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0, i1-2
-            coef = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, -2, i0, i1, N_theta, N_r))
-            data.append(coef)
+        #f_i0, i1+2
+        coef = phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(0, 2, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0-1, i1-1
-            coef = -phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(-1, -1, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0-1,i1+1
+        coef = phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            #f_i0, i1+2
-            coef = phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(0, 2, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0+2,i1
+        coef = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(2, 0, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            # f_i0-1,i1+1
-            coef = phi[neighbor_index(-1, 0, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0+1,i1+1
+        coef = phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
-            # f_i0+2,i1
-            coef = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(2, 0, i0, i1, N_theta, N_r))
-            data.append(coef)
-
-            # f_i0+1,i1+1
-            coef = phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(1, 1, i0, i1, N_theta, N_r))
-            data.append(coef)
-
-            # f_i0+1,i1-1
-            coef = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-                - phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
-                + phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
-            row.append(ii)
-            col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
-            data.append(coef)
+        # f_i0+1,i1-1
+        coef = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
+            - phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)] \
+            + phi[neighbor_index(2, 0, i0, i1, N_theta, N_r)]
+        row.append(ii)
+        col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
+        data.append(coef)
 
     i0 = N_r-2
     for i1 in range(N_theta):
-
         ii = ind_to_tp_ind(i0, i1, N_r)
 
         #f_i0-2, i1
@@ -847,13 +813,6 @@ def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
             - phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
         row.append(ii)
         col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
-        data.append(coef)
-
-        # f_i0+2,i1
-        coef = -phi[neighbor_index(1, -1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(1, 1, i0, i1, N_theta, N_r)]
-        row.append(ii)
-        col.append(neighbor_index(1, 0, i0, i1, N_theta, N_r))
         data.append(coef)
 
         # f_i0+1,i1+1
@@ -874,9 +833,8 @@ def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
         col.append(neighbor_index(1, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
-    i0 = N_r-1
+    i0 = N_r - 1
     for i1 in range(N_theta):
-
         ii = ind_to_tp_ind(i0, i1, N_r)
 
         #f_i0-2, i1
@@ -916,31 +874,6 @@ def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
             - phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
         row.append(ii)
         col.append(neighbor_index(-1, 1, i0, i1, N_theta, N_r))
-        data.append(coef)
-
-        # f_i0+2,i1
-        coef = -phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)]
-        row.append(ii)
-        col.append(neighbor_index(0, 0, i0, i1, N_theta, N_r))
-        data.append(coef)
-
-        # f_i0+1,i1+1
-        coef = phi[neighbor_index(-1, 1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(0, 2, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(0, -1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)]
-        row.append(ii)
-        col.append(neighbor_index(0, 1, i0, i1, N_theta, N_r))
-        data.append(coef)
-
-        # f_i0+1,i1-1
-        coef = -phi[neighbor_index(-1, -1, i0, i1, N_theta, N_r)] \
-            - phi[neighbor_index(0, -2, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(0, 1, i0, i1, N_theta, N_r)] \
-            + phi[neighbor_index(0, 0, i0, i1, N_theta, N_r)]
-        row.append(ii)
-        col.append(neighbor_index(0, -1, i0, i1, N_theta, N_r))
         data.append(coef)
 
     row = np.array(row)

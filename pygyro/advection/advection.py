@@ -656,12 +656,13 @@ class PoloidalAdvectionArakawa:
 
         self.verbose = True
 
-        # left and right boundary indices, do we want to have them seperated? 
+        # left and right boundary indices, do we want to have them seperated?
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
                                  range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
 
         self.r_scaling = np.array([self._points_r[k % self._nPoints_r]
                                    for k in range(np.prod(self._nPoints))])
+
         # scaling of the boundary measure
         if self.bc == 'dirichlet':
             self.r_scaling[self.ind_bd] *= 1/2
@@ -724,9 +725,9 @@ class PoloidalAdvectionArakawa:
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
         # enforce bc srongly?
-        #if self.bc == 'dirichlet':
-           # f[self.ind_bd] = np.zeros(len(self.ind_bd))
-           # phi[self.ind_bd] = np.zeros(len(self.ind_bd))
+        if self.bc == 'dirichlet':
+            f[self.ind_bd] = np.zeros(len(self.ind_bd))
+            phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # assemble the bracket
         J_phi = assemble_bracket_arakawa(self.bc, self.order, phi,
@@ -751,6 +752,7 @@ class PoloidalAdvectionArakawa:
             A = I_s - dt/2 * J_phi
             B = I_s + dt/2 * J_phi
 
+        # execute the time-step
         if (self._explicit):
             f[:] = self.RK4(f[:], J_s, dt)
         else:
