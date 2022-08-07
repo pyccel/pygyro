@@ -5,8 +5,8 @@
 # Acceleration method? [none|numba|pycc|pythran]
 ACC := pycc
 
-# Use GNU or intel compilers? [gnu|intel]
-COMP := gnu
+# Use GNU or intel compilers? [GNU|intel]
+COMP := GNU
 
 # Target language
 LANGUAGE := fortran
@@ -18,7 +18,7 @@ PYTHRAN_FLAGS :=
 # Compiler options
 #----------------------------------------------------------
 
-ifeq ($(COMP), gnu)
+ifeq ($(COMP), GNU)
 	CC       := gcc
 	FC       := gfortran
 	FC_FLAGS := -Wall -O3 -fPIC -fstack-arrays
@@ -42,7 +42,7 @@ SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var
 
 ifeq ($(ACC), pycc)
 	TOOL := pyccel
-	TOOL_FLAGS := --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
+	TOOL_FLAGS := --compiler=$(COMP) --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
 	NAME_PREFIX := 
 else
 	ifeq ($(ACC), numba)
