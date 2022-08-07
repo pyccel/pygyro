@@ -652,10 +652,11 @@ class PoloidalAdvectionArakawa:
         # temporarily hard coded parameters for now
         self.bc = 'dirichlet'
 
-        self.order = 2
+        self.order = 4
 
         self.verbose = True
 
+        # left and right boundary indices, do we want to have them seperated? 
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
                                  range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
 
@@ -671,8 +672,25 @@ class PoloidalAdvectionArakawa:
         """
         pass
 
-    # Runge-Kutta 4th order for dz/dt = F(z,t)
     def RK4(self, z, J, dt):
+        """
+        Simple Runge-Kutta 4th order for dz/dt = J(z)
+        Parameters
+        ----------
+        z: np.array
+            The current values at time t
+
+        J : np.darry
+            The rhs of the ode
+
+        dt: float
+            time-step size
+
+        Returns
+        -------
+            z: np.array
+                values at the new time t+dt
+        """
 
         k1 = J.dot(z)
         k2 = J.dot(z + dt/2*k1)
@@ -706,15 +724,15 @@ class PoloidalAdvectionArakawa:
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
         # enforce bc srongly?
-        if self.bc == 'dirichlet':
-            f[self.ind_bd] = np.zeros(len(self.ind_bd))
-            phi[self.ind_bd] = np.zeros(len(self.ind_bd))
+        #if self.bc == 'dirichlet':
+           # f[self.ind_bd] = np.zeros(len(self.ind_bd))
+           # phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # assemble the bracket
         J_phi = assemble_bracket_arakawa(self.bc, self.order, phi,
                                          self._points_theta, self._points_r)
 
-        # algebraicly conserving properties
+        # algebraically conserving properties
         if self.verbose:
             print('conservation tests global:')
             print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
