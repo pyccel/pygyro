@@ -175,7 +175,7 @@ def test_poloidalAdvectionArakawa_invariantPhi():
     eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
-    N = 200
+    N = 100
     dt = 0.1
 
     v = 0.0
@@ -523,7 +523,7 @@ def test_poloidalAdvectionArakawa_constantAdv():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicitTrap=False)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=False)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])

@@ -643,7 +643,6 @@ class PoloidalAdvectionArakawa:
         self._constants = constants
 
         self._explicit = explicit
-        
         self._TOL = tol
 
         self._nulEdge = nulEdge
