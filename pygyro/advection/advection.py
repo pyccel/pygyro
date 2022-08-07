@@ -622,7 +622,7 @@ class PoloidalAdvectionArakawa:
     """
 
     def __init__(self, eta_vals: list, constants, nulEdge=False,
-                 explicitTrap: bool = False, tol: float = 1e-10):
+                 explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -642,22 +642,45 @@ class PoloidalAdvectionArakawa:
 
         self._constants = constants
 
-        self._explicit = explicitTrap
+        self._explicit = explicit
+        
         self._TOL = tol
 
         self._nulEdge = nulEdge
 
         self._max_loops = 0
 
-        # only physically sensible option. hard-coded for now; maybe remove later
-        # boundary conditions for r direction
+        # temporarily hard coded parameters for now
         self.bc = 'dirichlet'
+
+        self.order = 2
+
+        self.verbose = True
+
+        self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
+                                 range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
+
+        self.r_scaling = np.array([self._points_r[k % self._nPoints_r]
+                                   for k in range(np.prod(self._nPoints))])
+        # scaling of the boundary measure
+        if self.bc == 'dirichlet':
+            self.r_scaling[self.ind_bd] *= 1/2
 
     def allow_tests(self):
         """
         TODO
         """
         pass
+
+    # Runge-Kutta 4th order for dz/dt = F(z,t)
+    def RK4(self, z, J, dt):
+
+        k1 = J.dot(z)
+        k2 = J.dot(z + dt/2*k1)
+        k3 = J.dot(z + dt/2*k2)
+        k4 = J.dot(z + dt*k3)
+
+        return z + dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
 
     def step(self, f: np.ndarray, dt: float, phi: np.ndarray):
         """
@@ -675,49 +698,44 @@ class PoloidalAdvectionArakawa:
         phi: array_like
             Advection parameter d_tf + {phi,f} = 0; without scaling
         """
+
         f = f.ravel()
+        # np.real allocates new memory and should be replaced
         phi = np.real(phi.ravel())
 
         assert(f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
-        N_points = np.prod(self._nPoints)
-        r_scaling = np.array([self._points_r[k % self._nPoints_r]
-                             for k in range(N_points)])
-
-        # get boundary indices for manipulation and plotting, more elegant way?
-        ind_bd = []
-        for k in range(N_points):
-            if k % self._nPoints_r == 0 or k % self._nPoints_r == self._nPoints_r - 1:
-                ind_bd.append(k)
-        ind_bd = np.array(ind_bd)
-
-        # for the reduced bracket, scale by 1/2
+        # enforce bc srongly?
         if self.bc == 'dirichlet':
-            r_scaling[ind_bd] *= 1/2
-            # enforce bc?
-            f[ind_bd] = np.zeros(len(ind_bd))
-            phi[ind_bd] = np.zeros(len(ind_bd))
+            f[self.ind_bd] = np.zeros(len(self.ind_bd))
+            phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
-        # still np.real is used for the phi to discard imaginary values. np.real allocates new memory -> should be replaced
-        J_phi = assemble_bracket_arakawa(self.bc, phi,
+        # assemble the bracket
+        J_phi = assemble_bracket_arakawa(self.bc, self.order, phi,
                                          self._points_theta, self._points_r)
 
-        print('conservation tests global:')
-        print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
-        print(f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
-        print(
-            f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
+        # algebraicly conserving properties
+        if self.verbose:
+            print('conservation tests global:')
+            print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
+            print(
+                f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
+            print(
+                f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
 
         if self._explicit:
-            I = A = B = None
+            # add the missing scaling to the rows of J
+            I_s = diags(1/self.r_scaling, 0)
+            J_s = I_s @ J_phi
         else:
-            I_s = diags(r_scaling, 0)
+            # scaling is only found in the identity
+            I_s = diags(self.r_scaling, 0)
             A = I_s - dt/2 * J_phi
             B = I_s + dt/2 * J_phi
 
         if (self._explicit):
-            f[:] += dt * J_phi.dot(f)
+            f[:] = self.RK4(f[:], J_s, dt)
         else:
             f[:] = spsolve(A, B.dot(f))
 

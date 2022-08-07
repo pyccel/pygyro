@@ -89,7 +89,7 @@ def test_poloidalAdvection_invariantPhi():
     eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
-    N = 200
+    N = 100
     dt = 0.1
 
     v = 0.0
@@ -143,6 +143,7 @@ def test_poloidalAdvection_invariantPhi():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
+    ax.set_title("poloidalAdvection_invariantPhi")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -228,7 +229,7 @@ def test_poloidalAdvectionArakawa_invariantPhi():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    ax.set_title("poloidalAdvection_invariantPhi")
+    ax.set_title("poloidalAdvectionArakawa_invariantPhi")
     #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
@@ -501,7 +502,7 @@ def test_poloidalAdvectionArakawa_constantAdv():
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = 200
-    dt = 0.01
+    dt = 0.1
 
     v = 0.0
 
@@ -522,13 +523,12 @@ def test_poloidalAdvectionArakawa_constantAdv():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, bsplines[::-1], constants)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicitTrap=False)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
     phiVals[:] = 3*eta_vals[0]**2
     interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
-
     interp.compute_interpolant(phiVals, phi)
 
     f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1] - pi)**2).T - (eta_vals[0]-7)**2) / 4 \
@@ -745,8 +745,8 @@ def test_poloidalAdvection():
         boundaries=np.linspace(-1, 1, 41), ncolors=256, clip=True)
     plotParams = {'vmin': -1, 'vmax': 1, 'norm': norm, 'cmap': "jet"}
 
-    line1 = ax.contourf(theta, eta_vals[0],
-                        f_vals[0, :, :].T, 20, **plotParams)
+    line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                        f_vals[0, :-1, :].T, 20, **plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
 
@@ -757,8 +757,8 @@ def test_poloidalAdvection():
             coll.remove()
         del line1
         line1 = ax.contourf(
-            theta, eta_vals[0], f_vals[n, :, :].T, 20, **plotParams)
-        print(f_vals[n, :, :])
+            eta_vals[1], eta_vals[0], f_vals[n, :-1, :].T, 20, **plotParams)
+        print(f_vals[n, :-1, :])
         fig.canvas.draw()
         fig.canvas.flush_events()
 
@@ -768,7 +768,7 @@ def test_poloidalAdvectionArakawa():
     """
     TODO
     """
-    # ~ npts = [128,128]
+    #npts = [128,128]
     npts = [16, 16]
 
     print(npts)
@@ -798,7 +798,7 @@ def test_poloidalAdvectionArakawa():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, True)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -856,8 +856,8 @@ def test_poloidalAdvectionArakawa():
         boundaries=np.linspace(-1, 1, 41), ncolors=256, clip=True)
     plotParams = {'vmin': -1, 'vmax': 1, 'norm': norm, 'cmap': "jet"}
 
-    line1 = ax.contourf(theta, eta_vals[0],
-                        f_vals[0, :, :].T, 20, **plotParams)
+    line1 = ax.contourf(eta_vals[1], eta_vals[0],
+                        f_vals[0, :-1, :].T, 20, **plotParams)
     fig.canvas.draw()
     fig.canvas.flush_events()
 
@@ -868,8 +868,8 @@ def test_poloidalAdvectionArakawa():
             coll.remove()
         del line1
         line1 = ax.contourf(
-            theta, eta_vals[0], f_vals[n, :, :].T, 20, **plotParams)
-        print(f_vals[n, :, :])
+            eta_vals[1], eta_vals[0], f_vals[n, :-1, :].T, 20, **plotParams)
+        #print(f_vals[n, :, :])
         fig.canvas.draw()
         fig.canvas.flush_events()
 
