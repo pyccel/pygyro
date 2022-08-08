@@ -3,8 +3,9 @@ from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import eye as sparse_id
+from scipy.sparse import diags
 
-from ..arakawa.discrete_brackets_polar import assemble_bracket
+from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
@@ -621,7 +622,7 @@ class PoloidalAdvectionArakawa:
     """
 
     def __init__(self, eta_vals: list, constants, nulEdge=False,
-                 explicitTrap: bool = False, tol: float = 1e-10):
+                 explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -641,16 +642,30 @@ class PoloidalAdvectionArakawa:
 
         self._constants = constants
 
-        self._explicit = explicitTrap
+        self._explicit = explicit
         self._TOL = tol
 
         self._nulEdge = nulEdge
 
         self._max_loops = 0
 
-        # only physically sensible option. hard-coded for now; maybe remove later
-        # boundary conditions for r direction
+        # temporarily hard coded parameters for now
         self.bc = 'dirichlet'
+
+        self.order = 4
+
+        self.verbose = True
+
+        # left and right boundary indices, do we want to have them seperated?
+        self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
+                                 range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
+
+        self.r_scaling = np.array([self._points_r[k % self._nPoints_r]
+                                   for k in range(np.prod(self._nPoints))])
+
+        # scaling of the boundary measure
+        if self.bc == 'dirichlet':
+            self.r_scaling[self.ind_bd] *= 1/2
 
     def allow_tests(self):
         """
@@ -658,7 +673,34 @@ class PoloidalAdvectionArakawa:
         """
         pass
 
-    def step(self, f: np.ndarray, dt: float, phi_hh: np.ndarray):
+    def RK4(self, z, J, dt):
+        """
+        Simple Runge-Kutta 4th order for dz/dt = J(z)
+        Parameters
+        ----------
+        z: np.array
+            The current values at time t
+
+        J : np.darry
+            The rhs of the ode
+
+        dt: float
+            time-step size
+
+        Returns
+        -------
+            z: np.array
+                values at the new time t+dt
+        """
+
+        k1 = J.dot(z)
+        k2 = J.dot(z + dt/2*k1)
+        k3 = J.dot(z + dt/2*k2)
+        k4 = J.dot(z + dt*k3)
+
+        return z + dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
+
+    def step(self, f: np.ndarray, dt: float, phi: np.ndarray):
         """
         Carry out an advection step for the poloidal advection using the Arakawa scheme
 
@@ -671,32 +713,48 @@ class PoloidalAdvectionArakawa:
         dt: float
             Time-step
 
-        phi_hh: array_like
+        phi: array_like
             Advection parameter d_tf + {phi,f} = 0; without scaling
         """
+
         f = f.ravel()
+        # np.real allocates new memory and should be replaced
+        phi = np.real(phi.ravel())
 
         assert(f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
-        # Scaling for the coefficient in the discrete
-        phi_hh /= 4 * self._dr * self._dtheta
+        # enforce bc srongly?
+        if self.bc == 'dirichlet':
+            f[self.ind_bd] = np.zeros(len(self.ind_bd))
+            phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
-        # still np.real is used for the phi to discard imaginary values. np.real allocates new memory -> should be replaced
-        J_phi = assemble_bracket('akw', self.bc,
-                                 np.real(phi_hh.ravel()),
-                                 self._nPoints_theta, self._nPoints_r,
-                                 self._points_r)
+        # assemble the bracket
+        J_phi = assemble_bracket_arakawa(self.bc, self.order, phi,
+                                         self._points_theta, self._points_r)
+
+        # algebraically conserving properties
+        if self.verbose:
+            print('conservation tests global:')
+            print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
+            print(
+                f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
+            print(
+                f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
 
         if self._explicit:
-            I = A = B = None
+            # add the missing scaling to the rows of J
+            I_s = diags(1/self.r_scaling, 0)
+            J_s = I_s @ J_phi
         else:
-            I = sparse_id(np.prod(self._nPoints), np.prod(self._nPoints))
-            A = I - dt/2 * J_phi
-            B = I + dt/2 * J_phi
+            # scaling is only found in the identity
+            I_s = diags(self.r_scaling, 0)
+            A = I_s - dt/2 * J_phi
+            B = I_s + dt/2 * J_phi
 
+        # execute the time-step
         if (self._explicit):
-            f[:] += dt * J_phi.dot(f)
+            f[:] = self.RK4(f[:], J_s, dt)
         else:
             f[:] = spsolve(A, B.dot(f))
 
