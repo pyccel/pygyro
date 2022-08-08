@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from utils_polar import get_total_f, get_total_f2, get_total_energy, plot_gridvals, plot_time_diag, make_movie
 from discrete_brackets_polar import assemble_bracket
+import discrete_bracket_polar_4th.assemble_bracket as assemble_bracket_4th
 
 
 def solve_Arakawa_advection(example, bc,
@@ -176,7 +177,11 @@ def solve_Arakawa_advection(example, bc,
     # assemble discrete brackets as sparse matrices
     # for f -> J(phi,f) = d_y phi * d_x f - d_x phi * d_y f
     phi_hh = 1/(4 * dr * dtheta) * phi
-    J_phi = assemble_bracket(bracket, bc, phi_hh, N_theta, N_r, grid_r)
+    if bracket == "akw":
+        J_phi = assemble_bracket(bracket, bc, phi_hh, N_theta, N_r, grid_r)
+    elif bracket == "akw4th":
+        J_phi = assemble_bracket_4th(bracket, bc, phi_hh, N_theta, N_r, grid_r)
+
 
     if verbose:
         print('tests:')
