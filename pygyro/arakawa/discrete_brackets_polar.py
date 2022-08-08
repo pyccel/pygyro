@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sparse
 from .utilities import neighbour_index, ind_to_tp_ind
 
+
 def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
     """
     Assemble the Arakawa bracket J: f -> {phi, f} as a sparse matrix
