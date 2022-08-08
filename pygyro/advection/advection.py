@@ -2,7 +2,6 @@ import numpy as np
 from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
-from scipy.sparse import eye as sparse_id
 from scipy.sparse import diags
 
 from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa
@@ -607,6 +606,16 @@ class PoloidalAdvectionArakawa:
 
     constants : Constant class
         Class containing all the constants
+    
+    bc : str
+        'dirichlet' or 'periodic'; which boundary conditions should be used
+        in r-direction
+    
+    order : int
+        which order of the Arakawa scheme should be used
+    
+    verbose : bool
+        if output information should be printed
 
     edgeFunc: function handle - optional
         Function returning the value at the boundary as a function of r and v
@@ -621,8 +630,10 @@ class PoloidalAdvectionArakawa:
         The tolerance used for the implicit trapezoidal rule
     """
 
-    def __init__(self, eta_vals: list, constants, nulEdge=False,
-                 explicit: bool = False, tol: float = 1e-10):
+    def __init__(self, eta_vals: list, constants,
+                 bc : str = 'dirichlet', order : int = 4,
+                 verbose : bool = False,
+                 nulEdge=False, explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -650,11 +661,11 @@ class PoloidalAdvectionArakawa:
         self._max_loops = 0
 
         # temporarily hard coded parameters for now
-        self.bc = 'dirichlet'
+        self.bc = bc
 
-        self.order = 4
+        self.order = order
 
-        self.verbose = True
+        self.verbose = verbose
 
         # left and right boundary indices, do we want to have them seperated?
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
@@ -724,7 +735,7 @@ class PoloidalAdvectionArakawa:
         assert(f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
-        # enforce bc srongly?
+        # enforce bc strongly?
         if self.bc == 'dirichlet':
             f[self.ind_bd] = np.zeros(len(self.ind_bd))
             phi[self.ind_bd] = np.zeros(len(self.ind_bd))
