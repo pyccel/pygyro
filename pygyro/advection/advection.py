@@ -606,14 +606,14 @@ class PoloidalAdvectionArakawa:
 
     constants : Constant class
         Class containing all the constants
-    
+
     bc : str
         'dirichlet' or 'periodic'; which boundary conditions should be used
         in r-direction
-    
+
     order : int
         which order of the Arakawa scheme should be used
-    
+
     verbose : bool
         if output information should be printed
 
@@ -631,8 +631,8 @@ class PoloidalAdvectionArakawa:
     """
 
     def __init__(self, eta_vals: list, constants,
-                 bc : str = 'dirichlet', order : int = 4,
-                 verbose : bool = False,
+                 bc: str = 'dirichlet', order: int = 4,
+                 verbose: bool = False,
                  nulEdge=False, explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
