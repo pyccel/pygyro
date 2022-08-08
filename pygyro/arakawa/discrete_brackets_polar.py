@@ -6,7 +6,9 @@ def ind_to_tp_ind(i0, i1, N_r):
     """
     Convert one-dimensional indices to tensorproduct index
     """
-    return i0 + i1*N_r
+    tp_ind = i0 + i1*N_r
+
+    return tp_ind
 
 
 def neighbor_index(pos0, pos1, i0, i1, N_theta, N_r):
@@ -15,7 +17,9 @@ def neighbor_index(pos0, pos1, i0, i1, N_theta, N_r):
     given two one-dimensional indices and a positional offset
     with periodic continuation
     """
-    return (i0+pos0) % N_r + (i1+pos1) % N_theta*N_r
+    neigh_ind = (i0+pos0) % N_r + (i1+pos1) % N_theta*N_r
+
+    return neigh_ind
 
 
 def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
@@ -25,63 +29,74 @@ def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
     Parameters
     ----------
         bc : str
-            'periodic' or 'dirichlet'
+            'periodic' or 'dirichlet'; which boundary conditions to use in r-direction
 
-        phi : np.array of length N_theta*N_r
-            point values of the potential on the grid
+        phi : np.ndarray
+            array of length N_theta*N_r; point values of the potential on the grid
 
-        grid_theta: np.array of length N_theta
-            grid of theta
+        grid_theta: np.ndarray
+            array of length N_theta; grid of theta
 
-        grid_r : np.array of length N_r
-            grid of r
+        grid_r : np.ndarray
+            array of length N_r; grid of r
 
     Returns
     -------
-        J : sparse array
+        res : scipy.sparse.coo_matrix
+            sparse matrix of shape [nPoints, nPoints] where nPoints = N_theta*N_r;
+            Stencil matrix for discrete Poisson bracket: J * f = {phi, f}
     """
 
     if bc == 'periodic':
         J = assemble_awk_bracket_periodic(phi, grid_theta, grid_r)
         if order == 2:
-            return J
+            res = J
         elif order == 4:
             J2 = assemble_awk_bracket_4th_order_periodic(
                 phi, grid_theta, grid_r)
-            return 2 * J - J2
+            res = 2 * J - J2
 
     elif bc == 'dirichlet':
         J = assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r)
 
         if order == 2:
-            return J
+            res = J
         elif order == 4:
             J2 = assemble_awk_bracket_4th_order_dirichlet(
                 phi, grid_theta, grid_r)
-            return 2 * J - J2
+            res = 2 * J - J2
+
+    else:
+        raise NotImplementedError(
+            f'{bc} is an unknown option for boundary conditions')
+
+    return res
 
 
 def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     """
-    Assemble the periodic Arakawa bracket J: f -> {phi, f} as a sparse matrix
+    Assemble a discrete bracket J: f -> {phi, f} based on the Arakawa scheme as
+    a sparse matrix with periodic boundary conditions in r-direction
 
     Parameters
     ----------
         bc : str
             'periodic' or 'dirichlet'
 
-        phi : np.array of length N_theta*N_r
-            point values of the potential on the grid
+        phi : np.ndarray
+            array of length N_theta*N_r; point values of the potential on the grid
 
-        grid_theta: np.array of length N_theta
-            grid of theta
+        grid_theta: np.ndarray
+            array of length N_theta; grid of theta
 
-        grid_r : np.array of length N_r
-            grid of r
+        grid_r : np.ndarray
+            array of length N_r; grid of r
 
     Returns
     -------
-        J : sparse array
+        J : scipy.sparse.coo_matrix
+            sparse matrix of shape [nPoints, nPoints] where nPoints = N_theta*N_r;
+            Stencil matrix for discrete Poisson bracket: J * f = {phi, f}
     """
 
     N_theta = len(grid_theta)
@@ -191,30 +206,34 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     row = np.array(row)
     col = np.array(col)
     data = factor * np.array(data)
-    return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    return J
 
 
 def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     """
-    Assemble the periodic Arakawa bracket J: f -> {phi, f} as a sparse matrix
+    Assemble a discrete bracket J: f -> {phi, f} based on the Arakawa scheme as
+    a sparse matrix with Dirichlet boundary conditions in r-direction
 
     Parameters
     ----------
         bc : str
             'periodic' or 'dirichlet'
 
-        phi : np.array of length N_theta*N_r
-            point values of the potential on the grid
+        phi : np.ndarray
+            array of length N_theta*N_r; point values of the potential on the grid
 
-        grid_theta: np.array of length N_theta
-            grid of theta
+        grid_theta: np.ndarray
+            array of length N_theta; grid of theta
 
-        grid_r : np.array of length N_r
-            grid of r
+        grid_r : np.ndarray
+            array of length N_r; grid of r
 
     Returns
     -------
-        J : sparse array
+        J : scipy.sparse.coo_matrix
+            sparse matrix of shape [nPoints, nPoints] where nPoints = N_theta*N_r;
+            Stencil matrix for discrete Poisson bracket: J * f = {phi, f}
     """
 
     N_theta = len(grid_theta)
@@ -447,31 +466,34 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     row = np.array(row)
     col = np.array(col)
     data = factor * np.array(data)
-    return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    return J
 
 
 def assemble_awk_bracket_4th_order_periodic(phi, grid_theta, grid_r):
     """
-    Assemble the addition for periodic Arakawa bracket no get fourth order
-    J: f -> {phi, f} as a sparse matrix
+    Assemble the extra terms needed for fourth order Arakawa scheme for the discrete
+    bracket J: f -> {phi, f} a sparse matrix with periodic boundary conditions in r-direction
 
     Parameters
     ----------
         bc : str
             'periodic' or 'dirichlet'
 
-        phi : np.array of length N_theta*N_r
-            point values of the potential on the grid
+        phi : np.ndarray
+            array of length N_theta*N_r; point values of the potential on the grid
 
-        grid_theta: np.array of length N_theta
-            grid of theta
+        grid_theta: np.ndarray
+            array of length N_theta; grid of theta
 
-        grid_r : np.array of length N_r
-            grid of r
+        grid_r : np.ndarray
+            array of length N_r; grid of r
 
     Returns
     -------
-        J : sparse array
+        J : scipy.sparse.coo_matrix
+            sparse matrix of shape [nPoints, nPoints] where nPoints = N_theta*N_r;
+            Stencil matrix for discrete Poisson bracket: J * f = {phi, f}
     """
 
     N_theta = len(grid_theta)
@@ -559,31 +581,34 @@ def assemble_awk_bracket_4th_order_periodic(phi, grid_theta, grid_r):
     row = np.array(row)
     col = np.array(col)
     data = factor * np.array(data)
-    return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    return J
 
 
 def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
     """
-    Assemble the addition for periodic Arakawa bracket no get fourth order
-    J: f -> {phi, f} as a sparse matrix
+    Assemble the extra terms needed for fourth order Arakawa scheme for the discrete
+    bracket J: f -> {phi, f} a sparse matrix with Dirichlet boundary conditions in r-direction
 
     Parameters
     ----------
         bc : str
             'periodic' or 'dirichlet'
 
-        phi : np.array of length N_theta*N_r
-            point values of the potential on the grid
+        phi : np.ndarray
+            array of length N_theta*N_r; point values of the potential on the grid
 
-        grid_theta: np.array of length N_theta
-            grid of theta
+        grid_theta: np.ndarray
+            array of length N_theta; grid of theta
 
-        grid_r : np.array of length N_r
-            grid of r
+        grid_r : np.ndarray
+            array of length N_r; grid of r
 
     Returns
     -------
-        J : sparse array
+        J : scipy.sparse.coo_matrix
+            sparse matrix of shape [nPoints, nPoints] where nPoints = N_theta*N_r;
+            Stencil matrix for discrete Poisson bracket: J * f = {phi, f}
     """
 
     N_theta = len(grid_theta)
@@ -879,4 +904,5 @@ def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
     row = np.array(row)
     col = np.array(col)
     data = factor * np.array(data)
-    return (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
+    return J
