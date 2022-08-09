@@ -169,7 +169,7 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
     total_energy_init = get_total_energy(
         f, phi, d_theta, d_r, r_grid, method=int_method)
 
-    for n in range(N):
+    for _ in range(N):
         # scaling is only found in the identity
         I_s = diags(r_scaling, 0)
         A = I_s - dt/2 * J_phi

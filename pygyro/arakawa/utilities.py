@@ -155,7 +155,7 @@ def compute_int_f(f: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if type(theta_grid) is not np.ndarray:
+        if not isinstance(theta_grid, np.ndarray):
             theta_grid = np.arange(0, 2*np.pi, d_theta)
         assert f.shape[0] == len(theta_grid), \
             f'First axis of f does not have the same length as theta grid : {f.shape[0]} != {len(theta_grid)}'
@@ -216,7 +216,7 @@ def compute_int_f_squared(f: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if type(theta_grid) is not np.ndarray:
+        if not isinstance(theta_grid, np.ndarray):
             theta_grid = np.arange(0, 2*np.pi, d_theta)
         res = trapezoid(np.multiply(trapezoid(f**2, theta_grid, axis=0),
                                     r_grid), r_grid)
@@ -283,7 +283,7 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if type(theta_grid) is not np.ndarray:
+        if not isinstance(theta_grid, np.ndarray):
             theta_grid = np.arange(0, 2*np.pi, d_theta)
         res = trapezoid(np.multiply(trapezoid(f_phi, theta_grid, axis=0),
                                     r_grid), r_grid)
