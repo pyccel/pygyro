@@ -222,7 +222,7 @@ def compute_int_f_squared(f: np.ndarray,
 
 
 def get_total_energy(f: np.ndarray, phi: np.ndarray,
-                     d_r: float, d_theta: float,
+                     d_theta: float, d_r : float,
                      r_grid: np.ndarray, theta_grid: np.ndarray = None,
                      method: str = 'sum'):
     """
