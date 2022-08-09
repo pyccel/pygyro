@@ -84,7 +84,7 @@ def main():
                                                   allocateSaveMemory=True,
                                                   layout='v_parallel')
     else:
-        assert(constantFile is not None)
+        assert (constantFile is not None)
 
         my_print(rank, nosave, "ready to setup new")
 
