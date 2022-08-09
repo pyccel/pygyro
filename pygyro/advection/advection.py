@@ -660,7 +660,6 @@ class PoloidalAdvectionArakawa:
 
         self._max_loops = 0
 
-        # temporarily hard coded parameters for now
         self.bc = bc
 
         self.order = order
@@ -671,8 +670,7 @@ class PoloidalAdvectionArakawa:
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
                                  range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
 
-        self.r_scaling = np.array([self._points_r[k % self._nPoints_r]
-                                   for k in range(np.prod(self._nPoints))])
+        self.r_scaling = np.tile(self._points_r, self._nPoints_theta)
 
         # scaling of the boundary measure
         if self.bc == 'dirichlet':
