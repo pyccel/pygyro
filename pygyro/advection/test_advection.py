@@ -314,7 +314,7 @@ def test_poloidalAdvectionArakawa(dt, v, xc, yc):
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, True)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -445,7 +445,7 @@ def test_poloidalAdvectionArakawaImplicit(dt, v, xc, yc):
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, True, False, 1e-10)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -557,7 +557,7 @@ def test_poloidalAdvectionArakawa_gridIntegration():
 
     basis = grid.get2DSpline()
 
-    polAdv = PoloidalAdvectionArakawa(grid.eta_grid, basis, constants)
+    polAdv = PoloidalAdvectionArakawa(grid.eta_grid, constants)
 
     phi = spl.Spline2D(basis[0], basis[1])
     phiVals = np.full((npts[1], npts[0]), 2)
