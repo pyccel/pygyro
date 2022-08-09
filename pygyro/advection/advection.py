@@ -621,7 +621,7 @@ class PoloidalAdvectionArakawa:
         The tolerance used for the implicit trapezoidal rule
     """
 
-    def __init__(self, eta_vals: list, constants, nulEdge=False,
+    def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, values_f=None, values_phi=None, nulEdge=False,
                  explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
@@ -650,11 +650,11 @@ class PoloidalAdvectionArakawa:
         self._max_loops = 0
 
         # temporarily hard coded parameters for now
-        self.bc = 'dirichlet'
+        self.bc = bc
 
-        self.order = 4
+        self.order = order
 
-        self.verbose = True
+        self.verbose = False
 
         # left and right boundary indices, do we want to have them seperated?
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
@@ -664,8 +664,78 @@ class PoloidalAdvectionArakawa:
                                    for k in range(np.prod(self._nPoints))])
 
         # scaling of the boundary measure
+        # needed for extrapolation?
         if self.bc == 'dirichlet':
             self.r_scaling[self.ind_bd] *= 1/2
+
+        if self.bc == 'extrapolation':
+            # collect extrapolation values
+            # set to zero if none are given
+            if values_f == None:
+                values_f = np.zeros(self.order)
+            if values_phi == None: 
+                values_phi = np.zeros(self.order)
+
+            # create empty stencils for the bigger J matrix
+            f, ind_int = self.calc_ep_stencil(values_f, self.order, self._nPoints_r, self._nPoints_theta)
+            self.f_stencil = f
+            phi, ind_int = self.calc_ep_stencil(values_phi, self.order, self._nPoints_r, self._nPoints_theta)
+            self.phi_stencil = phi
+
+            self.ind_int = ind_int
+
+            # increase the size of the scaling
+            values_r = np.hstack([[self.r_scaling[0]-(j+1)*self._dr for j in range(self.order//2)],
+                                    [self.r_scaling[-1]+(j+1)*self._dr for j in range(self.order//2)]])
+            r_scale, ind_int = self.calc_ep_stencil(values_r, self.order, self._nPoints_r, self._nPoints_theta)
+            r_scale[ind_int] = self.r_scaling
+            self.r_scaling = r_scale
+
+    def calc_ep_stencil(self, values, order, N_r, N_theta):
+        """
+        Calculate the stencil for the increased size of the interpolated stencil. 
+        The values prescribed here, should not change when multiplying with J_phi
+
+        Parameters
+        ----------
+
+            values : np.ndarray
+                array of length self.order; points outside the domain
+                first for the left, then for the right boundary (increasing)
+
+            order : float
+                order of the scheme
+
+            N_r: float
+                number of points in r-direction
+
+            N_theta: float
+                number of points in theta-direction
+
+        Returns
+        -------
+            vec_ep : np.ndarray
+                array of length (N_r+order)*N_theta with the given values on the points outside the domain
+
+            inds_int : np.darray
+                array of length (N_r)*N_theta with the indices of the (interior of the) domain
+        """
+        assert len(values) == order
+        N_r_ep = N_r+order
+        N_ep = N_r_ep * N_theta
+
+        vec_ep = np.zeros(N_ep)
+
+        bd_left = [range(k, N_ep, N_r_ep) for k in range(order//2)]
+        bd_right = [range(N_r_ep-order+k+1, N_ep, N_r_ep) for k in range(order//2)]
+
+        for j in range(order//2):
+            vec_ep[bd_left[j]] = values[j] * np.ones(N_theta)
+            vec_ep[bd_right[-order//2+j]] = values[-order//2+j] * np.ones(N_theta)
+        
+        inds_int = np.setdiff1d(range(N_ep), np.hstack([bd_left, bd_right]))
+
+        return vec_ep, inds_int
 
     def allow_tests(self):
         """
@@ -726,22 +796,46 @@ class PoloidalAdvectionArakawa:
 
         # enforce bc srongly?
         if self.bc == 'dirichlet':
-            f[self.ind_bd] = np.zeros(len(self.ind_bd))
+        #    f[self.ind_bd] = -np.ones(len(self.ind_bd))
             phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
+        elif self.bc == 'extrapolation':
+            self.f_stencil[self.ind_int] = f
+            # set phi to zero on the boundary
+            phi[self.ind_bd] = np.zeros(len(self.ind_bd))
+            self.phi_stencil[self.ind_int] = phi
+
+        #ind_bd = np.setdiff1d(range((self._nPoints_r+self.order)*self._nPoints_theta), self.ind_int)
+        #print(self.f_stencil[ind_bd])
+        #print(self.phi_stencil[ind_bd])
+
         # assemble the bracket
-        J_phi = assemble_bracket_arakawa(self.bc, self.order, phi,
+        if self.bc == 'extrapolation':
+            J_phi = assemble_bracket_arakawa(self.bc, self.order, self.phi_stencil,
                                          self._points_theta, self._points_r)
+        else:
+            J_phi = assemble_bracket_arakawa(self.bc, self.order, phi,
+                                         self._points_theta, self._points_r)
+
 
         # algebraically conserving properties
         if self.verbose:
-            print('conservation tests global:')
-            print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
-            print(
-                f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
-            print(
-                f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
-
+            if self.bc == 'extrapolation':
+                print('conservation tests global:')
+                print(f'Integral of f: {sum(J_phi.dot(self.f_stencil.ravel()))}')
+                print(
+                    f'Energy: {sum(np.multiply(self.phi_stencil.ravel(), J_phi.dot(self.f_stencil.ravel())))}')
+                print(
+                    f'Square integral of f: {sum(np.multiply(self.f_stencil.ravel(), J_phi.dot(self.f_stencil.ravel())))}')
+        
+            else:
+                print('conservation tests global:')
+                print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
+                print(
+                    f'Energy: {sum(np.multiply(phi.ravel(), J_phi.dot(f.ravel())))}')
+                print(
+                    f'Square integral of f: {sum(np.multiply(f.ravel(), J_phi.dot(f.ravel())))}')
+            
         if self._explicit:
             # add the missing scaling to the rows of J
             I_s = diags(1/self.r_scaling, 0)
@@ -752,11 +846,22 @@ class PoloidalAdvectionArakawa:
             A = I_s - dt/2 * J_phi
             B = I_s + dt/2 * J_phi
 
-        # execute the time-step
-        if (self._explicit):
-            f[:] = self.RK4(f[:], J_s, dt)
+       
+        if self.bc == 'extrapolation':
+            
+            # execute the time-step
+            if (self._explicit):
+                f[:] = self.RK4(self.f_stencil, J_s, dt)[self.ind_int]
+            else:
+                f[:] = spsolve(A, B.dot(self.f_stencil))[self.ind_int]
+
         else:
-            f[:] = spsolve(A, B.dot(f))
+            # execute the time-step
+            if (self._explicit):
+                f[:] = self.RK4(f[:], J_s, dt)
+            else:
+                f[:] = spsolve(A, B.dot(f))
+
 
     def exact_step(self, f, endPts, v):
         """
