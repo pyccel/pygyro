@@ -161,7 +161,8 @@ def compute_int_f(f: np.ndarray,
                                     r_grid), r_grid)
 
     else:
-        raise NotImplementedError(f"Integration method {method} not implemented")
+        raise NotImplementedError(
+            f"Integration method {method} not implemented")
 
     return res
 
@@ -216,13 +217,14 @@ def compute_int_f_squared(f: np.ndarray,
                                     r_grid), r_grid)
 
     else:
-        raise NotImplementedError(f"Integration method {method} not implemented")
+        raise NotImplementedError(
+            f"Integration method {method} not implemented")
 
     return res
 
 
 def get_total_energy(f: np.ndarray, phi: np.ndarray,
-                     d_theta: float, d_r : float,
+                     d_theta: float, d_r: float,
                      r_grid: np.ndarray, theta_grid: np.ndarray = None,
                      method: str = 'sum'):
     """
@@ -279,6 +281,7 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         res = trapezoid(np.multiply(trapezoid(f_phi, theta_grid, axis=0),
                                     r_grid), r_grid)
     else:
-        raise NotImplementedError(f"Integration method {method} not implemented")
+        raise NotImplementedError(
+            f"Integration method {method} not implemented")
 
     return res
