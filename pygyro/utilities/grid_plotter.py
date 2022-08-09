@@ -33,7 +33,7 @@ class SlicePlotterNd(object):
         self.nSliders = len(self.sDims)
         self.sliderVals = [0]*self.nSliders
 
-        assert(len(sliderNames) == self.nSliders)
+        assert (len(sliderNames) == self.nSliders)
 
         self.x = grid.eta_grid[self.xDim]
         self.y = grid.eta_grid[self.yDim]
@@ -45,7 +45,7 @@ class SlicePlotterNd(object):
         # Get fixed values in non-plotted dimensions
         if ('fixValues' in kwargs):
             self.omitVals = kwargs.pop('fixValues')
-            assert(len(self.omitVals) == len(self.oDims))
+            assert (len(self.omitVals) == len(self.oDims))
         else:
             self.omitVals = [self.grid.nGlobalCoords[d]//2 for d in self.oDims]
 
@@ -240,7 +240,7 @@ class SlicePlotterNd(object):
         """
         TODO
         """
-        assert(self.rank == self.drawRank)
+        assert (self.rank == self.drawRank)
 
         self.action = 0
         self.open = False
@@ -442,7 +442,7 @@ class SlicePlotterNd(object):
         """
         TODO
         """
-        assert(self.rank == self.drawRank)
+        assert (self.rank == self.drawRank)
 
         theSlice = self._data[tuple(self.access_pattern)]
 
@@ -495,7 +495,7 @@ class SlicePlotterNd(object):
         """
         TODO
         """
-        assert(self.rank != self.drawRank)
+        assert (self.rank != self.drawRank)
         self.comm.send(self.rank, self.drawRank, tag=2510)
         self.comm.Barrier()
         self.getData()
@@ -506,7 +506,7 @@ class SlicePlotterNd(object):
         TODO
         """
         action = 1
-        while(action == 1):
+        while (action == 1):
             ac = 0
             action = self.comm.bcast(ac, root=0)
             if action == 0:
@@ -535,7 +535,7 @@ class SlicePlotterNd(object):
         """
         TODO
         """
-        assert(self.rank == self.drawRank)
+        assert (self.rank == self.drawRank)
 
         if (self.comm.Iprobe(tag=2510)):
             if (self.action == 2):

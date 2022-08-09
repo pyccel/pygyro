@@ -75,10 +75,10 @@ def test_vParallelAdvection():
     r = 4
     fEdge = f_eq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
                  constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
-    assert(f_eq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
-                constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
-           == f_eq(r, x[-1], constants.CN0, constants.kN0, constants.deltaRN0,
-                   constants.rp, constants.CTi, constants.kTi, constants.deltaRTi))
+    assert (f_eq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
+                 constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
+            == f_eq(r, x[-1], constants.CN0, constants.kN0, constants.deltaRN0,
+                    constants.rp, constants.CTi, constants.kTi, constants.deltaRTi))
 
     f = gauss(x)+fEdge
 

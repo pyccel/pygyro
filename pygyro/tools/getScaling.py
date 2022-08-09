@@ -18,7 +18,7 @@ class Result:
         """
         TODO
         """
-        assert(type(other).__name__ == 'Result')
+        assert (type(other).__name__ == 'Result')
         return self._nprocs < other._nprocs
 
     def __eq__(self, n):

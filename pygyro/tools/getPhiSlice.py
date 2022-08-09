@@ -19,7 +19,7 @@ def get_phi_slice(foldername, tEnd):
     TODO
     """
 
-    assert(len(foldername) > 0)
+    assert (len(foldername) > 0)
 
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()

@@ -12,7 +12,7 @@ def get_grid_slice(foldername, tEnd):
     TODO
     """
 
-    assert(len(foldername) > 0)
+    assert (len(foldername) > 0)
 
     comm = MPI.COMM_WORLD
 

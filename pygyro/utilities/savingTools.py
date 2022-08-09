@@ -12,7 +12,7 @@ def setupSave(constants, foldername: str = None,
             i = 0
             foldername = "simulation_{0}".format(i)
 
-            while(os.path.isdir(foldername)):
+            while (os.path.isdir(foldername)):
                 i += 1
                 foldername = "simulation_{0}".format(i)
 

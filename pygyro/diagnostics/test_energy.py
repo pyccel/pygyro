@@ -31,7 +31,7 @@ def test_KineticEnergy_NoVelocity():
     KEResult = comm.reduce(KE_val, op=MPI.SUM, root=0)
 
     if (rank == 0):
-        assert(abs(KEResult) < 1e-7)
+        assert (abs(KEResult) < 1e-7)
 
 
 @pytest.mark.parallel
@@ -61,8 +61,8 @@ def test_KineticEnergy_Positive():
     KEResult = comm.reduce(KE_val, op=MPI.SUM, root=0)
 
     if (rank == 0):
-        assert(abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)
-               * np.pi*np.pi*consts.R0*2)) < 1e-7)
+        assert (abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)
+                                  * np.pi*np.pi*consts.R0*2)) < 1e-7)
 
 
 @pytest.mark.parallel
@@ -90,5 +90,5 @@ def test_KineticEnergy_Positive_VPar():
     KEResult = comm.reduce(KE_val, op=MPI.SUM, root=0)
 
     if (rank == 0):
-        assert(abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)
-               * np.pi*np.pi*consts.R0*2)) < 1e-7)
+        assert (abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)
+                                  * np.pi*np.pi*consts.R0*2)) < 1e-7)

@@ -50,7 +50,7 @@ def compare_f(grid, t=0):
                 Slice = grid.get1DSlice(i, j, k)
                 for l, a in enumerate(Slice):
                     [I, J, K, L] = grid.getGlobalIndices(i, j, k, l)
-                    assert(a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
+                    assert (a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
 
 
 def compare_phi(grid):
@@ -64,7 +64,7 @@ def compare_phi(grid):
             Slice = grid.get1DSlice(i, j)
             for k, a in enumerate(Slice):
                 [I, J, K] = grid.getGlobalIndices(i, j, k)
-                assert(a == I*nEta3*nEta2+J*nEta3+K)
+                assert (a == I*nEta3*nEta2+J*nEta3+K)
 
 
 @pytest.mark.serial
@@ -131,7 +131,7 @@ def test_Grid_max():
     grid = Grid(eta_grids, [], manager, 'flux_surface')
     define_f(grid)
     maxVal = grid.getMax()
-    assert(maxVal == np.max(grid._f))
+    assert (maxVal == np.max(grid._f))
 
 
 @pytest.mark.parallel
@@ -156,7 +156,7 @@ def test_Grid_min():
     grid = Grid(eta_grids, [], manager, 'flux_surface')
     define_f(grid)
     minVal = grid.getMin()
-    assert(minVal == np.min(grid._f))
+    assert (minVal == np.min(grid._f))
 
 
 @pytest.mark.parallel
@@ -243,7 +243,7 @@ def test_CoordinateSave():
     dim_order = [0, 3, 1, 2]
     for j in range(4):
         for i, x in grid.getCoords(j):
-            assert(x == eta_grid[dim_order[j]][i])
+            assert (x == eta_grid[dim_order[j]][i])
 
 
 @pytest.mark.parallel
@@ -295,28 +295,28 @@ def test_Contiguous():
 
     grid = Grid(eta_grids, [], manager, 'flux_surface')
 
-    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('v_parallel')
 
-    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('poloidal')
 
-    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('v_parallel')
 
-    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
     grid.setLayout('flux_surface')
 
-    assert(grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
-    assert(grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get2DSlice(0, 0).flags['C_CONTIGUOUS'])
+    assert (grid.get1DSlice(0, 0, 0).flags['C_CONTIGUOUS'])
 
 
 @pytest.mark.parallel
@@ -424,19 +424,19 @@ def test_Grid_max_plotting(layout):
     define_f(grid)
     maxVal = grid.getMax(0)
     if (rank == 0):
-        assert(maxVal == (np.prod(npts)-1))
+        assert (maxVal == (np.prod(npts)-1))
 
     r = min(1, comm.Get_size()-1)
 
     maxVal = grid.getMax(r, 0, 0)
     if (rank == r):
-        assert(maxVal == (np.prod(npts[1:])-1))
+        assert (maxVal == (np.prod(npts[1:])-1))
 
     r = min(2, comm.Get_size()-1)
 
     maxVal = grid.getMax(r, [0, 1], [0, 0])
     if (rank == r):
-        assert(maxVal == (np.prod(npts[2:])-1))
+        assert (maxVal == (np.prod(npts[2:])-1))
 
 
 @pytest.mark.parametrize("layout", ['flux_surface', 'v_parallel', 'poloidal'])
@@ -481,20 +481,20 @@ def test_Grid_max_plotting_drawRank(layout):
     maxVal = grid.getMax(0)
 
     if (rank == 0):
-        assert(maxVal == (np.prod(npts)-1))
+        assert (maxVal == (np.prod(npts)-1))
 
     r = min(1, comm.Get_size()-1)
 
     maxVal = grid.getMax(r, 0, 0)
 
     if (rank == r):
-        assert(maxVal == (np.prod(npts[1:])-1))
+        assert (maxVal == (np.prod(npts[1:])-1))
 
     r = min(2, comm.Get_size()-1)
 
     maxVal = grid.getMax(r, [0, 1], [0, 0])
     if (rank == r):
-        assert(maxVal == (np.prod(npts[2:])-1))
+        assert (maxVal == (np.prod(npts[2:])-1))
 
 
 @pytest.mark.parametrize("layout", ['flux_surface', 'v_parallel', 'poloidal'])
@@ -522,19 +522,19 @@ def test_Grid_min_plotting(layout):
     define_f(grid)
     minVal = grid.getMin(0)
     if (comm.Get_rank() == 0):
-        assert(minVal == 0)
+        assert (minVal == 0)
 
     r = min(1, comm.Get_size()-1)
 
     minVal = grid.getMin(r, 0, 9)
     if (rank == r):
-        assert(minVal == 9*np.prod(npts[1:]))
+        assert (minVal == 9*np.prod(npts[1:]))
 
     r = min(2, comm.Get_size()-1)
 
     minVal = grid.getMin(r, [0, 1], [9, 9])
     if (rank == r):
-        assert(minVal == 9*np.prod(npts[1:])+9*np.prod(npts[2:]))
+        assert (minVal == 9*np.prod(npts[1:])+9*np.prod(npts[2:]))
 
 
 @pytest.mark.parametrize("layout", ['flux_surface', 'v_parallel', 'poloidal'])
@@ -579,19 +579,19 @@ def test_Grid_min_plotting_drawRank(layout):
 
     minVal = grid.getMin(0)
     if (comm.Get_rank() == 0):
-        assert(minVal == 0)
+        assert (minVal == 0)
 
     r = min(1, comm.Get_size()-1)
 
     minVal = grid.getMin(r, 0, 9)
     if (rank == r):
-        assert(minVal == 9*np.prod(npts[1:]))
+        assert (minVal == 9*np.prod(npts[1:]))
 
     r = min(2, comm.Get_size()-1)
 
     minVal = grid.getMin(r, [0, 1], [9, 9])
     if (rank == r):
-        assert(minVal == 9*np.prod(npts[1:])+9*np.prod(npts[2:]))
+        assert (minVal == 9*np.prod(npts[1:])+9*np.prod(npts[2:]))
 
 
 def compare_small_f(f, grid, idx, n_idx, val, layout, starts, mpi_data):
@@ -652,8 +652,8 @@ def compare_small_f(f, grid, idx, n_idx, val, layout, starts, mpi_data):
             for k, z in enumerate(runs[2]):
                 for l, a in enumerate(runs[3]):
                     [I, J, K, L] = grid.getGlobalIndices(x, y, z, a)
-                    assert(f[i, j, k, l] == I*nEta4*nEta3 *
-                           nEta2+J*nEta4*nEta3+K*nEta4+L)
+                    assert (f[i, j, k, l] == I*nEta4*nEta3 *
+                            nEta2+J*nEta4*nEta3+K*nEta4+L)
 
 
 @pytest.mark.parametrize("val", [0, 3, 7])
