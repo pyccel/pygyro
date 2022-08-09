@@ -4,7 +4,7 @@ from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
 
 from .utilities import compute_int_f, compute_int_f_squared, get_total_energy
-from pygyro.arakawa.discrete_brackets_polar import assemble_bracket_arakawa
+from .discrete_brackets_polar import assemble_bracket_arakawa
 
 
 @pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
@@ -21,7 +21,7 @@ def test_bracket_mean(bc, order, tol=1e-10):
 
         order : int
             Order of the Arakawa scheme
-        
+
         tol : float
             precision with which the quantities should be tested
 
@@ -84,13 +84,13 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
 
         order : int
             Order of the Arakawa scheme
-        
+
         int_method : str
             'sum' or 'trapz'; method with which the integral should be computed
-        
+
         tol : float
             precision with which the initial sum quantities should be tested
-        
+
         iter_tol : float
             relative precision with which the integral quantities in the time-loop should be tested
     """
@@ -121,7 +121,7 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
 
     np.random.seed(1305)
     phi = np.zeros((N_theta, N_r))
-    phi[:] = 3 * r_grid **2
+    phi[:] = 3 * r_grid ** 2
     phi = phi.ravel()
 
     assert phi.shape[0] == N_theta * N_r
@@ -164,21 +164,27 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
         r_scaling[ind_bd_right] *= 1/2
 
     int_f_init = compute_int_f(f, d_theta, d_r, r_grid, method=int_method)
-    int_f_squared_init = compute_int_f_squared(f, d_theta, d_r, r_grid, method=int_method)
-    total_energy_init = get_total_energy(f, phi, d_theta, d_r, r_grid, method=int_method)
+    int_f_squared_init = compute_int_f_squared(
+        f, d_theta, d_r, r_grid, method=int_method)
+    total_energy_init = get_total_energy(
+        f, phi, d_theta, d_r, r_grid, method=int_method)
 
     for n in range(N):
         # scaling is only found in the identity
         I_s = diags(r_scaling, 0)
         A = I_s - dt/2 * J_phi
         B = I_s + dt/2 * J_phi
-        
+
         f[:] = spsolve(A, B.dot(f))
 
         int_f = compute_int_f(f, d_theta, d_r, r_grid, method=int_method)
-        int_f_squared = compute_int_f_squared(f, d_theta, d_r, r_grid, method=int_method)
-        total_energy = get_total_energy(f, phi, d_theta, d_r, r_grid, method=int_method)
+        int_f_squared = compute_int_f_squared(
+            f, d_theta, d_r, r_grid, method=int_method)
+        total_energy = get_total_energy(
+            f, phi, d_theta, d_r, r_grid, method=int_method)
 
         assert np.abs(int_f - int_f_init)/int_f_init < iter_tol
-        assert np.abs(int_f_squared - int_f_squared_init)/int_f_squared_init < iter_tol
-        assert np.abs(total_energy - total_energy_init)/total_energy_init < iter_tol
+        assert np.abs(int_f_squared - int_f_squared_init) / \
+            int_f_squared_init < iter_tol
+        assert np.abs(total_energy - total_energy_init) / \
+            total_energy_init < iter_tol
