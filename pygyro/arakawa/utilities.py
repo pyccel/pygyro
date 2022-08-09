@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import trapezoid
 
 
 def ind_to_tp_ind(ir, it, N_r):
@@ -110,7 +111,10 @@ def convert_flat_to_2d(arr: np.ndarray, N_theta: int = -1, N_r: int = -1):
     return arr_2d
 
 
-def compute_int_f(f: np.ndarray, d_theta: float, d_r: float, r_grid: np.ndarray):
+def compute_int_f(f: np.ndarray,
+                  d_theta: float, d_r: float,
+                  r_grid: np.ndarray, theta_grid: np.ndarray = None,
+                  method: str = 'sum'):
     """
     Compute the integral of f over the whole domain.
     A uniform grid is assumed.
@@ -129,6 +133,9 @@ def compute_int_f(f: np.ndarray, d_theta: float, d_r: float, r_grid: np.ndarray)
         r_grid : array_like
             shape of [N_r], grid points in radial direction
 
+        method : str
+            'sum' or 'trapz'; which method to use to compute the integral
+
     Returns
     -------
         res : float
@@ -141,15 +148,28 @@ def compute_int_f(f: np.ndarray, d_theta: float, d_r: float, r_grid: np.ndarray)
     assert f.shape[1] == len(r_grid), \
         f'Second axis of f does not have the same length as r grid : {f.shape[1]} != {len(r_grid)}'
 
-    res = np.sum(f, axis=0)
-    res = np.multiply(res, r_grid)
-    res = np.sum(res)
-    res *= d_theta * d_r
+    if method == 'sum':
+        res = np.sum(f, axis=0)
+        res = np.multiply(res, r_grid)
+        res = np.sum(res)
+        res *= d_theta * d_r
+
+    elif method == 'trapz':
+        if theta_grid == None:
+            theta_grid = np.arange(0, 2*np.pi, d_theta)
+        res = trapezoid(np.multiply(trapezoid(f, theta_grid, axis=0),
+                                    r_grid), r_grid)
+
+    else:
+        raise NotImplementedError(f"Integration method {method} not implemented")
 
     return res
 
 
-def compute_int_f_squared(f: np.ndarray, d_theta: float, d_r: float, r_grid: np.ndarray):
+def compute_int_f_squared(f: np.ndarray,
+                          d_theta: float, d_r: float,
+                          r_grid: np.ndarray, theta_grid: np.ndarray = None,
+                          method: str = 'sum'):
     """
     Compute the integral of f^2 over the whole domain.
     A uniform grid is assumed.
@@ -168,6 +188,9 @@ def compute_int_f_squared(f: np.ndarray, d_theta: float, d_r: float, r_grid: np.
         r_grid : array_like
             shape of [N_r], grid points in radial direction
 
+        method : str
+            'sum' or 'trapz'; which method to use to compute the integral
+
     Returns
     -------
         res : float
@@ -180,15 +203,28 @@ def compute_int_f_squared(f: np.ndarray, d_theta: float, d_r: float, r_grid: np.
     assert f.shape[1] == len(r_grid), \
         f'Second axis of f does not have the same length as r grid : {f.shape[1]} != {len(r_grid)}'
 
-    res = np.sum(f**2, axis=0)
-    res = np.multiply(res, r_grid)
-    res = np.sum(res)
-    res *= d_theta * d_r
+    if method == 'sum':
+        res = np.sum(f**2, axis=0)
+        res = np.multiply(res, r_grid)
+        res = np.sum(res)
+        res *= d_theta * d_r
+
+    elif method == 'trapz':
+        if theta_grid == None:
+            theta_grid = np.arange(0, 2*np.pi, d_theta)
+        res = trapezoid(np.multiply(trapezoid(f**2, theta_grid, axis=0),
+                                    r_grid), r_grid)
+
+    else:
+        raise NotImplementedError(f"Integration method {method} not implemented")
 
     return res
 
 
-def get_total_energy(f: np.ndarray, phi: np.ndarray, d_r: float, d_theta: float, r_grid: np.ndarray):
+def get_total_energy(f: np.ndarray, phi: np.ndarray,
+                     d_r: float, d_theta: float,
+                     r_grid: np.ndarray, theta_grid: np.ndarray = None,
+                     method: str = 'sum'):
     """
     Compute the total energy, i.e. the integral of f times phi over the whole domain.
     A uniform grid is assumed.
@@ -210,6 +246,9 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray, d_r: float, d_theta: float,
         r_grid : array_like
             shape of [N_r], grid points in radial direction
 
+        method : str
+            'sum' or 'trapz'; which method to use to compute the integral
+
     Returns
     -------
         res : float
@@ -219,18 +258,27 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray, d_r: float, d_theta: float,
     if len(f.shape) == 1:
         f = convert_flat_to_2d(f, N_r=len(r_grid))
 
-    if len(f.shape) == 1:
+    if len(phi.shape) == 1:
         phi = convert_flat_to_2d(f, N_r=len(r_grid))
 
     # point-wise multiplication
     f_phi = np.multiply(f, phi)
 
-    # sum over values in theta direction
-    res_t = np.sum(f_phi, axis=0)
-    res_t = np.multiply(res_t, r_grid)
+    if method == 'sum':
+        # sum over values in theta direction
+        res_t = np.sum(f_phi, axis=0)
+        res_t = np.multiply(res_t, r_grid)
 
-    res = np.sum(res_t)
+        res = np.sum(res_t)
 
-    res *= d_theta * d_r
+        res *= d_theta * d_r
+
+    elif method == 'trapz':
+        if theta_grid == None:
+            theta_grid = np.arange(0, 2*np.pi, d_theta)
+        res = trapezoid(np.multiply(trapezoid(f_phi, theta_grid, axis=0),
+                                    r_grid), r_grid)
+    else:
+        raise NotImplementedError(f"Integration method {method} not implemented")
 
     return res
