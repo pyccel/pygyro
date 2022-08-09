@@ -1,9 +1,17 @@
+
 import h5py
 import matplotlib.pyplot as plt
+from mpi4py import MPI
 import numpy as np
 import sys
 import os
 from fourier2d import Fourier2D
+
+from pygyro import splines as spl
+from pygyro.initialisation.constants import get_constants
+from pygyro.model.process_grid import compute_2d_process_grid
+from pygyro.model.grid import Grid
+from pygyro.model.layout import LayoutSwapper
 
 foldername = sys.argv[1]
 
@@ -16,16 +24,10 @@ assert(len(foldername) > 0)
 comm = MPI.COMM_WORLD
 mpi_size = comm.Get_size()
 
-filename = "{0}/initParams.h5".format(foldername)
-save_file = h5py.File(filename, 'r', driver='mpio', comm=comm)
-group = save_file['constants']
-for i in group.attrs:
-    constants.i = group.attrs[i]
-constants.rp = 0.5*(constants.rMin + constants.rMax)
+filename = os.path.join(foldername,"initParams.json")
+constants = get_constants(filename)
 
-npts = save_file.attrs['npts']
-
-save_file.close()
+npts = constants.npts
 
 degree = [3, 3, 3]
 period = [False, True, True]
@@ -54,17 +56,16 @@ remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal]
 phi = Grid(eta_grids, bsplines, remapperPhi,
            'v_parallel_2d', comm, dtype=np.complex128)
 
-r_idx = nr//2
+r_idx = npts[0]//2
 
 
 ###############################################################
 
-t = os.path.splitext(os.path.basename(filename))[0].split('_')[1]
+Ntheta = phi.eta_grid[1].size
+Nphi = phi.eta_grid[2].size
 
-Ntheta, Nphi = data.shape
-
-z = np.linspace(0, 1506.7590666130668, Nphi, endpoint=False)
-theta = np.linspace(0, 2*np.pi, Ntheta, endpoint=False)
+z = phi.eta_grid[2]
+theta = phi.eta_grid[1]
 
 n_time_steps=121
 time_grid = np.linspace(0,6000,n_time_steps, dtype=int)
@@ -79,7 +80,7 @@ Abs_modes_mn_unstable = np.zeros((nb_mn_unstable+1,n_time_steps))
 
 phi.loadFromFile(foldername, 0, "phi")
 assert r_idx in phi.getGlobalIdxVals(0)
-Phi_FluxSurface = phi.get2DSlice(r_idx).T
+Phi_FluxSurface = phi.get2DSlice(r_idx)
 [TFPhi_mn,m2d,n2d] = Fourier2D( 
     Phi_FluxSurface, z, theta)
 
@@ -119,10 +120,10 @@ for imax in range(nb_mn_unstable+1):
         n = int(n2d[kphi_imax]))
 #end for
 
-for it,time in enumerate(time_grid, 1):
+for it,time in enumerate(time_grid[1:], 1):
     phi.loadFromFile(foldername, time, "phi")
     assert r_idx in phi.getGlobalIdxVals(0)
-    Phi_FluxSurface = phi.get2DSlice(r_idx).T
+    Phi_FluxSurface = phi.get2DSlice(r_idx)
     [TFPhi_mn,m2d,n2d] = Fourier2D(
         Phi_FluxSurface, z, theta)
     for im in range(m_max+1):
@@ -162,5 +163,4 @@ plt.legend(loc=4)
 #plt.title(f"t = {t}")
 #plt.xlabel('$\\theta$')
 #plt.ylabel('z')
-
-plt.show()
+plt.savefig('unstable.png')
