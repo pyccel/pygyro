@@ -104,7 +104,7 @@ def convert_flat_to_2d(arr: np.ndarray, N_theta: int = -1, N_r: int = -1):
             array with 2 axis of the wanted shape
     """
     assert N_theta != -1 or N_r != -1, 'At least one of the wanted sizes must be given!'
-    assert len(arr.shape) == 1, 'Array has more than 1 axis!'
+    assert len(arr.shape) == 1, f'Array has more than 1 axis! ({arr.shape})'
 
     arr_2d = arr.reshape(N_theta, N_r)
 
@@ -116,7 +116,7 @@ def compute_int_f(f: np.ndarray,
                   r_grid: np.ndarray, theta_grid: np.ndarray = None,
                   method: str = 'sum'):
     """
-    Compute the integral of f over the whole domain.
+    Compute the integral of f over the whole domain in polar coordinates.
     A uniform grid is assumed.
 
     Parameters
@@ -155,14 +155,19 @@ def compute_int_f(f: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if theta_grid == None:
+        if type(theta_grid) is not np.ndarray:
             theta_grid = np.arange(0, 2*np.pi, d_theta)
+        assert f.shape[0] == len(theta_grid), \
+            f'First axis of f does not have the same length as theta grid : {f.shape[0]} != {len(theta_grid)}'
+
         res = trapezoid(np.multiply(trapezoid(f, theta_grid, axis=0),
                                     r_grid), r_grid)
 
     else:
         raise NotImplementedError(
             f"Integration method {method} not implemented")
+
+    assert type(res) == np.float64, f'Wrong type for result {type(res)}'
 
     return res
 
@@ -172,7 +177,7 @@ def compute_int_f_squared(f: np.ndarray,
                           r_grid: np.ndarray, theta_grid: np.ndarray = None,
                           method: str = 'sum'):
     """
-    Compute the integral of f^2 over the whole domain.
+    Compute the integral of f^2 over the whole domain in polar coordinates.
     A uniform grid is assumed.
 
     Parameters
@@ -211,7 +216,7 @@ def compute_int_f_squared(f: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if theta_grid == None:
+        if type(theta_grid) is not np.ndarray:
             theta_grid = np.arange(0, 2*np.pi, d_theta)
         res = trapezoid(np.multiply(trapezoid(f**2, theta_grid, axis=0),
                                     r_grid), r_grid)
@@ -219,6 +224,8 @@ def compute_int_f_squared(f: np.ndarray,
     else:
         raise NotImplementedError(
             f"Integration method {method} not implemented")
+
+    assert type(res) == np.float64, f'Wrong type for result {type(res)}'
 
     return res
 
@@ -228,8 +235,8 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
                      r_grid: np.ndarray, theta_grid: np.ndarray = None,
                      method: str = 'sum'):
     """
-    Compute the total energy, i.e. the integral of f times phi over the whole domain.
-    A uniform grid is assumed.
+    Compute the total energy, i.e. the integral of f times phi over the whole
+    domain in polar coordinates. A uniform grid is assumed.
 
     Parameters
     ----------
@@ -261,7 +268,7 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         f = convert_flat_to_2d(f, N_r=len(r_grid))
 
     if len(phi.shape) == 1:
-        phi = convert_flat_to_2d(f, N_r=len(r_grid))
+        phi = convert_flat_to_2d(phi, N_r=len(r_grid))
 
     # point-wise multiplication
     f_phi = np.multiply(f, phi)
@@ -276,12 +283,14 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if theta_grid == None:
+        if type(theta_grid) is not np.ndarray:
             theta_grid = np.arange(0, 2*np.pi, d_theta)
         res = trapezoid(np.multiply(trapezoid(f_phi, theta_grid, axis=0),
                                     r_grid), r_grid)
     else:
         raise NotImplementedError(
             f"Integration method {method} not implemented")
+
+    assert type(res) == np.float64, f'Wrong type for result {type(res)}'
 
     return res
