@@ -42,9 +42,6 @@ def main():
     parser.add_argument('-s', dest='saveStep', nargs=1, type=int,
                         default=[5],
                         help='Number of time steps between writing output')
-    parser.add_argument('-pm', dest='poloidalmethod', nargs=1, type=str,
-                        default=["sl"],
-                        help='Method for poloidal advection step: Semi-Lagrangian (sl) or Arakawa (akw)')
     parser.add_argument('--nosave', action='store_true')
 
     def my_print(rank, nosave, *args, **kwargs):
@@ -55,7 +52,6 @@ def main():
     args = parser.parse_args()
     foldername = args.foldername[0]
     constantFile = args.constantFile[0]
-    poloidal_method = args.poloidalmethod[0]
     nosave = args.nosave
 
     loadable = False
@@ -115,6 +111,11 @@ def main():
     halfStep = constants.dt*0.5
     fullStep = constants.dt
     # --------------------------
+
+    # Set method for poloidal advection step
+    poloidal_method = constants.poloidalAdvectionMethod[0]
+
+    print(f'using method {poloidal_method}')
 
     my_print(rank, nosave, "conditional setup done")
 
@@ -229,10 +230,10 @@ def main():
 
     if (not loadable) and (not nosave):
         my_print(rank, nosave, "save time", t)
-        
+
         if rank == 0:
             print(rank, "save time", t)
-        
+
         output_start = time.time()
 
         distribFunc.writeH5Dataset(foldername, t)
