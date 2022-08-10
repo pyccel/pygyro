@@ -167,7 +167,7 @@ def compute_int_f(f: np.ndarray,
         raise NotImplementedError(
             f"Integration method {method} not implemented")
 
-    assert type(res) == np.float64, f'Wrong type for result {type(res)}'
+    assert isinstance(res, np.float64), f'Wrong type for result {type(res)}'
 
     return res
 
@@ -225,7 +225,7 @@ def compute_int_f_squared(f: np.ndarray,
         raise NotImplementedError(
             f"Integration method {method} not implemented")
 
-    assert type(res) == np.float64, f'Wrong type for result {type(res)}'
+    assert isinstance(res, np.float64), f'Wrong type for result {type(res)}'
 
     return res
 
@@ -291,6 +291,6 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         raise NotImplementedError(
             f"Integration method {method} not implemented")
 
-    assert type(res) == np.float64, f'Wrong type for result {type(res)}'
+    assert isinstance(res, np.float64), f'Wrong type for result {type(res)}'
 
     return res
