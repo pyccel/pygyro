@@ -1,19 +1,46 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import argparse
-import os
+import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser(description='Plot the l2 norm of phi as a function of time')
-parser.add_argument('foldername', type=str, help='the name of the folder from which to load')
+def plot_file(foldername):
+    dataset = np.loadtxt(os.path.join(foldername, 'phiDat.txt'))
+    
+    shape = dataset.shape
+    
+    times = np.ndarray(shape[0])
+    norm  = np.ndarray(shape[0])
+    
+    times[:] = dataset[:,0]
+    norm [:] = dataset[:,1]
+
+    plt.semilogy(times,norm,'.')
+
+
+parser = argparse.ArgumentParser(description='Process foldername')
+parser.add_argument('-p', dest='pente',type=float,
+                    default=3.83e-3,
+                    help='The gradient of the expected linear regime (eg. for 1.12e-5*exp(3.83e-3*x) : 3.83e-3)')
+parser.add_argument('-m', dest='mult',type=float,
+                    default=1.12e-5,
+                    help='The multiplication factor of the expected linear regime (eg. for 1.12e-5*exp(3.83e-3*x) : 1.12e-5)')
+parser.add_argument('foldername', metavar='filename',nargs='*',type=str,
+                   help='The folders whose results should be plotted')
 
 args = parser.parse_args()
+filename = os.path.join(args.foldername[0], 'phiDat.txt')
 
-data = np.loadtxt(os.path.join(args.foldername, 'phiDat.txt'))
+p = args.pente[0]
+m = args.mult[0]
 
-t = data[:,0]
-l2 = data[:,1]
+dataset = np.loadtxt(filename)
+sorted_times = np.sort(dataset[:,0])
 
-plt.plot(t, 4e-5*np.exp(0.00354*t))
-plt.semilogy(t,l2,'.')
-
+plt.figure()
+plt.semilogy(sorted_times,m*np.exp(p*sorted_times), label=str(m)+'*exp('+str(p)+'*x)')
+for f in args.filename:
+    plot_file(f)
+plt.xlabel('time')
+plt.ylabel('$\|\phi\|_2$')
+plt.grid()
+plt.legend()
 plt.show()
