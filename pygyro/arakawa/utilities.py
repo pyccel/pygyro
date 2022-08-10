@@ -113,8 +113,7 @@ def convert_flat_to_2d(arr: np.ndarray, N_theta: int = -1, N_r: int = -1):
 
 def compute_int_f(f: np.ndarray,
                   d_theta: float, d_r: float,
-                  r_grid: np.ndarray, theta_grid: np.ndarray = None,
-                  method: str = 'sum'):
+                  r_grid: np.ndarray, method: str = 'sum'):
     """
     Compute the integral of f over the whole domain in polar coordinates.
     A uniform grid is assumed.
@@ -155,12 +154,16 @@ def compute_int_f(f: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if not isinstance(theta_grid, np.ndarray):
-            theta_grid = np.arange(0, 2*np.pi, d_theta)
-        assert f.shape[0] == len(theta_grid), \
-            f'First axis of f does not have the same length as theta grid : {f.shape[0]} != {len(theta_grid)}'
+        # We have to append the values of f at theta = 0 for theta = 2*pi in order for the
+        # trapezoidal method to work
+        f_trap = np.append(f, [f[0, :]], axis=0)
 
-        res = trapezoid(np.multiply(trapezoid(f, theta_grid, axis=0),
+        theta_grid = np.arange(0, 2*np.pi + d_theta/10, d_theta)
+
+        assert f_trap.shape[0] == len(theta_grid), \
+            f'First axis of f does not have the same length as theta grid : {f_trap.shape[0]} != {len(theta_grid)}'
+
+        res = trapezoid(np.multiply(trapezoid(f_trap, theta_grid, axis=0),
                                     r_grid), r_grid)
 
     else:
@@ -174,7 +177,7 @@ def compute_int_f(f: np.ndarray,
 
 def compute_int_f_squared(f: np.ndarray,
                           d_theta: float, d_r: float,
-                          r_grid: np.ndarray, theta_grid: np.ndarray = None,
+                          r_grid: np.ndarray,
                           method: str = 'sum'):
     """
     Compute the integral of f^2 over the whole domain in polar coordinates.
@@ -216,9 +219,16 @@ def compute_int_f_squared(f: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if not isinstance(theta_grid, np.ndarray):
-            theta_grid = np.arange(0, 2*np.pi, d_theta)
-        res = trapezoid(np.multiply(trapezoid(f**2, theta_grid, axis=0),
+        # We have to append the values of f at theta = 0 for theta = 2*pi in order for the
+        # trapezoidal method to work
+        f_trap = np.append(f, [f[0, :]], axis=0)
+
+        theta_grid = np.arange(0, 2*np.pi + d_theta/10, d_theta)
+
+        assert f_trap.shape[0] == len(theta_grid), \
+            f'First axis of f does not have the same length as theta grid : {f_trap.shape[0]} != {len(theta_grid)}'
+
+        res = trapezoid(np.multiply(trapezoid(f_trap**2, theta_grid, axis=0),
                                     r_grid), r_grid)
 
     else:
@@ -232,7 +242,7 @@ def compute_int_f_squared(f: np.ndarray,
 
 def get_total_energy(f: np.ndarray, phi: np.ndarray,
                      d_theta: float, d_r: float,
-                     r_grid: np.ndarray, theta_grid: np.ndarray = None,
+                     r_grid: np.ndarray,
                      method: str = 'sum'):
     """
     Compute the total energy, i.e. the integral of f times phi over the whole
@@ -267,13 +277,19 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
     if len(f.shape) == 1:
         f = convert_flat_to_2d(f, N_r=len(r_grid))
 
+    assert f.shape[1] == len(r_grid), \
+        f'Second axis of f does not have the same length as r grid : {f.shape[1]} != {len(r_grid)}'
+
     if len(phi.shape) == 1:
         phi = convert_flat_to_2d(phi, N_r=len(r_grid))
 
-    # point-wise multiplication
-    f_phi = np.multiply(f, phi)
+    assert phi.shape[1] == len(r_grid), \
+        f'Second axis of f does not have the same length as r grid : {phi.shape[1]} != {len(r_grid)}'
 
     if method == 'sum':
+        # point-wise multiplication
+        f_phi = np.multiply(f, phi)
+
         # sum over values in theta direction
         res_t = np.sum(f_phi, axis=0)
         res_t = np.multiply(res_t, r_grid)
@@ -283,9 +299,22 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         res *= d_theta * d_r
 
     elif method == 'trapz':
-        if not isinstance(theta_grid, np.ndarray):
-            theta_grid = np.arange(0, 2*np.pi, d_theta)
-        res = trapezoid(np.multiply(trapezoid(f_phi, theta_grid, axis=0),
+        # We have to append the values of f at theta = 0 for theta = 2*pi in order for the
+        # trapezoidal method to work
+        f_trap = np.append(f, [f[0, :]], axis=0)
+        phi_trap = np.append(phi, [phi[0, :]], axis=0)
+
+        theta_grid = np.arange(0, 2*np.pi + d_theta/10, d_theta)
+
+        assert f_trap.shape[0] == len(theta_grid), \
+            f'First axis of f does not have the same length as theta grid : {f_trap.shape[0]} != {len(theta_grid)}'
+
+        assert phi_trap.shape[0] == len(theta_grid), \
+            f'First axis of f does not have the same length as theta grid : {phi_trap.shape[0]} != {len(theta_grid)}'
+
+        f_phi_trap = np.multiply(f_trap, phi_trap)
+
+        res = trapezoid(np.multiply(trapezoid(f_phi_trap, theta_grid, axis=0),
                                     r_grid), r_grid)
     else:
         raise NotImplementedError(

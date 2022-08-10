@@ -117,7 +117,7 @@ def test_bracket_mean(bc, order, tol=1e-10):
 @pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
 @pytest.mark.parametrize('order', [2, 4])
 @pytest.mark.parametrize('int_method', ['sum', 'trapz'])
-def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
+def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
     """
     Test the conservation of the discrete integral of f, f^2, and phi over
     the whole domain for an evolution in time.
@@ -187,19 +187,19 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
     # Ensure that the bracket and products with its arguments are zero at the beginning.
     # Note that since the bracket does not include the scaling we give np.ones as r_grid
     # (so the r scaling in the integral doesn't do anything)
-    int_J = compute_int_f(J_phi_f, d_theta, d_r, np.ones(len(r_grid)),
-                          theta_grid, method=int_method)
-    int_J_f = compute_int_f(np.multiply(J_phi_f, f),
-                            d_theta, d_r, np.ones(len(r_grid)), theta_grid, method=int_method)
-    int_J_phi = compute_int_f(np.multiply(J_phi_f, phi),
-                              d_theta, d_r, np.ones(len(r_grid)), theta_grid, method=int_method)
+    int_J = compute_int_f(J_phi_f, d_theta, d_r,
+                          np.ones(len(r_grid)), method=int_method)
+    int_J_f = compute_int_f(np.multiply(J_phi_f, f), d_theta, d_r,
+                            np.ones(len(r_grid)), method=int_method)
+    int_J_phi = compute_int_f(np.multiply(J_phi_f, phi), d_theta, d_r,
+                              np.ones(len(r_grid)), method=int_method)
 
     assert int_J < tol
     assert int_J_f < tol
     assert int_J_phi < tol
 
-    dt = 0.01
-    N = 20
+    dt = 0.1
+    N = 30
 
     r_scaling = np.tile(r_grid, N_theta)
 
@@ -208,11 +208,12 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
         r_scaling[ind_bd_left] *= 1/2
         r_scaling[ind_bd_right] *= 1/2
 
-    int_f_init = compute_int_f(f, d_theta, d_r, r_grid, method=int_method)
-    int_f_squared_init = compute_int_f_squared(
-        f, d_theta, d_r, r_grid, method=int_method)
-    total_energy_init = get_total_energy(
-        f, phi, d_theta, d_r, r_grid, method=int_method)
+    int_f_init = compute_int_f(f, d_theta, d_r,
+                               r_grid, method=int_method)
+    int_f_squared_init = compute_int_f_squared(f, d_theta, d_r,
+                                               r_grid, method=int_method)
+    total_energy_init = get_total_energy(f, phi, d_theta, d_r,
+                                         r_grid, method=int_method)
 
     for _ in range(N):
         # scaling is only found in the identity
@@ -222,11 +223,12 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-3):
 
         f[:] = spsolve(A, B.dot(f))
 
-        int_f = compute_int_f(f, d_theta, d_r, r_grid, method=int_method)
-        int_f_squared = compute_int_f_squared(
-            f, d_theta, d_r, r_grid, method=int_method)
-        total_energy = get_total_energy(
-            f, phi, d_theta, d_r, r_grid, method=int_method)
+        int_f = compute_int_f(f, d_theta, d_r,
+                              r_grid, method=int_method)
+        int_f_squared = compute_int_f_squared(f, d_theta, d_r,
+                                              r_grid, method=int_method)
+        total_energy = get_total_energy(f, phi, d_theta, d_r,
+                                        r_grid, method=int_method)
 
         assert np.abs(int_f - int_f_init)/int_f_init < iter_tol
         assert np.abs(int_f_squared - int_f_squared_init) / \
