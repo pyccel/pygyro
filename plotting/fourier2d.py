@@ -21,19 +21,17 @@ def Fourier2D(F0, y0, x0):
 
     Lx   = x[nx - 1] - x[0]
     dx   = x[1] - x[0]
-    dkx  = 2. * np.pi / (Lx + dx)
     kx   = np.zeros(nx)
-    temp = -dkx * np.r_[1:hnx + 1]
+    temp = -np.r_[1:hnx + 1]
     kx[0:hnx]  = temp[::-1]
-    kx[hnx:nx] = dkx * np.r_[0:hnx]
+    kx[hnx:nx] = np.r_[0:hnx]
 
     Ly   = y[ny - 1] - y[0]
     dy   = y[1] - y[0]
-    dky  = 2. * np.pi / (Ly + dy)
     ky   = np.zeros(ny)
-    temp = -dky * np.r_[1:hny + 1]
+    temp = -np.r_[1:hny + 1]
     ky[0:hny]  = temp[::-1]
-    ky[hny:ny] = dky * np.r_[0:hny]
+    ky[hny:ny] = np.r_[0:hny]
 
     TFF = np.zeros((ny, nx), dtype=complex)
     AA  = np.zeros((ny, nx), dtype=complex)
