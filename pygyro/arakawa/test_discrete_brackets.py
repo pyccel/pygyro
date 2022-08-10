@@ -11,8 +11,7 @@ from .discrete_brackets_polar import assemble_bracket_arakawa
 @pytest.mark.parametrize('order', [2, 4])
 def test_skewsymmetry(bc, order, tol=1e-10):
     """
-    Test mean of the discrete bracket and mean of the bracket times each of its
-    arguments to be zero; these are equations (5), (6), and (7) in [1].
+    Test the skew-symmetric property of the discrete bracket.
 
     Parameters
     ----------
@@ -24,9 +23,6 @@ def test_skewsymmetry(bc, order, tol=1e-10):
 
         tol : float
             precision with which the quantities should be tested
-
-    [1] : A. Arakawa, 1966 - Computational Design for Long-Term Numerical Integration of
-    the Equations of Fluid Motion: Two-Dimensional Incompressible Flow. Part I
     """
     N_theta = 60
     N_r = 80
