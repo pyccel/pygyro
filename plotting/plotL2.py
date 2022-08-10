@@ -1,6 +1,7 @@
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+import os
 
 def plot_file(foldername):
     dataset = np.loadtxt(os.path.join(foldername, 'phiDat.txt'))
@@ -13,7 +14,7 @@ def plot_file(foldername):
     times[:] = dataset[:,0]
     norm [:] = dataset[:,1]
 
-    plt.semilogy(times,norm,'.')
+    plt.semilogy(times,norm,'.', label=foldername)
 
 
 parser = argparse.ArgumentParser(description='Process foldername')
@@ -29,15 +30,15 @@ parser.add_argument('foldername', metavar='filename',nargs='*',type=str,
 args = parser.parse_args()
 filename = os.path.join(args.foldername[0], 'phiDat.txt')
 
-p = args.pente[0]
-m = args.mult[0]
+p = args.pente
+m = args.mult
 
 dataset = np.loadtxt(filename)
 sorted_times = np.sort(dataset[:,0])
 
 plt.figure()
 plt.semilogy(sorted_times,m*np.exp(p*sorted_times), label=str(m)+'*exp('+str(p)+'*x)')
-for f in args.filename:
+for f in args.foldername:
     plot_file(f)
 plt.xlabel('time')
 plt.ylabel('$\|\phi\|_2$')
