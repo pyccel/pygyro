@@ -54,7 +54,7 @@ class ParallelGradient:
 
         # If there are too few points then the access cannot be optimised
         # at the boundaries in the way that has been used
-        assert(self._nz > order)
+        assert (self._nz > order)
 
         # Find the coefficients and shifts used to find the first derivative
         # of the correct order
@@ -139,7 +139,7 @@ class ParallelGradient:
         # Get scalar values necessary for this slice
         bz = self._bz[i]
         thetaVals = self._thetaVals[i]
-        assert(der.shape == phi_r.shape)
+        assert (der.shape == phi_r.shape)
         der[:] = 0
 
         # For each value of z interpolate the spline along theta and add
@@ -293,7 +293,7 @@ class FluxSurfaceAdvection:
             The current index of r. Not necessary if iota does not depend on r
 
         """
-        assert(f.shape == self._nPoints)
+        assert (f.shape == self._nPoints)
 
         # find the values of the function at each required point
         for i in range(self._nPoints[1]):
@@ -314,7 +314,7 @@ class FluxSurfaceAdvection:
         """
         TODO
         """
-        assert(grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2))
+        assert (grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2))
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
                 self.step(grid.get2DSlice(i, j), j)
@@ -383,7 +383,7 @@ class VParallelAdvection:
             The radial coordinate
 
         """
-        assert(f.shape == self._nPoints)
+        assert (f.shape == self._nPoints)
         self._interpolator.compute_interpolant(f, self._spline)
 
         v_parallel_advection_eval_step(f, self._points-c*dt, r, self._points[0],
@@ -493,7 +493,7 @@ class PoloidalAdvection:
         v: float
             The parallel velocity coordinate
         """
-        assert(f.shape == self._nPoints)
+        assert (f.shape == self._nPoints)
 
         self._interpolator.compute_interpolant(f, self._spline)
 
@@ -537,7 +537,7 @@ class PoloidalAdvection:
         """
         TODO
         """
-        assert(f.shape == self._nPoints)
+        assert (f.shape == self._nPoints)
 
         self._interpolator.compute_interpolant(f, self._spline)
 
@@ -552,8 +552,8 @@ class PoloidalAdvection:
         gridLayout = grid.getLayout(grid.currentLayout)
         phiLayout = phi.getLayout(grid.currentLayout)
 
-        assert(gridLayout.dims_order[1:] == phiLayout.dims_order)
-        assert(gridLayout.dims_order == (3, 2, 1, 0))
+        assert (gridLayout.dims_order[1:] == phiLayout.dims_order)
+        assert (gridLayout.dims_order == (3, 2, 1, 0))
 
         # Evaluate splines
         for j, _ in grid.getCoords(1):  # z
@@ -570,7 +570,7 @@ class PoloidalAdvection:
         """
         gridLayout = grid.getLayout(grid.currentLayout)
 
-        assert(gridLayout.dims_order == (3, 2, 1, 0))
+        assert (gridLayout.dims_order == (3, 2, 1, 0))
 
         # Do step
         for i, v in grid.getCoords(0):
@@ -660,7 +660,6 @@ class PoloidalAdvectionArakawa:
 
         self._max_loops = 0
 
-        # temporarily hard coded parameters for now
         self.bc = bc
 
         self.order = order
@@ -671,8 +670,7 @@ class PoloidalAdvectionArakawa:
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
                                  range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
 
-        self.r_scaling = np.array([self._points_r[k % self._nPoints_r]
-                                   for k in range(np.prod(self._nPoints))])
+        self.r_scaling = np.tile(self._points_r, self._nPoints_theta)
 
         # scaling of the boundary measure
         if self.bc == 'dirichlet':
@@ -732,7 +730,7 @@ class PoloidalAdvectionArakawa:
         # np.real allocates new memory and should be replaced
         phi = np.real(phi.ravel())
 
-        assert(f.shape == np.prod(self._nPoints)), \
+        assert (f.shape == np.prod(self._nPoints)), \
             f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
 
         # enforce bc strongly?
@@ -790,8 +788,8 @@ class PoloidalAdvectionArakawa:
         gridLayout = grid.getLayout(grid.currentLayout)
         phiLayout = phi.getLayout(grid.currentLayout)
 
-        assert(gridLayout.dims_order[1:] == phiLayout.dims_order)
-        assert(gridLayout.dims_order == (3, 2, 1, 0))
+        assert (gridLayout.dims_order[1:] == phiLayout.dims_order)
+        assert (gridLayout.dims_order == (3, 2, 1, 0))
 
         # Do step
         for i, _ in grid.getCoords(0):  # v

@@ -186,7 +186,7 @@ class BSplines():
             Last cell includes right endpoint.
         """
         a, b = self.domain
-        assert(a <= x <= b)
+        assert (a <= x <= b)
         return int(np.searchsorted(self.breaks, x, side='right') - 1)
 
 # ===============================================================================

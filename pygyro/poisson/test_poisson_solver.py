@@ -62,7 +62,7 @@ def test_DensityFinder_poly_Rho(param_df_poly):
         3 + coeffs[2]*10**2/2 + coeffs[3]*10
 
     err = rho._f - vals
-    assert((np.abs(err) < tol).all())
+    assert ((np.abs(err) < tol).all())
 
 
 @pytest.mark.parallel
@@ -115,7 +115,7 @@ def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
         3 + coeffs[2]*10**2/2 + coeffs[3]*10
 
     err = rho._f - vals
-    assert((np.abs(err) < tol).all())
+    assert ((np.abs(err) < tol).all())
 
 
 @pytest.mark.parallel
@@ -164,7 +164,7 @@ def test_DensityFinder_cos_Rho(npts_v, tol):
     vals = np.sin(10)
 
     err = rho._f - vals
-    assert((np.abs(err) < tol).all())
+    assert ((np.abs(err) < tol).all())
 
 
 @pytest.mark.parallel
@@ -215,7 +215,7 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v, tol):
     vals = np.sin(10)
 
     err = rho._f - vals
-    assert((np.abs(err) < tol).all())
+    assert ((np.abs(err) < tol).all())
 
 
 @pytest.mark.serial
@@ -260,7 +260,7 @@ def test_BasicPoissonEquation_Dirichlet_r_function(param_poisson_dirichlet):
     ps.solveEquationForFunction(phi, lambda x: np.ones_like(x))
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -308,7 +308,7 @@ def test_BasicPoissonEquation_Dirichlet_r_discrete(param_poisson_dirichlet):
 
     ps.solveEquation(phi, rho)
 
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -358,7 +358,7 @@ def test_BasicPoissonEquation_lNeumann_discrete(param_poisson_neumann):
 
     ps.solveEquation(phi, rho)
 
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -405,7 +405,7 @@ def test_BasicPoissonEquation_lNeumann_function(param_poisson_neumann):
     ps.solveEquationForFunction(phi, np.ones_like)
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -455,7 +455,7 @@ def test_BasicPoissonEquation_rNeumann_discrete(param_poisson_neumann):
 
     ps.solveEquation(phi, rho)
 
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -502,7 +502,7 @@ def test_BasicPoissonEquation_rNeumann_function(param_poisson_neumann):
     ps.solveEquationForFunction(phi, lambda x: 1)
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -565,7 +565,7 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
     ps.findPotential(phi)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -616,7 +616,7 @@ def test_grad_discrete(param_grad):
     ps.solveEquation(phi, rho)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -663,7 +663,7 @@ def test_grad_function(param_grad):
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0])))
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -714,7 +714,7 @@ def test_grad_r_discrete(param_grad_r):
     ps.solveEquation(phi, rho)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -760,7 +760,7 @@ def test_grad_r_function(param_grad_r):
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0]))*r)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.parallel
@@ -817,7 +817,7 @@ def test_grad_withFFT(deg, npt, eps):
     ps.findPotential(phi)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -877,7 +877,7 @@ def test_Sin_r_Sin_theta(param_sin_sin):
     ps.findPotential(phi)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -938,7 +938,7 @@ def test_ddTheta(param_fft):
 
     ps.findPotential(phi)
 
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -1000,7 +1000,7 @@ def test_phi(param_fft):
     ps.findPotential(phi)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < eps).all())
+    assert ((np.abs(phi._f-phi_exact._f) < eps).all())
 
 
 @pytest.mark.serial
@@ -1081,7 +1081,7 @@ def test_quasiNeutrality():
     ps.findPotential(phi)
 
     #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert((np.abs(phi._f-phi_exact._f) < 0.1).all())
+    assert ((np.abs(phi._f-phi_exact._f) < 0.1).all())
 
 
 @pytest.mark.parallel
@@ -1180,7 +1180,7 @@ def test_Equilibrium():
 
     # print(rho._f)
 
-    assert(np.max(rho._f) < 1e-8)
+    assert (np.max(rho._f) < 1e-8)
 
     qnSolver = QuasiNeutralitySolver(
         grid.eta_grid, 6, rho.getSpline(0), constants, chi=0)
@@ -1195,7 +1195,7 @@ def test_Equilibrium():
 
     qnSolver.findPotential(phi)
 
-    assert(np.max(np.real(phi._f)) < 1e-8)
+    assert (np.max(np.real(phi._f)) < 1e-8)
 
 
 @pytest.mark.serial
@@ -1261,8 +1261,8 @@ def test_BasicPoissonEquation_exact(deg):
     l2 = np.sqrt(trapz(np.real(err*err.conj()), x))
     lInf = np.max(np.abs(phi._f-phi_exact._f))
 
-    assert(l2 < 1e-10)
-    assert(lInf < 1e-10)
+    assert (l2 < 1e-10)
+    assert (lInf < 1e-10)
 
 
 @pytest.mark.serial

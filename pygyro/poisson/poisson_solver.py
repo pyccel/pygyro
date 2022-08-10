@@ -71,8 +71,8 @@ class DensityFinder:
             density will be stored
 
         """
-        assert(grid.getLayout(grid.currentLayout).dims_order == (0, 2, 1, 3))
-        assert(rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
+        assert (grid.getLayout(grid.currentLayout).dims_order == (0, 2, 1, 3))
+        assert (rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
 
         rIndices = grid.getGlobalIdxVals(0)
 
@@ -105,8 +105,8 @@ class DensityFinder:
             density will be stored
 
         """
-        assert(grid.getLayout(grid.currentLayout).dims_order == (0, 2, 1, 3))
-        assert(rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
+        assert (grid.getLayout(grid.currentLayout).dims_order == (0, 2, 1, 3))
+        assert (rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
 
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # z
@@ -358,8 +358,8 @@ class DiffEqSolver:
             differential equation.
 
         """
-        assert(isinstance(rho.get1DSlice(0, 0)[0], np.complex128))
-        assert(rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
+        assert (isinstance(rho.get1DSlice(0, 0)[0], np.complex128))
+        assert (rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1))
         for i, _ in rho.getCoords(0):  # r
             for j, _ in rho.getCoords(1):  # z
                 vec = rho.get1DSlice(i, j)
@@ -385,7 +385,7 @@ class DiffEqSolver:
 
         """
 
-        assert(rho.getLayout(rho.currentLayout).dims_order[-1] == 0)
+        assert (rho.getLayout(rho.currentLayout).dims_order[-1] == 0)
 
         for i, I in enumerate(rho.getGlobalIdxVals(0)):
             # For each mode on this process, create the necessary matrix
@@ -512,8 +512,8 @@ class DiffEqSolver:
 
         """
 
-        assert(isinstance(phi.get1DSlice(0, 0)[0], np.complex128))
-        assert(phi.getLayout(phi.currentLayout).dims_order == (0, 2, 1))
+        assert (isinstance(phi.get1DSlice(0, 0)[0], np.complex128))
+        assert (phi.getLayout(phi.currentLayout).dims_order == (0, 2, 1))
 
         for i, _ in phi.getCoords(0):  # r
             for j, _ in phi.getCoords(1):  # z
@@ -619,7 +619,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
             self._stiffness0 = self._stiffnessMatrix
 
         else:
-            assert('chi' in kwargs)
+            assert ('chi' in kwargs)
             chi = kwargs.pop('chi')
 
             DiffEqSolver.__init__(self, degree, rspline, eta_grid[0].size, eta_grid[1].size,
@@ -656,7 +656,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
 
         """
 
-        assert(rho.getLayout(rho.currentLayout).dims_order[-1] == 0)
+        assert (rho.getLayout(rho.currentLayout).dims_order[-1] == 0)
 
         for i, I in enumerate(rho.getGlobalIdxVals(0)):
             #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2

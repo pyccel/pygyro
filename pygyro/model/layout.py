@@ -640,7 +640,7 @@ class LayoutHandler(LayoutManager):
             destView = np.split(dest, [layout_dest.size])[
                 0].reshape(layout_dest.shape)
 
-            assert(destView.base is dest)
+            assert (destView.base is dest)
 
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
@@ -742,12 +742,12 @@ class LayoutHandler(LayoutManager):
         for (split_length, mpi_start) in zip(layout_dest.mpi_lengths(axis[0]), layout_dest.mpi_starts(axis[0])):
             # Get a view on the buffer which is the same size as the block
             arr = tobuffer[start:start+size].reshape(shape)
-            assert(arr.base is tobuffer)
+            assert (arr.base is tobuffer)
 
             # Use the list of slices to access the relevant elements on the block
             ranges[axis[1]] = slice(split_length)
             arrView = arr[tuple(ranges)]
-            assert(arrView.base is tobuffer)
+            assert (arrView.base is tobuffer)
 
             source_range[axis[1]] = slice(mpi_start, mpi_start+split_length)
 
@@ -779,11 +779,11 @@ class LayoutHandler(LayoutManager):
 
         # Get a view on the data to be sent
         sendBuf = np.split(data, [size], axis=0)[0]
-        assert(sendBuf.base is data)
+        assert (sendBuf.base is data)
 
         # Get a view where the data will be received
         rcvBuf = np.split(buf, [size], axis=0)[0]
-        assert(rcvBuf.base is buf)
+        assert (rcvBuf.base is buf)
 
         comm.Alltoall(sendBuf, rcvBuf)
 
@@ -801,11 +801,11 @@ class LayoutHandler(LayoutManager):
         # Get a view on the destination
         destView = np.split(data, [layout_dest.size])[
             0].reshape(layout_dest.shape)
-        assert(destView.base is data)
+        assert (destView.base is data)
 
         # Get a view on the actual data received
         bufView = np.split(buf, [size])[0].reshape(source_shape)
-        assert(bufView.base is buf)
+        assert (bufView.base is buf)
 
         if (layout_dest.shape[axis[2]] % mpi_size == 0 and layout_source.shape[axis[1]] % mpi_size == 0):
             # If all blocks are the same shape with no padding then the
@@ -822,7 +822,7 @@ class LayoutHandler(LayoutManager):
                 bufRanges[0] = slice(
                     start, start+layout_source.mpi_lengths(axis[0])[r])
 
-                assert(bufView[tuple(bufRanges)].base is buf)
+                assert (bufView[tuple(bufRanges)].base is buf)
 
                 # Get a view on the block in the destination memory
                 destRanges = [slice(x) for x in layout_dest.shape]
@@ -919,7 +919,7 @@ class LayoutSwapper(LayoutManager):
         self._comm = comm
 
         self._nLayoutManagers = len(layouts)
-        if(self._nLayoutManagers != len(nprocs)):
+        if (self._nLayoutManagers != len(nprocs)):
             raise RuntimeError(
                 'There must be an equal number of layout sets and distribution setups')
 
@@ -937,7 +937,7 @@ class LayoutSwapper(LayoutManager):
         self._nprocs = []
         for n in nprocs:
 
-            assert(self._totProcs % np.prod(n) == 0)
+            assert (self._totProcs % np.prod(n) == 0)
 
             if (isinstance(n, int)):
                 N = [n]
@@ -1012,7 +1012,7 @@ class LayoutSwapper(LayoutManager):
 
                     # Choose the communicator which allows the most direct
                     # transitions
-                    assert(len(res) > 0)
+                    assert (len(res) > 0)
                     axis = max(res, key=lambda x: x[1])[0]
 
                 # Save the communicator used and stop it being accidentally

@@ -367,7 +367,7 @@ def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=0):
                     for k in range(1, deg2+1):
                         theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
                     z[i] += theCoeffs[j, 0]*basis1[j]
-        elif(der2 == 1):
+        elif (der2 == 1):
             for i in range(len(x)):
                 span1 = find_span(kts1, deg1, x[i])
                 span2 = find_span(kts2, deg2, y[i])
@@ -404,7 +404,7 @@ def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=0):
                     for k in range(1, deg2+1):
                         theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
                     z[i] += theCoeffs[j, 0]*basis1[j]
-        elif(der2 == 1):
+        elif (der2 == 1):
             for i in range(len(x)):
                 span1 = find_span(kts1, deg1, x[i])
                 span2 = find_span(kts2, deg2, y[i])
