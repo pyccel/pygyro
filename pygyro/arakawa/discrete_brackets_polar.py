@@ -26,6 +26,7 @@ def ind_to_tp_ind(ir, it, N_r):
 
     return tp_ind
 
+
 def neighbour_index(posr, post, ir, it, N_r, N_theta):
     """
     Calculate the tensorproduct index given two one-dimensional indices
@@ -59,6 +60,7 @@ def neighbour_index(posr, post, ir, it, N_r, N_theta):
     neigh_ind = (ir + posr) % N_r + ((it + post) % N_theta) * N_r
 
     return neigh_ind
+
 
 def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
     """
@@ -105,12 +107,15 @@ def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
             res = 2 * J - J2
 
     elif bc == 'extrapolation':
-        if order == 2: 
-            res = assemble_awk_bracket_dirichlet_extrapolation(phi, grid_theta, grid_r)
+        if order == 2:
+            res = assemble_awk_bracket_dirichlet_extrapolation(
+                phi, grid_theta, grid_r)
         elif order == 4:
-            J1 = assemble_awk_bracket_4th_order_dirichlet_extrapolation_part1(phi, grid_theta, grid_r)
-            J2 = assemble_awk_bracket_4th_order_dirichlet_extrapolation_part2(phi, grid_theta, grid_r)
-            res  = 2 * J1 - J2
+            J1 = assemble_awk_bracket_4th_order_dirichlet_extrapolation_part1(
+                phi, grid_theta, grid_r)
+            J2 = assemble_awk_bracket_4th_order_dirichlet_extrapolation_part2(
+                phi, grid_theta, grid_r)
+            res = 2 * J1 - J2
 
     else:
         raise NotImplementedError(
@@ -121,6 +126,7 @@ def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
 #######################################
 # Arakawas paper implementation of BC #
 #######################################
+
 
 def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     """
@@ -257,6 +263,7 @@ def assemble_awk_bracket_periodic(phi, grid_theta, grid_r):
     data = factor * np.array(data)
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
     return J
+
 
 def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     """
@@ -517,6 +524,7 @@ def assemble_awk_bracket_dirichlet(phi, grid_theta, grid_r):
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
     return J
 
+
 def assemble_awk_bracket_4th_order_periodic(phi, grid_theta, grid_r):
     """
     Assemble the extra terms needed for fourth order Arakawa scheme for the discrete
@@ -630,6 +638,7 @@ def assemble_awk_bracket_4th_order_periodic(phi, grid_theta, grid_r):
     data = factor * np.array(data)
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
     return J
+
 
 def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
     """
@@ -957,6 +966,7 @@ def assemble_awk_bracket_4th_order_dirichlet(phi, grid_theta, grid_r):
 # Extrapolation methods for BC #
 ################################
 
+
 def assemble_awk_bracket_dirichlet_extrapolation(phi, grid_theta, grid_r):
     """
     Assemble a discrete bracket J: f -> {phi, f} based on the Arakawa scheme as
@@ -1091,6 +1101,7 @@ def assemble_awk_bracket_dirichlet_extrapolation(phi, grid_theta, grid_r):
     data = factor * np.array(data)
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
     return J
+
 
 def assemble_awk_bracket_4th_order_dirichlet_extrapolation_part1(phi, grid_theta, grid_r):
     """
@@ -1227,6 +1238,7 @@ def assemble_awk_bracket_4th_order_dirichlet_extrapolation_part1(phi, grid_theta
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
     return J
 
+
 def assemble_awk_bracket_4th_order_dirichlet_extrapolation_part2(phi, grid_theta, grid_r):
     """
     Assemble the extra terms needed for fourth order Arakawa scheme for the discrete
@@ -1331,49 +1343,49 @@ def assemble_awk_bracket_4th_order_dirichlet_extrapolation_part2(phi, grid_theta
             row.append(ii)
             col.append(neighbour_index(1, -1, ir, it, N_r, N_theta))
             data.append(coef)
-    
+
     # In order to keep conservation (skew-symmetry), we have to add points outside
     # but we assume the it direction to be periodic, so there is cancellation
     ir = 0
     for it in range(N_theta):
-            ii = ind_to_tp_ind(ir, it, N_r)
+        ii = ind_to_tp_ind(ir, it, N_r)
 
-            # f_ir+2,it
-            coef = -phi[neighbour_index(1, -1, ir, it, N_r, N_theta)] \
-                + phi[neighbour_index(1, 1, ir, it, N_r, N_theta)]
-            row.append(ii)
-            col.append(neighbour_index(2, 0, ir, it, N_r, N_theta))
-            data.append(coef)
+        # f_ir+2,it
+        coef = -phi[neighbour_index(1, -1, ir, it, N_r, N_theta)] \
+            + phi[neighbour_index(1, 1, ir, it, N_r, N_theta)]
+        row.append(ii)
+        col.append(neighbour_index(2, 0, ir, it, N_r, N_theta))
+        data.append(coef)
 
     ir = 1
     for it in range(N_theta):
-            ii = ind_to_tp_ind(ir, it, N_r)
+        ii = ind_to_tp_ind(ir, it, N_r)
 
-            # f_ir+2,it
-            coef = -phi[neighbour_index(1, -1, ir, it, N_r, N_theta)] \
-                + phi[neighbour_index(1, 1, ir, it, N_r, N_theta)]
-            row.append(ii)
-            col.append(neighbour_index(2, 0, ir, it, N_r, N_theta))
-            data.append(coef)
+        # f_ir+2,it
+        coef = -phi[neighbour_index(1, -1, ir, it, N_r, N_theta)] \
+            + phi[neighbour_index(1, 1, ir, it, N_r, N_theta)]
+        row.append(ii)
+        col.append(neighbour_index(2, 0, ir, it, N_r, N_theta))
+        data.append(coef)
 
-            # f_ir+1,it+1
-            coef = phi[neighbour_index(-1, 1, ir, it, N_r, N_theta)] \
-                + phi[neighbour_index(0, 2, ir, it, N_r, N_theta)] \
-                - phi[neighbour_index(1, -1, ir, it, N_r, N_theta)] \
-                - phi[neighbour_index(2, 0, ir, it, N_r, N_theta)]
-            row.append(ii)
-            col.append(neighbour_index(1, 1, ir, it, N_r, N_theta))
-            data.append(coef)
+        # f_ir+1,it+1
+        coef = phi[neighbour_index(-1, 1, ir, it, N_r, N_theta)] \
+            + phi[neighbour_index(0, 2, ir, it, N_r, N_theta)] \
+            - phi[neighbour_index(1, -1, ir, it, N_r, N_theta)] \
+            - phi[neighbour_index(2, 0, ir, it, N_r, N_theta)]
+        row.append(ii)
+        col.append(neighbour_index(1, 1, ir, it, N_r, N_theta))
+        data.append(coef)
 
-            # f_ir+1,it-1
-            coef = -phi[neighbour_index(-1, -1, ir, it, N_r, N_theta)] \
-                - phi[neighbour_index(0, -2, ir, it, N_r, N_theta)] \
-                + phi[neighbour_index(1, 1, ir, it, N_r, N_theta)] \
-                + phi[neighbour_index(2, 0, ir, it, N_r, N_theta)]
-            row.append(ii)
-            col.append(neighbour_index(1, -1, ir, it, N_r, N_theta))
-            data.append(coef)
-    
+        # f_ir+1,it-1
+        coef = -phi[neighbour_index(-1, -1, ir, it, N_r, N_theta)] \
+            - phi[neighbour_index(0, -2, ir, it, N_r, N_theta)] \
+            + phi[neighbour_index(1, 1, ir, it, N_r, N_theta)] \
+            + phi[neighbour_index(2, 0, ir, it, N_r, N_theta)]
+        row.append(ii)
+        col.append(neighbour_index(1, -1, ir, it, N_r, N_theta))
+        data.append(coef)
+
     ir = N_r-2
     for it in range(N_theta):
         ii = ind_to_tp_ind(ir, it, N_r)
@@ -1414,10 +1426,9 @@ def assemble_awk_bracket_4th_order_dirichlet_extrapolation_part2(phi, grid_theta
         col.append(neighbour_index(-2, 0, ir, it, N_r, N_theta))
         data.append(coef)
 
-
     row = np.array(row)
     col = np.array(col)
     data = factor * np.array(data)
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
-    
+
     return J
