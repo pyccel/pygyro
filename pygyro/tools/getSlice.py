@@ -2,8 +2,6 @@ from pygyro.initialisation.setups import setupFromFile
 import h5py
 from mpi4py import MPI
 
-# import cProfile, pstats, io
-
 
 def get_grid_slice(foldername, tEnd):
     """

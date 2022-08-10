@@ -8,8 +8,6 @@ from ..model.process_grid import compute_2d_process_grid
 from ..model.grid import Grid
 from ..model.layout import LayoutSwapper
 
-# import cProfile, pstats, io
-
 
 def get_phi_slice(foldername, tEnd):
     """
