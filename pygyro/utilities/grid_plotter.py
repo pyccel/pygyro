@@ -469,6 +469,11 @@ class SlicePlotterNd(object):
         vmin = kwargs.pop('vmin', theSlice.min())
         vmax = kwargs.pop('vmax', theSlice.max())
         levels = kwargs.pop('levels', 20)
+        x_idx = np.argsort(self.x, axis=0)
+        y_idx = np.argsort(self.y, axis=1)
+        self.x = np.take_along_axis(np.take_along_axis(self.x, x_idx, axis=0), y_idx, axis=1)
+        self.y = np.take_along_axis(np.take_along_axis(self.y, x_idx, axis=0), y_idx, axis=1)
+        theSlice = np.take_along_axis(np.take_along_axis(theSlice, x_idx, axis=0), y_idx, axis=1)
         clevels = np.linspace(vmin, vmax, levels)
         if self.polar:
             self.plot = self.ax.contourf(
