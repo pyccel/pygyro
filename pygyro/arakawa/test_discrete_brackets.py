@@ -9,6 +9,55 @@ from .discrete_brackets_polar import assemble_bracket_arakawa
 
 @pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
 @pytest.mark.parametrize('order', [2, 4])
+def test_skewsymmetry(bc, order, tol=1e-10):
+    """
+    Test mean of the discrete bracket and mean of the bracket times each of its
+    arguments to be zero; these are equations (5), (6), and (7) in [1].
+
+    Parameters
+    ----------
+        bc : str
+            Boundary conditions for discrete bracket
+
+        order : int
+            Order of the Arakawa scheme
+
+        tol : float
+            precision with which the quantities should be tested
+
+    [1] : A. Arakawa, 1966 - Computational Design for Long-Term Numerical Integration of
+    the Equations of Fluid Motion: Two-Dimensional Incompressible Flow. Part I
+    """
+    N_theta = 60
+    N_r = 80
+    N_tot = N_theta * N_r
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r)
+
+    np.random.seed(1305)
+    phi = np.random.rand(N_theta, N_r).ravel()
+
+    # Set boundary values to a constant on each boundary
+    ind_bd_left = range(0, N_tot, N_r)
+    ind_bd_right = range(N_r - 1, N_tot, N_r)
+
+    np.random.seed(123)
+    phi[ind_bd_left] = np.random.rand()
+    np.random.seed(321)
+    phi[ind_bd_right] = np.random.rand()
+
+    J_phi = assemble_bracket_arakawa(bc, order,
+                                     phi, theta_grid, r_grid).toarray()
+
+    assert (J_phi + J_phi.transpose() < tol).all()
+
+
+@pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
+@pytest.mark.parametrize('order', [2, 4])
 def test_bracket_mean(bc, order, tol=1e-10):
     """
     Test mean of the discrete bracket and mean of the bracket times each of its
