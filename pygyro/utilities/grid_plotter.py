@@ -70,7 +70,7 @@ class SlicePlotterNd(object):
         # if (x,y) are (r,θ) then print in polar coordinates
         self.polar = polar
         if (polar):
-            self.x, self.y = np.meshgrid(self.x, [*self.y, self.y[0]])
+            self.y, self.x = np.meshgrid([*self.y, self.y[0]], self.x)
         else:
             self.x = np.repeat(self.x, ny).reshape(nx, ny)
             self.y = np.tile(self.y, nx).reshape(nx, ny)
@@ -477,7 +477,7 @@ class SlicePlotterNd(object):
         clevels = np.linspace(vmin, vmax, levels)
         if self.polar:
             self.plot = self.ax.contourf(
-                self.y, self.x, theSlice.T, levels=clevels, **kwargs)
+                self.y, self.x, theSlice, levels=clevels, **kwargs)
         else:
             self.plot = self.ax.contourf(
                 self.x, self.y, theSlice, levels=clevels, **kwargs)
