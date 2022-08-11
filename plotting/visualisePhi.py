@@ -1,5 +1,4 @@
-""" Functions to plot the initial electric potential configured from a local constants file iota0.json
-"""
+import argparse
 from mpi4py import MPI
 import numpy as np
 
@@ -10,11 +9,15 @@ from pygyro.utilities.grid_plotter import SlicePlotterNd
 from pygyro.initialisation.setups import setupCylindricalGrid
 from pygyro.diagnostics.norms import l2
 
+parser = argparse.ArgumentParser(description='Plot the intial electric potential')
+parser.add_argument('const_filename', type=str,
+                    help='The constants file describing the setup')
+args = parser.parse_args()
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-distribFunc, constants, t = setupCylindricalGrid(constantFile='iota0.json',
+distribFunc, constants, t = setupCylindricalGrid(constantFile=args.const_filename,
                                                  layout='v_parallel',
                                                  comm=comm,
                                                  allocateSaveMemory=True)
