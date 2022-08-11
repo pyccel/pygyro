@@ -9,9 +9,21 @@ from ..model.grid import Grid
 from ..model.layout import LayoutSwapper
 
 
-def get_phi_slice(foldername, tEnd):
+def get_phi_slice(foldername, tEnd, z_idx = 0):
     """
-    TODO
+    Extract a poloidal slice of the electric potential at time tEnd from the specified folder
+    and save the slice into a file named PhiSlice_tEnd.h5 . The data is saved with theta
+    in the first dimension, and r in the second dimension
+
+    Parameters
+    ----------
+    foldername : str
+                 The folder containing the simulation
+    tEnd       : int
+                 The time which should be examined to obtain the slice
+    z_idx      : int
+                 The index of the slice in the z direction
+                 Default : 0
     """
 
     assert(len(foldername) > 0)
@@ -19,12 +31,12 @@ def get_phi_slice(foldername, tEnd):
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
 
-    filename = "{0}/initParams.json".format(foldername)
+    filename = os.path.join(foldername,"initParams.json")
     constants = get_constants(filename)
 
     npts = constants.npts
 
-    degree = [3, 3, 3]
+    degree = constants.splineDegrees[:-1]
     period = [False, True, True]
     domain = [[constants.rMin, constants.rMax], [
         0, 2*np.pi], [constants.zMin, constants.zMax]]
@@ -54,17 +66,35 @@ def get_phi_slice(foldername, tEnd):
 
     phi.setLayout('poloidal')
 
-    if (0 in phi.getGlobalIdxVals(0)):
+    if z_idx is None:
+        z_idx = 0
+    else:
+        assert z_idx < distribFunc.eta_grid[2].size
+
+    if (z_idx in phi.getGlobalIdxVals(0)):
         filename = "{0}/PhiSlice_{1}.h5".format(foldername, tEnd)
         file = h5py.File(filename, 'w')
         dset = file.create_dataset(
             "dset", [phi.eta_grid[1].size, phi.eta_grid[0].size])
-        dset[:] = np.real(phi.get2DSlice(0))
+        starts = phi.getLayout(phi.currentLayout).starts
+        dset[:] = np.real(phi.get2DSlice(z_idx))
         file.close()
 
 def get_flux_surface_phi_slice(foldername, tEnd):
     """
-    TODO
+    Extract a poloidal slice of the electric potential at time tEnd from the specified folder
+    and save the slice into a file named PhiFluxSlice_tEnd.h5 . The data is saved with z
+    in the first dimension, and theta in the second dimension
+
+    Parameters
+    ----------
+    foldername : str
+                 The folder containing the simulation
+    tEnd       : int
+                 The time which should be examined to obtain the slice
+    r_idx      : int
+                 The index of the slice in the r direction
+                 Default : nr//2
     """
 
     assert(len(foldername) > 0)
@@ -72,7 +102,7 @@ def get_flux_surface_phi_slice(foldername, tEnd):
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
 
-    filename = "{0}/initParams.json".format(foldername)
+    filename = os.path.join(foldername, "initParams.json")
     constants = get_constants(filename)
 
     npts = constants.npts
@@ -107,13 +137,17 @@ def get_flux_surface_phi_slice(foldername, tEnd):
 
     phi.setLayout('v_parallel_2d')
 
-    nr = phi.eta_grid[0].size
+    if r_idx is None
+        nr = distribFunc.eta_grid[0].size
+        r_idx = nr//2
+    else:
+        assert r_idx < distribFunc.eta_grid[0].size
 
-    if (nr//2 in phi.getGlobalIdxVals(0)):
+    if (r_idx in phi.getGlobalIdxVals(0)):
         filename = "{0}/PhiFluxSlice_{1}.h5".format(foldername, tEnd)
         file = h5py.File(filename, 'w')
         dset = file.create_dataset(
             "dset", [phi.eta_grid[2].size, phi.eta_grid[1].size])
-        i = nr//2 - phi.getLayout(phi.currentLayout).starts[0]
+        i = r_idx - phi.getLayout(phi.currentLayout).starts[0]
         dset[:] = np.real(phi.get2DSlice(i))
         file.close()
