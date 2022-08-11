@@ -38,7 +38,7 @@ def get_grid_slice(foldername, tEnd, z_idx = None, v_idx = None):
     else:
         assert z_idx < distribFunc.eta_grid[2].size
 
-    if v_idx is None
+    if v_idx is None:
         nv = distribFunc.eta_grid[3].size
         v_idx = nv//2
     else:
@@ -85,13 +85,13 @@ def get_flux_surface_grid_slice(foldername, tEnd, r_idx = None, v_idx = None):
 
     distribFunc.setLayout('flux_surface')
 
-    if r_idx is None
+    if r_idx is None:
         nr = distribFunc.eta_grid[0].size
         r_idx = nr//2
     else:
         assert r_idx < distribFunc.eta_grid[0].size
 
-    if v_idx is None
+    if v_idx is None:
         nv = distribFunc.eta_grid[3].size
         v_idx = nv//2
     else:

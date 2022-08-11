@@ -137,7 +137,7 @@ def get_flux_surface_phi_slice(foldername, tEnd):
 
     phi.setLayout('v_parallel_2d')
 
-    if r_idx is None
+    if r_idx is None:
         nr = distribFunc.eta_grid[0].size
         r_idx = nr//2
     else:
