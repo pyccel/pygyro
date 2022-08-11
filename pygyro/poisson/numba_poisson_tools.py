@@ -1,5 +1,6 @@
 from numba import njit
 
+
 @njit
 def get_perturbed_rho(rho, feq, grid, quad_coeffs):
     """
