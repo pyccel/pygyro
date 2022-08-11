@@ -124,3 +124,14 @@ make ACC=pythran pythran
 will compile the code using pythran.
 
 The code can then be run as previously described for the pure python setup.
+
+Plotting
+========
+
+Several plotting tools are provided inside the plotting/ folder.
+
+Some of these import tools from inside pygyro. In order to use these please run the following command from the pygyro home directory before calling them:
+
+```
+export PYTHONPATH=$(pwd)
+```

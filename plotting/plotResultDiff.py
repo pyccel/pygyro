@@ -4,53 +4,30 @@ import numpy as np
 import h5py
 import argparse
 
-from pygyro.initialisation import constants
+from pygyro.initialisation.constants import get_constants
 from pygyro import splines as spl
 from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.layout import getLayoutHandler
 
 
-parser = argparse.ArgumentParser(description='Process foldername')
+parser = argparse.ArgumentParser(
+    description='Compare 2 distribution functions having the same number of points')
 parser.add_argument('initF', metavar='initF', nargs=1, type=str,
-                    help='init file')
+                    help='init file (json)')
 parser.add_argument('f1', metavar='f1', nargs=1, type=str,
-                    help='file1')
+                    help='The file describing the first distribution function')
 parser.add_argument('f2', metavar='f2', nargs=1, type=str,
-                    help='file2')
+                    help='The file describing the first distribution function')
 
 args = parser.parse_args()
-filename = args.initF[0]
+init_filename = args.initF[0]
 filename1 = args.f1[0]
 filename2 = args.f2[0]
 
+constants = get_constants(init_filename)
+
 
 comm = MPI.COMM_WORLD
-print(filename)
-save_file = h5py.File(filename, 'r', driver='mpio', comm=comm)
-group = save_file['constants']
-for i in group.attrs:
-    constants.i = group.attrs[i]
-constants.rp = 0.5*(constants.rMin + constants.rMax)
-
-rMin = constants.rMin
-rMax = constants.rMax
-zMin = constants.zMin
-zMax = constants.zMax
-vMax = constants.vMax
-vMin = constants.vMin
-m = constants.m
-n = constants.n
-eps = constants.eps
-
-group = save_file['degrees']
-rDegree = int(group.attrs['r'])
-qDegree = int(group.attrs['theta'])
-zDegree = int(group.attrs['z'])
-vDegree = int(group.attrs['v'])
-
-npts = save_file.attrs['npts']
-
-save_file.close()
 
 allocateSaveMemory = False
 dtype = float
@@ -62,8 +39,11 @@ layout_comm = comm
 mpi_size = layout_comm.Get_size()
 
 
-domain = [[rMin, rMax], [0, 2*pi], [zMin, zMax], [vMin, vMax]]
-degree = [rDegree, qDegree, zDegree, vDegree]
+npts = constants.npts
+
+domain = [[constants.rMin, constants.rMax], [0, 2*pi],
+          [constants.zMin, constants.zMax], [constants.vMin, constants.vMax]]
+degree = constants.splineDegrees
 period = [False, True, True, False]
 
 # Compute breakpoints, knots, spline space and grid points
@@ -101,13 +81,25 @@ dataset = file['/dset']
 order2 = np.array(dataset.attrs['Layout'])
 
 
-assert (order1 == order2).all()
+assert ((order1 == order2).all())
 
 data2 = np.empty_like(data1)
 data2[:] = dataset[slices]
 file.close()
 
-err = comm.reduce(np.max(np.abs(data2-data1)), MPI.MAX, root=0)
 
 if (rank == 0):
-    print(filename1, filename2, err, file=open("profile/comparison.txt", "a"))
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+    line1 = ax.pcolormesh(
+        eta_grids[3], eta_grids[1], (data1-data2)[0, 0, :, :])
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    fig.colorbar(line1, cax=colorbarax2)
+
+    plt.show()
