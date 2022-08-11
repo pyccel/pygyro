@@ -18,14 +18,14 @@ def plot_file(foldername):
     plt.semilogy(times, norm, '.', label=foldername)
 
 
-parser = argparse.ArgumentParser(description='Process foldername')
+parser = argparse.ArgumentParser(description='Plot the L2 norm of phi as a function of time')
 parser.add_argument('-p', dest='pente', type=float,
                     default=3.83e-3,
                     help='The gradient of the expected linear regime (eg. for 1.12e-5*exp(3.83e-3*x) : 3.83e-3)')
 parser.add_argument('-m', dest='mult', type=float,
                     default=1.12e-5,
                     help='The multiplication factor of the expected linear regime (eg. for 1.12e-5*exp(3.83e-3*x) : 1.12e-5)')
-parser.add_argument('foldername', metavar='filename', nargs='*', type=str,
+parser.add_argument('foldername', metavar='foldername', nargs='*', type=str,
                     help='The folders whose results should be plotted')
 
 args = parser.parse_args()
