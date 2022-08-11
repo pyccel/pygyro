@@ -6,12 +6,13 @@ import numpy as np
 def Fourier2D(F0, y0, x0):
 
     """ Personal FFT2D function"""
-    print(F0.shape, y0.shape, x0.shape)
-
     nx0 = len(x0)
+    ny0 = len(y0)
+
+    assert (ny0, nx0) == F0.shape
+
     nx  = 2 * int(nx0 / 2)
     hnx = int(nx / 2)
-    ny0 = len(y0)
     ny  = 2 * int(ny0 / 2)
     hny = int(ny / 2)
 
