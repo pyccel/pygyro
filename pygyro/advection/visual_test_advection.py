@@ -283,7 +283,7 @@ def test_poloidalAdvection_vortex():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvection(eta_vals, bsplines[::-1], constants)
+    polAdv = PoloidalAdvection(eta_vals, constants)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -363,7 +363,7 @@ def test_poloidalAdvectionArakawa_vortex():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, bsplines[::-1], constants)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -523,7 +523,7 @@ def test_poloidalAdvectionArakawa_constantAdv():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=False)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
