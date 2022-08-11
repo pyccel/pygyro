@@ -29,7 +29,7 @@ constants = get_constants(filename)
 
 npts = constants.npts
 
-degree = [3, 3, 3]
+degree = constants.splineDegrees[:-1]
 period = [False, True, True]
 domain = [[constants.rMin, constants.rMax], [
     0, 2*np.pi], [constants.zMin, constants.zMax]]
@@ -61,11 +61,11 @@ r_idx = npts[0]//2
 
 ###############################################################
 
-Ntheta = phi.eta_grid[1].size
-Nphi = phi.eta_grid[2].size
-
-z = phi.eta_grid[2]
 theta = phi.eta_grid[1]
+z = phi.eta_grid[2]
+
+Ntheta = theta.size
+Nz = z.size
 
 n_time_steps=121
 time_grid = np.linspace(0,6000,n_time_steps, dtype=int)
@@ -73,14 +73,14 @@ time_grid = np.linspace(0,6000,n_time_steps, dtype=int)
 m_max          = 4
 nb_mn_unstable = 7
 ktheta0 = int(Ntheta//2)
-kphi0   = int(Nphi//2)
+kphi0   = int(Nz//2)
 
 Abs_modes_m0 = np.zeros((m_max+1,n_time_steps))
 Abs_modes_mn_unstable = np.zeros((nb_mn_unstable+1,n_time_steps))
 
 phi.loadFromFile(foldername, 0, "phi")
 assert r_idx in phi.getGlobalIdxVals(0)
-Phi_FluxSurface = phi.get2DSlice(r_idx)
+Phi_FluxSurface = phi.get2DSlice(r_idx).T
 [TFPhi_mn,m2d,n2d] = Fourier2D( 
     Phi_FluxSurface, z, theta)
 
@@ -99,7 +99,7 @@ for im in range(m_max+1):
 #-->  (due to symmetry)
 #--> iphi_min excludes modes such that: |n| < iphi_min
 iphi_min  = 1
-Abs_TFPhi = np.abs(TFPhi_mn[0:Nphi//2+1-iphi_min,:])
+Abs_TFPhi = np.abs(TFPhi_mn[0:Nz//2+1-iphi_min,:])
 max_abs_TFPhi = np.sort(np.amax(Abs_TFPhi,axis=0))
 
 dic_ktheta_unstable = {}
@@ -123,7 +123,7 @@ for imax in range(nb_mn_unstable+1):
 for it,time in enumerate(time_grid[1:], 1):
     phi.loadFromFile(foldername, time, "phi")
     assert r_idx in phi.getGlobalIdxVals(0)
-    Phi_FluxSurface = phi.get2DSlice(r_idx)
+    Phi_FluxSurface = phi.get2DSlice(r_idx).T
     [TFPhi_mn,m2d,n2d] = Fourier2D(
         Phi_FluxSurface, z, theta)
     for im in range(m_max+1):
