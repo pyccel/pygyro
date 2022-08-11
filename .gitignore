@@ -27,4 +27,6 @@ doc/**/*.kilepr
 tags
 .ACC.*
 __pyccel__
+tjob.out.*
+tjob.err.*
 .lock_acquisition.lock

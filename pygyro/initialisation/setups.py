@@ -67,7 +67,7 @@ def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
     allocateSaveMemory = kwargs.pop('allocateSaveMemory', False)
     dtype = kwargs.pop('dtype', float)
 
-    for name, _ in kwargs.items():
+    for name, value in kwargs.items():
         warnings.warn(
             "{0} is not a recognised parameter for setupCylindricalGrid".format(name))
 
@@ -86,7 +86,7 @@ def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
     period = [False, True, True, False]
 
     # Compute breakpoints, knots, spline space and grid points
-    nkts = [n + 1 + d * (int(p) - 1)
+    nkts = [n+1+d*(int(p)-1)
             for (n, d, p) in zip(constants.npts, degree, period)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
@@ -177,7 +177,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     period = [False, True, True, False]
 
     # Compute breakpoints, knots, spline space and grid points
-    nkts = [n + 1 + d * (int(p) - 1)
+    nkts = [n+1+d*(int(p)-1)
             for (n, d, p) in zip(constants.npts, degree, period)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
@@ -203,8 +203,8 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
 
     if ('timepoint' in kwargs):
         t = kwargs.pop('timepoint')
-        filename = "{0}/grid_{1:06}.h5".format(foldername, t)
-        assert (os.path.exists(filename))
+        filename = os.path.join(foldername, "grid_{:06}.h5".format(t))
+        assert os.path.exists(filename)
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
         if (len(list_of_files) > 0):
@@ -242,7 +242,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
             if (desired_layout != my_layout):
                 grid.setLayout(desired_layout)
     else:
-        assert ('layout' in kwargs)
+        assert 'layout' in kwargs
         layout = kwargs.pop('layout')
         # Create grid
         grid = Grid(eta_grids, bsplines, remapper, layout, comm,

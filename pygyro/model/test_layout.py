@@ -89,16 +89,16 @@ def test_Layout_DimsOrder():
                  np.linspace(0, 10, 30)]
 
     l = Layout('test', [2, 3], [0, 3, 2, 1], eta_grids, [0, 0])
-    assert (l.dims_order == (0, 3, 2, 1))
-    assert (l.inv_dims_order == (0, 3, 2, 1))
+    assert l.dims_order == (0, 3, 2, 1)
+    assert l.inv_dims_order == (0, 3, 2, 1)
 
     l = Layout('test', [2, 3], [0, 2, 3, 1], eta_grids, [0, 0])
-    assert (l.dims_order == (0, 2, 3, 1))
-    assert (l.inv_dims_order == (0, 3, 1, 2))
+    assert l.dims_order == (0, 2, 3, 1)
+    assert l.inv_dims_order == (0, 3, 1, 2)
 
     l = Layout('test', [2, 3], [2, 1, 0, 3], eta_grids, [0, 0])
-    assert (l.dims_order == (2, 1, 0, 3))
-    assert (l.inv_dims_order == (2, 1, 0, 3))
+    assert l.dims_order == (2, 1, 0, 3)
+    assert l.inv_dims_order == (2, 1, 0, 3)
 
 
 @pytest.mark.parallel
@@ -123,7 +123,7 @@ def test_OddLayoutPaths():
     remapper = getLayoutHandler(comm, layouts, nprocs, eta_grids)
 
     layout1 = remapper.getLayout('0123')
-    assert (layout1.name == '0123')
+    assert layout1.name == '0123'
     layout2 = remapper.getLayout('1230')
 
     fStart = np.empty(remapper.bufferSize, int)
@@ -222,7 +222,7 @@ def test_OddLayoutPaths_IntactSource():
     remapper = getLayoutHandler(comm, layouts, nprocs, eta_grids)
 
     layout1 = remapper.getLayout('1320')
-    assert (layout1.name == '1320')
+    assert layout1.name == '1320'
     layout2 = remapper.getLayout('1302')
 
     fStart = np.empty(remapper.bufferSize)
@@ -320,30 +320,30 @@ def test_LayoutSwap_IntactSource():
     f_fs_1 = np.split(f1, [fsLayout.size])[0].reshape(fsLayout.shape)
     f_fs_2 = np.split(f2, [fsLayout.size])[0].reshape(fsLayout.shape)
     f_fs_3 = np.split(f3, [fsLayout.size])[0].reshape(fsLayout.shape)
-    assert (not f_fs_1.flags['OWNDATA'])
-    assert (not f_fs_2.flags['OWNDATA'])
-    assert (not f_fs_3.flags['OWNDATA'])
+    assert not f_fs_1.flags['OWNDATA']
+    assert not f_fs_2.flags['OWNDATA']
+    assert not f_fs_3.flags['OWNDATA']
 
     f_v_1 = np.split(f1, [vLayout.size])[0].reshape(vLayout.shape)
     f_v_2 = np.split(f2, [vLayout.size])[0].reshape(vLayout.shape)
     f_v_3 = np.split(f3, [vLayout.size])[0].reshape(vLayout.shape)
-    assert (not f_v_1.flags['OWNDATA'])
-    assert (not f_v_2.flags['OWNDATA'])
-    assert (not f_v_3.flags['OWNDATA'])
+    assert not f_v_1.flags['OWNDATA']
+    assert not f_v_2.flags['OWNDATA']
+    assert not f_v_3.flags['OWNDATA']
 
     f_p_1 = np.split(f1, [pLayout.size])[0].reshape(pLayout.shape)
     f_p_2 = np.split(f2, [pLayout.size])[0].reshape(pLayout.shape)
     f_p_3 = np.split(f3, [pLayout.size])[0].reshape(pLayout.shape)
-    assert (not f_p_1.flags['OWNDATA'])
-    assert (not f_p_2.flags['OWNDATA'])
-    assert (not f_p_3.flags['OWNDATA'])
+    assert not f_p_1.flags['OWNDATA']
+    assert not f_p_2.flags['OWNDATA']
+    assert not f_p_3.flags['OWNDATA']
 
     f_t_1 = np.split(f1, [tLayout.size])[0].reshape(tLayout.shape)
     f_t_2 = np.split(f2, [tLayout.size])[0].reshape(tLayout.shape)
     f_t_3 = np.split(f3, [tLayout.size])[0].reshape(tLayout.shape)
-    assert (not f_t_1.flags['OWNDATA'])
-    assert (not f_t_2.flags['OWNDATA'])
-    assert (not f_t_3.flags['OWNDATA'])
+    assert not f_t_1.flags['OWNDATA']
+    assert not f_t_2.flags['OWNDATA']
+    assert not f_t_3.flags['OWNDATA']
 
     define_f(eta_grids[0], eta_grids[1], eta_grids[2],
              eta_grids[3], fsLayout, f_fs_1)
@@ -441,18 +441,18 @@ def test_LayoutSwap():
 
     f_fs_1 = np.split(f1, [fsLayout.size])[0].reshape(fsLayout.shape)
     f_fs_2 = np.split(f2, [fsLayout.size])[0].reshape(fsLayout.shape)
-    assert (not f_fs_1.flags['OWNDATA'])
-    assert (not f_fs_2.flags['OWNDATA'])
+    assert not f_fs_1.flags['OWNDATA']
+    assert not f_fs_2.flags['OWNDATA']
 
     f_v_1 = np.split(f1, [vLayout.size])[0].reshape(vLayout.shape)
     f_v_2 = np.split(f2, [vLayout.size])[0].reshape(vLayout.shape)
-    assert (not f_v_1.flags['OWNDATA'])
-    assert (not f_v_2.flags['OWNDATA'])
+    assert not f_v_1.flags['OWNDATA']
+    assert not f_v_2.flags['OWNDATA']
 
     f_p_1 = np.split(f1, [pLayout.size])[0].reshape(pLayout.shape)
     f_p_2 = np.split(f2, [pLayout.size])[0].reshape(pLayout.shape)
-    assert (not f_p_1.flags['OWNDATA'])
-    assert (not f_p_2.flags['OWNDATA'])
+    assert not f_p_1.flags['OWNDATA']
+    assert not f_p_2.flags['OWNDATA']
 
     define_f(eta_grids[0], eta_grids[1], eta_grids[2],
              eta_grids[3], fsLayout, f_fs_1)
@@ -489,12 +489,12 @@ def test_LayoutSwap():
     compare_f(eta_grids[0], eta_grids[1], eta_grids[2],
               eta_grids[3], fsLayout, f_fs_1)
 
-    assert (not f_fs_1.flags['OWNDATA'])
-    assert (not f_v_1.flags['OWNDATA'])
-    assert (not f_p_1.flags['OWNDATA'])
-    assert (not f_fs_2.flags['OWNDATA'])
-    assert (not f_v_2.flags['OWNDATA'])
-    assert (not f_p_2.flags['OWNDATA'])
+    assert not f_fs_1.flags['OWNDATA']
+    assert not f_v_1.flags['OWNDATA']
+    assert not f_p_1.flags['OWNDATA']
+    assert not f_fs_2.flags['OWNDATA']
+    assert not f_v_2.flags['OWNDATA']
+    assert not f_p_2.flags['OWNDATA']
 
 
 @pytest.mark.parallel
@@ -597,17 +597,17 @@ def test_BadStepWarning_IntactSource():
     fBuf = np.empty(remapper.bufferSize)
 
     f_fs_s = np.split(fStart, [fsLayout.size])[0].reshape(fsLayout.shape)
-    assert (not f_fs_s.flags['OWNDATA'])
+    assert not f_fs_s.flags['OWNDATA']
     f_v_s = np.split(fStart, [vLayout.size])[0].reshape(vLayout.shape)
-    assert (not f_v_s.flags['OWNDATA'])
+    assert not f_v_s.flags['OWNDATA']
     f_p_s = np.split(fStart, [pLayout.size])[0].reshape(pLayout.shape)
-    assert (not f_p_s.flags['OWNDATA'])
+    assert not f_p_s.flags['OWNDATA']
     f_fs_e = np.split(fEnd, [fsLayout.size])[0].reshape(fsLayout.shape)
-    assert (not f_fs_e.flags['OWNDATA'])
+    assert not f_fs_e.flags['OWNDATA']
     f_v_e = np.split(fEnd, [vLayout.size])[0].reshape(vLayout.shape)
-    assert (not f_v_e.flags['OWNDATA'])
+    assert not f_v_e.flags['OWNDATA']
     f_p_e = np.split(fEnd, [pLayout.size])[0].reshape(pLayout.shape)
-    assert (not f_p_e.flags['OWNDATA'])
+    assert not f_p_e.flags['OWNDATA']
 
     if (not 1 in nprocs):
         with pytest.warns(UserWarning):
@@ -647,23 +647,23 @@ def test_copy():
     f_fs_s = np.split(fStart, [fsLayout.size])[0].reshape(fsLayout.shape)
     f_fs_e = np.split(fEnd, [fsLayout.size])[0].reshape(fsLayout.shape)
     f_fs_b = np.split(fBuf, [fsLayout.size])[0].reshape(fsLayout.shape)
-    assert (not f_fs_s.flags['OWNDATA'])
-    assert (not f_fs_e.flags['OWNDATA'])
-    assert (not f_fs_b.flags['OWNDATA'])
+    assert not f_fs_s.flags['OWNDATA']
+    assert not f_fs_e.flags['OWNDATA']
+    assert not f_fs_b.flags['OWNDATA']
 
     f_v_s = np.split(fStart, [vLayout.size])[0].reshape(vLayout.shape)
     f_v_e = np.split(fEnd, [vLayout.size])[0].reshape(vLayout.shape)
     f_v_b = np.split(fBuf, [vLayout.size])[0].reshape(vLayout.shape)
-    assert (not f_v_s.flags['OWNDATA'])
-    assert (not f_v_e.flags['OWNDATA'])
-    assert (not f_v_b.flags['OWNDATA'])
+    assert not f_v_s.flags['OWNDATA']
+    assert not f_v_e.flags['OWNDATA']
+    assert not f_v_b.flags['OWNDATA']
 
     f_p_s = np.split(fStart, [pLayout.size])[0].reshape(pLayout.shape)
     f_p_e = np.split(fEnd, [pLayout.size])[0].reshape(pLayout.shape)
     f_p_b = np.split(fBuf, [pLayout.size])[0].reshape(pLayout.shape)
-    assert (not f_p_s.flags['OWNDATA'])
-    assert (not f_p_e.flags['OWNDATA'])
-    assert (not f_p_b.flags['OWNDATA'])
+    assert not f_p_s.flags['OWNDATA']
+    assert not f_p_e.flags['OWNDATA']
+    assert not f_p_b.flags['OWNDATA']
 
     define_f(eta_grids[0], eta_grids[1], eta_grids[2],
              eta_grids[3], fsLayout, f_fs_s)
@@ -817,37 +817,37 @@ def test_phiSwapper():
     f_vp2_s = np.split(fStart, [vp2Layout.size])[0].reshape(vp2Layout.shape)
     f_vp2_e = np.split(fEnd, [vp2Layout.size])[0].reshape(vp2Layout.shape)
     f_vp2_b = np.split(fBuf, [vp2Layout.size])[0].reshape(vp2Layout.shape)
-    assert (not f_vp2_s.flags['OWNDATA'])
-    assert (not f_vp2_e.flags['OWNDATA'])
-    assert (not f_vp2_b.flags['OWNDATA'])
+    assert not f_vp2_s.flags['OWNDATA']
+    assert not f_vp2_e.flags['OWNDATA']
+    assert not f_vp2_b.flags['OWNDATA']
 
     f_ms_s = np.split(fStart, [msLayout.size])[0].reshape(msLayout.shape)
     f_ms_e = np.split(fEnd, [msLayout.size])[0].reshape(msLayout.shape)
     f_ms_b = np.split(fBuf, [msLayout.size])[0].reshape(msLayout.shape)
-    assert (not f_ms_s.flags['OWNDATA'])
-    assert (not f_ms_e.flags['OWNDATA'])
-    assert (not f_ms_b.flags['OWNDATA'])
+    assert not f_ms_s.flags['OWNDATA']
+    assert not f_ms_e.flags['OWNDATA']
+    assert not f_ms_b.flags['OWNDATA']
 
     f_dp_s = np.split(fStart, [dpLayout.size])[0].reshape(dpLayout.shape)
     f_dp_e = np.split(fEnd, [dpLayout.size])[0].reshape(dpLayout.shape)
     f_dp_b = np.split(fBuf, [dpLayout.size])[0].reshape(dpLayout.shape)
-    assert (not f_dp_s.flags['OWNDATA'])
-    assert (not f_dp_e.flags['OWNDATA'])
-    assert (not f_dp_b.flags['OWNDATA'])
+    assert not f_dp_s.flags['OWNDATA']
+    assert not f_dp_e.flags['OWNDATA']
+    assert not f_dp_b.flags['OWNDATA']
 
     f_pl_s = np.split(fStart, [plLayout.size])[0].reshape(plLayout.shape)
     f_pl_e = np.split(fEnd, [plLayout.size])[0].reshape(plLayout.shape)
     f_pl_b = np.split(fBuf, [plLayout.size])[0].reshape(plLayout.shape)
-    assert (not f_pl_s.flags['OWNDATA'])
-    assert (not f_pl_e.flags['OWNDATA'])
-    assert (not f_pl_b.flags['OWNDATA'])
+    assert not f_pl_s.flags['OWNDATA']
+    assert not f_pl_e.flags['OWNDATA']
+    assert not f_pl_b.flags['OWNDATA']
 
     f_pT_s = np.split(fStart, [pTLayout.size])[0].reshape(pTLayout.shape)
     f_pT_e = np.split(fEnd, [pTLayout.size])[0].reshape(pTLayout.shape)
     f_pT_b = np.split(fBuf, [pTLayout.size])[0].reshape(pTLayout.shape)
-    assert (not f_pT_s.flags['OWNDATA'])
-    assert (not f_pT_e.flags['OWNDATA'])
-    assert (not f_pT_b.flags['OWNDATA'])
+    assert not f_pT_s.flags['OWNDATA']
+    assert not f_pT_e.flags['OWNDATA']
+    assert not f_pT_b.flags['OWNDATA']
 
     define_phi(eta_grids[0], eta_grids[1], eta_grids[2], plLayout, f_pl_s)
 
@@ -1003,30 +1003,30 @@ def test_phiSwapperUsed():
     f_vp2_s = np.split(fStart, [vp2Layout.size])[0].reshape(vp2Layout.shape)
     f_vp2_e = np.split(fEnd, [vp2Layout.size])[0].reshape(vp2Layout.shape)
     f_vp2_b = np.split(fBuf, [vp2Layout.size])[0].reshape(vp2Layout.shape)
-    assert (not f_vp2_s.flags['OWNDATA'])
-    assert (not f_vp2_e.flags['OWNDATA'])
-    assert (not f_vp2_b.flags['OWNDATA'])
+    assert not f_vp2_s.flags['OWNDATA']
+    assert not f_vp2_e.flags['OWNDATA']
+    assert not f_vp2_b.flags['OWNDATA']
 
     f_ms_s = np.split(fStart, [msLayout.size])[0].reshape(msLayout.shape)
     f_ms_e = np.split(fEnd, [msLayout.size])[0].reshape(msLayout.shape)
     f_ms_b = np.split(fBuf, [msLayout.size])[0].reshape(msLayout.shape)
-    assert (not f_ms_s.flags['OWNDATA'])
-    assert (not f_ms_e.flags['OWNDATA'])
-    assert (not f_ms_b.flags['OWNDATA'])
+    assert not f_ms_s.flags['OWNDATA']
+    assert not f_ms_e.flags['OWNDATA']
+    assert not f_ms_b.flags['OWNDATA']
 
     f_vp1_s = np.split(fStart, [vp1Layout.size])[0].reshape(vp1Layout.shape)
     f_vp1_e = np.split(fEnd, [vp1Layout.size])[0].reshape(vp1Layout.shape)
     f_vp1_b = np.split(fBuf, [vp1Layout.size])[0].reshape(vp1Layout.shape)
-    assert (not f_vp1_s.flags['OWNDATA'])
-    assert (not f_vp1_e.flags['OWNDATA'])
-    assert (not f_vp1_b.flags['OWNDATA'])
+    assert not f_vp1_s.flags['OWNDATA']
+    assert not f_vp1_e.flags['OWNDATA']
+    assert not f_vp1_b.flags['OWNDATA']
 
     f_pl_s = np.split(fStart, [plLayout.size])[0].reshape(plLayout.shape)
     f_pl_e = np.split(fEnd, [plLayout.size])[0].reshape(plLayout.shape)
     f_pl_b = np.split(fBuf, [plLayout.size])[0].reshape(plLayout.shape)
-    assert (not f_pl_s.flags['OWNDATA'])
-    assert (not f_pl_e.flags['OWNDATA'])
-    assert (not f_pl_b.flags['OWNDATA'])
+    assert not f_pl_s.flags['OWNDATA']
+    assert not f_pl_e.flags['OWNDATA']
+    assert not f_pl_b.flags['OWNDATA']
 
     define_phi(eta_grids[0], eta_grids[1], eta_grids[2], vp1Layout, f_vp1_s)
 
