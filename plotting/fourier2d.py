@@ -17,8 +17,6 @@ def Fourier2D(F0, y0, x0):
     ny = 2 * int(ny0 / 2)
     hny = int(ny / 2)
 
-    x = x0[0:nx]
-    y = y0[0:ny]
     F = F0[0:ny, 0:nx]
 
     kx = np.zeros(nx)

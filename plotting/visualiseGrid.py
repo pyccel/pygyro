@@ -2,7 +2,7 @@ from mpi4py import MPI
 import sys
 
 from pygyro.utilities.grid_plotter import SlicePlotterNd
-from pygyro.initialisation.setups import setupCylindricalGrid, setupFromFile
+from pygyro.initialisation.setups import setupCylindricalGrid
 
 foldername = sys.argv[1]
 
