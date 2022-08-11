@@ -9,7 +9,8 @@ from pygyro.utilities.grid_plotter import SlicePlotterNd
 from pygyro.initialisation.setups import setupCylindricalGrid
 from pygyro.diagnostics.norms import l2
 
-parser = argparse.ArgumentParser(description='Plot the intial electric potential')
+parser = argparse.ArgumentParser(
+    description='Plot the intial electric potential')
 parser.add_argument('const_filename', type=str,
                     help='The constants file describing the setup')
 args = parser.parse_args()

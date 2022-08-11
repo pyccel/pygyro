@@ -6,7 +6,8 @@ from mpi4py import MPI
 from pygyro.utilities.grid_plotter import SlicePlotterNd
 from pygyro.initialisation.setups import setupCylindricalGrid, setupFromFile
 
-parser = argparse.ArgumentParser(description='Plot the 4D distribution function')
+parser = argparse.ArgumentParser(
+    description='Plot the 4D distribution function')
 parser.add_argument('filename', nargs='?', type=str,
                     help='The file whose results should be plotted. If no file is specified then the default initialisation is shown')
 args = parser.parse_args()

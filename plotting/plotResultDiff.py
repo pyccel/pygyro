@@ -10,7 +10,8 @@ from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.layout import getLayoutHandler
 
 
-parser = argparse.ArgumentParser(description='Compare 2 distribution functions having the same number of points')
+parser = argparse.ArgumentParser(
+    description='Compare 2 distribution functions having the same number of points')
 parser.add_argument('initF', metavar='initF', nargs=1, type=str,
                     help='init file (json)')
 parser.add_argument('f1', metavar='f1', nargs=1, type=str,

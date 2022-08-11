@@ -18,7 +18,8 @@ def plot_file(foldername):
     plt.semilogy(times, norm, '.', label=foldername)
 
 
-parser = argparse.ArgumentParser(description='Plot the L2 norm of phi as a function of time')
+parser = argparse.ArgumentParser(
+    description='Plot the L2 norm of phi as a function of time')
 parser.add_argument('-p', dest='pente', type=float,
                     default=3.83e-3,
                     help='The gradient of the expected linear regime (eg. for 1.12e-5*exp(3.83e-3*x) : 3.83e-3)')

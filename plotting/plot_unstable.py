@@ -14,7 +14,8 @@ from pygyro.model.grid import Grid
 from pygyro.model.layout import LayoutSwapper
 
 
-parser = argparse.ArgumentParser(description='Plot the most unstable modes of the simulation')
+parser = argparse.ArgumentParser(
+    description='Plot the most unstable modes of the simulation')
 parser.add_argument('foldername', type=str,
                     help='The folders whose results should be plotted')
 foldername = args.foldername
