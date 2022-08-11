@@ -7,7 +7,7 @@ import numpy as np
 from .utilities import random_grid
 from .splines_error_bounds import spline_1d_error_bound_on_integ
 from .analytical_profiles_1d import AnalyticalProfile1D_Cos
-from ..splines import make_knots, BSplines, Spline1D
+from ..splines import make_knots, BSplines
 from ..spline_interpolators import SplineInterpolator1D
 
 # ===============================================================================
