@@ -3,7 +3,6 @@ import glob
 import matplotlib.pyplot as plt
 from mpi4py import MPI
 import numpy as np
-import sys
 import os
 from fourier2d import Fourier2D
 

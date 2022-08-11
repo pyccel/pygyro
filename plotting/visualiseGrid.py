@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from mpi4py import MPI
 
 from pygyro.utilities.grid_plotter import SlicePlotterNd
