@@ -3,7 +3,7 @@ import h5py
 from mpi4py import MPI
 
 
-def get_grid_slice(foldername, tEnd, z_idx = None, v_idx = None):
+def get_grid_slice(foldername, tEnd, z_idx=None, v_idx=None):
     """
     Extract a poloidal slice of the distribution function at time tEnd from the specified folder
     and save the slice into a file named Slice_tEnd.h5 . The data is saved with theta
@@ -23,13 +23,13 @@ def get_grid_slice(foldername, tEnd, z_idx = None, v_idx = None):
                  Default : nv//2
     """
 
-    assert(len(foldername) > 0)
+    assert (len(foldername) > 0)
 
     comm = MPI.COMM_WORLD
 
     distribFunc, constants, t = setupFromFile(foldername, comm=comm,
-                                allocateSaveMemory=True,
-                                timepoint=tEnd)
+                                              allocateSaveMemory=True,
+                                              timepoint=tEnd)
 
     distribFunc.setLayout('poloidal')
 
@@ -55,7 +55,8 @@ def get_grid_slice(foldername, tEnd, z_idx = None, v_idx = None):
         dset[:] = distribFunc.get2DSlice(i, j)
         file.close()
 
-def get_flux_surface_grid_slice(foldername, tEnd, r_idx = None, v_idx = None):
+
+def get_flux_surface_grid_slice(foldername, tEnd, r_idx=None, v_idx=None):
     """
     Extract a flux surface slice of the distribution function at time tEnd from the
     specified folder and save the slice into a file named FluxSlice_tEnd.h5 . The data is
@@ -75,13 +76,13 @@ def get_flux_surface_grid_slice(foldername, tEnd, r_idx = None, v_idx = None):
                  Default : nv//2
     """
 
-    assert(len(foldername) > 0)
+    assert (len(foldername) > 0)
 
     comm = MPI.COMM_WORLD
 
     distribFunc, constants, t = setupFromFile(foldername, comm=comm,
-                                allocateSaveMemory=True,
-                                timepoint=tEnd)
+                                              allocateSaveMemory=True,
+                                              timepoint=tEnd)
 
     distribFunc.setLayout('flux_surface')
 

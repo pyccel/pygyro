@@ -77,7 +77,7 @@ def test_l2Norm_is_volume(layout, R0, rMin, rMax):
         l2Result = comm.reduce(l2Val, op=MPI.SUM, root=0)
 
     if (rank == 0):
-        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2)) < 5e-7)
+        assert abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*2)) < 5e-7
 
 
 def args_norm_grid():
@@ -133,7 +133,7 @@ def test_l1Norm_grid_is_volume(layout, R0, rMin, rMax, vMax):
 
     if (rank == 0):
         # ~ print(l1Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
-        assert(abs(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax)) < 5e-7)
+        assert abs(l1Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax)) < 5e-7
 
 
 @pytest.mark.parallel
@@ -173,7 +173,7 @@ def test_l2Norm_grid_is_volume(layout, R0, rMin, rMax, vMax):
 
     if (rank == 0):
         # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
-        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax)) < 5e-7)
+        assert abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax)) < 5e-7
 
 
 @pytest.mark.parallel
@@ -220,7 +220,7 @@ def test_l2Norm_grid_is_v(layout, R0, rMin, rMax, vMax):
     if (rank == 0):
         exactResult = (rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax**3/3
         # ~ print(abs(l2Result-exactResult)/exactResult)
-        assert(abs(l2Result-exactResult)/exactResult < 2e-2)
+        assert abs(l2Result-exactResult)/exactResult < 2e-2
 
 
 @pytest.mark.parallel
@@ -259,7 +259,7 @@ def test_NParticles_is_volume(layout, R0, rMin, rMax, vMax):
 
     if (rank == 0):
         # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
-        assert(abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax)) < 5e-7)
+        assert abs(l2Result-((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax)) < 5e-7
 
 
 @pytest.mark.parallel
@@ -304,4 +304,4 @@ def test_NParticles_grid_is_v(layout, R0, rMin, rMax, vMax):
 
     if (rank == 0):
         # ~ print(l2Result,((rMax**2-rMin**2)*np.pi*np.pi*R0*4*vMax))
-        assert(abs(l2Result) < 5e-7)
+        assert abs(l2Result) < 5e-7

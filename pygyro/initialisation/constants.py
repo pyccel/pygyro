@@ -73,7 +73,7 @@ class Constants:
     def npts(self, x):
         self._npts = x
         if (self._splineDegrees is not None):
-            assert(len(self._npts) == len(self._splineDegrees))
+            assert len(self._npts) == len(self._splineDegrees)
 
     @property
     def splineDegrees(self):
@@ -83,7 +83,7 @@ class Constants:
     def splineDegrees(self, x):
         self._splineDegrees = x
         if (self._npts is not None):
-            assert(len(self._npts) == len(self._splineDegrees))
+            assert len(self._npts) == len(self._splineDegrees)
 
     def iota(self, r=rp):
         return np.full_like(r, self.iotaVal, dtype=float)
@@ -141,12 +141,12 @@ def get_constants(filename):
             else:
                 res = eval_expr(item[1], constants)
                 if (res is None):
-                    assert(len(data) > 0 or len(unmatched))
+                    assert len(data) > 0 or len(unmatched)
                     unmatched[item[0]] = item[1]
                 else:
                     setattr(constants, item[0], res)
         data, unmatched = unmatched, data
-        assert(len(data) < n)
+        assert len(data) < n
         n = len(data)
     constants.set_defaults()
     if (constants.CN0 is None):

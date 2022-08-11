@@ -204,7 +204,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     if ('timepoint' in kwargs):
         t = kwargs.pop('timepoint')
         filename = os.path.join(foldername, "grid_{:06}.h5".format(t))
-        assert(os.path.exists(filename))
+        assert os.path.exists(filename)
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
         if (len(list_of_files) > 0):
@@ -242,7 +242,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
             if (desired_layout != my_layout):
                 grid.setLayout(desired_layout)
     else:
-        assert('layout' in kwargs)
+        assert 'layout' in kwargs
         layout = kwargs.pop('layout')
         # Create grid
         grid = Grid(eta_grids, bsplines, remapper, layout, comm,

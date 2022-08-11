@@ -101,7 +101,7 @@ dataset = file['/dset']
 order2 = np.array(dataset.attrs['Layout'])
 
 
-assert((order1 == order2).all())
+assert (order1 == order2).all()
 
 data2 = np.empty_like(data1)
 data2[:] = dataset[slices]

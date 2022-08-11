@@ -43,7 +43,7 @@ class PhiSlicePlotter3d(object):
             self.zVals = Dimension.ETA3
 
         else:
-            assert(len(args) == 2)
+            assert len(args) == 2
 
             # use arguments to get x values
             if (args[0] == 'r'):

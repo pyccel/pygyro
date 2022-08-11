@@ -9,7 +9,7 @@ from ..model.grid import Grid
 from ..model.layout import LayoutSwapper
 
 
-def get_phi_slice(foldername, tEnd, z_idx = 0):
+def get_phi_slice(foldername, tEnd, z_idx=0):
     """
     Extract a poloidal slice of the electric potential at time tEnd from the specified folder
     and save the slice into a file named PhiSlice_tEnd.h5 . The data is saved with theta
@@ -26,12 +26,12 @@ def get_phi_slice(foldername, tEnd, z_idx = 0):
                  Default : 0
     """
 
-    assert(len(foldername) > 0)
+    assert (len(foldername) > 0)
 
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
 
-    filename = os.path.join(foldername,"initParams.json")
+    filename = os.path.join(foldername, "initParams.json")
     constants = get_constants(filename)
 
     npts = constants.npts
@@ -80,6 +80,7 @@ def get_phi_slice(foldername, tEnd, z_idx = 0):
         dset[:] = np.real(phi.get2DSlice(z_idx))
         file.close()
 
+
 def get_flux_surface_phi_slice(foldername, tEnd):
     """
     Extract a poloidal slice of the electric potential at time tEnd from the specified folder
@@ -97,7 +98,7 @@ def get_flux_surface_phi_slice(foldername, tEnd):
                  Default : nr//2
     """
 
-    assert(len(foldername) > 0)
+    assert (len(foldername) > 0)
 
     comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()

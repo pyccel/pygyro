@@ -20,9 +20,9 @@ def test_Save_s():
     n2 = setupSave(constants)
     n3 = setupSave(constants, "testFilename")
 
-    assert(os.path.isdir(n1))
-    assert(os.path.isdir(n2))
-    assert(os.path.isdir(n3))
+    assert os.path.isdir(n1)
+    assert os.path.isdir(n2)
+    assert os.path.isdir(n3)
 
     os.remove("{0}/initParams.json".format(n1))
     os.remove("{0}/initParams.json".format(n2))
@@ -48,9 +48,9 @@ def test_Save_p():
     n3 = setupSave(constants, "testFilename")
 
     if (MPI.COMM_WORLD.Get_rank() == 0):
-        assert(os.path.isdir(n1))
-        assert(os.path.isdir(n2))
-        assert(os.path.isdir(n3))
+        assert os.path.isdir(n1)
+        assert os.path.isdir(n2)
+        assert os.path.isdir(n3)
 
         os.remove("{0}/initParams.json".format(n1))
         os.remove("{0}/initParams.json".format(n2))

@@ -18,7 +18,7 @@
 "deltaR":"4.0*deltaRN0/deltaRTi",
 "CTi":1.0,
 "CTe":"CTi",
-"m":15,
+"m":5,
 "n":1,
 "iotaVal":0.0,
 "npts":[32,16,32,16]
