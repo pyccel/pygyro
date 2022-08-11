@@ -7,7 +7,7 @@ from .utilities import compute_int_f, compute_int_f_squared, get_total_energy
 from .discrete_brackets_polar import assemble_bracket_arakawa
 
 
-@pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
+@pytest.mark.parametrize('bc', ['periodic', 'dirichlet', 'extrapolation'])
 @pytest.mark.parametrize('order', [2, 4])
 def test_skewsymmetry(bc, order, tol=1e-10):
     """
@@ -34,17 +34,32 @@ def test_skewsymmetry(bc, order, tol=1e-10):
     theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
     r_grid = np.linspace(r_min, r_max, N_r)
 
-    np.random.seed(1305)
-    phi = np.random.rand(N_theta, N_r).ravel()
+    if bc == "extrapolation":
+        np.random.seed(1305)
+        phi = np.random.rand(N_theta, N_r+order).ravel()
+    else:
+        np.random.seed(1305)
+        phi = np.random.rand(N_theta, N_r).ravel()
 
-    # Set boundary values to a constant on each boundary
-    ind_bd_left = range(0, N_tot, N_r)
-    ind_bd_right = range(N_r - 1, N_tot, N_r)
+    if bc == "dirichlet":
+        # Set boundary values to a constant on each boundary
+        ind_bd_left = range(0, N_tot, N_r)
+        ind_bd_right = range(N_r - 1, N_tot, N_r)
 
-    np.random.seed(123)
-    phi[ind_bd_left] = np.random.rand()
-    np.random.seed(321)
-    phi[ind_bd_right] = np.random.rand()
+        np.random.seed(123)
+        phi[ind_bd_left] = np.random.rand()
+        np.random.seed(321)
+        phi[ind_bd_right] = np.random.rand()
+
+    # Phi is supposed to be constant outside of the domain and on the boundary
+    elif bc == "extrapolation":
+        N_ep = N_theta*(N_r + order)
+        bd_left = [range(k, N_ep, N_r+order) for k in range(order//2+1)]
+        bd_right = [range(N_r+order-order//2+k-1, N_ep, N_r+order)
+                    for k in range(order//2+1)]
+        inds_bd = np.hstack([bd_left, bd_right])
+        np.random.seed(815)
+        phi[inds_bd] = np.random.rand()
 
     J_phi = assemble_bracket_arakawa(bc, order,
                                      phi, theta_grid, r_grid).toarray()
@@ -52,7 +67,7 @@ def test_skewsymmetry(bc, order, tol=1e-10):
     assert (J_phi + J_phi.transpose() < tol).all()
 
 
-@pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
+@pytest.mark.parametrize('bc', ['periodic', 'dirichlet', 'extrapolation'])
 @pytest.mark.parametrize('order', [2, 4])
 def test_bracket_mean(bc, order, tol=1e-10):
     """
@@ -83,27 +98,49 @@ def test_bracket_mean(bc, order, tol=1e-10):
     theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
     r_grid = np.linspace(r_min, r_max, N_r)
 
-    np.random.seed(1206)
-    f = np.random.rand(N_theta, N_r).ravel()
+    if bc == "extrapolation":
+        np.random.seed(1206)
+        f = np.random.rand(N_theta, N_r+order).ravel()
 
-    np.random.seed(1305)
-    phi = np.random.rand(N_theta, N_r).ravel()
+        np.random.seed(1305)
+        phi = np.random.rand(N_theta, N_r+order).ravel()
+    else:
+        np.random.seed(1206)
+        f = np.random.rand(N_theta, N_r).ravel()
+
+        np.random.seed(1305)
+        phi = np.random.rand(N_theta, N_r).ravel()
 
     # Set boundary values to a constant on each boundary
-    ind_bd_left = range(0, N_tot, N_r)
-    ind_bd_right = range(N_r - 1, N_tot, N_r)
+    if bc == "dirichlet":
+        ind_bd_left = range(0, N_tot, N_r)
+        ind_bd_right = range(N_r - 1, N_tot, N_r)
 
-    np.random.seed(123)
-    phi[ind_bd_left] = np.random.rand()
-    np.random.seed(321)
-    phi[ind_bd_right] = np.random.rand()
+        np.random.seed(123)
+        phi[ind_bd_left] = np.random.rand()
+        np.random.seed(321)
+        phi[ind_bd_right] = np.random.rand()
+    # Phi is supposed to be constant outside of the domain and on the boundary
+    elif bc == "extrapolation":
+        N_ep = N_theta*(N_r + order)
+        bd_left = [range(k, N_ep, N_r+order) for k in range(order//2+1)]
+        bd_right = [range(N_r+order-order//2+k-1, N_ep, N_r+order)
+                    for k in range(order//2+1)]
+        inds_bd = np.hstack([bd_left, bd_right])
+        np.random.seed(815)
+        phi[inds_bd] = np.random.rand()
 
     J_phi = assemble_bracket_arakawa(bc, order,
                                      phi, theta_grid, r_grid)
+
     J_phi_f = J_phi.dot(f)
 
     assert len(J_phi_f.shape) == 1
-    assert J_phi_f.shape[0] == N_theta * N_r
+
+    if bc == "extrapolation":
+        assert J_phi_f.shape[0] == N_theta * (N_r+order)
+    else:
+        assert J_phi_f.shape[0] == N_theta * (N_r)
 
     sum_J_phi_f = np.sum(J_phi_f)
     sum_f_J_phi_f = np.sum(np.multiply(J_phi_f, f))
@@ -114,6 +151,7 @@ def test_bracket_mean(bc, order, tol=1e-10):
     assert sum_phi_J_phi_f < tol
 
 
+# todo for extrapolation
 @pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
 @pytest.mark.parametrize('order', [2, 4])
 @pytest.mark.parametrize('int_method', ['sum', 'trapz'])
