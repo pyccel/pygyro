@@ -1,3 +1,5 @@
+""" Functions to plot the initial electric potential configured from a local constants file iota0.json
+"""
 from mpi4py import MPI
 import numpy as np
 
@@ -8,8 +10,6 @@ from pygyro.utilities.grid_plotter import SlicePlotterNd
 from pygyro.initialisation.setups import setupCylindricalGrid
 from pygyro.diagnostics.norms import l2
 
-
-loadable = False
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
