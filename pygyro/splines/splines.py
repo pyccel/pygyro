@@ -199,7 +199,6 @@ class BSplines():
         return int(np.searchsorted(self.breaks, x, side='right') - 1)
 
     def _build_integrals(self):
-        o = self.degree // 2
         n = self.nbasis
         d = self.degree
 

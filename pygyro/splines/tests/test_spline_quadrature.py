@@ -5,11 +5,10 @@ import pytest
 import numpy as np
 
 from .utilities import random_grid
-from .splines_error_bounds import spline_1d_error_bound, spline_2d_error_bound, spline_1d_error_bound_on_integ
+from .splines_error_bounds import spline_1d_error_bound_on_integ
 from .analytical_profiles_1d import AnalyticalProfile1D_Cos
-from .analytical_profiles_2d import AnalyticalProfile2D_CosCos
-from ..splines import make_knots, BSplines, Spline1D, Spline2D
-from ..spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
+from ..splines import make_knots, BSplines, Spline1D
+from ..spline_interpolators import SplineInterpolator1D
 
 # ===============================================================================
 
@@ -33,7 +32,6 @@ def test_SplineInterpolator1D_quadrature_exact(ncells, degree):
     breaks = random_grid(domain, ncells, 0.5)
     knots = make_knots(breaks, degree, periodic)
     basis = BSplines(knots, degree, periodic)
-    spline = Spline1D(basis)
     interp = SplineInterpolator1D(basis)
 
     coeffs = interp.get_quadrature_coefficients()
@@ -78,7 +76,6 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
     breaks = np.linspace(*f.domain, ncells+1)
     knots = make_knots(breaks, degree, periodic)
     basis = BSplines(knots, degree, periodic)
-    spline = Spline1D(basis)
     interp = SplineInterpolator1D(basis)
 
     coeffs = interp.get_quadrature_coefficients()
