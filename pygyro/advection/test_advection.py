@@ -20,7 +20,7 @@ def gauss(x):
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("fact,dt", [(10, 1), (10, 0.1), (5, 1)])
+@pytest.mark.parametrize("fact, dt", [(10, 1), (10, 0.1), (5, 1)])
 def test_fluxSurfaceAdvection(fact, dt):
     """
     TODO
@@ -62,7 +62,7 @@ def test_fluxSurfaceAdvection(fact, dt):
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("nptZ,dt,err", [(32, 1.0, 1.5e-2), (64, 0.5, 3e-4), (128, 0.25, 1e-5)])
+@pytest.mark.parametrize("nptZ, dt, err", [(32, 1.0, 1.5e-2), (64, 0.5, 3e-4), (128, 0.25, 1e-5)])
 def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
     """
     TODO
@@ -112,7 +112,8 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("function,N", [(gauss, 10), (gauss, 20), (gauss, 30)])
+@pytest.mark.parametrize("function", [gauss])
+@pytest.mark.parametrize("N", [10, 20, 30])
 def test_vParallelAdvection(function, N):
     """
     TODO
@@ -220,7 +221,10 @@ initConds = np.vectorize(initConditions, otypes=[float])
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("dt, v, xc, yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+@pytest.mark.parametrize("dt", [0.1])
+@pytest.mark.parametrize("v", [-5.0, 5.0])
+@pytest.mark.parametrize("xc", [0, 1, 3])
+@pytest.mark.parametrize("yc", [0, 1, 3])
 def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     """
     TODO
@@ -284,10 +288,24 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("dt, v, xc, yc", [(0.1, -5.0, 0, 0), (0.1, 5.0, 1, 2), (0.1, 2.0, 2, 1)])
-def test_poloidalAdvectionArakawaExplicit(dt, v, xc, yc):
+@pytest.mark.parametrize("dt", [0.1])
+@pytest.mark.parametrize("xc", [0, 1, 3])
+@pytest.mark.parametrize("yc", [0, 1, 3])
+def test_poloidalAdvectionArakawaExplicit(dt, xc, yc):
     """
-    TODO
+    Test the poloidal advection step with Arakawa scheme for different parameters against Phi
+    for which the analytical solution is known. The explicit time integrator is used.
+
+    Parameters
+    ----------
+        dt : float
+            time-step size
+        
+        xc : float
+            parameter in phi and analytical solution
+        
+        yc : float
+            parameter in phi and analytical solution
     """
 
     npts = [80, 60]
@@ -358,7 +376,10 @@ def test_poloidalAdvectionArakawaExplicit(dt, v, xc, yc):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt, v, xc, yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+@pytest.mark.parametrize("dt", [0.1])
+@pytest.mark.parametrize("v", [-5.0, 5.0])
+@pytest.mark.parametrize("xc", [0, 1, 3])
+@pytest.mark.parametrize("yc", [0, 1, 3])
 def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     """
     TODO
@@ -424,10 +445,24 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt, v, xc, yc", [(0.1, -5.0, 0, 0), (0.1, 5.0, 1, 2), (0.1, 2.0, 2, 1)])
-def test_poloidalAdvectionArakawaImplicit(dt, v, xc, yc):
+@pytest.mark.parametrize("dt", [0.1])
+@pytest.mark.parametrize("xc", [0, 1, 3])
+@pytest.mark.parametrize("yc", [0, 1, 3])
+def test_poloidalAdvectionArakawaImplicit(dt, xc, yc):
     """
-    TODO
+    Test the poloidal advection step with Arakawa scheme for different parameters against Phi
+    for which the analytical solution is known. The implicit time integrator is used.
+
+    Parameters
+    ----------
+        dt : float
+            time-step size
+        
+        xc : float
+            parameter in phi and analytical solution
+        
+        yc : float
+            parameter in phi and analytical solution
     """
 
     npts = [80, 60]
@@ -803,7 +838,7 @@ def pg_dPhi(r, theta, z, btheta, bz):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("phiOrder,zOrder", [(3, 3), (3, 4), (3, 5), (4, 4)])
+@pytest.mark.parametrize("phiOrder, zOrder", [(3, 3), (3, 4), (3, 5), (4, 4)])
 def test_Phi_deriv_dz(phiOrder, zOrder):
     """
     TODO
