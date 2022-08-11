@@ -203,7 +203,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
 
     if ('timepoint' in kwargs):
         t = kwargs.pop('timepoint')
-        filename = "{0}/grid_{1:06}.h5".format(foldername, t)
+        filename = os.path.join(foldername, "grid_{:06}.h5".format(t))
         assert(os.path.exists(filename))
     else:
         list_of_files = glob("{0}/grid_*".format(foldername))
