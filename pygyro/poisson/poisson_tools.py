@@ -1,8 +1,9 @@
 from pyccel.decorators import types
 
-@template('T',('complex128[:,:,:]','float[:,:,:]'))
-def get_perturbed_rho(rho : 'T', feq : 'float[:,:]', grid : 'float[:,:,:,:]',
-        quad_coeffs : 'float[:]'):
+
+@template('T', ('complex128[:,:,:]', 'float[:,:,:]'))
+def get_perturbed_rho(rho: 'T', feq: 'float[:,:]', grid: 'float[:,:,:,:]',
+                      quad_coeffs: 'float[:]'):
     """
     Calculate:
     rho = \int f - f_eq dv
@@ -26,12 +27,14 @@ def get_perturbed_rho(rho : 'T', feq : 'float[:,:]', grid : 'float[:,:,:,:]',
     for i in range(n):
         for j in range(m):
             for k in range(p):
-                rho[i,j,k] = 0.0
+                rho[i, j, k] = 0.0
                 for l in range(nc):
-                    rho[i,j,k] += quad_coeffs[l] * (grid[i,j,k,l] - feq[i,l])
+                    rho[i, j, k] += quad_coeffs[l] * \
+                        (grid[i, j, k, l] - feq[i, l])
 
-@template('T',('complex128[:,:,:]','float[:,:,:]'))
-def get_rho(rho : 'T', grid : 'float[:,:,:,:]', quad_coeffs : 'float[:]'):
+
+@template('T', ('complex128[:,:,:]', 'float[:,:,:]'))
+def get_rho(rho: 'T', grid: 'float[:,:,:,:]', quad_coeffs: 'float[:]'):
     """
     Calculate:
     rho = \int f dv
@@ -53,6 +56,6 @@ def get_rho(rho : 'T', grid : 'float[:,:,:,:]', quad_coeffs : 'float[:]'):
     for i in range(n):
         for j in range(m):
             for k in range(p):
-                rho[i,j,k] = 0.0
+                rho[i, j, k] = 0.0
                 for l in range(nc):
-                    rho[i,j,k] += quad_coeffs[l] * grid[i,j,k,l]
+                    rho[i, j, k] += quad_coeffs[l] * grid[i, j, k, l]

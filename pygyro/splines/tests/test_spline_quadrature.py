@@ -49,8 +49,6 @@ def test_SplineInterpolator1D_quadrature_exact(ncells, degree):
     assert err < 2.0e-14
 
 
-
-
 # ===============================================================================
 
 
@@ -89,10 +87,12 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
     ug = f.eval(xg)
 
     quad_value = coeffs @ ug
-    integral_value = f.eval(f.domain[1], diff=-1) - f.eval(f.domain[0], diff=-1)
+    integral_value = f.eval(
+        f.domain[1], diff=-1) - f.eval(f.domain[0], diff=-1)
 
     err = abs(integral_value - quad_value)
 
-    err_bound = spline_1d_error_bound_on_integ(f, np.diff(breaks).max(), degree)
+    err_bound = spline_1d_error_bound_on_integ(
+        f, np.diff(breaks).max(), degree)
 
     assert err < err_bound

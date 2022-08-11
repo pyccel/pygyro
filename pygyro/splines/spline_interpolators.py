@@ -108,10 +108,11 @@ class SplineInterpolator1D():
         p = self._basis.degree
 
         if self._basis.periodic:
-            inv_deg         = 1 / (p + 1)
+            inv_deg = 1 / (p + 1)
             knots = self._basis.knots
-            basis_quads = np.array([(knots[i+p+1]-knots[i])*inv_deg for i in range(n)])
-            return self._splu.solve(basis_quads, trans = 'T')
+            basis_quads = np.array(
+                [(knots[i+p+1]-knots[i])*inv_deg for i in range(n)])
+            return self._splu.solve(basis_quads, trans='T')
         else:
             c, self._sinfo = self._solveFunc(
                 self._bmat, self._l, self._u, self._basis.integrals, self._ipiv, trans=True)

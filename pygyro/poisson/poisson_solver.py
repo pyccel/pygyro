@@ -11,6 +11,7 @@ from ..splines.spline_eval_funcs import eval_spline_1d_vector
 from ..initialisation import initialiser_funcs as init
 from .poisson_tools import get_perturbed_rho, get_rho
 
+
 class DensityFinder:
     """
     DensityFinder: Class used to integrate the particle distribution
@@ -34,7 +35,8 @@ class DensityFinder:
         n = degree//2+1
 
         # Get the quadrature coefficients
-        self._quad_coeffs = SplineInterpolator1D(spline).get_quadrature_coefficients()
+        self._quad_coeffs = SplineInterpolator1D(
+            spline).get_quadrature_coefficients()
 
         self._fEq = np.empty([eta_grid[0].size, eta_grid[3].size])
         init.feq_vector(self._fEq, eta_grid[0], eta_grid[3], constants.CN0, constants.kN0,
@@ -60,7 +62,8 @@ class DensityFinder:
 
         rIndices = grid.getGlobalIdxVals(0)
 
-        get_perturbed_rho(rho.getAllData(), self._fEq[rIndices], grid.getAllData(), self._quad_coeffs)
+        get_perturbed_rho(
+            rho.getAllData(), self._fEq[rIndices], grid.getAllData(), self._quad_coeffs)
 
     def getRho(self, grid: Grid, rho: Grid):
         """
@@ -81,6 +84,7 @@ class DensityFinder:
         assert rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1)
 
         get_rho(rho.getAllData(), grid.getAllData(), self._quad_coeffs)
+
 
 class DiffEqSolver:
     """
