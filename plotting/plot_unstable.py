@@ -1,3 +1,4 @@
+import argparse
 import glob
 import matplotlib.pyplot as plt
 from mpi4py import MPI
@@ -12,13 +13,15 @@ from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
 from pygyro.model.layout import LayoutSwapper
 
-foldername = sys.argv[1]
+
+parser = argparse.ArgumentParser(description='Plot the most unstable modes of the simulation')
+parser.add_argument('foldername', type=str,
+                    help='The folders whose results should be plotted')
+foldername = args.foldername
 
 ###############################################################
 #                   Setup to handle layouts
 ###############################################################
-
-assert (len(foldername) > 0)
 
 comm = MPI.COMM_WORLD
 mpi_size = comm.Get_size()
