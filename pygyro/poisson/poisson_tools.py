@@ -1,4 +1,4 @@
-from pyccel.decorators import types
+from pyccel.decorators import template
 
 
 @template('T', ('complex128[:,:,:]', 'float[:,:,:]'))
