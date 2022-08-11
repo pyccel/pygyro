@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 def plot_file(foldername):
-    dataset = np.loadtxt(os.path.join(foldername, 'phiDat.txt'))
+    dataset = np.atleast_2d(np.loadtxt(os.path.join(foldername, 'phiDat.txt')))
     
     shape = dataset.shape
     
@@ -33,7 +33,7 @@ filename = os.path.join(args.foldername[0], 'phiDat.txt')
 p = args.pente
 m = args.mult
 
-dataset = np.loadtxt(filename)
+dataset = np.atleast_2d(np.loadtxt(filename))
 sorted_times = np.sort(dataset[:,0])
 
 plt.figure()
