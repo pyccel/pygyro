@@ -64,14 +64,14 @@ x=r*np.cos(theta)
 y=r*np.sin(theta)
 
 font = {'size'   : 16}
-
 pltFont('font', **font)
-fig = plt.figure()
-ax = fig.add_axes([0.1, 0.2, 0.7, 0.7],)
+fig, ax = plt.subplots(1)
 ax.set_title('T = {}'.format(t))
-colorbarax2 = fig.add_axes([0.85, 0.15, 0.03, 0.8],)
-plot = ax.pcolormesh(x,y,data,cmap="jet")
-fig.colorbar(plot,cax=colorbarax2)
+clevels = np.linspace( data.min(), data.max(), 101)
+im = ax.contourf( x, y, data, clevels, cmap='jet' )
+for c in im.collections:
+    c.set_edgecolor('face')
+plt.colorbar( im )
 
 ax.set_xlabel("x [m]")
 ax.set_ylabel("y [m]")
