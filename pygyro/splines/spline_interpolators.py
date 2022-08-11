@@ -53,7 +53,14 @@ class SplineInterpolator1D():
     # ...
     def compute_interpolant(self, ug, spl):
         """
-        TODO
+        Compute the coefficients of the spline which interpolates the points ug
+
+        Parameters
+        ----------
+        ug  : float[:]
+               Array of values at the interpolation points
+        spl : Spline1D
+              The spline in which the coefficients will be saved
         """
 
         assert isinstance(spl, Spline1D)
@@ -68,7 +75,8 @@ class SplineInterpolator1D():
     # ...
     def _solve_system_periodic(self, ug, c):
         """
-        TODO
+        Compute the coefficients c of the spline which interpolates the points ug
+        for a periodic spline
         """
 
         n = self._basis.nbasis
@@ -80,7 +88,8 @@ class SplineInterpolator1D():
     # ...
     def _solve_system_nonperiodic(self, ug, c):
         """
-        TODO
+        Compute the coefficients c of the spline which interpolates the points ug
+        for a non-periodic spline
         """
 
         assert ug.shape[0] == self._bmat.shape[1]
@@ -88,6 +97,25 @@ class SplineInterpolator1D():
         assert c.shape == ug.shape
         c[:], self._sinfo = self._solveFunc(
             self._bmat, self._l, self._u, ug, self._ipiv)
+
+    # ...
+    def get_quadrature_coefficients(self):
+        """
+        Compute the quadrature coefficients equivalent to integrating a spline
+        """
+
+        n = self._basis.nbasis
+        p = self._basis.degree
+
+        if self._basis.periodic:
+            inv_deg         = 1 / (p + 1)
+            knots = self._basis.knots
+            basis_quads = np.array([(knots[i+p+1]-knots[i])*inv_deg for i in range(n)])
+            return self._splu.solve(basis_quads, trans = 'T')
+        else:
+            c, self._sinfo = self._solveFunc(
+                self._bmat, self._l, self._u, self._basis.integrals, self._ipiv, trans=True)
+            return c
 
     @staticmethod
     def collocation_matrix(knots, degree, xgrid, periodic):
@@ -168,7 +196,14 @@ class SplineInterpolator2D():
 
     def compute_interpolant(self, ug, spl):
         """
-        TODO
+        Compute the coefficients of the spline which interpolates the points ug
+
+        Parameters
+        ----------
+        ug  : float[:,:]
+               Array of values at the interpolation points
+        spl : Spline2D
+              The spline in which the coefficients will be saved
         """
 
         assert isinstance(spl, Spline2D)

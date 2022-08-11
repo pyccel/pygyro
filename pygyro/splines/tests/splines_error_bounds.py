@@ -98,6 +98,17 @@ def spline_1d_error_bound_on_deriv(profile_1d, dx, deg):
 # ===============================================================================
 
 
+def spline_1d_error_bound_on_integ(profile_1d, dx, deg):
+    """ Compute error bound on first derivative, for spline approximation of 1D
+        analytical profile. Signature is identical to 'spline_1d_error_bound'.
+    """
+    max_norm = profile_1d.max_norm(deg+1)
+    max_error = tihomirov_error_bound(dx, deg, max_norm)*dx
+    return max_error
+
+# ===============================================================================
+
+
 def spline_2d_error_bound(profile_2d, dx1, dx2, deg1, deg2):
     """
     Compute error bound for spline approximation of 2D analytical profile.
