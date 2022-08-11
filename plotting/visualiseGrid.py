@@ -1,15 +1,24 @@
+import argparse
+import os
 from mpi4py import MPI
-import sys
 
 from pygyro.utilities.grid_plotter import SlicePlotterNd
 from pygyro.initialisation.setups import setupCylindricalGrid, setupFromFile
 
+parser = argparse.ArgumentParser(
+    description='Plot the 4D distribution function')
+parser.add_argument('filename', nargs='?', type=str,
+                    help='The file whose results should be plotted. If no file is specified then the default initialisation is shown')
+args = parser.parse_args()
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-if len(sys.argv == 1):
-    foldername = sys.argv[1]
+filename = args.filename
 
+if filename:
+    foldername = os.path.dirname(filename)
+    tEnd = int(filename.split('_')[-1][:-3])
     distribFunc, constants, t = setupFromFile(foldername, comm=comm,
                                               allocateSaveMemory=True,
                                               timepoint=tEnd)

@@ -10,13 +10,14 @@ from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.layout import getLayoutHandler
 
 
-parser = argparse.ArgumentParser(description='Process foldername')
+parser = argparse.ArgumentParser(
+    description='Compare 2 distribution functions having the same number of points')
 parser.add_argument('initF', metavar='initF', nargs=1, type=str,
-                    help='init file')
+                    help='init file (json)')
 parser.add_argument('f1', metavar='f1', nargs=1, type=str,
-                    help='file1')
+                    help='The file describing the first distribution function')
 parser.add_argument('f2', metavar='f2', nargs=1, type=str,
-                    help='file2')
+                    help='The file describing the first distribution function')
 
 args = parser.parse_args()
 init_filename = args.initF[0]
