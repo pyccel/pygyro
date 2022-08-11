@@ -622,7 +622,7 @@ class PoloidalAdvectionArakawa:
         The tolerance used for the implicit trapezoidal rule
     """
 
-    def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, values_f=None, values_phi=None, nulEdge=False,
+    def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, equilibrium_outside=False, verbose=False, nulEdge=False,
                  explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
@@ -652,11 +652,11 @@ class PoloidalAdvectionArakawa:
 
         # temporarily hard coded parameters for now
         self.bc = bc
-        self.equilibrium_outside = True
+        self.equilibrium_outside = equilibrium_outside
 
         self.order = order
 
-        self.verbose = False
+        self.verbose = verbose
 
         # left and right boundary indices, do we want to have them seperated?
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
@@ -680,9 +680,14 @@ class PoloidalAdvectionArakawa:
             self.r_scaling = np.copy(f)
 
             # increase the size of the scaling
-            assert self._points_r[0]-(order+1)*self._dr > 0
-            self.r_outside = np.hstack([[self._points_r[0]-(j+1)*self._dr for j in range(self.order//2)],
-                                        [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
+            if self._points_r[0]-(order//2+1)*self._dr > 0:
+                self.r_outside = np.hstack([[self._points_r[0]-(j+1)*self._dr for j in range(self.order//2)],
+                                            [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
+            else:
+                print("carefull the inner r_outside has smaller delta r")
+                dr_o = (self._points_r[0] + 0.05) / order
+                self.r_outside = np.hstack([[self._points_r[0]-(j+1)*dr_o for j in range(self.order//2)],
+                                            [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
 
             # set the outside and interior values for the bigger r_scaling
             for k in range(self.order):
@@ -806,7 +811,7 @@ class PoloidalAdvectionArakawa:
 
         # enforce bc srongly?
         if self.bc == 'dirichlet':
-            #    f[self.ind_bd] = -np.ones(len(self.ind_bd))
+            # f[self.ind_bd] = -np.ones(len(self.ind_bd))
             phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # assemble the bracket
