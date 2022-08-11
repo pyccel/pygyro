@@ -165,6 +165,11 @@ jobs:
         run: |
             if [[ $(autopep8 -r --diff pygyro/) ]]
             then
-              echo "Please run autopep8 to clean up formatting"
+              echo "Please run `autopep8 -ir pygyro/` to clean up formatting"
+              exit 1
+            fi
+            if [[ $(autopep8 -r --diff plotting/) ]]
+            then
+              echo "Please run `autopep8 -ir plotting/` to clean up formatting"
               exit 1
             fi
