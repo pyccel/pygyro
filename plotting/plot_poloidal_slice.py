@@ -5,10 +5,10 @@ from matplotlib             import rc        as pltFont
 import argparse
 import os
 
-from pygyro.tools.getSlice          import get_grid_slice
-from pygyro.tools.getPhiSlice       import get_phi_slice
-from pygyro.initialisation          import constants
-from pygyro                         import splines as spl
+from pygyro.tools.getSlice           import get_grid_slice
+from pygyro.tools.getPhiSlice        import get_phi_slice
+from pygyro.initialisation.constants import get_constants
+from pygyro                          import splines as spl
 
 parser = argparse.ArgumentParser(description='Process filename')
 parser.add_argument('filename', metavar='filename',nargs=1,type=str,
@@ -33,21 +33,20 @@ data_shape[0]+=1
 data = np.ndarray(data_shape)
 
 data[:-1,:]=dataset[:]
-data[0,:]=data[0,:]
-
-if (len(shape)==3):
-    get_phi_slice(foldername,t)
-    file = h5py.File(filename,'r')
-    dataset=file['/dset']
-elif (len(shape)==4):
-    get_grid_slice(foldername,t)
+data[-1,:]=data[0,:]
 
 file.close()
 
-npts = shape[::-1]
-degree = [3,3]
+constantFile = os.path.join(foldername, 'initParams.json')
+if not os.path.exists(constantFile):
+    raise RuntimeError("Can't find constants in simulation folder")
+
+constants = get_constants(constantFile)
+
+npts = constants.npts[:2]
+degree = constants.splineDegrees[:2]
 period = [False,True]
-domain = [[0.1, 14.5],[0,2*np.pi]]
+domain = [[constants.rMin, constants.rMax],[0,2*np.pi]]
 
 nkts      = [n+1+d*(int(p)-1)              for (n,d,p)    in zip( npts,degree, period )]
 breaks    = [np.linspace( *lims, num=num ) for (lims,num) in zip( domain, nkts )]
