@@ -1,6 +1,6 @@
 from mpi4py import MPI
 import pytest
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 import numpy as np
 
 from ..initialisation.setups import setupCylindricalGrid
@@ -282,16 +282,18 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-    l2 = np.sqrt(trapz(trapz((f_vals - final_f_vals)**2,
+    l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
                  eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert (l2 < 0.2)
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("dt", [0.1])
-@pytest.mark.parametrize("xc", [0, 1, 3])
-@pytest.mark.parametrize("yc", [0, 1, 3])
-def test_poloidalAdvectionArakawaExplicit(dt, xc, yc):
+@pytest.mark.parametrize("dt", [0.002])
+@pytest.mark.parametrize("xc", [0, 1])
+@pytest.mark.parametrize("yc", [0, 1])
+@pytest.mark.parametrize("order", [2, 4])
+@pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+def test_poloidalAdvectionArakawaExplicit(dt, xc, yc, order, bc):
     """
     Test the poloidal advection step with Arakawa scheme for different parameters against Phi
     for which the analytical solution is known. The explicit time integrator is used.
@@ -300,10 +302,10 @@ def test_poloidalAdvectionArakawaExplicit(dt, xc, yc):
     ----------
         dt : float
             time-step size
-        
+
         xc : float
             parameter in phi and analytical solution
-        
+
         yc : float
             parameter in phi and analytical solution
     """
@@ -314,7 +316,7 @@ def test_poloidalAdvectionArakawaExplicit(dt, xc, yc):
     eta_vals = [np.linspace(0, 20, N_r, endpoint=False), np.linspace(0, 2*np.pi, N_theta, endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
-    N = int(1 / dt)
+    N = 20
 
     f_vals = np.zeros((N_r, N_theta))
     final_f_vals = np.zeros((N_r, N_theta))
@@ -333,9 +335,16 @@ def test_poloidalAdvectionArakawaExplicit(dt, xc, yc):
     eta_vals[0] = eta_grids[0]
     eta_vals[1] = eta_grids[1]
 
+    d_theta = eta_grids[0][1] - eta_grids[0][0]
+    d_r = eta_grids[1][1] - eta_grids[1][0]
+
+    # CFL condition
+    assert 100*dt < np.sqrt(d_r**2 + (np.max(eta_grids[1]) * d_theta)**2)
+
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=True)
+    polAdv = PoloidalAdvectionArakawa(
+        eta_vals, constants, explicit=True, bc=bc, order=order)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -364,9 +373,6 @@ def test_poloidalAdvectionArakawaExplicit(dt, xc, yc):
 
     assert len(eta_grids[1]) == N_r
     assert len(eta_grids[0]) == N_theta
-
-    d_theta = eta_grids[0][1] - eta_grids[0][0]
-    d_r = eta_grids[1][1] - eta_grids[1][0]
 
     l2 = np.sqrt(compute_int_f_squared(f_vals.T - final_f_vals.T, d_theta, d_r, eta_grids[1], eta_grids[0],
                                        method='trapz'))
@@ -438,17 +444,19 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-    l2 = np.sqrt(trapz(trapz((f_vals - final_f_vals)**2,
+    l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
                  eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert (l2 < 0.2)
 
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt", [0.1])
-@pytest.mark.parametrize("xc", [0, 1, 3])
-@pytest.mark.parametrize("yc", [0, 1, 3])
-def test_poloidalAdvectionArakawaImplicit(dt, xc, yc):
+@pytest.mark.parametrize("dt", [0.05])
+@pytest.mark.parametrize("xc", [0, 1])
+@pytest.mark.parametrize("yc", [0, 1])
+@pytest.mark.parametrize("order", [2, 4])
+@pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+def test_poloidalAdvectionArakawaImplicit(dt, xc, yc, order, bc):
     """
     Test the poloidal advection step with Arakawa scheme for different parameters against Phi
     for which the analytical solution is known. The implicit time integrator is used.
@@ -457,10 +465,10 @@ def test_poloidalAdvectionArakawaImplicit(dt, xc, yc):
     ----------
         dt : float
             time-step size
-        
+
         xc : float
             parameter in phi and analytical solution
-        
+
         yc : float
             parameter in phi and analytical solution
     """
@@ -471,7 +479,7 @@ def test_poloidalAdvectionArakawaImplicit(dt, xc, yc):
     eta_vals = [np.linspace(0, 20, N_r, endpoint=False), np.linspace(0, 2*np.pi, N_theta, endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
-    N = int(1/dt)
+    N = 10
 
     f_vals = np.zeros((N_r, N_theta))
     final_f_vals = np.zeros((N_r, N_theta))
@@ -492,7 +500,7 @@ def test_poloidalAdvectionArakawaImplicit(dt, xc, yc):
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, bc=bc, order=order)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -886,7 +894,7 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
 
         err = approxGrad-exactGrad
 
-        l2[i] = np.sqrt(np.trapz(np.trapz(err**2, dx=dz), dx=dtheta))
+        l2[i] = np.sqrt(trapezoid(trapezoid(err**2, dx=dz), dx=dtheta))
         linf[i] = np.linalg.norm(err.flatten(), np.inf)
 
         npts[1] *= 2

@@ -634,6 +634,7 @@ class PoloidalAdvectionArakawa:
                  bc: str = 'dirichlet', order: int = 4,
                  verbose: bool = False,
                  nulEdge=False, explicit: bool = False, tol: float = 1e-10):
+
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -680,7 +681,7 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        pass
+        raise NotImplementedError("This functionality has not been implemented yet!")
 
     def RK4(self, z, J, dt):
         """
@@ -735,7 +736,7 @@ class PoloidalAdvectionArakawa:
 
         # enforce bc strongly?
         if self.bc == 'dirichlet':
-            f[self.ind_bd] = np.zeros(len(self.ind_bd))
+            # f[self.ind_bd] = np.zeros(len(self.ind_bd))
             phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # assemble the bracket
@@ -771,7 +772,7 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        pass
+        raise NotImplementedError("This functionality has not been implemented yet!")
 
     def gridStep(self, grid: Grid, phi: Grid, dt: float):
         """
@@ -800,10 +801,10 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        pass
+        raise NotImplementedError("This functionality has not been implemented yet!")
 
     def evaluate(self, theta, r, v):
         """
         TODO
         """
-        pass
+        raise NotImplementedError("This functionality has not been implemented yet!")
