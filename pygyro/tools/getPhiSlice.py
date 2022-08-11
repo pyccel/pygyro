@@ -83,8 +83,8 @@ def get_phi_slice(foldername, tEnd, z_idx = 0):
 def get_flux_surface_phi_slice(foldername, tEnd):
     """
     Extract a poloidal slice of the electric potential at time tEnd from the specified folder
-    and save the slice into a file named PhiFluxSlice_tEnd.h5 . The data is saved with z
-    in the first dimension, and theta in the second dimension
+    and save the slice into a file named PhiFluxSlice_tEnd.h5 . The data is saved with theta
+    in the first dimension, and z in the second dimension
 
     Parameters
     ----------
@@ -107,7 +107,7 @@ def get_flux_surface_phi_slice(foldername, tEnd):
 
     npts = constants.npts
 
-    degree = [3, 3, 3]
+    degree = constants.splineDegrees[:-1]
     period = [False, True, True]
     domain = [[constants.rMin, constants.rMax], [
         0, 2*np.pi], [constants.zMin, constants.zMax]]
@@ -147,7 +147,7 @@ def get_flux_surface_phi_slice(foldername, tEnd):
         filename = "{0}/PhiFluxSlice_{1}.h5".format(foldername, tEnd)
         file = h5py.File(filename, 'w')
         dset = file.create_dataset(
-            "dset", [phi.eta_grid[2].size, phi.eta_grid[1].size])
+            "dset", [phi.eta_grid[1].size, phi.eta_grid[2].size])
         i = r_idx - phi.getLayout(phi.currentLayout).starts[0]
-        dset[:] = np.real(phi.get2DSlice(i))
+        dset[:] = np.real(phi.get2DSlice(i)).T
         file.close()
