@@ -9,6 +9,7 @@ from ..initialisation.initialiser_funcs import f_eq as fEq
 from .advection import FluxSurfaceAdvection, PoloidalAdvection, PoloidalAdvectionArakawa, VParallelAdvection, ParallelGradient
 from .. import splines as spl
 from ..initialisation.constants import Constants
+from ..arakawa.utilities import compute_int_f_squared
 
 
 def gauss(x):
@@ -219,8 +220,8 @@ initConds = np.vectorize(initConditions, otypes=[float])
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
-def test_poloidalAdvection(dt, v, xc, yc):
+@pytest.mark.parametrize("dt, v, xc, yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     """
     TODO
     """
@@ -283,20 +284,22 @@ def test_poloidalAdvection(dt, v, xc, yc):
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
-def test_poloidalAdvectionArakawa(dt, v, xc, yc):
+@pytest.mark.parametrize("dt, v, xc, yc", [(0.1, -5.0, 0, 0), (0.1, 5.0, 1, 2), (0.1, 2.0, 2, 1)])
+def test_poloidalAdvectionArakawaExplicit(dt, v, xc, yc):
     """
     TODO
     """
 
-    npts = [64, 64]
-    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*np.pi, npts[0], endpoint=False),
+    npts = [80, 60]
+    N_r = npts[1]
+    N_theta = npts[0]
+    eta_vals = [np.linspace(0, 20, N_r, endpoint=False), np.linspace(0, 2*np.pi, N_theta, endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = int(1 / dt)
 
-    f_vals = np.ndarray([npts[1], npts[0]])
-    final_f_vals = np.ndarray([npts[1], npts[0]])
+    f_vals = np.zeros((N_r, N_theta))
+    final_f_vals = np.zeros((N_r, N_theta))
 
     deg = 3
     omega = 1
@@ -314,7 +317,7 @@ def test_poloidalAdvectionArakawa(dt, v, xc, yc):
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=True)
 
     phi = spl.Spline2D(bsplines[1], bsplines[0])
     phiVals = np.empty([npts[1], npts[0]])
@@ -326,7 +329,7 @@ def test_poloidalAdvectionArakawa(dt, v, xc, yc):
     f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
 
     for n in range(N):
-        polAdv.step(f_vals[:, :], dt, phi.eval(eta_vals[0], eta_vals[1]))
+        polAdv.step(f_vals[:, :], dt, np.array(phiVals, dtype=float))
 
     x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
     y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
@@ -341,14 +344,21 @@ def test_poloidalAdvectionArakawa(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-    l2 = np.sqrt(trapz(trapz((f_vals - final_f_vals)**2,
-                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+    assert len(eta_grids[1]) == N_r
+    assert len(eta_grids[0]) == N_theta
+
+    d_theta = eta_grids[0][1] - eta_grids[0][0]
+    d_r = eta_grids[1][1] - eta_grids[1][0]
+
+    l2 = np.sqrt(compute_int_f_squared(f_vals.T - final_f_vals.T, d_theta, d_r, eta_grids[1], eta_grids[0],
+                                       method='trapz'))
+
     assert (l2 < 0.2)
 
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+@pytest.mark.parametrize("dt, v, xc, yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
 def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     """
     TODO
@@ -414,20 +424,22 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+@pytest.mark.parametrize("dt, v, xc, yc", [(0.1, -5.0, 0, 0), (0.1, 5.0, 1, 2), (0.1, 2.0, 2, 1)])
 def test_poloidalAdvectionArakawaImplicit(dt, v, xc, yc):
     """
     TODO
     """
 
-    npts = [64, 64]
-    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*np.pi, npts[0], endpoint=False),
+    npts = [80, 60]
+    N_r = npts[1]
+    N_theta = npts[0]
+    eta_vals = [np.linspace(0, 20, N_r, endpoint=False), np.linspace(0, 2*np.pi, N_theta, endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = int(1/dt)
 
-    f_vals = np.ndarray([npts[1], npts[0]])
-    final_f_vals = np.ndarray([npts[1], npts[0]])
+    f_vals = np.zeros((N_r, N_theta))
+    final_f_vals = np.zeros((N_r, N_theta))
 
     deg = 3
     omega = 1
@@ -457,7 +469,7 @@ def test_poloidalAdvectionArakawaImplicit(dt, v, xc, yc):
     f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
 
     for n in range(N):
-        polAdv.step(f_vals[:, :], dt, phi.eval(eta_vals[0], eta_vals[1]))
+        polAdv.step(f_vals[:, :], dt, np.array(phiVals, dtype=float))
 
     x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
     y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
@@ -472,8 +484,15 @@ def test_poloidalAdvectionArakawaImplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-    l2 = np.sqrt(trapz(trapz((f_vals - final_f_vals)**2,
-                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+    assert len(eta_grids[1]) == N_r
+    assert len(eta_grids[0]) == N_theta
+
+    d_theta = eta_grids[0][1] - eta_grids[0][0]
+    d_r = eta_grids[1][1] - eta_grids[1][0]
+
+    l2 = np.sqrt(compute_int_f_squared(f_vals.T - final_f_vals.T, d_theta, d_r, eta_grids[1], eta_grids[0],
+                                       method='trapz'))
+
     assert (l2 < 0.2)
 
 
