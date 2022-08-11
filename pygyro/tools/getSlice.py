@@ -27,7 +27,7 @@ def get_grid_slice(foldername, tEnd, z_idx=None, v_idx=None):
 
     comm = MPI.COMM_WORLD
 
-    distribFunc, constants, t = setupFromFile(foldername, comm=comm,
+    distribFunc, _, _ = setupFromFile(foldername, comm=comm,
                                               allocateSaveMemory=True,
                                               timepoint=tEnd)
 
@@ -80,7 +80,7 @@ def get_flux_surface_grid_slice(foldername, tEnd, r_idx=None, v_idx=None):
 
     comm = MPI.COMM_WORLD
 
-    distribFunc, constants, t = setupFromFile(foldername, comm=comm,
+    distribFunc, _, _ = setupFromFile(foldername, comm=comm,
                                               allocateSaveMemory=True,
                                               timepoint=tEnd)
 

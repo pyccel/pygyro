@@ -77,7 +77,7 @@ def get_phi_slice(foldername, tEnd, z_idx=0):
         dset = file.create_dataset(
             "dset", [phi.eta_grid[1].size, phi.eta_grid[0].size])
         starts = phi.getLayout(phi.currentLayout).starts
-        dset[:] = np.real(phi.get2DSlice(z_idx))
+        dset[:] = np.real(phi.get2DSlice(z_idx + starts[0]))
         file.close()
 
 

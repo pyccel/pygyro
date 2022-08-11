@@ -62,7 +62,7 @@ def test_KineticEnergy_Positive():
 
     if (rank == 0):
         assert abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)
-                                  * np.pi*np.pi*consts.R0*2)) < 1e-7
+                                 * np.pi*np.pi*consts.R0*2)) < 1e-7
 
 
 @pytest.mark.parallel
@@ -91,4 +91,4 @@ def test_KineticEnergy_Positive_VPar():
 
     if (rank == 0):
         assert abs(KEResult-0.5*((consts.rMax**2-consts.rMin**2)
-                                  * np.pi*np.pi*consts.R0*2)) < 1e-7
+                                 * np.pi*np.pi*consts.R0*2)) < 1e-7

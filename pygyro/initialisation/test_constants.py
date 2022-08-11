@@ -55,7 +55,7 @@ def test_constants_file():
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
 
     assert constants.CN0 == (constants.rMax-constants.rMin /
-            integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
+                             integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
 
 
 @pytest.mark.serial
@@ -99,4 +99,4 @@ def test_constants_defaults():
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
 
     assert constants.CN0 == (constants.rMax-constants.rMin /
-            integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
+                             integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
