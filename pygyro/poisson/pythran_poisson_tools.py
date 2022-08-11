@@ -1,5 +1,5 @@
-# pythran export get_perturbed_rho(complex128[:,:,:], float64[:,:,:], float64[:,:], float64[:,:,:,:])
-# pythran export get_perturbed_rho(float64[:,:,:], float64[:,:,:], float64[:,:], float64[:,:,:,:])
+# pythran export get_perturbed_rho(complex128[:,:,:]order(C), float64[:,:]order(C), float64[:,:,:,:]order(C), float64[:])
+# pythran export get_perturbed_rho(float64[:,:,:]order(C), float64[:,:]order(C), float64[:,:,:,:]order(C), float64[:])
 
 def get_perturbed_rho(rho, feq, grid, quad_coeffs):
     """
@@ -31,8 +31,8 @@ def get_perturbed_rho(rho, feq, grid, quad_coeffs):
                         (grid[i, j, k, l] - feq[i, l])
 
 
-# pythran export get_rho(complex128[:,:,:], float64[:,:], float64[:,:,:,:])
-# pythran export get_rho(float64[:,:,:], float64[:,:], float64[:,:,:,:])
+# pythran export get_rho(complex128[:,:,:]order(C), float64[:,:,:,:]order(C), float64[:])
+# pythran export get_rho(float64[:,:,:]order(C), float64[:,:,:,:]order(C), float64[:])
 
 def get_rho(rho, grid, quad_coeffs):
     """
