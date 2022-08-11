@@ -21,15 +21,11 @@ def Fourier2D(F0, y0, x0):
     y = y0[0:ny]
     F = F0[0:ny, 0:nx]
 
-    Lx = x[nx - 1] - x[0]
-    dx = x[1] - x[0]
     kx = np.zeros(nx)
     temp = -np.r_[1:hnx + 1]
     kx[0:hnx] = temp[::-1]
     kx[hnx:nx] = np.r_[0:hnx]
 
-    Ly = y[ny - 1] - y[0]
-    dy = y[1] - y[0]
     ky = np.zeros(ny)
     temp = -np.r_[1:hny + 1]
     ky[0:hny] = temp[::-1]

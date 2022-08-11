@@ -5,8 +5,6 @@ from matplotlib import rc as pltFont
 import argparse
 import os
 
-from pygyro.tools.getSlice import get_grid_slice
-from pygyro.tools.getPhiSlice import get_phi_slice
 from pygyro.initialisation.constants import get_constants
 from pygyro import splines as spl
 

@@ -5,7 +5,7 @@ from pygyro.model.grid import Grid
 from pygyro.model.layout import LayoutSwapper, getLayoutHandler
 from pygyro.poisson.poisson_solver import DensityFinder, QuasiNeutralitySolver
 from pygyro.utilities.grid_plotter import SlicePlotterNd
-from pygyro.initialisation.setups import setupCylindricalGrid, setupFromFile
+from pygyro.initialisation.setups import setupCylindricalGrid
 from pygyro.diagnostics.norms import l2
 
 
