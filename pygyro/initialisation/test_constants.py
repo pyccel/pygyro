@@ -54,7 +54,7 @@ def test_constants_file():
     def normalisingFunc(r):
         return exp(-constants.kN0*constants.deltaRN0*tanh((r-constants.rp)/constants.deltaRN0))
 
-    assert constants.CN0 == (constants.rMax-constants.rMin /
+    assert (constants.CN0 == (constants.rMax-constants.rMin) /
                              integrate.quad(normalisingFunc, constants.rMin, constants.rMax)[0])
 
 
