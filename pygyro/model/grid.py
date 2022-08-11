@@ -126,6 +126,11 @@ class Grid(object):
         """
         return self._splines[self._layout.dims_order[-1]]
 
+    def getAllData(self):
+        """ get the slice from memory
+        """
+        return self._f
+
     def setLayout(self, new_layout: str):
         """
         TODO

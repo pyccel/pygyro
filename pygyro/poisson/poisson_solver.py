@@ -9,7 +9,7 @@ from ..splines.splines import BSplines, Spline1D
 from ..splines.spline_interpolators import SplineInterpolator1D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
 from ..initialisation import initialiser_funcs as init
-
+from .poisson_tools import get_perturbed_rho, get_rho
 
 class DensityFinder:
     """
@@ -33,27 +33,11 @@ class DensityFinder:
         # quadrature
         n = degree//2+1
 
-        # Calculate the points and weights required for the Gauss-Legendre
-        # quadrature
-        points, weights = leggauss(n)
+        # Get the quadrature coefficients
+        self._quad_coeffs = SplineInterpolator1D(spline).get_quadrature_coefficients()
 
-        # Calculate the values used for the Gauss-Legendre quadrature
-        # over the required domain
-        breaks = spline.breaks
-        starts = (breaks[:-1]+breaks[1:])/2
-        self._multFact = (breaks[1]-breaks[0])/2
-        self._points = np.repeat(starts, n) + \
-            np.tile(self._multFact*points, len(starts))
-        self._weights = np.tile(weights, len(starts))
-
-        # Create the tools required for the interpolation
-        self._interpolator = SplineInterpolator1D(spline)
-        self._spline = Spline1D(spline)
-
-        self._splineMem = np.empty_like(self._points)
-
-        self._fEq = np.empty([eta_grid[0].size, self._points.size])
-        init.feq_vector(self._fEq, eta_grid[0], self._points, constants.CN0, constants.kN0,
+        self._fEq = np.empty([eta_grid[0].size, eta_grid[3].size])
+        init.feq_vector(self._fEq, eta_grid[0], eta_grid[3], constants.CN0, constants.kN0,
                         constants.deltaRN0, constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
 
     def getPerturbedRho(self, grid: Grid, rho: Grid):
@@ -76,19 +60,7 @@ class DensityFinder:
 
         rIndices = grid.getGlobalIdxVals(0)
 
-        for i, (r, rIdx) in enumerate(zip(grid.getCoordVals(0), rIndices)):
-            for j, _ in grid.getCoords(1):  # z
-                rho_qv = rho.get1DSlice(i, j)
-
-                for k, _ in grid.getCoords(2):  # theta
-                    self._interpolator.compute_interpolant(
-                        grid.get1DSlice(i, j, k), self._spline)
-
-                    eval_spline_1d_vector(self._points, self._spline.basis.knots, self._spline.basis.degree,
-                                          self._spline.coeffs, self._splineMem, 0)
-
-                    rho_qv[k] = np.sum(self._multFact*self._weights*(self._splineMem
-                                                                     - self._fEq[rIdx]))
+        get_perturbed_rho(rho.getAllData(), self._fEq[rIndices], grid.getAllData(), self._quad_coeffs)
 
     def getRho(self, grid: Grid, rho: Grid):
         """
@@ -108,20 +80,7 @@ class DensityFinder:
         assert grid.getLayout(grid.currentLayout).dims_order == (0, 2, 1, 3)
         assert rho.getLayout(rho.currentLayout).dims_order == (0, 2, 1)
 
-        for i, _ in grid.getCoords(0):  # r
-            for j, _ in grid.getCoords(1):  # z
-                rho_qv = rho.get1DSlice(i, j)
-
-                for k, _ in grid.getCoords(2):  # theta
-                    self._interpolator.compute_interpolant(
-                        grid.get1DSlice(i, j, k), self._spline)
-
-                    eval_spline_1d_vector(self._points, self._spline.basis.knots, self._spline.basis.degree,
-                                          self._spline.coeffs, self._splineMem, 0)
-
-                    rho_qv[k] = np.sum(
-                        self._multFact*self._weights*(self._splineMem))
-
+        get_rho(rho.getAllData(), grid.getAllData(), self._quad_coeffs)
 
 class DiffEqSolver:
     """
