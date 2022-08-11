@@ -1,4 +1,4 @@
-
+import glob
 import h5py
 import matplotlib.pyplot as plt
 from mpi4py import MPI
@@ -67,8 +67,13 @@ z = phi.eta_grid[2]
 Ntheta = theta.size
 Nz = z.size
 
-n_time_steps=121
-time_grid = np.linspace(0,6000,n_time_steps, dtype=int)
+phi_files = glob.glob(os.path.join(foldername, 'phi_*.h5'))
+phi_files = [os.path.basename(f) for f in phi_files]
+time_grid = np.array([int(f[4:-3]) for f in phi_files])
+n_time_steps = len(time_grid)
+assert n_time_steps > 0
+
+time_grid.sort()
 
 m_max          = 4
 nb_mn_unstable = 7
@@ -80,7 +85,7 @@ Abs_modes_mn_unstable = np.zeros((nb_mn_unstable+1,n_time_steps))
 
 phi.loadFromFile(foldername, 0, "phi")
 assert r_idx in phi.getGlobalIdxVals(0)
-Phi_FluxSurface = phi.get2DSlice(r_idx).T
+Phi_FluxSurface = phi.get2DSlice(r_idx)
 [TFPhi_mn,m2d,n2d] = Fourier2D( 
     Phi_FluxSurface, z, theta)
 
@@ -123,7 +128,7 @@ for imax in range(nb_mn_unstable+1):
 for it,time in enumerate(time_grid[1:], 1):
     phi.loadFromFile(foldername, time, "phi")
     assert r_idx in phi.getGlobalIdxVals(0)
-    Phi_FluxSurface = phi.get2DSlice(r_idx).T
+    Phi_FluxSurface = phi.get2DSlice(r_idx)
     [TFPhi_mn,m2d,n2d] = Fourier2D(
         Phi_FluxSurface, z, theta)
     for im in range(m_max+1):
@@ -163,4 +168,4 @@ plt.legend(loc=4)
 #plt.title(f"t = {t}")
 #plt.xlabel('$\\theta$')
 #plt.ylabel('z')
-plt.savefig('unstable.png')
+plt.savefig(os.path.join(foldername,'unstable_modes.png'))
