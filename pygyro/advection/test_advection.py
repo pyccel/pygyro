@@ -311,7 +311,7 @@ def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_meth
 
         yc : float
             parameter in phi and analytical solution
-    
+
     Note: we do not test periodic boundary conditions in r since the scheme becomes very unstable.
     """
 
@@ -334,7 +334,8 @@ def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_meth
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, bc=bc, order=order, explicit=True)
+    polAdv = PoloidalAdvectionArakawa(
+        eta_vals, constants, bc=bc, order=order, explicit=True)
 
     d_theta = polAdv._dtheta
     d_r = polAdv._dr
