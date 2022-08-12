@@ -145,7 +145,7 @@ def compute_int_f(f: np.ndarray,
         f = convert_flat_to_2d(f, N_r=len(r_grid))
 
     assert f.shape[1] == len(r_grid), \
-        f'Second axis of f does not have the same length as r grid : {f.shape[1]} != {len(r_grid)}'
+        f'Second axis of f does not have the same length as r grid : {f.shape}[1] != {len(r_grid)}'
 
     if method == 'sum':
         res = np.sum(f, axis=0)
@@ -161,7 +161,7 @@ def compute_int_f(f: np.ndarray,
         theta_grid = np.arange(0, 2*np.pi + d_theta/10, d_theta)
 
         assert f_trap.shape[0] == len(theta_grid), \
-            f'First axis of f does not have the same length as theta grid : {f_trap.shape[0]} != {len(theta_grid)}'
+            f'First axis of f does not have the same length as theta grid : {f_trap.shape}[0] != {len(theta_grid)}'
 
         res = trapezoid(np.multiply(trapezoid(f_trap, theta_grid, axis=0),
                                     r_grid), r_grid)
@@ -210,7 +210,7 @@ def compute_int_f_squared(f: np.ndarray,
         f = convert_flat_to_2d(f, N_r=len(r_grid))
 
     assert f.shape[1] == len(r_grid), \
-        f'Second axis of f does not have the same length as r grid : {f.shape[1]} != {len(r_grid)}'
+        f'Second axis of f does not have the same length as r grid : {f.shape}[1] != {len(r_grid)}'
 
     if method == 'sum':
         res = np.sum(f**2, axis=0)
@@ -226,7 +226,7 @@ def compute_int_f_squared(f: np.ndarray,
         theta_grid = np.arange(0, 2*np.pi + d_theta/10, d_theta)
 
         assert f_trap.shape[0] == len(theta_grid), \
-            f'First axis of f does not have the same length as theta grid : {f_trap.shape[0]} != {len(theta_grid)}'
+            f'First axis of f does not have the same length as theta grid : {f_trap.shape}[0] != {len(theta_grid)}'
 
         res = trapezoid(np.multiply(trapezoid(f_trap**2, theta_grid, axis=0),
                                     r_grid), r_grid)
@@ -278,13 +278,13 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         f = convert_flat_to_2d(f, N_r=len(r_grid))
 
     assert f.shape[1] == len(r_grid), \
-        f'Second axis of f does not have the same length as r grid : {f.shape[1]} != {len(r_grid)}'
+        f'Second axis of f does not have the same length as r grid : {f.shape}[1] != {len(r_grid)}'
 
     if len(phi.shape) == 1:
         phi = convert_flat_to_2d(phi, N_r=len(r_grid))
 
     assert phi.shape[1] == len(r_grid), \
-        f'Second axis of f does not have the same length as r grid : {phi.shape[1]} != {len(r_grid)}'
+        f'Second axis of f does not have the same length as r grid : {phi.shape}[1] != {len(r_grid)}'
 
     if method == 'sum':
         # point-wise multiplication
@@ -307,10 +307,10 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
         theta_grid = np.arange(0, 2*np.pi + d_theta/10, d_theta)
 
         assert f_trap.shape[0] == len(theta_grid), \
-            f'First axis of f does not have the same length as theta grid : {f_trap.shape[0]} != {len(theta_grid)}'
+            f'First axis of f does not have the same length as theta grid : {f_trap.shape}[0] != {len(theta_grid)}'
 
         assert phi_trap.shape[0] == len(theta_grid), \
-            f'First axis of f does not have the same length as theta grid : {phi_trap.shape[0]} != {len(theta_grid)}'
+            f'First axis of f does not have the same length as theta grid : {phi_trap.shape}[0] != {len(theta_grid)}'
 
         f_phi_trap = np.multiply(f_trap, phi_trap)
 
