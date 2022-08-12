@@ -642,10 +642,10 @@ class PoloidalAdvectionArakawa:
         self._dr = self._points_r[1] - self._points_r[0]
         self._dtheta = self._points_theta[1] - self._points_theta[0]
 
-        self._shapedQ = np.atleast_2d(self._points[0]).T
+        self._shapedQ = np.atleast_2d(self._points_theta).T
 
-        self._nPoints_r = self._points[1].size
-        self._nPoints_theta = self._points[0].size
+        self._nPoints_r = self._points_r.size
+        self._nPoints_theta = self._points_theta.size
 
         assert self._nPoints_r == len(self._points_r)
         assert self._nPoints_theta == len(self._points_theta)
@@ -681,7 +681,8 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        raise NotImplementedError("This functionality has not been implemented yet!")
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
 
     def RK4(self, z, J, dt):
         """
@@ -727,12 +728,24 @@ class PoloidalAdvectionArakawa:
             Advection parameter d_tf + {phi,f} = 0; without scaling
         """
 
-        f = f.ravel()
-        # np.real allocates new memory and should be replaced
-        phi = np.real(phi.ravel())
+        if len(f.shape) != 1:
+            assert f.shape == (self._nPoints_theta, self._nPoints_r), \
+                f"{f.shape} != ({self._nPoints_theta}, {self._nPoints_r})"
+            f = f.ravel()
 
-        assert (f.shape == np.prod(self._nPoints)), \
-            f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
+        if len(phi.shape) != 1:
+            assert phi.shape == (self._nPoints_theta, self._nPoints_r), \
+                f"{phi.shape} != ({self._nPoints_theta}, {self._nPoints_r})"
+            phi = phi.ravel()
+
+        # np.real allocates new memory and should be replaced
+        phi = np.real(phi)
+
+        assert f.shape == np.prod(self._nPoints), \
+            f'f shape: {f.shape} != nPoints: {np.prod(self._nPoints)}'
+
+        assert phi.shape == np.prod(self._nPoints), \
+            f'phi shape: {phi.shape} != nPoints: {np.prod(self._nPoints)}'
 
         # enforce bc strongly?
         if self.bc == 'dirichlet':
@@ -772,7 +785,8 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        raise NotImplementedError("This functionality has not been implemented yet!")
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
 
     def gridStep(self, grid: Grid, phi: Grid, dt: float):
         """
@@ -801,10 +815,12 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        raise NotImplementedError("This functionality has not been implemented yet!")
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
 
     def evaluate(self, theta, r, v):
         """
         TODO
         """
-        raise NotImplementedError("This functionality has not been implemented yet!")
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
