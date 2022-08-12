@@ -289,11 +289,14 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
 
 @pytest.mark.serial
 @pytest.mark.parametrize("dt", [0.002])
+@pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
 @pytest.mark.parametrize("order", [2, 4])
-@pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
-def test_poloidalAdvectionArakawaExplicit(dt, xc, yc, order, bc):
+@pytest.mark.parametrize("bc", ['dirichlet'])
+# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+@pytest.mark.parametrize("int_method", ['sum', 'trapz'])
+def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_method):
     """
     Test the poloidal advection step with Arakawa scheme for different parameters against Phi
     for which the analytical solution is known. The explicit time integrator is used.
@@ -308,76 +311,65 @@ def test_poloidalAdvectionArakawaExplicit(dt, xc, yc, order, bc):
 
         yc : float
             parameter in phi and analytical solution
+    
+    Note: we do not test periodic boundary conditions in r since the scheme becomes very unstable.
     """
 
-    npts = [80, 60]
-    N_r = npts[1]
-    N_theta = npts[0]
-    eta_vals = [np.linspace(0, 20, N_r, endpoint=False), np.linspace(0, 2*np.pi, N_theta, endpoint=False),
-                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+    N_theta = 80
+    N_r = 60
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = 20
 
-    f_vals = np.zeros((N_r, N_theta))
-    final_f_vals = np.zeros((N_r, N_theta))
-
-    deg = 3
-    omega = 1
-
-    domain = [[1, 14.5], [0, 2*np.pi]]
-    periodic = [False, True]
-    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
-    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
-    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
-    eta_grids = [bspl.greville for bspl in bsplines]
-
-    eta_vals[0] = eta_grids[0]
-    eta_vals[1] = eta_grids[1]
-
-    d_theta = eta_grids[0][1] - eta_grids[0][0]
-    d_r = eta_grids[1][1] - eta_grids[1][0]
-
-    # CFL condition
-    assert 100*dt < np.sqrt(d_r**2 + (np.max(eta_grids[1]) * d_theta)**2)
+    f_vals = np.ndarray([N_theta, N_r])
+    final_f_vals = np.ndarray([N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(
-        eta_vals, constants, explicit=True, bc=bc, order=order)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, bc=bc, order=order, explicit=True)
 
-    phi = spl.Spline2D(bsplines[1], bsplines[0])
-    phiVals = np.empty([npts[1], npts[0]])
-    phiVals[:] = Phi(eta_vals[0], np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
-    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+    d_theta = polAdv._dtheta
+    d_r = polAdv._dr
 
-    interp.compute_interpolant(phiVals, phi)
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
 
-    f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
+    phiVals[:] = Phi(r_grid, np.atleast_2d(theta_grid).T, omega, xc, yc)
 
-    for n in range(N):
-        polAdv.step(f_vals[:, :], dt, np.array(phiVals, dtype=float))
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
 
-    x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
-    y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+    f_vals[:, :] = initConds(r_grid, np.atleast_2d(theta_grid).T)
+
+    x0 = polAdv._points_r * np.cos(np.atleast_2d(polAdv._points_theta).T)
+    y0 = polAdv._points_r * np.sin(np.atleast_2d(polAdv._points_theta).T)
+
+    for _ in range(N):
+        polAdv.step(f_vals[:, :], dt, phiVals)
 
     x = xc + (x0 - xc) * np.cos(omega * -dt * N) - \
         (y0 - yc) * np.sin(omega * -dt * N)
     y = yc + (x0 - xc) * np.sin(omega * -dt * N) + \
         (y0 - yc) * np.cos(omega * -dt * N)
 
-    finalPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
-    finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
-    finalPts[1][:] = np.sqrt(x * x + y * y)
-    final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
+    finalPts_theta = np.zeros((N_theta, N_r))
+    finalPts_r = np.zeros((N_theta, N_r))
+    finalPts_theta[:, :] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts_r[:, :] = np.sqrt(x**2 + y**2)
+    final_f_vals[:, :] = initConds(finalPts_r, finalPts_theta)
 
-    assert len(eta_grids[1]) == N_r
-    assert len(eta_grids[0]) == N_theta
+    l2 = np.sqrt(compute_int_f_squared(f_vals - final_f_vals,
+                 d_theta, d_r, r_grid, method=int_method))
 
-    l2 = np.sqrt(compute_int_f_squared(f_vals.T - final_f_vals.T, d_theta, d_r, eta_grids[1], eta_grids[0],
-                                       method='trapz'))
-
-    assert (l2 < 0.2)
+    assert (l2 < 0.1)
 
 
 @pytest.mark.serial
@@ -451,12 +443,14 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt", [0.05])
+@pytest.mark.parametrize("dt", [0.01])
+@pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
 @pytest.mark.parametrize("order", [2, 4])
 @pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
-def test_poloidalAdvectionArakawaImplicit(dt, xc, yc, order, bc):
+@pytest.mark.parametrize("int_method", ['sum', 'trapz'])
+def test_poloidalAdvectionArakawaImplicit(dt, omega, xc, yc, order, bc, int_method):
     """
     Test the poloidal advection step with Arakawa scheme for different parameters against Phi
     for which the analytical solution is known. The implicit time integrator is used.
@@ -473,68 +467,59 @@ def test_poloidalAdvectionArakawaImplicit(dt, xc, yc, order, bc):
             parameter in phi and analytical solution
     """
 
-    npts = [80, 60]
-    N_r = npts[1]
-    N_theta = npts[0]
-    eta_vals = [np.linspace(0, 20, N_r, endpoint=False), np.linspace(0, 2*np.pi, N_theta, endpoint=False),
-                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+    N_theta = 60
+    N_r = 40
 
-    N = 10
+    r_min = 0.01
+    r_max = 14.1
 
-    f_vals = np.zeros((N_r, N_theta))
-    final_f_vals = np.zeros((N_r, N_theta))
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
 
-    deg = 3
-    omega = 1
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
-    domain = [[1, 14.5], [0, 2*np.pi]]
-    periodic = [False, True]
-    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
-    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
-    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
-    eta_grids = [bspl.greville for bspl in bsplines]
+    N = 20
 
-    eta_vals[0] = eta_grids[0]
-    eta_vals[1] = eta_grids[1]
+    f_vals = np.ndarray([N_theta, N_r])
+    final_f_vals = np.ndarray([N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
 
     constants = Constants()
 
     polAdv = PoloidalAdvectionArakawa(eta_vals, constants, bc=bc, order=order)
 
-    phi = spl.Spline2D(bsplines[1], bsplines[0])
-    phiVals = np.empty([npts[1], npts[0]])
-    phiVals[:] = Phi(eta_vals[0], np.atleast_2d(eta_vals[1]).T, omega, xc, yc)
-    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+    d_theta = polAdv._dtheta
+    d_r = polAdv._dr
 
-    interp.compute_interpolant(phiVals, phi)
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
 
-    f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
+    phiVals[:] = Phi(r_grid, np.atleast_2d(theta_grid).T, omega, xc, yc)
 
-    for n in range(N):
-        polAdv.step(f_vals[:, :], dt, np.array(phiVals, dtype=float))
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
 
-    x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
-    y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
+    f_vals[:, :] = initConds(r_grid, np.atleast_2d(theta_grid).T)
+
+    x0 = polAdv._points_r * np.cos(np.atleast_2d(polAdv._points_theta).T)
+    y0 = polAdv._points_r * np.sin(np.atleast_2d(polAdv._points_theta).T)
+
+    for _ in range(N):
+        polAdv.step(f_vals[:, :], dt, phiVals)
 
     x = xc + (x0 - xc) * np.cos(omega * -dt * N) - \
         (y0 - yc) * np.sin(omega * -dt * N)
     y = yc + (x0 - xc) * np.sin(omega * -dt * N) + \
         (y0 - yc) * np.cos(omega * -dt * N)
 
-    finalPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
-    finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
-    finalPts[1][:] = np.sqrt(x * x + y * y)
-    final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
+    finalPts_theta = np.zeros((N_theta, N_r))
+    finalPts_r = np.zeros((N_theta, N_r))
+    finalPts_theta[:, :] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts_r[:, :] = np.sqrt(x**2 + y**2)
+    final_f_vals[:, :] = initConds(finalPts_r, finalPts_theta)
 
-    assert len(eta_grids[1]) == N_r
-    assert len(eta_grids[0]) == N_theta
-
-    d_theta = eta_grids[0][1] - eta_grids[0][0]
-    d_r = eta_grids[1][1] - eta_grids[1][0]
-
-    l2 = np.sqrt(compute_int_f_squared(f_vals.T - final_f_vals.T, d_theta, d_r, eta_grids[1], eta_grids[0],
-                                       method='trapz'))
+    l2 = np.sqrt(compute_int_f_squared(f_vals - final_f_vals,
+                 d_theta, d_r, r_grid, method=int_method))
 
     assert (l2 < 0.2)
 
