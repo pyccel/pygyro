@@ -21,19 +21,19 @@ def setup_test():
                                       layout='flux_surface')
 
     for (coord, npt) in zip(grid.eta_grid, npts):
-        assert (len(coord) == npt)
+        assert len(coord) == npt
 
     grid, _, _ = setupCylindricalGrid(npts=npts,
                                       layout='poloidal')
 
     for (coord, npt) in zip(grid.eta_grid, npts):
-        assert (len(coord) == npt)
+        assert len(coord) == npt
 
     grid, _, _ = setupCylindricalGrid(npts=npts,
                                       layout='v_parallel')
 
     for (coord, npt) in zip(grid.eta_grid, npts):
-        assert (len(coord) == npt)
+        assert len(coord) == npt
 
 
 @pytest.mark.serial
@@ -79,7 +79,7 @@ def compare_f(grid, t):
                 Slice = grid.get1DSlice(i, j, k)
                 for l, a in enumerate(Slice):
                     [I, J, K, L] = grid.getGlobalIndices(i, j, k, l)
-                    assert (a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t)
+                    assert a == I*nEta4*nEta3*nEta2+J*nEta4*nEta3+K*nEta4+L+t
 
 
 @pytest.mark.parallel

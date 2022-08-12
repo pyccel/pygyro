@@ -9,28 +9,7 @@ from .layout import LayoutManager
 
 class Grid(object):
     """
-    Grid class: grid and distribution function f are objects of this class.
-
-    Parameters
-    ----------
-        eta_grid : list
-            list of lists containing grid points, one entry for each variable
-
-        bsplines : list
-            list of splines.splines.Bsplines objects, one entry for each variable
-
-        layouts : model.layout.LayoutHandler
-            an object of the class model.layout.LayoutHandler which is a daughter class
-            of model.layout.LayoutManager
-
-        chosenLayout : str
-            string identifier of the chosen layout; must be key-value for layouts._layouts
-
-        comm : MPI.COMM_WORLD
-            MPI communicator object
-
-        kwargs : dict
-            should contain entries 'dtype' and 'allocateSaveMemory'
+    TODO
     """
 
     def __init__(self, eta_grid: list, bsplines: list, layouts: LayoutManager,
@@ -47,7 +26,6 @@ class Grid(object):
         self._layout_manager = layouts
         self._current_layout_name = chosenLayout
         self._layout = layouts.getLayout(chosenLayout)
-
         if (self.hasSaveMemory):
             self._my_data = [np.empty(self._layout_manager.bufferSize, dtype=dtype),
                              np.empty(self._layout_manager.bufferSize,
@@ -113,13 +91,13 @@ class Grid(object):
         """
         result = list(indices)
         for i, toAdd in enumerate(self._layout.starts):
-            result[self._layout.dims_order[i]] = indices[i] + toAdd
+            result[self._layout.dims_order[i]] = indices[i]+toAdd
         return result
 
     def get2DSlice(self, *slices: 'ints'):
         """ get the 2D slice at the provided list of coordinates
         """
-        assert (len(slices) == self._nDims-2)
+        assert len(slices) == self._nDims-2
         slices = slices + (slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
                            slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
         return self._f[tuple(slices)]
@@ -138,7 +116,7 @@ class Grid(object):
     def get1DSlice(self, *slices: 'ints'):
         """ get the 1D slice at the provided list of coordinates
         """
-        assert (len(slices) == self._nDims-1)
+        assert len(slices) == self._nDims-1
         slices = slices + \
             (slice(self._nGlobalCoords[self._layout.dims_order[-1]]),)
         return self._f[tuple(slices)]
@@ -165,7 +143,6 @@ class Grid(object):
                 self._my_data[self._buffIdx],
                 self._current_layout_name,
                 new_layout)
-
         self._dataIdx, self._buffIdx = self._buffIdx, self._dataIdx
         self._layout = self._layout_manager.getLayout(new_layout)
         self._f = np.split(self._my_data[self._dataIdx], [self._layout.size])[
@@ -187,8 +164,8 @@ class Grid(object):
         """ Save current values into a buffer.
             This location is protected until it is freed or restored
         """
-        assert (self.hasSaveMemory)
-        assert (self.notSaved)
+        assert self.hasSaveMemory
+        assert self.notSaved
 
         self._my_data[self._saveIdx][:self._layout.size] = self._f[:].flatten()
         self._savedLayout = self._current_layout_name
@@ -199,15 +176,15 @@ class Grid(object):
         """ Signal that the saved grid data is no longer needed and can
             be overwritten
         """
-        assert (self.hasSaveMemory)
-        assert (not self.notSaved)
+        assert self.hasSaveMemory
+        assert not self.notSaved
         self.notSaved = True
 
     def restoreGridValues(self):
         """ Restore the values from the saved grid data
         """
-        assert (self.hasSaveMemory)
-        assert (not self.notSaved)
+        assert self.hasSaveMemory
+        assert not self.notSaved
 
         self._dataIdx, self._saveIdx = self._saveIdx, self._dataIdx
         self.notSaved = True
@@ -244,11 +221,11 @@ class Grid(object):
         else:
             filename = "{0}/{1}_{2:06}.h5".format(
                 foldername, nameConvention, time)
-            assert (os.path.exists(filename))
+            assert os.path.exists(filename)
         file = h5py.File(filename, 'r')
         dataset = file['/dset']
         order = np.array(dataset.attrs['Layout'])
-        assert ((order == self._layout.dims_order).all())
+        assert (order == self._layout.dims_order).all()
         slices = tuple([slice(s, e) for s, e in zip(
             self._layout.starts, self._layout.ends)])
         self._f[:] = dataset[slices]
@@ -325,7 +302,7 @@ class Grid(object):
             # set sendSize and data to be sent
             if (self._f.dtype == np.complex128):
                 toSend = np.real(self._f[tuple(dim_slices)]).flatten()
-                assert (toSend.flags['OWNDATA'])
+                assert toSend.flags['OWNDATA']
             else:
                 toSend = self._f[tuple(dim_slices)].flatten()
             sendInfo.append(toSend.size)

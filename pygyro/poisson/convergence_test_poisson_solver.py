@@ -87,7 +87,7 @@ def test_BasicPoissonEquation_pointConverge(deg):
         exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         interp.compute_interpolant(
             np.real(phi.get1DSlice([0, 0])), approxSpline)
@@ -195,7 +195,7 @@ def test_BasicPoissonEquation_degreeConverge():
         exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         interp.compute_interpolant(
             np.real(phi.get1DSlice([0, 0])), approxSpline)
@@ -305,7 +305,7 @@ def test_grad_pointConverge(deg):
         exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         interp.compute_interpolant(
             np.real(phi.get1DSlice([0, 0])), approxSpline)
@@ -414,7 +414,7 @@ def test_grad_degreeConverge():
         exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         interp.compute_interpolant(
             np.real(phi.get1DSlice([0, 0])), approxSpline)
@@ -529,7 +529,7 @@ def test_grad_r_pointConverge(deg):
         exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         interp.compute_interpolant(
             np.real(phi.get1DSlice([0, 0])), approxSpline)
@@ -638,7 +638,7 @@ def test_grad_r_degreeConverge():
         exactSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         interp.compute_interpolant(
             np.real(phi.get1DSlice([0, 0])), approxSpline)
@@ -891,7 +891,7 @@ def test_QuasiNeutralityEquation_pointConverge():
             approxSpline = Spline1D(rspline)
             interp = SplineInterpolator1D(rspline)
 
-            assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+            assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
             phi.setLayout('mode_solve')
 
@@ -1070,7 +1070,7 @@ def test_QuasiNeutralityEquation_degreeConverge():
         approxSpline = Spline1D(rspline)
         interp = SplineInterpolator1D(rspline)
 
-        assert (np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16)
+        assert np.max(np.abs(np.imag(phi.get1DSlice([0, 0])))) < 1e-16
 
         phi.setLayout('mode_solve')
 
