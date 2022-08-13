@@ -312,6 +312,9 @@ class FluxSurfaceAdvection:
                        self._LagrangeVals)
 
     def gridStep(self, grid: Grid):
+        """
+        TODO
+        """
         assert grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2)
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
@@ -531,7 +534,11 @@ class PoloidalAdvection:
                                          self._constants.B0, self._TOL, self._nulEdge)
 
     def exact_step(self, f, endPts, v):
+        """
+        TODO
+        """
         assert f.shape == self._nPoints
+
         self._interpolator.compute_interpolant(f, self._spline)
 
         for i in range(self._nPoints[0]):  # theta
@@ -544,8 +551,10 @@ class PoloidalAdvection:
         """
         gridLayout = grid.getLayout(grid.currentLayout)
         phiLayout = phi.getLayout(grid.currentLayout)
+
         assert gridLayout.dims_order[1:] == phiLayout.dims_order
         assert gridLayout.dims_order == (3, 2, 1, 0)
+
         # Evaluate splines
         for j, _ in grid.getCoords(1):  # z
             self._interpolator.compute_interpolant(
@@ -560,7 +569,9 @@ class PoloidalAdvection:
         TODO
         """
         gridLayout = grid.getLayout(grid.currentLayout)
+
         assert gridLayout.dims_order == (3, 2, 1, 0)
+
         # Do step
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
@@ -631,10 +642,10 @@ class PoloidalAdvectionArakawa:
         self._dr = self._points_r[1] - self._points_r[0]
         self._dtheta = self._points_theta[1] - self._points_theta[0]
 
-        self._shapedQ = np.atleast_2d(self._points[0]).T
+        self._shapedQ = np.atleast_2d(self._points_theta).T
 
-        self._nPoints_r = self._points[1].size
-        self._nPoints_theta = self._points[0].size
+        self._nPoints_r = self._points_r.size
+        self._nPoints_theta = self._points_theta.size
 
         assert self._nPoints_r == len(self._points_r)
         assert self._nPoints_theta == len(self._points_theta)
@@ -736,7 +747,8 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        pass
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
 
     def RK4(self, z, J, dt):
         """
@@ -797,12 +809,24 @@ class PoloidalAdvectionArakawa:
             Advection parameter d_tf + {phi,f} = 0; without scaling
         """
 
-        f = f.ravel()
-        # np.real allocates new memory and should be replaced
-        phi = np.real(phi.ravel())
+        if len(f.shape) != 1:
+            assert f.shape == (self._nPoints_theta, self._nPoints_r), \
+                f"{f.shape} != ({self._nPoints_theta}, {self._nPoints_r})"
+            f = f.ravel()
 
-        assert (f.shape == np.prod(self._nPoints)), \
-            f'f shape: {f.shape}, nPoints: {np.prod(self._nPoints)}'
+        if len(phi.shape) != 1:
+            assert phi.shape == (self._nPoints_theta, self._nPoints_r), \
+                f"{phi.shape} != ({self._nPoints_theta}, {self._nPoints_r})"
+            phi = phi.ravel()
+
+        # np.real allocates new memory and should be replaced
+        phi = np.real(phi)
+
+        assert f.shape == np.prod(self._nPoints), \
+            f'f shape: {f.shape} != nPoints: {np.prod(self._nPoints)}'
+
+        assert phi.shape == np.prod(self._nPoints), \
+            f'phi shape: {phi.shape} != nPoints: {np.prod(self._nPoints)}'
 
         # enforce bc strongly?
         if self.bc == 'dirichlet':
@@ -916,7 +940,8 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        pass
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
 
     def gridStep(self, grid: Grid, phi: Grid, dt: float):
         """
@@ -963,10 +988,12 @@ class PoloidalAdvectionArakawa:
         """
         TODO
         """
-        pass
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")
 
     def evaluate(self, theta, r, v):
         """
         TODO
         """
-        pass
+        raise NotImplementedError(
+            "This functionality has not been implemented yet!")

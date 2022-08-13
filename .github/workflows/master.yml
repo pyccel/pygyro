@@ -149,6 +149,7 @@ jobs:
           make ACC=pythran pythran
       - name: Unit tests
         uses: ./.github/actions/pytest_run
+<<<<<<< HEAD
 
   Pep8:
 
@@ -175,3 +176,5 @@ jobs:
               autopep8 -r --diff plotting/
               exit 1
             fi
+=======
+>>>>>>> cemracs

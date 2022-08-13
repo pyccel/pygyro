@@ -52,8 +52,8 @@ def make_knots(breaks, degree, periodic):
 
     if periodic:
         period = breaks[-1]-breaks[0]
-        T[0:p] = [xi - period for xi in breaks[-p-1:-1]]
-        T[-p:] = [xi + period for xi in breaks[1:p+1]]
+        T[0:p] = [xi-period for xi in breaks[-p-1:-1]]
+        T[-p:] = [xi+period for xi in breaks[1:p+1]]
     else:
         T[0:p] = breaks[0]
         T[-p:] = breaks[-1]
@@ -90,8 +90,8 @@ class BSplines():
         self._knots = knots
         self._degree = degree
         self._periodic = periodic
-        self._ncells = len(knots) - 2*degree - 1
-        self._nbasis = self._ncells if periodic else self._ncells + degree
+        self._ncells = len(knots)-2*degree-1
+        self._nbasis = self._ncells if periodic else self._ncells+degree
         self._offset = degree//2 if periodic else 0
 
     @property
@@ -145,13 +145,13 @@ class BSplines():
         p = self._degree
         n = self._nbasis
         T = self._knots
-        s = 1 + p//2 if self._periodic else 1
-        x = np.array([np.sum(T[i:i+p]) / p for i in range(s, s + n)])
+        s = 1+p//2 if self._periodic else 1
+        x = np.array([np.sum(T[i:i+p])/p for i in range(s, s+n)])
 
         if self._periodic:
             a, b = self.domain
             x = np.around(x, decimals=15)
-            x = (x - a) % (b - a) + a
+            x = (x-a) % (b-a) + a
 
         return np.around(x, decimals=15)
 
@@ -177,7 +177,7 @@ class BSplines():
         if spl.basis.periodic:
             n = spl.basis.ncells
             p = spl.basis.degree
-            spl.coeffs[n:n + p] = spl.coeffs[0:p]
+            spl.coeffs[n:n+p] = spl.coeffs[0:p]
         return spl
 
     # ...
@@ -245,7 +245,6 @@ class Spline2D():
     def __init__(self, basis1, basis2):
         assert isinstance(basis1, BSplines)
         assert isinstance(basis2, BSplines)
-
         shape = (basis1.ncells + basis1.degree, basis2.ncells + basis2.degree)
         self._basis1 = basis1
         self._basis2 = basis2

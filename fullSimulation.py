@@ -238,9 +238,9 @@ def main():
 
         distribFunc.writeH5Dataset(foldername, t)
 
-        my_print(rank, "grid printed")
+        my_print(rank, nosave, "grid printed")
         phi.writeH5Dataset(foldername, t, "phi")
-        my_print(rank, "phi printed")
+        my_print(rank, nosave, "phi printed")
 
         diagnostics.reduce()
         if (rank == 0):
@@ -372,7 +372,7 @@ def main():
 
         distribFunc.writeH5Dataset(foldername, t)
         phi.writeH5Dataset(foldername,t,"phi")
-        output_time += (time.time()-output_start)
+        output_time += (time.time() - output_start)
 
     # End profiling and print results
     if (profilingOn):

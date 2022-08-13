@@ -1,6 +1,6 @@
 from mpi4py import MPI
 import pytest
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 import numpy as np
 
 from ..initialisation.setups import setupCylindricalGrid
@@ -9,6 +9,7 @@ from ..initialisation.initialiser_funcs import f_eq as fEq
 from .advection import FluxSurfaceAdvection, PoloidalAdvection, PoloidalAdvectionArakawa, VParallelAdvection, ParallelGradient
 from .. import splines as spl
 from ..initialisation.constants import Constants
+from ..arakawa.utilities import compute_int_f_squared
 
 
 def gauss(x):
@@ -19,7 +20,7 @@ def gauss(x):
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("fact,dt", [(10, 1), (10, 0.1), (5, 1)])
+@pytest.mark.parametrize("fact, dt", [(10, 1), (10, 0.1), (5, 1)])
 def test_fluxSurfaceAdvection(fact, dt):
     """
     TODO
@@ -57,11 +58,15 @@ def test_fluxSurfaceAdvection(fact, dt):
     for n in range(N):
         fluxAdv.step(f_vals, 0)
 
+<<<<<<< HEAD
     assert np.max(np.abs(f_vals-f_end)) < 1e-4
+=======
+    assert np.max(np.abs(f_vals - f_end)) < 1e-4
+>>>>>>> cemracs
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("nptZ,dt,err", [(32, 1.0, 1.5e-2), (64, 0.5, 3e-4), (128, 0.25, 1e-5)])
+@pytest.mark.parametrize("nptZ, dt, err", [(32, 1.0, 1.5e-2), (64, 0.5, 3e-4), (128, 0.25, 1e-5)])
 def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
     """
     TODO
@@ -106,12 +111,17 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
 
     for n in range(N):
         fluxAdv.step(f_vals, 0)
+<<<<<<< HEAD
     #~ print(np.max(np.abs(f_vals-f_end)))
+=======
+    # ~ print(np.max(np.abs(f_vals-f_end)))
+>>>>>>> cemracs
     assert np.max(np.abs(f_vals-f_end)) < err
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("function,N", [(gauss, 10), (gauss, 20), (gauss, 30)])
+@pytest.mark.parametrize("function", [gauss])
+@pytest.mark.parametrize("N", [10, 20, 30])
 def test_vParallelAdvection(function, N):
     """
     TODO
@@ -154,7 +164,11 @@ def test_vParallelAdvection(function, N):
         else:
             fEnd[i] = fEdge+function(x[i]-c*dt*N)
 
+<<<<<<< HEAD
     assert max(abs(f-fEnd)) < 2e-3
+=======
+    assert max(abs(f - fEnd)) < 2e-3
+>>>>>>> cemracs
 
 
 @pytest.mark.serial
@@ -191,7 +205,11 @@ def test_vParallelAdvectionPeriodic(N):
     for i in range(npts):
         fEnd[i] = gauss((x[i] - c * dt * N + 5) % 10 - 5)
 
+<<<<<<< HEAD
     assert max(abs(f-fEnd)) < 2e-3
+=======
+    assert max(abs(f - fEnd)) < 2e-3
+>>>>>>> cemracs
 
 
 def Phi(r, theta, omega, xc, yc):
@@ -219,8 +237,11 @@ initConds = np.vectorize(initConditions, otypes=[float])
 
 
 @pytest.mark.serial
-@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
-def test_poloidalAdvection(dt, v, xc, yc):
+@pytest.mark.parametrize("dt", [0.1])
+@pytest.mark.parametrize("v", [-5.0, 5.0])
+@pytest.mark.parametrize("xc", [0, 1, 3])
+@pytest.mark.parametrize("yc", [0, 1, 3])
+def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     """
     TODO
     """
@@ -277,14 +298,109 @@ def test_poloidalAdvection(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
+<<<<<<< HEAD
     l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
+    assert l2 < 0.2
+=======
+    l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
+                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
 
 @pytest.mark.serial
+@pytest.mark.parametrize("dt", [0.002])
+@pytest.mark.parametrize("omega", [1])
+@pytest.mark.parametrize("xc", [0, 1])
+@pytest.mark.parametrize("yc", [0, 1])
+@pytest.mark.parametrize("order", [2, 4])
+@pytest.mark.parametrize("bc", ['dirichlet'])
+# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+@pytest.mark.parametrize("int_method", ['sum', 'trapz'])
+def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_method):
+    """
+    Test the poloidal advection step with Arakawa scheme for different parameters against Phi
+    for which the analytical solution is known. The explicit time integrator is used.
+
+    Parameters
+    ----------
+        dt : float
+            time-step size
+
+        xc : float
+            parameter in phi and analytical solution
+
+        yc : float
+            parameter in phi and analytical solution
+
+    Note: we do not test periodic boundary conditions in r since the scheme becomes very unstable.
+    """
+
+    N_theta = 80
+    N_r = 60
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = 20
+
+    f_vals = np.ndarray([N_theta, N_r])
+    final_f_vals = np.ndarray([N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
+
+    constants = Constants()
+
+    polAdv = PoloidalAdvectionArakawa(
+        eta_vals, constants, bc=bc, order=order, explicit=True)
+
+    d_theta = polAdv._dtheta
+    d_r = polAdv._dr
+
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
+
+    phiVals[:] = Phi(r_grid, np.atleast_2d(theta_grid).T, omega, xc, yc)
+
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
+
+    f_vals[:, :] = initConds(r_grid, np.atleast_2d(theta_grid).T)
+
+    x0 = polAdv._points_r * np.cos(np.atleast_2d(polAdv._points_theta).T)
+    y0 = polAdv._points_r * np.sin(np.atleast_2d(polAdv._points_theta).T)
+
+    for _ in range(N):
+        polAdv.step(f_vals[:, :], dt, phiVals)
+
+    x = xc + (x0 - xc) * np.cos(omega * -dt * N) - \
+        (y0 - yc) * np.sin(omega * -dt * N)
+    y = yc + (x0 - xc) * np.sin(omega * -dt * N) + \
+        (y0 - yc) * np.cos(omega * -dt * N)
+
+    finalPts_theta = np.zeros((N_theta, N_r))
+    finalPts_r = np.zeros((N_theta, N_r))
+    finalPts_theta[:, :] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts_r[:, :] = np.sqrt(x**2 + y**2)
+    final_f_vals[:, :] = initConds(finalPts_r, finalPts_theta)
+
+    l2 = np.sqrt(compute_int_f_squared(f_vals - final_f_vals,
+                 d_theta, d_r, r_grid, method=int_method))
+
+    assert (l2 < 0.1)
+>>>>>>> cemracs
+
+
+@pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("dt,v,xc,yc", [(1.0, -5.0, 0, 0), (0.1, 5.0, 1, 0), (0.1, 2.0, 2, 1)])
+@pytest.mark.parametrize("dt", [0.1])
+@pytest.mark.parametrize("v", [-5.0, 5.0])
+@pytest.mark.parametrize("xc", [0, 1, 3])
+@pytest.mark.parametrize("yc", [0, 1, 3])
 def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     """
     TODO
@@ -343,9 +459,98 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
+<<<<<<< HEAD
     l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
+=======
+    l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
+                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+    assert l2 < 0.2
+
+
+@pytest.mark.serial
+@pytest.mark.long
+@pytest.mark.parametrize("dt", [0.01])
+@pytest.mark.parametrize("omega", [1])
+@pytest.mark.parametrize("xc", [0, 1])
+@pytest.mark.parametrize("yc", [0, 1])
+@pytest.mark.parametrize("order", [2, 4])
+@pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+@pytest.mark.parametrize("int_method", ['sum', 'trapz'])
+def test_poloidalAdvectionArakawaImplicit(dt, omega, xc, yc, order, bc, int_method):
+    """
+    Test the poloidal advection step with Arakawa scheme for different parameters against Phi
+    for which the analytical solution is known. The implicit time integrator is used.
+
+    Parameters
+    ----------
+        dt : float
+            time-step size
+
+        xc : float
+            parameter in phi and analytical solution
+
+        yc : float
+            parameter in phi and analytical solution
+    """
+
+    N_theta = 60
+    N_r = 40
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+    N = 20
+
+    f_vals = np.ndarray([N_theta, N_r])
+    final_f_vals = np.ndarray([N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
+
+    constants = Constants()
+
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, bc=bc, order=order)
+
+    d_theta = polAdv._dtheta
+    d_r = polAdv._dr
+
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
+
+    phiVals[:] = Phi(r_grid, np.atleast_2d(theta_grid).T, omega, xc, yc)
+
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
+
+    f_vals[:, :] = initConds(r_grid, np.atleast_2d(theta_grid).T)
+
+    x0 = polAdv._points_r * np.cos(np.atleast_2d(polAdv._points_theta).T)
+    y0 = polAdv._points_r * np.sin(np.atleast_2d(polAdv._points_theta).T)
+
+    for _ in range(N):
+        polAdv.step(f_vals[:, :], dt, phiVals)
+
+    x = xc + (x0 - xc) * np.cos(omega * -dt * N) - \
+        (y0 - yc) * np.sin(omega * -dt * N)
+    y = yc + (x0 - xc) * np.sin(omega * -dt * N) + \
+        (y0 - yc) * np.cos(omega * -dt * N)
+
+    finalPts_theta = np.zeros((N_theta, N_r))
+    finalPts_r = np.zeros((N_theta, N_r))
+    finalPts_theta[:, :] = np.mod(np.arctan2(y, x), 2 * np.pi)
+    finalPts_r[:, :] = np.sqrt(x**2 + y**2)
+    final_f_vals[:, :] = initConds(finalPts_r, finalPts_theta)
+
+    l2 = np.sqrt(compute_int_f_squared(f_vals - final_f_vals,
+                 d_theta, d_r, r_grid, method=int_method))
+
+    assert (l2 < 0.2)
+>>>>>>> cemracs
 
 
 @pytest.mark.serial
@@ -655,7 +860,7 @@ def pg_dPhi(r, theta, z, btheta, bz):
 
 @pytest.mark.serial
 @pytest.mark.long
-@pytest.mark.parametrize("phiOrder,zOrder", [(3, 3), (3, 4), (3, 5), (4, 4)])
+@pytest.mark.parametrize("phiOrder, zOrder", [(3, 3), (3, 4), (3, 5), (4, 4)])
 def test_Phi_deriv_dz(phiOrder, zOrder):
     """
     TODO
@@ -703,7 +908,7 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
 
         err = approxGrad-exactGrad
 
-        l2[i] = np.sqrt(np.trapz(np.trapz(err**2, dx=dz), dx=dtheta))
+        l2[i] = np.sqrt(trapezoid(trapezoid(err**2, dx=dz), dx=dtheta))
         linf[i] = np.linalg.norm(err.flatten(), np.inf)
 
         npts[1] *= 2
@@ -716,4 +921,8 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
     print("linfordre:", np.log2(linf[:-1]/linf[1:]))
     print("l2ordre:", np.log2(l2[:-1]/l2[1:]))
 
+<<<<<<< HEAD
     assert abs(linfOrder-zOrder) < 0.1
+=======
+    assert abs(linfOrder - zOrder) < 0.1
+>>>>>>> cemracs

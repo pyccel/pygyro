@@ -1102,11 +1102,11 @@ class LayoutSwapper(LayoutManager):
                     self._buffer_size = max(
                         self._buffer_size, blockSize1*mpi_size)
 
-                # # Find the distribution patterns
-                # nprocs1 = l1.nprocs
-                # ndims1 = self._nprocs[self._handlers[name1]]
-                # nprocs2 = l2.nprocs
-                # ndims2 = self._nprocs[self._handlers[name2]]
+                # Find the distribution patterns
+                nprocs1 = l1.nprocs
+                ndims1 = self._nprocs[self._handlers[name1]]
+                nprocs2 = l2.nprocs
+                ndims2 = self._nprocs[self._handlers[name2]]
 
         # Save the connections in a dictionary
         DirectConnections = dict(myMap)
