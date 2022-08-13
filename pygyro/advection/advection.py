@@ -4,7 +4,7 @@ from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
 
-from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa, assemble_row_col_extrapol_4th
+from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa, assemble_row_columns_akw_bracket_4th_order_extrapolation, update_bracket_4th_order_dirichlet_extrapolation
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
@@ -603,6 +603,9 @@ class PoloidalAdvectionArakawa:
     order : int
         which order of the Arakawa scheme should be used
 
+    equilibrium_outside : bool
+        if extrapolation is used, the grid step takes the equilibrium function on the outside
+
     verbose : bool
         if output information should be printed
 
@@ -619,7 +622,7 @@ class PoloidalAdvectionArakawa:
         The tolerance used for the implicit trapezoidal rule
     """
 
-    def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, equilibrium_outside=False, verbose=False, nulEdge=False,
+    def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, equilibrium_outside=True, verbose=False, nulEdge=False,
                  explicit: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
@@ -647,8 +650,8 @@ class PoloidalAdvectionArakawa:
 
         self._max_loops = 0
 
-        # temporarily hard coded parameters for now
         self.bc = bc
+
         self.equilibrium_outside = equilibrium_outside
 
         self.order = order
@@ -691,24 +694,16 @@ class PoloidalAdvectionArakawa:
                 self.r_scaling[self.ind_bd_ep[k]] = self.r_outside[k]
             self.r_scaling[self.ind_int_ep] = np.kron(
                 np.ones(self._nPoints_theta), self._points_r)
-            
-            self.rowcolumns = None
-            #self.rowcolumns = assemble_row_col_extrapol_4th(self._points_theta, self._points_r)
+
+            # assemble the rows and columns and the right-hand-side-matrix beforehand
+            # self.rowcolumns = None
+            # self.Jphi = None
+            self.rowcolumns, self.J_phi = assemble_row_columns_akw_bracket_4th_order_extrapolation(
+                self._points_theta, self._points_r)
+
     def calc_ep_stencil(self):
         """
         Calculate the stencil for the increased size of the interpolated stencil. 
-
-        Parameters
-        ----------
-
-            order : float
-                order of the scheme
-
-            N_r: float
-                number of points in r-direction
-
-            N_theta: float
-                number of points in theta-direction
 
         Returns
         -------
@@ -776,6 +771,7 @@ class PoloidalAdvectionArakawa:
             # if no values are given, assume 0 value outside
             if values_f == None:
                 values_f = np.zeros(self.order)
+
             if values_phi == None:
                 values_phi = np.zeros(self.order)
 
@@ -857,6 +853,12 @@ class PoloidalAdvectionArakawa:
 
         phi: array_like
             Advection parameter d_tf + {phi,f} = 0; without scaling
+
+        values_f : array_like
+            Values of f outside the domain
+
+        values_phi : array_like
+            Values of phi outside the domain
         """
 
         f = f.ravel()
@@ -876,27 +878,33 @@ class PoloidalAdvectionArakawa:
             self.phi_stencil[self.ind_bd_ep[k]] = values_phi[k]
 
         # assemble the bracket
-        J_phi = assemble_bracket_arakawa(self.bc, self.order, self.phi_stencil,
-                                         self._points_theta, self._points_r, self.rowcolumns)
+        # check if precomputation is used (later reduce to one method)
+        if self.rowcolumns == None:
+            self.J_phi = assemble_bracket_arakawa(self.bc, self.order, self.phi_stencil,
+                                                  self._points_theta, self._points_r)
+        else:
+            update_bracket_4th_order_dirichlet_extrapolation(
+                self.J_phi, self.rowcolumns, self.phi_stencil, self._points_theta, self._points_r)
 
         # algebraically conserving properties
         if self.verbose:
             print('conservation tests global:')
-            print(f'Integral of f: {sum(J_phi.dot(self.f_stencil.ravel()))}')
             print(
-                f'Energy: {sum(np.multiply(self.phi_stencil.ravel(), J_phi.dot(self.f_stencil.ravel())))}')
+                f'Integral of f: {sum(self.J_phi.dot(self.f_stencil.ravel()))}')
             print(
-                f'Square integral of f: {sum(np.multiply(self.f_stencil.ravel(), J_phi.dot(self.f_stencil.ravel())))}')
+                f'Energy: {sum(np.multiply(self.phi_stencil.ravel(), self.J_phi.dot(self.f_stencil.ravel())))}')
+            print(
+                f'Square integral of f: {sum(np.multiply(self.f_stencil.ravel(), self.J_phi.dot(self.f_stencil.ravel())))}')
 
         if self._explicit:
             # add the missing scaling to the rows of J
             I_s = diags(1/self.r_scaling, 0)
-            J_s = I_s @ J_phi
+            J_s = I_s @ self.J_phi
         else:
             # scaling is only found in the identity
             I_s = diags(self.r_scaling, 0)
-            A = I_s - dt/2 * J_phi
-            B = I_s + dt/2 * J_phi
+            A = I_s - dt/2 * self.J_phi
+            B = I_s + dt/2 * self.J_phi
 
         # execute the time-step
         if (self._explicit):

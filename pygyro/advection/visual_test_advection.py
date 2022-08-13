@@ -771,7 +771,6 @@ def test_poloidalAdvectionArakawa():
     #npts = [128,128]
     npts = [16, 16]
 
-    print(npts)
     eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
