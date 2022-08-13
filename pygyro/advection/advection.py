@@ -4,7 +4,7 @@ from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
 
-from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa
+from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa, assemble_row_col_extrapol_4th
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
 from ..splines.spline_eval_funcs import eval_spline_1d_vector
@@ -681,7 +681,7 @@ class PoloidalAdvectionArakawa:
                 self.r_outside = np.hstack([[self._points_r[0]-(j+1)*self._dr for j in range(self.order//2)],
                                             [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
             else:
-                print("carefull the inner r_outside has smaller delta r")
+                print("careful the inner r_outside has smaller delta r")
                 dr_o = (self._points_r[0] + 0.05) / order
                 self.r_outside = np.hstack([[self._points_r[0]-(j+1)*dr_o for j in range(self.order//2)],
                                             [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
@@ -691,7 +691,9 @@ class PoloidalAdvectionArakawa:
                 self.r_scaling[self.ind_bd_ep[k]] = self.r_outside[k]
             self.r_scaling[self.ind_int_ep] = np.kron(
                 np.ones(self._nPoints_theta), self._points_r)
-
+            
+            self.rowcolumns = None
+            #self.rowcolumns = assemble_row_col_extrapol_4th(self._points_theta, self._points_r)
     def calc_ep_stencil(self):
         """
         Calculate the stencil for the increased size of the interpolated stencil. 
@@ -875,7 +877,7 @@ class PoloidalAdvectionArakawa:
 
         # assemble the bracket
         J_phi = assemble_bracket_arakawa(self.bc, self.order, self.phi_stencil,
-                                         self._points_theta, self._points_r)
+                                         self._points_theta, self._points_r, self.rowcolumns)
 
         # algebraically conserving properties
         if self.verbose:

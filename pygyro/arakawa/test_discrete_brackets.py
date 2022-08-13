@@ -51,7 +51,7 @@ def test_skewsymmetry(bc, order, tol=1e-10):
         np.random.seed(321)
         phi[ind_bd_right] = np.random.rand()
 
-    # Phi is supposed to be constant outside of the domain and on the boundary
+    # Phi is supposed to be constant (in theta) outside of the domain and on the boundary
     elif bc == "extrapolation":
         N_ep = N_theta*(N_r + order)
         bd_left = [range(k, N_ep, N_r+order) for k in range(order//2+1)]
@@ -120,7 +120,7 @@ def test_bracket_mean(bc, order, tol=1e-10):
         phi[ind_bd_left] = np.random.rand()
         np.random.seed(321)
         phi[ind_bd_right] = np.random.rand()
-    # Phi is supposed to be constant outside of the domain and on the boundary
+    # Phi is supposed to be constant (in theta) outside of the domain and on the boundary
     elif bc == "extrapolation":
         N_ep = N_theta*(N_r + order)
         bd_left = [range(k, N_ep, N_r+order) for k in range(order//2+1)]
