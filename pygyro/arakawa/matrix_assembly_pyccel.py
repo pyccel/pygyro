@@ -628,7 +628,7 @@ def lists_order4_dirichlet(N_theta: int, N_r: int,
     """
     Fill the row, column, and data arrays which are needed for the
     creation of scipy sparse matrices in the assembly of the discrete
-    Arakawa bracket of order 2 with dirichlet boundary conditions in
+    Arakawa bracket of order 4 with dirichlet boundary conditions in
     r-direction.
 
     Parameters:
@@ -643,15 +643,15 @@ def lists_order4_dirichlet(N_theta: int, N_r: int,
             Array of length (N_theta*N_r); flattened array with the values for phi
 
         row : array[int]
-            array of length ((N_r - 2) * N_theta * 9 + N_theta * (6 + 6)), will be filled with
+            array of length N_theta * ((N_r - 2) * 9 + 6 + 6 + (N_r - 4) * 8 - 12 - 12), will be filled with
             the row indices of the bracket matrix
 
         col : array[int]
-            array of length ((N_r - 2) * N_theta * 9 + N_theta * (6 + 6)), will be filled with
+            array of length N_theta * ((N_r - 2) * 9 + 6 + 6 + (N_r - 4) * 8 - 12 - 12), will be filled with
             the column indices of the bracket matrix
 
         data : array[int]
-            array of length ((N_r - 2) * N_theta * 9 + N_theta * (6 + 6)), will be filled with
+            array of length N_theta * ((N_r - 2) * 9 + 6 + 6 + (N_r - 4) * 8 - 12 - 12), will be filled with
             the matrix entries of the bracket matrix
     """
     k = 0
