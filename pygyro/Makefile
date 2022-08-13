@@ -5,7 +5,7 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 .DELETE_ON_ERROR:
 
 # Define phony targets
-.PHONY: clean splines initialisation advection
+.PHONY: clean splines initialisation advection arakawa
 
 
 #----------------------------------------------------------
@@ -16,6 +16,7 @@ $(ACC):
 	$(MAKE) -C splines
 	$(MAKE) -C initialisation
 	$(MAKE) -C advection
+	$(MAKE) -C arakawa
 
 splines:
 	$(MAKE) -C $@
@@ -29,3 +30,4 @@ clean:
 	$(MAKE) -C splines $@
 	$(MAKE) -C initialisation $@
 	$(MAKE) -C advection $@
+	$(MAKE) -C arakawa $@
