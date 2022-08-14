@@ -681,6 +681,7 @@ class PoloidalAdvectionArakawa:
             self.r_scaling[self.ind_bd] *= 1/2
 
         elif self.bc == 'extrapolation':
+            assert self.order == 4
             # create empty stencils for the bigger J matrix
             f, inds_int, inds_bd = self.calc_ep_stencil()
 
@@ -707,10 +708,10 @@ class PoloidalAdvectionArakawa:
                 np.ones(self._nPoints_theta), self._points_r)
 
             # assemble the rows and columns and the right-hand-side-matrix beforehand
-            # self.rowcolumns = None
-            # self.Jphi = None
+            self._data = np.empty(self._nPoints_theta * (self._nPoints_r * 12 + 10), dtype=float)
             self.rowcolumns, self.J_phi = assemble_row_columns_akw_bracket_4th_order_extrapolation(
-                self._points_theta, self._points_r)
+                self._points_theta, self._points_r, self._data)
+            print('J_phi set')
 
     def calc_ep_stencil(self):
         """
@@ -890,10 +891,18 @@ class PoloidalAdvectionArakawa:
             values_phi : array_like
                 Values of phi outside the domain
         """
+        if len(f.shape) != 1:
+            assert f.shape == (self._nPoints_theta, self._nPoints_r), \
+                f"{f.shape} != ({self._nPoints_theta}, {self._nPoints_r})"
+            f = f.ravel()
 
-        f = f.ravel()
+        if len(phi.shape) != 1:
+            assert phi.shape == (self._nPoints_theta, self._nPoints_r), \
+                f"{phi.shape} != ({self._nPoints_theta}, {self._nPoints_r})"
+            phi = phi.ravel()
+
         # np.real allocates new memory and should be replaced
-        phi = np.real(phi.ravel())
+        phi = np.real(phi)
 
         # set phi to zero on the boundary (if needed)
         phi[self.ind_bd] = np.zeros(len(self.ind_bd))
@@ -914,7 +923,7 @@ class PoloidalAdvectionArakawa:
                                                   self._points_theta, self._points_r)
         else:
             update_bracket_4th_order_dirichlet_extrapolation(
-                self.J_phi, self.rowcolumns, self.phi_stencil, self._points_theta, self._points_r)
+                self.J_phi, self.rowcolumns, self.phi_stencil, self._points_theta, self._points_r, self._data)
 
         # algebraically conserving properties
         if self.verbose:

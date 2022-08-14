@@ -2,6 +2,8 @@ import numpy as np
 import scipy.sparse as sparse
 from .utilities import neighbour_index, ind_to_tp_ind
 
+from .matrix_assembly_pyccel import row_col_init, data_order4_ep
+
 
 def assemble_bracket_arakawa(bc, order, phi, grid_theta, grid_r):
     """
@@ -1292,7 +1294,7 @@ def assemble_awk_bracket_4th_order_dirichlet_extrapolation(phi, grid_theta, grid
 # The following functions implement the 4th order extrapolation with precomputation of indices and just updating the matrix
 
 
-def assemble_row_columns_akw_bracket_4th_order_extrapolation(grid_theta, grid_r):
+def assemble_row_columns_akw_bracket_4th_order_extrapolation(grid_theta, grid_r, data):
     """
     Precompute the used rows and columns for the indices of values in the bracket. Additionally pre-allocate the matrix.
 
@@ -1318,147 +1320,11 @@ def assemble_row_columns_akw_bracket_4th_order_extrapolation(grid_theta, grid_r)
     N_nodes = N_theta*N_r
 
     # does scipy sparse delete zeros?
-    row = list()
-    col = list()
+    row = np.empty(N_theta * ((N_r - 4) * 12 + 10), dtype=int)
+    col = np.empty(N_theta * ((N_r - 4) * 12 + 10), dtype=int)
 
-    # Arakawa in the interior
-    # allow for columns to get outside of the domain
-    for ir in range(N_r)[2:-2]:
-        for it in range(N_theta):
-            izm = neighbour_index(0, -1, ir, it, N_r, N_theta)
-            izp = neighbour_index(0, 1, ir, it, N_r, N_theta)
-            imm = neighbour_index(-1, -1, ir, it, N_r, N_theta)
-            imz = neighbour_index(-1, 0, ir, it, N_r, N_theta)
-            imp = neighbour_index(-1, 1, ir, it, N_r, N_theta)
-            ipm = neighbour_index(1, -1, ir, it, N_r, N_theta)
-            ipz = neighbour_index(1, 0, ir, it, N_r, N_theta)
-            ipp = neighbour_index(1, 1, ir, it, N_r, N_theta)
-            i2pz = neighbour_index(2, 0, ir, it, N_r, N_theta)
-            iz2p = neighbour_index(0, 2, ir, it, N_r, N_theta)
-            i2mz = neighbour_index(-2, 0, ir, it, N_r, N_theta)
-            iz2m = neighbour_index(0, -2, ir, it, N_r, N_theta)
+    row_col_init(N_theta, N_r, row, col)
 
-            ii = ind_to_tp_ind(ir, it, N_r)
-
-            # -((F[-2,0] (phi[imm]-phi[imp]))* factor2)
-            row.append(ii)
-            col.append(i2mz)
-
-            # +(F[-1,0] (phi[imm]-phi[imp]+phi[izm]-phi[izp]))* factor1
-            row.append(ii)
-            col.append(imz)
-
-            # +F[-1,-1] (-(phi[imz]* factor1)+(phi[i2mz]-phi[iz2m])* factor2+phi[izm]* factor1+(phi[imp]-phi[ipm])* factor2)
-            row.append(ii)
-            col.append(imm)
-
-            # -(F[0,-2] (-phi[imm]+phi[ipm]))* factor2
-            row.append(ii)
-            col.append(iz2m)
-
-            # +(F[0,-1] (-phi[imm]-phi[imz]+phi[ipm]+phi[ipz]))* factor1
-            row.append(ii)
-            col.append(izm)
-
-            # +F[-1,1] (phi[imz]* factor1-phi[izp]* factor1-(phi[i2mz]-phi[iz2p])* factor2-(phi[imm]-phi[ipp])* factor2)
-            row.append(ii)
-            col.append(imp)
-
-            # -(F[0,2] (phi[imp]-phi[ipp]))* factor2
-            row.append(ii)
-            col.append(iz2p)
-
-            # -(F[2,0] (-phi[ipm]+phi[ipp]))* factor2
-            row.append(ii)
-            col.append(i2pz)
-
-            # +F[0,1] (phi[imz]* factor1+phi[imp]* factor1-phi[ipz]* factor1-phi[ipp]* factor1)
-            row.append(ii)
-            col.append(izp)
-
-            # +F[1,0] (-(phi[izm]* factor1)+phi[izp]* factor1-phi[ipm]* factor1+phi[ipp]* factor1)
-            row.append(ii)
-            col.append(ipz)
-
-            # +F[1,1] (phi[izp]* factor1-(phi[imp]-phi[ipm])* factor2-phi[ipz]* factor1-(phi[iz2p]-phi[i2pz])* factor2)
-            row.append(ii)
-            col.append(ipp)
-
-            # +F[1,-1] (-(phi[izm]* factor1)+phi[ipz]* factor1+(phi[imm]-phi[ipp])* factor2-(-phi[iz2m]+phi[i2pz])* factor2)
-            row.append(ii)
-            col.append(ipm)
-
-    ir = 0
-    for it in range(N_theta):
-        i2pz = neighbour_index(2, 0, ir, it, N_r, N_theta)
-
-        ii = ind_to_tp_ind(ir, it, N_r)
-
-        # -(F[2,0] (-phi[ipm]+phi[ipp]))* factor2
-        row.append(ii)
-        col.append(i2pz)
-
-    ir = 1
-    for it in range(N_theta):
-        ipm = neighbour_index(1, -1, ir, it, N_r, N_theta)
-        ipz = neighbour_index(1, 0, ir, it, N_r, N_theta)
-        ipp = neighbour_index(1, 1, ir, it, N_r, N_theta)
-        i2pz = neighbour_index(2, 0, ir, it, N_r, N_theta)
-
-        ii = ind_to_tp_ind(ir, it, N_r)
-
-        # -(F[2,0] (-phi[ipm]+phi[ipp]))* factor2
-        row.append(ii)
-        col.append(i2pz)
-
-        # +F[1,0] (-(phi[izm]* factor1)+phi[izp]* factor1-phi[ipm]* factor1+phi[ipp]* factor1)
-        row.append(ii)
-        col.append(ipz)
-
-        # +F[1,1] (phi[izp]* factor1-(phi[imp]-phi[ipm])* factor2-phi[ipz]* factor1-(phi[iz2p]-phi[i2pz])* factor2)
-        row.append(ii)
-        col.append(ipp)
-
-        # +F[1,-1] (-(phi[izm]* factor1)+phi[ipz]* factor1+(phi[imm]-phi[ipp])* factor2-(-phi[iz2m]+phi[i2pz])* factor2)
-        row.append(ii)
-        col.append(ipm)
-
-    ir = N_r-2
-    for it in range(N_theta):
-        imm = neighbour_index(-1, -1, ir, it, N_r, N_theta)
-        imz = neighbour_index(-1, 0, ir, it, N_r, N_theta)
-        imp = neighbour_index(-1, 1, ir, it, N_r, N_theta)
-        i2mz = neighbour_index(-2, 0, ir, it, N_r, N_theta)
-
-        ii = ind_to_tp_ind(ir, it, N_r)
-
-        # -((F[-2,0] (phi[imm]-phi[imp]))* factor2)
-        row.append(ii)
-        col.append(i2mz)
-
-        # +(F[-1,0] (phi[imm]-phi[imp]+phi[izm]-phi[izp]))* factor1
-        row.append(ii)
-        col.append(imz)
-
-        # +F[-1,-1] (-(phi[imz]* factor1)+(phi[i2mz]-phi[iz2m])* factor2+phi[izm]* factor1+(phi[imp]-phi[ipm])* factor2)
-        row.append(ii)
-        col.append(imm)
-
-        # +F[-1,1] (phi[imz]* factor1-phi[izp]* factor1-(phi[i2mz]-phi[iz2p])* factor2-(phi[imm]-phi[ipp])* factor2)
-        row.append(ii)
-        col.append(imp)
-
-    ir = N_r-1
-    for it in range(N_theta):
-        i2mz = neighbour_index(-2, 0, ir, it, N_r, N_theta)
-
-        ii = ind_to_tp_ind(ir, it, N_r)
-
-        # -((F[-2,0] (phi[imm]-phi[imp]))* factor2)
-        row.append(ii)
-        col.append(i2mz)
-
-    data = np.zeros(len(row))
     J = (sparse.coo_matrix((data, (row, col)), shape=(N_nodes, N_nodes))).tocsr()
 
     return (row, col), J
@@ -1657,7 +1523,7 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
     return data
 
 
-def update_bracket_4th_order_dirichlet_extrapolation(J, rowcols, phi, grid_theta, grid_r):
+def update_bracket_4th_order_dirichlet_extrapolation(J, rowcols, phi, grid_theta, grid_r, data):
     """
     Compute the entries of J, use the precomputed row and column information and update J in place.
 
@@ -1679,5 +1545,5 @@ def update_bracket_4th_order_dirichlet_extrapolation(J, rowcols, phi, grid_theta
             array of length N_r; grid of r
     """
 
-    data = assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r)
+    data_order4_ep(phi, grid_theta, grid_r, data)
     J[rowcols] = data

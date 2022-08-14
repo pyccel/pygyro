@@ -151,7 +151,7 @@ def test_bracket_mean(bc, order, tol=1e-10):
     assert sum_phi_J_phi_f < tol
 
 
-# todo for extrapolation
+# TODO for extrapolation
 @pytest.mark.parametrize('bc', ['periodic', 'dirichlet'])
 @pytest.mark.parametrize('order', [2, 4])
 @pytest.mark.parametrize('int_method', ['sum', 'trapz'])

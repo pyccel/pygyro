@@ -292,9 +292,9 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
 @pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
-@pytest.mark.parametrize("order", [2, 4])
-@pytest.mark.parametrize("bc", ['dirichlet'])
-# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+@pytest.mark.parametrize("order, bc", [(2, 'dirichlet'), (4, 'dirichlet'), (4, 'extrapolation')])
+# @pytest.mark.parametrize("order", [2, 4])
+# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic', 'extrapolation'])
 @pytest.mark.parametrize("int_method", ['sum', 'trapz'])
 def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_method):
     """
@@ -313,6 +313,7 @@ def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_meth
             parameter in phi and analytical solution
 
     Note: we do not test periodic boundary conditions in r since the scheme becomes very unstable.
+    Extrapolation has only been implemented with 4th order.
     """
 
     N_theta = 80
@@ -448,8 +449,9 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 @pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
-@pytest.mark.parametrize("order", [2, 4])
-@pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+# @pytest.mark.parametrize("order", [2, 4])
+# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic', 'extrapolation'])
+@pytest.mark.parametrize("order, bc", [(2, 'dirichlet'), (4, 'dirichlet'), (2, 'periodic'), (4, 'periodic'), (4, 'extrapolation')])
 @pytest.mark.parametrize("int_method", ['sum', 'trapz'])
 def test_poloidalAdvectionArakawaImplicit(dt, omega, xc, yc, order, bc, int_method):
     """
