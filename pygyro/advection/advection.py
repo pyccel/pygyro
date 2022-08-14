@@ -634,7 +634,7 @@ class PoloidalAdvectionArakawa:
     """
 
     def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, equilibrium_outside=True, verbose=False, nulEdge=False,
-                 explicit: bool = False, tol: float = 1e-10):
+                 explicit: bool = True, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -906,7 +906,7 @@ class PoloidalAdvectionArakawa:
         phi = np.real(phi)
 
         # set phi to zero on the boundary (if needed)
-        phi[self.ind_bd] = np.zeros(len(self.ind_bd))
+        #phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # fill the working stencils
         self.f_stencil[self.ind_int_ep] = f

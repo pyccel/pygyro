@@ -38,6 +38,8 @@ class Constants:
     _splineDegrees = None
     _npts = None
     dt = None
+    poloidalAdvectionMethod = None
+    _variableNames = None
 
     def __init__(self, setup=True):
         if (setup):
@@ -105,7 +107,10 @@ class Constants:
         for obj in dir(self):
             val = getattr(self, obj)
             if not callable(val) and obj[0] != '_':
-                s += "\""+obj+"\":"+"{}".format(val)+",\n"
+                if isinstance(val, list) and isinstance(val[0], str):
+                    s += "\""+obj+"\":"+"""["{}"] """.format(val[0])+",\n"
+                else:
+                    s += "\""+obj+"\":"+"{}".format(val)+",\n"
         s = s[:-2]+"\n}"
         return s
 
