@@ -82,8 +82,9 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 # List of main targets
 ALL = \
 	splines \
-	initialisation  \
-	advection
+	initialisation \
+	advection \
+	arakawa
 
 #----------------------------------------------------------
 # Main targets
