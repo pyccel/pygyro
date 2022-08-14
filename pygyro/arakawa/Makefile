@@ -8,7 +8,7 @@
 # Main targets
 #----------------------------------------------------------
 
-all: utilities_pyccel$(SO_EXT) matrix_assembly_pyccel$(SO_EXT)
+all: utilities_pyccel$(SO_EXT) data_assembly_pyccel$(SO_EXT)
 
 .ACC.$(ACC):
 	@rm -f .ACC.*
@@ -21,19 +21,19 @@ ifneq ($(ACC), pythran)
 # pyccel
 utilities_pyccel$(SO_EXT): $(NAME_PREFIX)utilities_pyccel.py .ACC.$(ACC)
 	$(TOOL) $< $(TOOL_FLAGS)
-matrix_assembly_pyccel$(SO_EXT): $(NAME_PREFIX)matrix_assembly_pyccel.py $(DEPS) .ACC.$(ACC)
+data_assembly_pyccel$(SO_EXT): $(NAME_PREFIX)data_assembly_pyccel.py $(DEPS) .ACC.$(ACC)
 	$(TOOL) $< $(TOOL_FLAGS)
 else
 utilities_pyccel$(SO_EXT): pythran_deps/$(NAME_PREFIX)utilities_pyccel.py .ACC.$(ACC)
 	$(TOOL) $< $(TOOL_FLAGS) -o $@
-matrix_assembly_pyccel$(SO_EXT): pythran_deps/$(NAME_PREFIX)matrix_assembly_pyccel.py $(DEPS) .ACC.$(ACC)
+data_assembly_pyccel$(SO_EXT): pythran_deps/$(NAME_PREFIX)data_assembly_pyccel.py $(DEPS) .ACC.$(ACC)
 	$(TOOL) $< $(TOOL_FLAGS) -o $@
 endif
 else
 # numba
 utilities_pyccel$(SO_EXT): $(NAME_PREFIX)utilities_pyccel.py .ACC.$(ACC)
 	echo $(pygyro_path); PYTHONPATH=$(PYTHONPATH):$(pygyro_path) $(TOOL) $< $(TOOL_FLAGS)
-matrix_assembly_pyccel$(SO_EXT): $(NAME_PREFIX)matrix_assembly_pyccel.py $(DEPS) .ACC.$(ACC)
+data_assembly_pyccel$(SO_EXT): $(NAME_PREFIX)data_assembly_pyccel.py $(DEPS) .ACC.$(ACC)
 	echo $(pygyro_path); PYTHONPATH=$(PYTHONPATH):$(pygyro_path) $(TOOL) $< $(TOOL_FLAGS)
 endif
 

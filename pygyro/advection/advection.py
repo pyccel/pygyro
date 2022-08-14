@@ -601,36 +601,36 @@ class PoloidalAdvectionArakawa:
 
     Parameters
     ----------
-    eta_vals: list of array_like
-        The coordinates of the grid points in each dimension
+        eta_vals: list of array_like
+            The coordinates of the grid points in each dimension
 
-    constants : Constant class
-        Class containing all the constants
+        constants : Constant class
+            Class containing all the constants
 
-    bc : str
-        'dirichlet' or 'periodic'; which boundary conditions should be used
-        in r-direction
+        bc : str
+            'dirichlet' or 'periodic'; which boundary conditions should be used
+            in r-direction
 
-    order : int
-        which order of the Arakawa scheme should be used
+        order : int
+            which order of the Arakawa scheme should be used
 
-    equilibrium_outside : bool
-        if extrapolation is used, the grid step takes the equilibrium function on the outside
+        equilibrium_outside : bool
+            if extrapolation is used, the grid step takes the equilibrium function on the outside
 
-    verbose : bool
-        if output information should be printed
+        verbose : bool
+            if output information should be printed
 
-    edgeFunc: function handle - optional
-        Function returning the value at the boundary as a function of r and v
-        Default is fEquilibrium
+        edgeFunc: function handle - optional
+            Function returning the value at the boundary as a function of r and v
+            Default is fEquilibrium
 
-    explicitTrap: bool - optional
-        Indicates whether the explicit trapezoidal method (Heun's method)
-        should be used or the implicit trapezoidal method should be used
-        instead
+        explicit: bool - optional
+            Indicates whether the explicit trapezoidal method (Heun's method)
+            should be used or the implicit trapezoidal method should be used
+            instead
 
-    tol: float - optional
-        The tolerance used for the implicit trapezoidal rule
+        tol: float - optional
+            The tolerance used for the implicit trapezoidal rule
     """
 
     def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, equilibrium_outside=True, verbose=False, nulEdge=False,
@@ -680,7 +680,7 @@ class PoloidalAdvectionArakawa:
         if self.bc == 'dirichlet':
             self.r_scaling[self.ind_bd] *= 1/2
 
-        if self.bc == 'extrapolation':
+        elif self.bc == 'extrapolation':
             # create empty stencils for the bigger J matrix
             f, inds_int, inds_bd = self.calc_ep_stencil()
 
@@ -726,8 +726,6 @@ class PoloidalAdvectionArakawa:
 
             inds_bd_vstack: np.darray
                 array of length order*N_theta with the outside indices, where the constant lines are placed
-
-
         """
         N_r_ep = self._nPoints_r + self.order
         N_ep = N_r_ep * self._nPoints_theta
@@ -752,17 +750,18 @@ class PoloidalAdvectionArakawa:
 
     def RK4(self, z, J, dt):
         """
-        Simple Runge-Kutta 4th order for dz/dt = J(z)
+        Simple Runge-Kutta 4th order for dz/dt = J(z).
+
         Parameters
         ----------
-        z: np.array
-            The current values at time t
+            z: np.array
+                The current values at time t
 
-        J : np.darry
-            The rhs of the ode
+            J : np.darry
+                The rhs of the ode
 
-        dt: float
-            time-step size
+            dt: float
+                time-step size
 
         Returns
         -------
@@ -778,6 +777,13 @@ class PoloidalAdvectionArakawa:
         return z + dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
 
     def step(self, f: np.ndarray, dt: float, phi: np.ndarray, values_f=None, values_phi=None):
+        """
+        TODO
+
+        Parameters
+        ----------
+            TODO
+        """
         if self.bc == "extrapolation":
 
             # if no values are given, assume 0 value outside
@@ -798,15 +804,15 @@ class PoloidalAdvectionArakawa:
 
         Parameters
         ----------
-        f: array_like
-            The current value of the function at the nodes.
-            The result will be stored here
+            f: array_like
+                The current value of the function at the nodes.
+                The result will be stored here
 
-        dt: float
-            Time-step
+            dt: float
+                Time-step
 
-        phi: array_like
-            Advection parameter d_tf + {phi,f} = 0; without scaling
+            phi: array_like
+                Advection parameter d_tf + {phi,f} = 0; without scaling
         """
 
         if len(f.shape) != 1:
@@ -868,21 +874,21 @@ class PoloidalAdvectionArakawa:
 
         Parameters
         ----------
-        f: array_like
-            The current value of the function at the nodes.
-            The result will be stored here
+            f: array_like
+                The current value of the function at the nodes.
+                The result will be stored here
 
-        dt: float
-            Time-step
+            dt: float
+                Time-step
 
-        phi: array_like
-            Advection parameter d_tf + {phi,f} = 0; without scaling
+            phi: array_like
+                Advection parameter d_tf + {phi,f} = 0; without scaling
 
-        values_f : array_like
-            Values of f outside the domain
+            values_f : array_like
+                Values of f outside the domain
 
-        values_phi : array_like
-            Values of phi outside the domain
+            values_phi : array_like
+                Values of phi outside the domain
         """
 
         f = f.ravel()

@@ -912,7 +912,6 @@ def assemble_awk_bracket_dirichlet_extrapolation(phi, grid_theta, grid_r):
 
     Parameters
     ----------
-
         phi : np.ndarray
             array of length N_theta*(N_r+2); point values of the potential on the grid
 
@@ -1048,7 +1047,6 @@ def assemble_awk_bracket_4th_order_dirichlet_extrapolation(phi, grid_theta, grid
 
     Parameters
     ----------
-
         phi : np.ndarray
             array of length N_theta*(N_r+4); point values of the potential on the grid
 
@@ -1300,7 +1298,6 @@ def assemble_row_columns_akw_bracket_4th_order_extrapolation(grid_theta, grid_r)
 
     Parameters
     ----------
-
         grid_theta: np.ndarray
             array of length N_theta; grid of theta
 
@@ -1479,7 +1476,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
 
     Parameters
     ----------
-
         phi : np.ndarray
             array of length N_theta*(N_r+2); point values of the potential on the grid
 
@@ -1695,7 +1691,6 @@ def update_bracket_4th_order_dirichlet_extrapolation(J, rowcols, phi, grid_theta
 
         grid_r : np.ndarray
             array of length N_r; grid of r
-
     """
 
     data = assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r)
