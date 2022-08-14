@@ -1485,7 +1485,7 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
     Returns
     -------
         data : np.ndarray
-            Contains the entries of J 
+            Contains the entries of J
     """
 
     N_theta = len(grid_theta)
