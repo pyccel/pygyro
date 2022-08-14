@@ -55,14 +55,10 @@ def test_fluxSurfaceAdvection(fact, dt):
     f_vals[:, :] = np.sin(eta_vals[2]*np.pi/fact)
     f_end = np.sin((eta_vals[2]-c*dt*N)*np.pi/fact)
 
-    for n in range(N):
+    for _ in range(N):
         fluxAdv.step(f_vals, 0)
 
-<<<<<<< HEAD
-    assert np.max(np.abs(f_vals-f_end)) < 1e-4
-=======
     assert np.max(np.abs(f_vals - f_end)) < 1e-4
->>>>>>> cemracs
 
 
 @pytest.mark.serial
@@ -109,14 +105,10 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
     # ~ f_vals[:,:] = np.sin(eta_vals[2]*np.pi/fact)
     f_end = f_vals.copy()
 
-    for n in range(N):
+    for _ in range(N):
         fluxAdv.step(f_vals, 0)
-<<<<<<< HEAD
-    #~ print(np.max(np.abs(f_vals-f_end)))
-=======
-    # ~ print(np.max(np.abs(f_vals-f_end)))
->>>>>>> cemracs
-    assert np.max(np.abs(f_vals-f_end)) < err
+
+    assert np.max(np.abs(f_vals - f_end)) < err
 
 
 @pytest.mark.serial
@@ -164,11 +156,7 @@ def test_vParallelAdvection(function, N):
         else:
             fEnd[i] = fEdge+function(x[i]-c*dt*N)
 
-<<<<<<< HEAD
-    assert max(abs(f-fEnd)) < 2e-3
-=======
     assert max(abs(f - fEnd)) < 2e-3
->>>>>>> cemracs
 
 
 @pytest.mark.serial
@@ -205,11 +193,7 @@ def test_vParallelAdvectionPeriodic(N):
     for i in range(npts):
         fEnd[i] = gauss((x[i] - c * dt * N + 5) % 10 - 5)
 
-<<<<<<< HEAD
-    assert max(abs(f-fEnd)) < 2e-3
-=======
     assert max(abs(f - fEnd)) < 2e-3
->>>>>>> cemracs
 
 
 def Phi(r, theta, omega, xc, yc):
@@ -298,13 +282,8 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-<<<<<<< HEAD
-    l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
-                 eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
-    assert l2 < 0.2
-=======
     l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
-                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+                                     eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
 
@@ -392,7 +371,6 @@ def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_meth
                  d_theta, d_r, r_grid, method=int_method))
 
     assert (l2 < 0.1)
->>>>>>> cemracs
 
 
 @pytest.mark.serial
@@ -459,13 +437,8 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-<<<<<<< HEAD
-    l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
-                 eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
-    assert l2 < 0.2
-=======
     l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
-                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+                                     eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
 
@@ -550,7 +523,6 @@ def test_poloidalAdvectionArakawaImplicit(dt, omega, xc, yc, order, bc, int_meth
                  d_theta, d_r, r_grid, method=int_method))
 
     assert (l2 < 0.2)
->>>>>>> cemracs
 
 
 @pytest.mark.serial
@@ -921,8 +893,4 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
     print("linfordre:", np.log2(linf[:-1]/linf[1:]))
     print("l2ordre:", np.log2(l2[:-1]/l2[1:]))
 
-<<<<<<< HEAD
-    assert abs(linfOrder-zOrder) < 0.1
-=======
     assert abs(linfOrder - zOrder) < 0.1
->>>>>>> cemracs
