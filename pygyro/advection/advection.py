@@ -708,7 +708,8 @@ class PoloidalAdvectionArakawa:
                 np.ones(self._nPoints_theta), self._points_r)
 
             # assemble the rows and columns and the right-hand-side-matrix beforehand
-            self._data = np.empty(self._nPoints_theta * (self._nPoints_r * 12 + 10), dtype=float)
+            self._data = np.empty(self._nPoints_theta *
+                                  (self._nPoints_r * 12 + 10), dtype=float)
             self.rowcolumns, self.J_phi = assemble_row_columns_akw_bracket_4th_order_extrapolation(
                 self._points_theta, self._points_r, self._data)
             print('J_phi set')
