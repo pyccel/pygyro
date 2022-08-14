@@ -442,7 +442,7 @@ class PoloidalAdvection:
     """
 
     def __init__(self, eta_vals: list, splines: list, constants, nulEdge=False,
-                 explicitTrap: bool = True, tol: float = 1e-10):
+                 explicitTrap: bool = False, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size, self._points[1].size)
