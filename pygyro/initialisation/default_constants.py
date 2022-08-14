@@ -19,7 +19,7 @@ defaults = {
     "npts": [256, 512, 32, 128],
     "splineDegrees": [3, 3, 3, 3],
     "dt": 8,
-    "poloidalAdvectionMethod": "sl",
+    "poloidalAdvectionMethod": ["sl"],
     "_variableNames": ["r", "theta", "z", "v"]
 }
 
