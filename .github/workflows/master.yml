@@ -149,3 +149,29 @@ jobs:
           make ACC=pythran pythran
       - name: Unit tests
         uses: ./.github/actions/pytest_run
+
+  Pep8:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install python dependencies
+        run: |
+            python -m pip install autopep8
+      - name: Check for pep changes
+        run: |
+            if [[ $(autopep8 -r --diff pygyro/) ]]
+            then
+              echo "Please run 'autopep8 -ir pygyro/' to clean up formatting"
+              autopep8 -r --diff pygyro/
+              exit 1
+            fi
+            if [[ $(autopep8 -r --diff plotting/) ]]
+            then
+              echo "Please run 'autopep8 -ir plotting/' to clean up formatting"
+              autopep8 -r --diff plotting/
+              exit 1
+            fi

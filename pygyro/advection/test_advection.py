@@ -55,7 +55,7 @@ def test_fluxSurfaceAdvection(fact, dt):
     f_vals[:, :] = np.sin(eta_vals[2]*np.pi/fact)
     f_end = np.sin((eta_vals[2]-c*dt*N)*np.pi/fact)
 
-    for n in range(N):
+    for _ in range(N):
         fluxAdv.step(f_vals, 0)
 
     assert np.max(np.abs(f_vals - f_end)) < 1e-4
@@ -105,10 +105,10 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
     # ~ f_vals[:,:] = np.sin(eta_vals[2]*np.pi/fact)
     f_end = f_vals.copy()
 
-    for n in range(N):
+    for _ in range(N):
         fluxAdv.step(f_vals, 0)
-    # ~ print(np.max(np.abs(f_vals-f_end)))
-    assert np.max(np.abs(f_vals-f_end)) < err
+
+    assert np.max(np.abs(f_vals - f_end)) < err
 
 
 @pytest.mark.serial
@@ -283,7 +283,7 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
     l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
-                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+                                     eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
 
@@ -292,9 +292,9 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
 @pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
-@pytest.mark.parametrize("order", [2, 4])
-@pytest.mark.parametrize("bc", ['dirichlet'])
-# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+@pytest.mark.parametrize("order, bc", [(2, 'dirichlet'), (4, 'dirichlet'), (4, 'extrapolation')])
+# @pytest.mark.parametrize("order", [2, 4])
+# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic', 'extrapolation'])
 @pytest.mark.parametrize("int_method", ['sum', 'trapz'])
 def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_method):
     """
@@ -313,6 +313,7 @@ def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_meth
             parameter in phi and analytical solution
 
     Note: we do not test periodic boundary conditions in r since the scheme becomes very unstable.
+    Extrapolation has only been implemented with 4th order.
     """
 
     N_theta = 80
@@ -438,7 +439,7 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
     l2 = np.sqrt(trapezoid(trapezoid((f_vals - final_f_vals)**2,
-                 eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
+                                     eta_grids[1], axis=0) * eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
 
@@ -448,8 +449,9 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 @pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
-@pytest.mark.parametrize("order", [2, 4])
-@pytest.mark.parametrize("bc", ['dirichlet', 'periodic'])
+# @pytest.mark.parametrize("order", [2, 4])
+# @pytest.mark.parametrize("bc", ['dirichlet', 'periodic', 'extrapolation'])
+@pytest.mark.parametrize("order, bc", [(2, 'dirichlet'), (4, 'dirichlet'), (2, 'periodic'), (4, 'periodic'), (4, 'extrapolation')])
 @pytest.mark.parametrize("int_method", ['sum', 'trapz'])
 def test_poloidalAdvectionArakawaImplicit(dt, omega, xc, yc, order, bc, int_method):
     """
