@@ -714,7 +714,7 @@ class PoloidalAdvectionArakawa:
 
     def calc_ep_stencil(self):
         """
-        Calculate the stencil for the increased size of the interpolated stencil. 
+        Calculate the stencil for the increased size of the interpolated stencil.
 
         Returns
         -------

@@ -1317,9 +1317,6 @@ def assemble_row_columns_akw_bracket_4th_order_extrapolation(grid_theta, grid_r)
     N_r = len(grid_r) + 4
     N_nodes = N_theta*N_r
 
-    dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
-    dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
-
     # does scipy sparse delete zeros?
     row = list()
     col = list()
@@ -1493,7 +1490,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
 
     N_theta = len(grid_theta)
     N_r = len(grid_r) + 4
-    N_nodes = N_theta*N_r
 
     dtheta = (grid_theta[-1] - grid_theta[0]) / (len(grid_theta) - 1)
     dr = (grid_r[-1] - grid_r[0]) / (len(grid_r) - 1)
@@ -1518,8 +1514,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
             iz2p = neighbour_index(0, 2, ir, it, N_r, N_theta)
             i2mz = neighbour_index(-2, 0, ir, it, N_r, N_theta)
             iz2m = neighbour_index(0, -2, ir, it, N_r, N_theta)
-
-            ii = ind_to_tp_ind(ir, it, N_r)
 
             # -((F[-2,0] (phi[imm]-phi[imp]))* factor2)
             coef = -(phi[imm] - phi[imp]) * factor2
@@ -1581,8 +1575,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
         ipp = neighbour_index(1, 1, ir, it, N_r, N_theta)
         i2pz = neighbour_index(2, 0, ir, it, N_r, N_theta)
 
-        ii = ind_to_tp_ind(ir, it, N_r)
-
         # -(F[2,0] (-phi[ipm]+phi[ipp]))* factor2
         coef = -(-phi[ipm]+phi[ipp]) * factor2
         data.append(coef)
@@ -1599,8 +1591,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
         i2pz = neighbour_index(2, 0, ir, it, N_r, N_theta)
         iz2p = neighbour_index(0, 2, ir, it, N_r, N_theta)
         iz2m = neighbour_index(0, -2, ir, it, N_r, N_theta)
-
-        ii = ind_to_tp_ind(ir, it, N_r)
 
         # -(F[2,0] (-phi[ipm]+phi[ipp]))* factor2
         coef = -(-phi[ipm]+phi[ipp]) * factor2
@@ -1634,8 +1624,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
         i2mz = neighbour_index(-2, 0, ir, it, N_r, N_theta)
         iz2m = neighbour_index(0, -2, ir, it, N_r, N_theta)
 
-        ii = ind_to_tp_ind(ir, it, N_r)
-
         # -((F[-2,0] (phi[imm]-phi[imp]))* factor2)
         coef = -(phi[imm] - phi[imp]) * factor2
         data.append(coef)
@@ -1660,8 +1648,6 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
         imp = neighbour_index(-1, 1, ir, it, N_r, N_theta)
         i2mz = neighbour_index(-2, 0, ir, it, N_r, N_theta)
 
-        ii = ind_to_tp_ind(ir, it, N_r)
-
         # -((F[-2,0] (phi[imm]-phi[imp]))* factor2)
         coef = -(phi[imm] - phi[imp]) * factor2
         data.append(coef)
@@ -1673,7 +1659,7 @@ def assemble_data_4th_order_extrapolation(phi, grid_theta, grid_r):
 
 def update_bracket_4th_order_dirichlet_extrapolation(J, rowcols, phi, grid_theta, grid_r):
     """
-    Compute the entries of J, use the precomputed row and column information and update J in place. 
+    Compute the entries of J, use the precomputed row and column information and update J in place.
 
     Parameters
     ----------
