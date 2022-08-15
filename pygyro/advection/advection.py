@@ -604,7 +604,7 @@ class PoloidalAdvectionArakawa:
     ----------
         eta_vals: list of array_like
             The coordinates of the grid points in each dimension. Index [0] must be
-            the radial coordinate, index [1] must be the angular coordinate. 
+            the radial coordinate, index [1] must be the angular coordinate.
 
         constants : Constant class
             Class containing all the constants
