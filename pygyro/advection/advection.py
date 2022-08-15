@@ -665,9 +665,13 @@ class PoloidalAdvectionArakawa:
         if self._save_conservation:
             assert len(
                 foldername) != 0, "When wanting to save, a foldername has to be given!"
-            self._conservation_savefile = "{0}/akw_consv.txt".format(foldername)
+            self._conservation_savefile = "{0}/akw_consv.txt".format(
+                foldername)
             with open(self._conservation_savefile, 'w') as savefile:
-                savefile.write("int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\t\t\tdiff int_f\t\t\t\tdiff int_f_sqd\t\t\tdiff energy\n")
+                savefile.write(
+                    "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\t\t\tdiff int_f\t\t\t\tdiff int_f_sqd\t\t\tdiff energy\n")
+            # Create buffer for saving values of the conserved quantities before the step to compare against after the step
+            self._conservation_buffer = np.zeros(3, dtype=float)
 
         self.bc = bc
 
@@ -971,15 +975,20 @@ class PoloidalAdvectionArakawa:
 
     def gridStep(self, f: Grid, phi: Grid, dt: float):
         """
-        TODO
+        Does a time stepping on the whole grid by iterating over the velocity and z-direction by calling the
+        corresponding step function on each slice. For the extrapolation method, values for the outside arrays
+        are found before doing the time step. Diagnostics are run if chosen so at the initialization of the class.
 
         Parameters
         ----------
-            TODO
+            f : pygyro.model.grid.Grid
+                Grid object that characterizes the distribution function
 
-        Returns
-        -------
-            TODO
+            phi : pygyro.model.grid.Grid
+                Grid object that characterizes the electric field
+            
+            dt : float
+                Stepsize of the time stepping
         """
         gridLayout = f.getLayout(f.currentLayout)
         phiLayout = phi.getLayout(f.currentLayout)
@@ -995,15 +1004,7 @@ class PoloidalAdvectionArakawa:
                     # if v is in the middle of the velocity distribution and it is
                     # the first slice in z-direction save it before and after the step
                     if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
-                        int_f_before = compute_int_f(f.get2DSlice(i, j), self._dtheta, self._dr,
-                                                     self._points_r, method='trapz')
-                        int_f_squared_before = compute_int_f_squared(f.get2DSlice(i, j), self._dtheta, self._dr,
-                                                                     self._points_r, method='trapz')
-                        energy_before = get_total_energy(f.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
-                                                         self._points_r, method='trapz')
-                        with open(self._conservation_savefile, 'a') as savefile:
-                            savefile.write(
-                                format(int_f_before, '.15E') + "\t" + format(int_f_squared_before, '.15E') + "\t" + format(energy_before, '.15E') + "\t")
+                        self._save_consv_to_file('before', f, i, j, phi)
 
                     # assume phi equals 0 outside
                     values_phi = np.zeros(self.order)
@@ -1019,28 +1020,86 @@ class PoloidalAdvectionArakawa:
 
                     # Save conservation properties after step as well
                     if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
-                        int_f_after = compute_int_f(f.get2DSlice(i, j), self._dtheta, self._dr,
-                                                    self._points_r, method='trapz')
-                        int_f_squared_after = compute_int_f_squared(f.get2DSlice(i, j), self._dtheta, self._dr,
-                                                                    self._points_r, method='trapz')
-                        energy_after = get_total_energy(f.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
-                                                        self._points_r, method='trapz')
-                        with open(self._conservation_savefile, 'a') as savefile:
-                            savefile.write(
-                                format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\t")
+                        self._save_consv_to_file('after', f, i, j, phi)
 
-                        with open(self._conservation_savefile, 'a') as savefile:
-                            savefile.write(
-                                format(int_f_before - int_f_after, '.15E') + "\t"
-                                + format(int_f_squared_before -
-                                      int_f_squared_after, '.15E') + "\t"
-                                + format(energy_before - energy_after, '.15E') + "\n")
         else:
             # Do step
             for i, _ in f.getCoords(0):  # v
                 for j, _ in f.getCoords(1):  # z
-                    self.step_normal(f.get2DSlice(
-                        i, j), dt, phi.get2DSlice(j))
+
+                    # if v is in the middle of the velocity distribution and it is
+                    # the first slice in z-direction save it before and after the step
+                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
+                        self._save_consv_to_file('before', f, i, j, phi)
+
+                    self.step_normal(f.get2DSlice(i, j),
+                                     dt, phi.get2DSlice(j))
+
+                    # Save conservation properties after step as well
+                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
+                        self._save_consv_to_file('after', f, i, j, phi)
+
+    def _save_consv_to_file(self, boa: str, f: Grid, idx_v: int, idx_z: int, phi: Grid):
+        """
+        Compute the conserved quantities (integral of f and its square, energy) and save it to the savefile.
+
+        Parameters
+        ----------
+            boa : str
+                'before' or 'after'; if computation is before or after doing the grid_step
+
+            f : pygyro.model.grid.Grid
+                Grid object that characterizes the distribution function
+            
+            idx_v : int
+                Index of the slice in v direction
+            
+            idx_z : int
+                Index of the slice in z direction
+
+            phi : pygyro.model.grid.Grid
+                Grid object that characterizes the electric field
+        """
+        if boa == 'before':
+            int_f_before = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                         self._points_r, method='trapz')
+            int_f_squared_before = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                                         self._points_r, method='trapz')
+            energy_before = get_total_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
+                                             self._points_r, method='trapz')
+            with open(self._conservation_savefile, 'a') as savefile:
+                savefile.write(
+                    format(int_f_before, '.15E') + "\t" + format(int_f_squared_before, '.15E') + "\t" + format(energy_before, '.15E') + "\t")
+
+            self._conservation_buffer[0] = int_f_before
+            self._conservation_buffer[1] = int_f_squared_before
+            self._conservation_buffer[2] = energy_before
+
+        elif boa == 'after':
+            int_f_after = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                        self._points_r, method='trapz')
+            int_f_squared_after = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                                        self._points_r, method='trapz')
+            energy_after = get_total_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
+                                            self._points_r, method='trapz')
+            with open(self._conservation_savefile, 'a') as savefile:
+                savefile.write(
+                    format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\t")
+
+            int_f_before = self._conservation_buffer[0]
+            int_f_squared_before = self._conservation_buffer[1]
+            energy_before = self._conservation_buffer[2]
+
+            with open(self._conservation_savefile, 'a') as savefile:
+                savefile.write(
+                    format(int_f_before -
+                           int_f_after, '.15E') + "\t"
+                    + format(int_f_squared_before -
+                             int_f_squared_after, '.15E') + "\t"
+                    + format(energy_before - energy_after, '.15E') + "\n")
+        else:
+            raise NotImplementedError(
+                f'Unknown option {boa} for function save_consv_to_file!')
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         """
