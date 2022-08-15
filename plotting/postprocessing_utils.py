@@ -53,52 +53,54 @@ def plot_all(foldername):
             data[-1, :] = data[0, :]
 
             file.close()
+            if np.isnan(data).any() or np.isinf(data).any():
+                print("NaN or Inf encounter")
+            else:
+                superfolder = foldername[0:foldername.find('/')]
+                constantFile = os.path.join(superfolder, 'initParams.json')
+                if not os.path.exists(constantFile):
+                    raise RuntimeError("Can't find constants in simulation folder")
 
-            superfolder = foldername[0:foldername.find('/')]
-            constantFile = os.path.join(superfolder, 'initParams.json')
-            if not os.path.exists(constantFile):
-                raise RuntimeError("Can't find constants in simulation folder")
+                constants = get_constants(constantFile)
 
-            constants = get_constants(constantFile)
+                npts = constants.npts[:2]
+                degree = constants.splineDegrees[:2]
+                period = [False, True]
+                domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
 
-            npts = constants.npts[:2]
-            degree = constants.splineDegrees[:2]
-            period = [False, True]
-            domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
+                nkts = [n+1+d*(int(p)-1)
+                        for (n, d, p) in zip(npts, degree, period)]
+                breaks = [np.linspace(*lims, num=num)
+                        for (lims, num) in zip(domain, nkts)]
+                knots = [spl.make_knots(b, d, p)
+                        for (b, d, p) in zip(breaks, degree, period)]
+                bsplines = [spl.BSplines(k, d, p)
+                            for (k, d, p) in zip(knots, degree, period)]
+                eta_grid = [bspl.greville for bspl in bsplines]
 
-            nkts = [n+1+d*(int(p)-1)
-                    for (n, d, p) in zip(npts, degree, period)]
-            breaks = [np.linspace(*lims, num=num)
-                      for (lims, num) in zip(domain, nkts)]
-            knots = [spl.make_knots(b, d, p)
-                     for (b, d, p) in zip(breaks, degree, period)]
-            bsplines = [spl.BSplines(k, d, p)
-                        for (k, d, p) in zip(knots, degree, period)]
-            eta_grid = [bspl.greville for bspl in bsplines]
+                theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
+                    .reshape(npts[1]+1, npts[0])
+                r = np.tile(eta_grid[0], npts[1]+1) \
+                    .reshape(npts[1]+1, npts[0])
 
-            theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
-                .reshape(npts[1]+1, npts[0])
-            r = np.tile(eta_grid[0], npts[1]+1) \
-                .reshape(npts[1]+1, npts[0])
+                x = r*np.cos(theta)
+                y = r*np.sin(theta)
 
-            x = r*np.cos(theta)
-            y = r*np.sin(theta)
+                font = {'size': 16}
+                pltFont('font', **font)
+                fig, ax = plt.subplots(1)
+                ax.set_title('T = {}'.format(t))
+                clevels = np.linspace(data.min(), data.max(), 101)
+                im = ax.contourf(x, y, data, clevels, cmap='jet')
+                for c in im.collections:
+                    c.set_edgecolor('face')
+                plt.colorbar(im)
 
-            font = {'size': 16}
-            pltFont('font', **font)
-            fig, ax = plt.subplots(1)
-            ax.set_title('T = {}'.format(t))
-            clevels = np.linspace(data.min(), data.max(), 101)
-            im = ax.contourf(x, y, data, clevels, cmap='jet')
-            for c in im.collections:
-                c.set_edgecolor('face')
-            plt.colorbar(im)
-
-            ax.set_xlabel("x [m]")
-            ax.set_ylabel("y [m]")
-            plt.savefig(foldername+'plots/t_{:06}'.format(t))
-            plt.close()
-            # plt.show()
+                ax.set_xlabel("x [m]")
+                ax.set_ylabel("y [m]")
+                plt.savefig(foldername+'plots/t_{:06}'.format(t))
+                plt.close()
+                # plt.show()
 
 
 def make_movie(foldername, name):
@@ -109,7 +111,7 @@ def make_movie(foldername, name):
 
 
 if __name__ == "__main__":
-    foldername = "simulation_1/"
+    foldername = "simulation_0/"
 
     unpack_all(foldername)
     plot_all(foldername+"Slices_f/")
