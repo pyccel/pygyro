@@ -9,6 +9,7 @@ from pygyro.initialisation.constants import get_constants
 from pygyro import splines as spl
 from pygyro.tools.getSlice import get_grid_slice, get_flux_surface_grid_slice
 from pygyro.tools.getPhiSlice import get_phi_slice
+from pygyro.arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
 
 
 def unpack_all(foldername):
@@ -28,7 +29,7 @@ def unpack_all(foldername):
             get_phi_slice(foldername, phi_n, "Slices_phi")
 
 
-def plot_all(foldername):
+def plot_all_slices(foldername):
 
     if (not os.path.isdir(foldername+"plots/")):
         os.mkdir(foldername+"plots/")
@@ -59,7 +60,8 @@ def plot_all(foldername):
                 superfolder = foldername[0:foldername.find('/')]
                 constantFile = os.path.join(superfolder, 'initParams.json')
                 if not os.path.exists(constantFile):
-                    raise RuntimeError("Can't find constants in simulation folder")
+                    raise RuntimeError(
+                        "Can't find constants in simulation folder")
 
                 constants = get_constants(constantFile)
 
@@ -71,9 +73,9 @@ def plot_all(foldername):
                 nkts = [n+1+d*(int(p)-1)
                         for (n, d, p) in zip(npts, degree, period)]
                 breaks = [np.linspace(*lims, num=num)
-                        for (lims, num) in zip(domain, nkts)]
+                          for (lims, num) in zip(domain, nkts)]
                 knots = [spl.make_knots(b, d, p)
-                        for (b, d, p) in zip(breaks, degree, period)]
+                         for (b, d, p) in zip(breaks, degree, period)]
                 bsplines = [spl.BSplines(k, d, p)
                             for (k, d, p) in zip(knots, degree, period)]
                 eta_grid = [bspl.greville for bspl in bsplines]
@@ -103,19 +105,132 @@ def plot_all(foldername):
                 # plt.show()
 
 
-def make_movie(foldername, name):
+def make_movie(foldername):
     stream = ffmpeg.input(foldername+"/t_*.png",
                           pattern_type="glob", framerate=30)
-    stream = ffmpeg.output(stream, name+'.mp4')
+    stream = ffmpeg.output(stream, foldername+'/movie.mp4')
     ffmpeg.run(stream)
 
 
+def plot_conservation(simulationfolder):
+    foldername = simulationfolder+"Slices_f/"
+
+    if (not os.path.isdir(simulationfolder+"plots/")):
+        os.mkdir(simulationfolder+"plots/")
+
+    filelist = os.listdir(foldername)
+    n = len(filelist)
+
+    t_f = []
+    int_f = []
+    int_f2 = []
+    int_en = []
+
+    for fname in filelist:
+        if fname != "plots":
+            filename = foldername+fname
+            t_str = filename[filename.rfind('_')+1:filename.rfind('.')]
+            t = int(t_str)
+            t_f.append(t)
+
+            file = h5py.File(filename, 'r')
+            dataset = file['/dset']
+
+            shape = dataset.shape
+            data_shape = list(shape)
+            data_shape[0] += 1
+
+            f = np.ndarray(data_shape)
+
+            f[:-1, :] = dataset[:]
+            f[-1, :] = f[0, :]
+
+            file.close()
+
+            filename_phi = simulationfolder + \
+                "Slice_phi/"+"PhiSlice_{:06}.h5".format(t)
+            file = h5py.File(filename, 'r')
+            dataset = file['/dset']
+
+            shape = dataset.shape
+            data_shape = list(shape)
+            data_shape[0] += 1
+
+            phi = np.ndarray(data_shape)
+
+            phi[:-1, :] = dataset[:]
+            phi[-1, :] = phi[0, :]
+
+            file.close()
+
+            superfolder = foldername[0:foldername.find('/')]
+            constantFile = os.path.join(superfolder, 'initParams.json')
+            if not os.path.exists(constantFile):
+                raise RuntimeError("Can't find constants in simulation folder")
+
+            constants = get_constants(constantFile)
+
+            npts = constants.npts[:2]
+            degree = constants.splineDegrees[:2]
+            period = [False, True]
+            domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
+
+            nkts = [n+1+d*(int(p)-1)
+                    for (n, d, p) in zip(npts, degree, period)]
+            breaks = [np.linspace(*lims, num=num)
+                      for (lims, num) in zip(domain, nkts)]
+            knots = [spl.make_knots(b, d, p)
+                     for (b, d, p) in zip(breaks, degree, period)]
+            bsplines = [spl.BSplines(k, d, p)
+                        for (k, d, p) in zip(knots, degree, period)]
+            eta_grid = [bspl.greville for bspl in bsplines]
+
+            r = eta_grid[0]
+            dr = eta_grid[0][1] - eta_grid[0][0]
+            dtheta = eta_grid[1][1] - eta_grid[1][0]
+
+            int_f.append(compute_int_f(f.ravel(), dtheta, dr, r))
+            int_f2.append(compute_int_f_squared(f.ravel(), dtheta, dr, r))
+            int_en.append(get_total_energy(
+                f.ravel(), phi.ravel(), dtheta, dr, r))
+
+    p = np.array(t_f).argsort()
+    t_f = np.array(t_f)[p]
+    int_f = np.array(int_f)[p]
+    int_f2 = np.array(int_f2)[p]
+    int_en = np.array(int_en)[p]
+
+    fig, ax = plt.subplots(1)
+    ax.set_title('Integral of $f$')
+    ax.set_xlabel("t")
+    ax.set_ylabel("$ \int f$")
+    ax.plot(t_f, int_f)
+    plt.savefig(simulationfolder+'plots/integral_f.png')
+    plt.close()
+
+    fig, ax = plt.subplots(1)
+    ax.set_title('Integral of $f^2$')
+    ax.set_xlabel("t")
+    ax.set_ylabel("$ \int f^2$")
+    ax.plot(t_f, int_f2)
+    plt.savefig(simulationfolder+'plots/integral_f_squared.png')
+    plt.close()
+
+    fig, ax = plt.subplots(1)
+    ax.set_title('Energy')
+    ax.set_xlabel("t")
+    ax.set_ylabel("$ \int \phi f$")
+    ax.plot(t_f, int_en)
+    plt.savefig(simulationfolder+'plots/energy.png')
+    plt.close()
+
+
 if __name__ == "__main__":
-    foldername = "simulation_0/"
+    foldername = "simulation_1/"
 
     unpack_all(foldername)
-    plot_all(foldername+"Slices_f/")
-    plot_all(foldername+"Slices_phi/")
-    make_movie(foldername+"Slices_f/plots", foldername+"Slices_f/plots/movie")
-    make_movie(foldername+"Slices_phi/plots",
-               foldername+"Slices_phi/plots/movie")
+    plot_all_slices(foldername+"Slices_f/")
+    plot_all_slices(foldername+"Slices_phi/")
+    make_movie(foldername+"Slices_f/plots")
+    make_movie(foldername+"Slices_phi/plots")
+    plot_conservation(foldername)
