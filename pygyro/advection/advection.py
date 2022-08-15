@@ -986,7 +986,7 @@ class PoloidalAdvectionArakawa:
 
             phi : pygyro.model.grid.Grid
                 Grid object that characterizes the electric field
-            
+
             dt : float
                 Stepsize of the time stepping
         """
@@ -1050,10 +1050,10 @@ class PoloidalAdvectionArakawa:
 
             f : pygyro.model.grid.Grid
                 Grid object that characterizes the distribution function
-            
+
             idx_v : int
                 Index of the slice in v direction
-            
+
             idx_z : int
                 Index of the slice in z direction
 

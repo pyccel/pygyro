@@ -489,7 +489,8 @@ def test_poloidalAdvectionArakawaImplicit(dt, omega, xc, yc, order, bc, int_meth
 
     constants = Constants()
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, bc=bc, order=order, explicit=False)
+    polAdv = PoloidalAdvectionArakawa(
+        eta_vals, constants, bc=bc, order=order, explicit=False)
 
     d_theta = polAdv._dtheta
     d_r = polAdv._dr
