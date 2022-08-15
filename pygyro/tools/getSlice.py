@@ -11,16 +11,16 @@ def get_grid_slice(foldername, tEnd, z_idx=None, v_idx=None):
 
     Parameters
     ----------
-    foldername : str
-                 The folder containing the simulation
-    tEnd       : int
-                 The time which should be examined to obtain the slice
-    z_idx      : int
-                 The index of the slice in the z direction
-                 Default : 0
-    v_idx      : int
-                 The index of the slice in the v direction
-                 Default : nv//2
+        foldername : str
+            The folder containing the simulation
+        tEnd: int
+            The time which should be examined to obtain the slice
+        z_id : int
+            The index of the slice in the z direction
+            Default : 0
+        v_idx : int
+            The index of the slice in the v direction
+            Default : nv//2
     """
 
     assert (len(foldername) > 0)
@@ -64,16 +64,16 @@ def get_flux_surface_grid_slice(foldername, tEnd, r_idx=None, v_idx=None):
 
     Parameters
     ----------
-    foldername : str
-                 The folder containing the simulation
-    tEnd       : int
-                 The time which should be examined to obtain the slice
-    r_idx      : int
-                 The index of the slice in the r direction
-                 Default : nr//2
-    v_idx      : int
-                 The index of the slice in the v direction
-                 Default : nv//2
+        foldername : str
+            The folder containing the simulation
+        tEnd : int
+            The time which should be examined to obtain the slice
+        r_idx : int
+            The index of the slice in the r direction
+            Default : nr//2
+        v_idx : int
+            The index of the slice in the v direction
+            Default : nv//2
     """
 
     assert (len(foldername) > 0)
