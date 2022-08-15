@@ -667,7 +667,7 @@ class PoloidalAdvectionArakawa:
                 foldername) != 0, "When wanting to save, a foldername has to be given!"
             self._conservation_savefile = "{0}/akw_consv.txt".format(foldername)
             with open(self._conservation_savefile, 'w') as savefile:
-                savefile.write("int_f before\t\tint_f_sqd before\tenergy before\t\t\tint_f after\t\t\tint_f_sqd after\t\tenergy after\t\t\tdiff int_f\t\t\tdiff int_f_sqd\t\tdiff energy\n")
+                savefile.write("int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\t\t\tdiff int_f\t\t\t\tdiff int_f_sqd\t\t\tdiff energy\n")
 
         self.bc = bc
 
@@ -1003,7 +1003,7 @@ class PoloidalAdvectionArakawa:
                                                          self._points_r, method='trapz')
                         with open(self._conservation_savefile, 'a') as savefile:
                             savefile.write(
-                                str(int_f_before) + "\t" + str(int_f_squared_before) + "\t" + str(energy_before) + "\t")
+                                format(int_f_before, '.15E') + "\t" + format(int_f_squared_before, '.15E') + "\t" + format(energy_before, '.15E') + "\t")
 
                     # assume phi equals 0 outside
                     values_phi = np.zeros(self.order)
@@ -1027,14 +1027,14 @@ class PoloidalAdvectionArakawa:
                                                         self._points_r, method='trapz')
                         with open(self._conservation_savefile, 'a') as savefile:
                             savefile.write(
-                                str(int_f_after) + "\t" + str(int_f_squared_after) + "\t" + str(energy_after) + "\t")
+                                format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\t")
 
                         with open(self._conservation_savefile, 'a') as savefile:
                             savefile.write(
-                                str(int_f_before - int_f_after) + "\t"
-                                + str(int_f_squared_before -
-                                      int_f_squared_after) + "\t"
-                                + str(energy_before - energy_after) + "\n")
+                                format(int_f_before - int_f_after, '.15E') + "\t"
+                                + format(int_f_squared_before -
+                                      int_f_squared_after, '.15E') + "\t"
+                                + format(energy_before - energy_after, '.15E') + "\n")
         else:
             # Do step
             for i, _ in grid.getCoords(0):  # v
