@@ -15,6 +15,7 @@ from .accelerated_advection_steps import get_lagrange_vals, flux_advection, \
     poloidal_advection_step_expl, \
     poloidal_advection_step_impl
 from ..initialisation.initialiser_funcs import f_eq
+from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
 
 
 def fieldline(theta, z_diff, iota, r, R0):
@@ -602,14 +603,15 @@ class PoloidalAdvectionArakawa:
     Parameters
     ----------
         eta_vals: list of array_like
-            The coordinates of the grid points in each dimension
+            The coordinates of the grid points in each dimension. Index [0] must be
+            the radial coordinate, index [1] must be the angular coordinate. 
 
         constants : Constant class
             Class containing all the constants
 
         bc : str
-            'dirichlet' or 'periodic'; which boundary conditions should be used
-            in r-direction
+            'dirichlet', 'periodic', or 'extrapolation'; which boundary conditions
+            should be used in radial direction
 
         order : int
             which order of the Arakawa scheme should be used
@@ -620,21 +622,24 @@ class PoloidalAdvectionArakawa:
         verbose : bool
             if output information should be printed
 
-        edgeFunc: function handle - optional
-            Function returning the value at the boundary as a function of r and v
-            Default is fEquilibrium
-
-        explicit: bool - optional
-            Indicates whether the explicit trapezoidal method (Heun's method)
-            should be used or the implicit trapezoidal method should be used
+        explicit: bool
+            Indicates whether an explicit time integrator (Runge-Kutta 4)
+            should be used or an implicit method (Crank-Nicolson) should be used
             instead
 
-        tol: float - optional
-            The tolerance used for the implicit trapezoidal rule
+        save_conservation : bool
+            If the integral of the distribution function and its square, as well as the energy
+            should be saved before and after (and the difference between) the time step.
+
+        foldername : str
+            Where the conservation diagnsotics should be saved to if save_conservation == True.
     """
 
-    def __init__(self, eta_vals: list, constants, bc="extrapolation", order=4, equilibrium_outside=True, verbose=False, nulEdge=False,
-                 explicit: bool = True, tol: float = 1e-10):
+    def __init__(self, eta_vals: list, constants,
+                 bc="extrapolation", order=4,
+                 equilibrium_outside=True, verbose=False,
+                 explicit: bool = True,
+                 save_conservation: bool = False, foldername=''):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -655,23 +660,26 @@ class PoloidalAdvectionArakawa:
         self._constants = constants
 
         self._explicit = explicit
-        self._TOL = tol
 
-        self._nulEdge = nulEdge
-
-        self._max_loops = 0
+        self._save_conservation = save_conservation
+        if self._save_conservation:
+            assert len(
+                foldername) != 0, "When wanting to save, a foldername has to be given!"
+            self._conservation_savefile = "{0}/akw_consv.txt".format(foldername)
+            with open(self._conservation_savefile, 'w') as savefile:
+                savefile.write("int_f before\t\tint_f_sqd before\tenergy before\t\t\tint_f after\t\t\tint_f_sqd after\t\tenergy after\t\t\tdiff int_f\t\t\tdiff int_f_sqd\t\tdiff energy\n")
 
         self.bc = bc
 
-        self.equilibrium_outside = equilibrium_outside
+        self._equilibrium_outside = equilibrium_outside
 
         self.order = order
 
-        self.verbose = verbose
+        self._verbose = verbose
 
         # left and right boundary indices, do we want to have them seperated?
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
-                                 range(self._nPoints_r-1, np.prod(self._nPoints), self._nPoints_r)])
+                                 range(self._nPoints_r - 1, np.prod(self._nPoints), self._nPoints_r)])
 
         self.r_scaling = np.kron(np.ones(self._nPoints_theta), self._points_r)
 
@@ -692,14 +700,16 @@ class PoloidalAdvectionArakawa:
             self.r_scaling = np.copy(f)
 
             # increase the size of the scaling
-            if self._points_r[0]-(order//2+1)*self._dr > 0:
-                self.r_outside = np.hstack([[self._points_r[0]-(j+1)*self._dr for j in range(self.order//2)],
-                                            [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
+            if self._points_r[0] - (order // 2 + 1) * self._dr > 0:
+                self.r_outside = np.hstack([[self._points_r[0] - (j + 1) * self._dr for j in range(self.order//2)],
+                                            [self._points_r[-1] + (j + 1) * self._dr for j in range(self.order//2)]])
             else:
-                print("careful the inner r_outside has smaller delta r")
+                # equidistant extrapolation on the inner side could yield negative r-values hence we extrapolate
+                # between 0.05 and r_min. The grid is not uniform anymore!
+                print("Warning: the inner r_outside has smaller delta r")
                 dr_o = (self._points_r[0] + 0.05) / order
-                self.r_outside = np.hstack([[self._points_r[0]-(j+1)*dr_o for j in range(self.order//2)],
-                                            [self._points_r[-1]+(j+1)*self._dr for j in range(self.order//2)]])
+                self.r_outside = np.hstack([[self._points_r[0] - (j + 1) * dr_o for j in range(self.order//2)],
+                                            [self._points_r[-1] + (j + 1) * self._dr for j in range(self.order//2)]])
 
             # set the outside and interior values for the bigger r_scaling
             for k in range(self.order):
@@ -712,7 +722,6 @@ class PoloidalAdvectionArakawa:
                                   (self._nPoints_r * 12 + 10), dtype=float)
             self.rowcolumns, self.J_phi = assemble_row_columns_akw_bracket_4th_order_extrapolation(
                 self._points_theta, self._points_r, self._data)
-            print('J_phi set')
 
     def calc_ep_stencil(self):
         """
@@ -733,10 +742,11 @@ class PoloidalAdvectionArakawa:
         N_ep = N_r_ep * self._nPoints_theta
 
         vec_ep = np.zeros(N_ep)
-        ohalf = self.order//2
+        ohalf = self.order // 2
 
         bd_left = [range(k, N_ep, N_r_ep) for k in range(ohalf)]
-        bd_right = [range(N_r_ep-ohalf+k, N_ep, N_r_ep) for k in range(ohalf)]
+        bd_right = [range(N_r_ep-ohalf + k, N_ep, N_r_ep)
+                    for k in range(ohalf)]
 
         inds_bd = np.hstack([bd_left, bd_right])
         inds_int = np.setdiff1d(range(N_ep), inds_bd)
@@ -846,7 +856,7 @@ class PoloidalAdvectionArakawa:
                                          self._points_theta, self._points_r)
 
         # algebraically conserving properties
-        if self.verbose:
+        if self._verbose:
             print('conservation tests global:')
             print(f'Integral of f: {sum(J_phi.dot(f.ravel()))}')
             print(
@@ -927,7 +937,7 @@ class PoloidalAdvectionArakawa:
                 self.J_phi, self.rowcolumns, self.phi_stencil, self._points_theta, self._points_r, self._data)
 
         # algebraically conserving properties
-        if self.verbose:
+        if self._verbose:
             print('conservation tests global:')
             print(
                 f'Integral of f: {sum(self.J_phi.dot(self.f_stencil.ravel()))}')
@@ -978,14 +988,27 @@ class PoloidalAdvectionArakawa:
         assert (gridLayout.dims_order == (3, 2, 1, 0))
 
         if self.bc == "extrapolation":
-            # Do setp
+            # Do step
             for i, v in grid.getCoords(0):  # v
                 for j, _ in grid.getCoords(1):  # z
+
+                    # if v is in the middle of the velocity distribution and it is
+                    # the first slice in z-direction save it before and after the step
+                    if self._save_conservation and i == (grid.eta_grid[3].size // 2) and j == 0:
+                        int_f_before = compute_int_f(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                                                     self._points_r, method='trapz')
+                        int_f_squared_before = compute_int_f_squared(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                                                                     self._points_r, method='trapz')
+                        energy_before = get_total_energy(grid.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
+                                                         self._points_r, method='trapz')
+                        with open(self._conservation_savefile, 'a') as savefile:
+                            savefile.write(
+                                str(int_f_before) + "\t" + str(int_f_squared_before) + "\t" + str(energy_before) + "\t")
 
                     # assume phi equals 0 outside
                     values_phi = np.zeros(self.order)
                     values_f = np.zeros(self.order)
-                    if self.equilibrium_outside:
+                    if self._equilibrium_outside:
                         values_f = [f_eq(self.r_outside[k], v, self._constants.CN0,
                                          self._constants.kN0, self._constants.deltaRN0,
                                          self._constants.rp, self._constants.CTi, self._constants.kTi,
@@ -993,6 +1016,25 @@ class PoloidalAdvectionArakawa:
 
                     self.step_extrapolation(grid.get2DSlice(
                         i, j), dt, phi.get2DSlice(j), values_f, values_phi)
+
+                    # Save conservation properties after step as well
+                    if self._save_conservation and i == (grid.eta_grid[3].size // 2) and j == 0:
+                        int_f_after = compute_int_f(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                                                    self._points_r, method='trapz')
+                        int_f_squared_after = compute_int_f_squared(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                                                                    self._points_r, method='trapz')
+                        energy_after = get_total_energy(grid.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
+                                                        self._points_r, method='trapz')
+                        with open(self._conservation_savefile, 'a') as savefile:
+                            savefile.write(
+                                str(int_f_after) + "\t" + str(int_f_squared_after) + "\t" + str(energy_after) + "\t")
+
+                        with open(self._conservation_savefile, 'a') as savefile:
+                            savefile.write(
+                                str(int_f_before - int_f_after) + "\t"
+                                + str(int_f_squared_before -
+                                      int_f_squared_after) + "\t"
+                                + str(energy_before - energy_after) + "\n")
         else:
             # Do step
             for i, _ in grid.getCoords(0):  # v
