@@ -1,4 +1,5 @@
 import h5py
+import os
 import numpy as np
 from mpi4py import MPI
 
@@ -9,7 +10,7 @@ from ..model.grid import Grid
 from ..model.layout import LayoutSwapper
 
 
-def get_phi_slice(foldername, tEnd, z_idx=0):
+def get_phi_slice(foldername, tEnd, save_foldername=None, z_idx=0):
     """
     Extract a poloidal slice of the electric potential at time tEnd from the specified folder
     and save the slice into a file named PhiSlice_tEnd.h5 . The data is saved with theta
@@ -69,10 +70,14 @@ def get_phi_slice(foldername, tEnd, z_idx=0):
     if z_idx is None:
         z_idx = 0
     else:
-        assert z_idx < distribFunc.eta_grid[2].size
+        assert z_idx < phi.eta_grid[2].size
 
     if (z_idx in phi.getGlobalIdxVals(0)):
-        filename = "{0}/PhiSlice_{1}.h5".format(foldername, tEnd)
+        dirname = "{0}/{1}/".format(foldername, save_foldername)
+        if (not os.path.isdir(dirname)):
+            os.mkdir(dirname)
+        filename = dirname+"/PhiSlice_{:06}.h5".format(tEnd)
+
         file = h5py.File(filename, 'w')
         dset = file.create_dataset(
             "dset", [phi.eta_grid[1].size, phi.eta_grid[0].size])
