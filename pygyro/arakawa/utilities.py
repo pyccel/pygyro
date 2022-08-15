@@ -286,6 +286,9 @@ def get_total_energy(f: np.ndarray, phi: np.ndarray,
     assert phi.shape[1] == len(r_grid), \
         f'Second axis of f does not have the same length as r grid : {phi.shape}[1] != {len(r_grid)}'
 
+    if phi.dtype == np.complex128:
+        phi = np.real(phi)
+
     if method == 'sum':
         # point-wise multiplication
         f_phi = np.multiply(f, phi)

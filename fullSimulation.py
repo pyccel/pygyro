@@ -134,7 +134,8 @@ def main():
         my_print(rank, nosave, "pol adv sl init done")
 
     elif poloidal_method == 'akw':
-        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
+        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants,
+                                          save_conservation=True, foldername=foldername)
         my_print(rank, nosave, "pol adv akw init done")
 
     else:
@@ -292,7 +293,7 @@ def main():
         QNSolver.findPotential(phi)
 
         # ==============================================
-        # ==== Compute f^n+1 using strang splitting ====
+        # ==== Compute f^n+1 using Strang splitting ====
         # ==============================================
         distribFunc.restoreGridValues()  # restored from flux_surface layout
         fluxAdv.gridStep(distribFunc)
@@ -338,31 +339,30 @@ def main():
             my_print(rank, nosave, "save time", t)
             output_start = time.time()
             distribFunc.writeH5Dataset(foldername, t)
-            phi.writeH5Dataset(foldername,t,"phi")
+            phi.writeH5Dataset(foldername, t, "phi")
 
             diagnostics.reduce()
             if (rank == 0):
                 diagnosticFile = open(diagnostic_filename, "a")
-                for i in range(startPrint, min(saveStep, ti+1)):
+                for i in range(startPrint, min(saveStep, ti + 1)):
                     print(diagnostics.getLine(i), file=diagnosticFile)
                 diagnosticFile.close()
             startPrint = 0
             output_time += (time.time() - output_start)
-            average_output = output_time*saveStep/nLoops
+            average_output = output_time * saveStep / nLoops
 
         nLoops += 1
         ti += 1
         full_loop_time += (time.time() - full_loop_start)
         average_loop = full_loop_time/nLoops
-        timeForLoop = comm.allreduce((time.time(
-        ) - setup_time_start + 2*average_loop + 2*average_output) < stopTime, op=MPI.LAND)
+        timeForLoop = comm.allreduce((time.time() - setup_time_start
+                                      + 2*average_loop + 2*average_output) < stopTime, op=MPI.LAND)
 
     full_loop_time += (time.time() - full_loop_start)
 
     output_start = time.time()
 
     if (ti % saveStep != 0) and (not nosave):
-
         diagnostics.reduce()
         if (rank == 0):
             diagnosticFile = open(diagnostic_filename, "a")
@@ -371,7 +371,7 @@ def main():
             diagnosticFile.close()
 
         distribFunc.writeH5Dataset(foldername, t)
-        phi.writeH5Dataset(foldername,t,"phi")
+        phi.writeH5Dataset(foldername, t, "phi")
         output_time += (time.time() - output_start)
 
     # End profiling and print results
