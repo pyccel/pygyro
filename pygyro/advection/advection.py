@@ -969,7 +969,7 @@ class PoloidalAdvectionArakawa:
         raise NotImplementedError(
             "This functionality has not been implemented yet!")
 
-    def gridStep(self, grid: Grid, phi: Grid, dt: float):
+    def gridStep(self, f: Grid, phi: Grid, dt: float):
         """
         TODO
 
@@ -981,25 +981,25 @@ class PoloidalAdvectionArakawa:
         -------
             TODO
         """
-        gridLayout = grid.getLayout(grid.currentLayout)
-        phiLayout = phi.getLayout(grid.currentLayout)
+        gridLayout = f.getLayout(f.currentLayout)
+        phiLayout = phi.getLayout(f.currentLayout)
 
         assert (gridLayout.dims_order[1:] == phiLayout.dims_order)
         assert (gridLayout.dims_order == (3, 2, 1, 0))
 
         if self.bc == "extrapolation":
             # Do step
-            for i, v in grid.getCoords(0):  # v
-                for j, _ in grid.getCoords(1):  # z
+            for i, v in f.getCoords(0):  # v
+                for j, _ in f.getCoords(1):  # z
 
                     # if v is in the middle of the velocity distribution and it is
                     # the first slice in z-direction save it before and after the step
-                    if self._save_conservation and i == (grid.eta_grid[3].size // 2) and j == 0:
-                        int_f_before = compute_int_f(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
+                        int_f_before = compute_int_f(f.get2DSlice(i, j), self._dtheta, self._dr,
                                                      self._points_r, method='trapz')
-                        int_f_squared_before = compute_int_f_squared(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                        int_f_squared_before = compute_int_f_squared(f.get2DSlice(i, j), self._dtheta, self._dr,
                                                                      self._points_r, method='trapz')
-                        energy_before = get_total_energy(grid.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
+                        energy_before = get_total_energy(f.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
                                                          self._points_r, method='trapz')
                         with open(self._conservation_savefile, 'a') as savefile:
                             savefile.write(
@@ -1014,16 +1014,16 @@ class PoloidalAdvectionArakawa:
                                          self._constants.rp, self._constants.CTi, self._constants.kTi,
                                          self._constants.deltaRTi) for k in range(self.order)]
 
-                    self.step_extrapolation(grid.get2DSlice(
+                    self.step_extrapolation(f.get2DSlice(
                         i, j), dt, phi.get2DSlice(j), values_f, values_phi)
 
                     # Save conservation properties after step as well
-                    if self._save_conservation and i == (grid.eta_grid[3].size // 2) and j == 0:
-                        int_f_after = compute_int_f(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
+                        int_f_after = compute_int_f(f.get2DSlice(i, j), self._dtheta, self._dr,
                                                     self._points_r, method='trapz')
-                        int_f_squared_after = compute_int_f_squared(grid.get2DSlice(i, j), self._dtheta, self._dr,
+                        int_f_squared_after = compute_int_f_squared(f.get2DSlice(i, j), self._dtheta, self._dr,
                                                                     self._points_r, method='trapz')
-                        energy_after = get_total_energy(grid.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
+                        energy_after = get_total_energy(f.get2DSlice(i, j), phi.get2DSlice(j), self._dtheta, self._dr,
                                                         self._points_r, method='trapz')
                         with open(self._conservation_savefile, 'a') as savefile:
                             savefile.write(
@@ -1037,9 +1037,9 @@ class PoloidalAdvectionArakawa:
                                 + format(energy_before - energy_after, '.15E') + "\n")
         else:
             # Do step
-            for i, _ in grid.getCoords(0):  # v
-                for j, _ in grid.getCoords(1):  # z
-                    self.step_normal(grid.get2DSlice(
+            for i, _ in f.getCoords(0):  # v
+                for j, _ in f.getCoords(1):  # z
+                    self.step_normal(f.get2DSlice(
                         i, j), dt, phi.get2DSlice(j))
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
