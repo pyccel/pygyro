@@ -76,7 +76,7 @@ def plot_all_slices(foldername):
             if np.isnan(data).any() or np.isinf(data).any():
                 print("NaN or Inf encounter")
             else:
-                superfolder = foldername[0:foldername.find('/')]
+                superfolder = os.path.dirname(foldername[:-1])
                 constantFile = os.path.join(superfolder, 'initParams.json')
                 if not os.path.exists(constantFile):
                     raise RuntimeError(
@@ -200,7 +200,7 @@ def plot_conservation(simulationfolder):
 
             file.close()
 
-            superfolder = foldername[0:foldername.find('/')]
+            superfolder = os.path.dirname(simulationfolder)
             constantFile = os.path.join(superfolder, 'initParams.json')
             if not os.path.exists(constantFile):
                 raise RuntimeError("Can't find constants in simulation folder")
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     unpack_all(foldername)
     plot_all_slices(foldername+"Slices_f/")
     plot_all_slices(foldername+"Slices_phi/")
-    make_movie(foldername+"Slices_f/plots")
-    make_movie(foldername+"Slices_phi/plots")
+    make_movie(foldername+"Slices_f/plots/")
+    make_movie(foldername+"Slices_phi/plots/")
     plot_conservation(foldername)
     plot_L2(foldername)

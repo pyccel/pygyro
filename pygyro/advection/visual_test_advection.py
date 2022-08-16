@@ -807,7 +807,7 @@ def test_poloidalAdvectionArakawa():
     for n in range(N):
         f_vals[n + 1, :-1, :] = f_vals[n, :-1, :]
         # f_vals[:,:,n + 1]=f_vals[:,:,n]
-        polAdv.exact_step(f_vals[n + 1, :-1, :], endPts, v)
+        # polAdv.exact_step(f_vals[n + 1, :-1, :], endPts, v)
         polAdv.step(f_vals[n + 1, :-1, :], dt, np.array(phiVals, dtype=float))
         # polAdv.step(f_vals[:,:,n + 1],dt,phi,v)
         # polAdv.exact_step(f_vals[:,:,n + 1],endPts,v)
