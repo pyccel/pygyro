@@ -14,8 +14,8 @@ from pygyro.arakawa.utilities import compute_int_f, compute_int_f_squared, get_t
 
 def unpack_all(foldername):
     """
-    Unpacks all Poloidal slices from the grid_xxxxxx.h5 and phi_xxxxxx.h5 
-    files in the given folder. For v and z we use the default parameters 
+    Unpacks all Poloidal slices from the grid_xxxxxx.h5 and phi_xxxxxx.h5
+    files in the given folder. For v and z we use the default parameters
     nv//2 and 0, as used in plot_poloidal_slice.py.
 
     Parameters
@@ -24,8 +24,7 @@ def unpack_all(foldername):
                 The folder containing the simulation
     """
     filelist = os.listdir(foldername)
-    ind_f = []
-    ind_phi = []
+
     for f in filelist:
         isgrid = f.find("grid_")
         if isgrid != -1:
@@ -41,7 +40,8 @@ def unpack_all(foldername):
 
 def plot_all_slices(foldername):
     """
-    Given a folder of poloidal slices, we plot all of them in a subfolder called plots/. 
+    Given a folder of poloidal slices,
+    we plot all of them in a subfolder called plots/.
 
     Parameters
     ----------
@@ -55,6 +55,7 @@ def plot_all_slices(foldername):
 
     filelist = os.listdir(foldername)
     for fname in filelist:
+        get_total_energy
         if fname != "plots":
             filename = foldername+fname
             t_str = filename[filename.rfind('_')+1:filename.rfind('.')]
@@ -126,7 +127,7 @@ def plot_all_slices(foldername):
 
 def make_movie(foldername):
     """
-    Given a folder with some frames called t_xxxxx.png, 
+    Given a folder with some frames called t_xxxxx.png,
     we create a movie.
 
     Parameters
@@ -142,9 +143,9 @@ def make_movie(foldername):
 
 def plot_conservation(simulationfolder):
     """
-    Calculates and plots the conserved quantities 
-    (integral of f, integral of f^2 and energy) 
-    of a simulation at all time-steps. 
+    Calculates and plots the conserved quantities
+    (integral of f, integral of f^2 and energy)
+    of a simulation at all time-steps.
 
     Parameters
     ----------
@@ -186,8 +187,8 @@ def plot_conservation(simulationfolder):
             file.close()
 
             filename_phi = simulationfolder + \
-                "Slice_phi/"+"PhiSlice_{:06}.h5".format(t)
-            file = h5py.File(filename, 'r')
+                "Slices_phi/"+"PhiSlice_{:06}.h5".format(t)
+            file = h5py.File(filename_phi, 'r')
             dataset = file['/dset']
 
             shape = dataset.shape
@@ -264,7 +265,7 @@ def plot_conservation(simulationfolder):
 
 
 if __name__ == "__main__":
-    foldername = "simulation_1/"
+    foldername = "simulation_0/"
 
     unpack_all(foldername)
     plot_all_slices(foldername+"Slices_f/")
