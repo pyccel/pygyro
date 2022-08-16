@@ -50,14 +50,14 @@ class DiagnosticCollector:
 
         Parameters
         ----------
-        f : Grid
-            The distribution function
+            f : Grid
+                The distribution function
 
-        phi : Grid
-            The electric potential
+            phi : Grid
+                The electric potential
 
-        t : float
-            The current time
+            t : float
+                The current time
         """
         ti = t//self.dt
         idx = ti % self.saveStep

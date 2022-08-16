@@ -12,16 +12,16 @@ def get_grid_slice(foldername, tEnd, save_foldername=None, z_idx=None, v_idx=Non
 
     Parameters
     ----------
-    foldername : str
+    foldername      : str
                  The folder containing the simulation
-    tEnd       : int
+    tEnd            : int
                  The time which should be examined to obtain the slice
     save_foldername : str
                  The folder where to save it to
-    z_idx      : int
+    z_idx           : int
                  The index of the slice in the z direction
                  Default : 0
-    v_idx      : int
+    v_idx           : int
                  The index of the slice in the v direction
                  Default : nv//2
     """
@@ -74,16 +74,16 @@ def get_flux_surface_grid_slice(foldername, tEnd, save_foldername=None, r_idx=No
 
     Parameters
     ----------
-    foldername : str
+    foldername      : str
                  The folder containing the simulation
-    tEnd       : int
+    tEnd            : int
                  The time which should be examined to obtain the slice
     save_foldername : str
                  The folder where to save it to
-    r_idx      : int
+    r_idx           : int
                  The index of the slice in the r direction
                  Default : nr//2
-    v_idx      : int
+    v_idx             : int
                  The index of the slice in the v direction
                  Default : nv//2
     """
