@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(
     description='Plot the most unstable modes of the simulation')
 parser.add_argument('foldername', type=str,
                     help='The folders whose results should be plotted')
+args = parser.parse_args()
 foldername = args.foldername
 
 ###############################################################
