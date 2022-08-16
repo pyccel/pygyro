@@ -170,8 +170,6 @@ def test_convergence(bc, order, problem, show_plot=False):
     N_t = 50
     dt = 0.05
 
-    N_list = [2**k * N_points for k in range(N_iter)]
-
     f_vals = [None] * N_iter
     d_theta = [None] * N_iter
     d_r = [None] * N_iter
@@ -183,7 +181,7 @@ def test_convergence(bc, order, problem, show_plot=False):
     r_min = 0.01
     r_max = 14.1
 
-    for n, N in enumerate(N_list):
+    for n in enumerate(N_iter):
         N_theta = 2**n * N_points
         N_r = 2**n * (N_points - 1) + 1
 
