@@ -171,56 +171,46 @@ def test_poloidalAdvectionArakawa_invariantPhi():
     """
     TODO
     """
-    npts = [30, 20]
-    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
-                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+    N_theta = 30
+    N_r = 20
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = 100
     dt = 0.1
 
-    v = 0.0
+    v = 0.
 
-    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
+    f_vals = np.ndarray([N + 1, N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
 
-    deg = 3
-
-    domain = [[0.1, 14.5], [0, 2*pi]]
-    periodic = [False, True]
-    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
-    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
-    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
-    eta_grids = [bspl.greville for bspl in bsplines]
-
-    eta_vals[0] = eta_grids[0]
-    eta_vals[1] = eta_grids[1]
+    phiVals[:] = 3 * eta_vals[0]**2 * \
+        (1 + 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T * 2))
 
     constants = get_constants('testSetups/iota0.json')
 
     polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=False)
 
-    phi = spl.Spline2D(bsplines[1], bsplines[0])
-    phiVals = np.empty([npts[1], npts[0]])
-    phiVals[:] = 3 * eta_vals[0]**2 * \
-        (1 + 1e-1 * np.cos(np.atleast_2d(eta_vals[1]).T * 2))
-    # phiVals[:]=10*eta_vals[0]
-    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
 
-    interp.compute_interpolant(phiVals, phi)
-
-    # ~ f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
-    # ~ + fEq(0.1,v,constants.CN0,constants.kN0,
-    #~ constants.deltaRN0,constants.rp,
-    #~ constants.CTi,constants.kTi,
-    # ~ constants.deltaRTi)
     f_vals[0, :, :] = phiVals + f_eq(0.1, v, constants.CN0, constants.kN0,
                                      constants.deltaRN0, constants.rp,
                                      constants.CTi, constants.kTi,
                                      constants.deltaRTi)
 
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
+
     for n in range(N):
+        polAdv.step(f_vals[n, :, :], dt, np.array(phiVals, dtype=float))
         f_vals[n + 1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -230,7 +220,6 @@ def test_poloidalAdvectionArakawa_invariantPhi():
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
     ax.set_title("poloidalAdvectionArakawa_invariantPhi")
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -337,40 +326,33 @@ def test_poloidalAdvectionArakawa_vortex():
     """
     TODO
     """
-    npts = [30, 20]
-    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
-                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+    N_theta = 30
+    N_r = 20
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = 200
     dt = 0.1
 
-    v = 0.0
+    v = 0.
 
-    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
+    f_vals = np.ndarray([N + 1, N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
 
-    deg = 3
-
-    domain = [[0.1, 14.5], [0, 2*pi]]
-    periodic = [False, True]
-    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
-    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
-    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
-    eta_grids = [bspl.greville for bspl in bsplines]
-
-    eta_vals[0] = eta_grids[0]
-    eta_vals[1] = eta_grids[1]
+    phiVals[:] = 10 * eta_vals[0]
 
     constants = get_constants('testSetups/iota0.json')
 
     polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=False)
 
-    phi = spl.Spline2D(bsplines[1], bsplines[0])
-    phiVals = np.empty([npts[1], npts[0]])
-    phiVals[:] = 10 * eta_vals[0]
-    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
-
-    interp.compute_interpolant(phiVals, phi)
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
 
     f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1] - pi)**2).T - (eta_vals[0] - 7)**2) / 4 \
         + f_eq(0.1, v, constants.CN0, constants.kN0,
@@ -378,9 +360,12 @@ def test_poloidalAdvectionArakawa_vortex():
                constants.CTi, constants.kTi,
                constants.deltaRTi)
 
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
+
     for n in range(N):
+        polAdv.step(f_vals[n, :, :], dt, np.array(phiVals, dtype=float))
         f_vals[n + 1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -497,39 +482,33 @@ def test_poloidalAdvectionArakawa_constantAdv():
     """
     TODO
     """
-    npts = [30, 20]
-    eta_vals = [np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 2*pi, npts[0], endpoint=False),
-                np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+    N_theta = 80
+    N_r = 60
+
+    r_min = 0.01
+    r_max = 14.1
+
+    theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+    r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+    eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
     N = 200
     dt = 0.1
 
-    v = 0.0
+    v = 0.
 
-    f_vals = np.ndarray([N + 1, npts[1], npts[0]])
+    f_vals = np.ndarray([N + 1, N_theta, N_r])
+    phiVals = np.empty([N_theta, N_r])
 
-    deg = 3
-
-    domain = [[0.1, 14.5], [0, 2*pi]]
-    periodic = [False, True]
-    nkts = [n + 1 + deg * (int(p) - 1) for (n, p) in zip(npts, periodic)]
-    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
-    knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
-    eta_grids = [bspl.greville for bspl in bsplines]
-
-    eta_vals[0] = eta_grids[0]
-    eta_vals[1] = eta_grids[1]
+    phiVals[:] = 3*eta_vals[0]**2
 
     constants = get_constants('testSetups/iota0.json')
 
     polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=False)
 
-    phi = spl.Spline2D(bsplines[1], bsplines[0])
-    phiVals = np.empty([npts[1], npts[0]])
-    phiVals[:] = 3*eta_vals[0]**2
-    interp = spl.SplineInterpolator2D(bsplines[1], bsplines[0])
-    interp.compute_interpolant(phiVals, phi)
+    assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+    assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
 
     f_vals[0, :, :] = np.exp(-np.atleast_2d((eta_vals[1] - pi)**2).T - (eta_vals[0]-7)**2) / 4 \
         + f_eq(0.1, v, constants.CN0, constants.kN0,
@@ -537,9 +516,12 @@ def test_poloidalAdvectionArakawa_constantAdv():
                constants.CTi, constants.kTi,
                constants.deltaRTi)
 
+    assert phiVals.shape == (
+        N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
+
     for n in range(N):
+        polAdv.step(f_vals[n, :, :], dt, np.array(phiVals, dtype=float))
         f_vals[n + 1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -825,7 +807,7 @@ def test_poloidalAdvectionArakawa():
     for n in range(N):
         f_vals[n + 1, :-1, :] = f_vals[n, :-1, :]
         # f_vals[:,:,n + 1]=f_vals[:,:,n]
-        polAdv.exact_step(f_vals[n + 1, :-1, :], endPts, v)
+        # polAdv.exact_step(f_vals[n + 1, :-1, :], endPts, v)
         polAdv.step(f_vals[n + 1, :-1, :], dt, np.array(phiVals, dtype=float))
         # polAdv.step(f_vals[:,:,n + 1],dt,phi,v)
         # polAdv.exact_step(f_vals[:,:,n + 1],endPts,v)
