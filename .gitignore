@@ -30,3 +30,4 @@ __pyccel__
 tjob.out.*
 tjob.err.*
 .lock_acquisition.lock
+simulation_*/
