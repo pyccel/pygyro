@@ -19,7 +19,7 @@
 #SBATCH --ntasks-per-node=32
 #
 #SBATCH --mail-type=begin,end,fail
-#SBATCH --mail-user=yaman.guclu@ipp.mpg.de
+#SBATCH --mail-user=
 #
 # Wall clock limit:
 #SBATCH --time=06:00:00

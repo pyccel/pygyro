@@ -47,11 +47,11 @@ class KineticEnergy:
         self._layout = layout.name
 
         dq = q[2] - q[1]
-        assert(dq * eta_grid[1].size - 2 * np.pi < 1e-7)
+        assert dq * eta_grid[1].size - 2 * np.pi < 1e-7
 
         dz = z[2] - z[1]
-        assert(dq > 0)
-        assert(dz > 0)
+        assert dq > 0
+        assert dz > 0
 
         self._factor2 = 0.5 * dq * dz
 
@@ -59,7 +59,7 @@ class KineticEnergy:
         """
         TODO
         """
-        assert(self._layout == grid.currentLayout)
+        assert self._layout == grid.currentLayout
 
         points = np.real(grid._f) * self._factor1
 

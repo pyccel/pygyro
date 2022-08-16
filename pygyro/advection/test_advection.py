@@ -51,7 +51,7 @@ def test_fluxSurfaceAdvection(fact, dt):
     for n in range(N):
         fluxAdv.step(f_vals, 0)
 
-    assert(np.max(np.abs(f_vals-f_end)) < 1e-4)
+    assert np.max(np.abs(f_vals-f_end)) < 1e-4
 
 
 @pytest.mark.serial
@@ -98,7 +98,7 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
     for n in range(N):
         fluxAdv.step(f_vals, 0)
     #~ print(np.max(np.abs(f_vals-f_end)))
-    assert(np.max(np.abs(f_vals-f_end)) < err)
+    assert np.max(np.abs(f_vals-f_end)) < err
 
 
 @pytest.mark.serial
@@ -121,10 +121,10 @@ def test_vParallelAdvection(function, N):
     r = 4.0
     fEdge = fEq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
                 constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
-    assert(fEq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
-               constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
-           == fEq(r, x[-1], constants.CN0, constants.kN0, constants.deltaRN0,
-                  constants.rp, constants.CTi, constants.kTi, constants.deltaRTi))
+    assert (fEq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
+                constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
+            == fEq(r, x[-1], constants.CN0, constants.kN0, constants.deltaRN0,
+                   constants.rp, constants.CTi, constants.kTi, constants.deltaRTi))
 
     f[:] = function(x)+fEdge
 
@@ -142,7 +142,7 @@ def test_vParallelAdvection(function, N):
         else:
             fEnd[i] = fEdge+function(x[i]-c*dt*N)
 
-    assert(max(abs(f-fEnd)) < 2e-3)
+    assert max(abs(f-fEnd)) < 2e-3
 
 
 @pytest.mark.serial
@@ -176,7 +176,7 @@ def test_vParallelAdvectionPeriodic(N):
     for i in range(npts):
         fEnd[i] = gauss((x[i]-c*dt*N+5) % 10 - 5)
 
-    assert(max(abs(f-fEnd)) < 2e-3)
+    assert max(abs(f-fEnd)) < 2e-3
 
 
 def Phi(r, theta, omega, xc, yc):
@@ -255,7 +255,7 @@ def test_poloidalAdvection(dt, v, xc, yc):
 
     l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
-    assert(l2 < 0.2)
+    assert l2 < 0.2
 
 
 @pytest.mark.serial
@@ -318,7 +318,7 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
 
     l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
-    assert(l2 < 0.2)
+    assert l2 < 0.2
 
 
 @pytest.mark.serial
@@ -355,7 +355,7 @@ def test_vParallelAdvection_gridIntegration():
             for k, _ in grid.getCoords(2):  # q
                 vParAdv.step(grid.get1DSlice(i, j, k), dt, c, r)
 
-    assert(np.allclose(old_f, grid._f))
+    assert np.allclose(old_f, grid._f)
 
 
 @pytest.mark.serial
@@ -534,8 +534,8 @@ def test_vParGradAligned():
 
     der = np.empty([npts[2], npts[1]])
     pG.parallel_gradient(phiVals, 0, der)
-    assert(np.isfinite(der).all())
-    assert((np.abs(der) < 1e-7).all())
+    assert np.isfinite(der).all()
+    assert (np.abs(der) < 1e-7).all()
 
 
 @pytest.mark.serial
@@ -558,8 +558,8 @@ def test_vParGrad():
 
     der = np.empty([npts[2], npts[1]])
     pG.parallel_gradient(phiVals, 0, der)
-    assert(np.isfinite(der).all())
-    assert((np.abs(der) < 1e-12).all())
+    assert np.isfinite(der).all()
+    assert (np.abs(der) < 1e-12).all()
 
 
 def pg_Phi(theta, z):
@@ -632,4 +632,4 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
     print("linfordre:", np.log2(linf[:-1]/linf[1:]))
     print("l2ordre:", np.log2(l2[:-1]/l2[1:]))
 
-    assert(abs(linfOrder-zOrder) < 0.1)
+    assert abs(linfOrder-zOrder) < 0.1

@@ -50,6 +50,7 @@ python3 -m venv venv
 source venv/bin/activate
 python3 -m pip install --no-binary=mpi4py mpi4py
 python3 -m pip install --no-binary=h5py h5py
+python3 -m pip install -r requirements.txt
 ```
 The virtual environment can be accessed using `source venv/bin/activate` and is deactivated with the command `deactivate`.
 
@@ -123,3 +124,14 @@ make ACC=pythran pythran
 will compile the code using pythran.
 
 The code can then be run as previously described for the pure python setup.
+
+Plotting
+========
+
+Several plotting tools are provided inside the plotting/ folder.
+
+Some of these import tools from inside pygyro. In order to use these please run the following command from the pygyro home directory before calling them:
+
+```
+export PYTHONPATH=$(pwd)
+```

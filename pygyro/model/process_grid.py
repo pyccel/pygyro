@@ -68,7 +68,7 @@ def compute_2d_process_grid_from_max(max_proc1: int, max_proc2: int, mpi_size: i
         # increase number of processes in the first dimension until a divisor is found
         nprocs1 += 1
 
-        while(nprocs1 <= min(mpi_size, max_proc1) and mpi_size % nprocs1 != 0):
+        while (nprocs1 <= min(mpi_size, max_proc1) and mpi_size % nprocs1 != 0):
             nprocs1 += 1
 
         # if an acceptable value is not found then throw an error
@@ -91,7 +91,7 @@ def compute_2d_process_grid_from_max(max_proc1: int, max_proc2: int, mpi_size: i
         # the number of processes in the first dimension until a
         # divisor is found
         new_n1 = nprocs1+1
-        while(new_n1 < max_proc1 and mpi_size % new_n1 != 0):
+        while (new_n1 < max_proc1 and mpi_size % new_n1 != 0):
             new_n1 += 1
         new_n2 = mpi_size//new_n1
 

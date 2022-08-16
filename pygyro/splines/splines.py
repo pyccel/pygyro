@@ -3,7 +3,9 @@
 
 import numpy as np
 #from scipy.interpolate  import splev, bisplev
-from .spline_eval_funcs import eval_spline_1d_scalar, eval_spline_1d_vector, eval_spline_2d_cross, eval_spline_2d_scalar
+from .spline_eval_funcs import eval_spline_1d_scalar, eval_spline_1d_vector
+from .spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar
+from .spline_eval_funcs import find_span, basis_funs
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
@@ -93,6 +95,9 @@ class BSplines():
         self._ncells = len(knots)-2*degree-1
         self._nbasis = self._ncells if periodic else self._ncells+degree
         self._offset = degree//2 if periodic else 0
+        self._integrals = None
+
+        self._build_integrals()
 
     @property
     def degree(self):
@@ -155,6 +160,10 @@ class BSplines():
 
         return np.around(x, decimals=15)
 
+    @property
+    def integrals(self):
+        return self._integrals
+
     # ...
     def __getitem__(self, i):
         """
@@ -186,8 +195,42 @@ class BSplines():
             Last cell includes right endpoint.
         """
         a, b = self.domain
-        assert(a <= x <= b)
+        assert a <= x <= b
         return int(np.searchsorted(self.breaks, x, side='right') - 1)
+
+    def _build_integrals(self):
+        n = self.nbasis
+        d = self.degree
+
+        self._integrals = np.empty(self.ncells + d)
+        inv_deg = 1 / (d + 1)
+
+        knots = np.array([self.knots[0], *self.knots, self.knots[-1]])
+        values = np.empty(d+2)
+
+        for i in range(n):
+            integ_deg = d+1
+            lbound = max(self.breaks[0], knots[i+1])
+            ubound = min(self.breaks[-1], knots[d+2+i])
+            span_l = find_span(knots, integ_deg, lbound)
+            span_u = find_span(knots, integ_deg, ubound)
+
+            basis_funs(knots, integ_deg, lbound, span_l, values)
+            first_available = span_l - integ_deg
+            first_wanted = i+1
+            min_idx = first_wanted-first_available
+            l = np.sum(values[min_idx:])
+
+            basis_funs(knots, integ_deg, ubound, span_u, values)
+            first_available = span_u - integ_deg
+            first_wanted = i+1
+            min_idx = first_wanted-first_available
+            u = np.sum(values[min_idx:])
+
+            self._integrals[i] = (knots[d+2+i] - knots[i+1])*inv_deg*(u - l)
+
+        if self.periodic:
+            self._integrals[n:] = self._integrals[:d]
 
 # ===============================================================================
 

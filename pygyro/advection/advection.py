@@ -48,7 +48,7 @@ class ParallelGradient:
 
         # If there are too few points then the access cannot be optimised
         # at the boundaries in the way that has been used
-        assert(self._nz > order)
+        assert self._nz > order
 
         # Find the coefficients and shifts used to find the first derivative
         # of the correct order
@@ -127,7 +127,7 @@ class ParallelGradient:
         # Get scalar values necessary for this slice
         bz = self._bz[i]
         thetaVals = self._thetaVals[i]
-        assert(der.shape == phi_r.shape)
+        assert der.shape == phi_r.shape
         der[:] = 0
 
         # For each value of z interpolate the spline along theta and add
@@ -278,7 +278,7 @@ class FluxSurfaceAdvection:
             The current index of r. Not necessary if iota does not depend on r
 
         """
-        assert(f.shape == self._nPoints)
+        assert f.shape == self._nPoints
 
         # find the values of the function at each required point
         for i in range(self._nPoints[1]):
@@ -296,7 +296,7 @@ class FluxSurfaceAdvection:
                        self._LagrangeVals)
 
     def gridStep(self, grid: Grid):
-        assert(grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2))
+        assert grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2)
         for i, _ in grid.getCoords(0):  # r
             for j, _ in grid.getCoords(1):  # v
                 self.step(grid.get2DSlice(i, j), j)
@@ -365,7 +365,7 @@ class VParallelAdvection:
             The radial coordinate
 
         """
-        assert(f.shape == self._nPoints)
+        assert f.shape == self._nPoints
         self._interpolator.compute_interpolant(f, self._spline)
 
         v_parallel_advection_eval_step(f, self._points-c*dt, r, self._points[0],
@@ -383,14 +383,14 @@ class VParallelAdvection:
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
                     self.step(grid.get1DSlice(
-                        [i, j, k]), dt, parGradVals[i, j, k], r)
+                        i, j, k), dt, parGradVals[i, j, k], r)
 
     def gridStepKeepGradient(self, grid: Grid, parGradVals, dt: float):
         for i, r in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
                 for k, _ in grid.getCoords(2):  # q
                     self.step(grid.get1DSlice(
-                        [i, j, k]), dt, parGradVals[i, j, k], r)
+                        i, j, k), dt, parGradVals[i, j, k], r)
 
 
 class PoloidalAdvection:
@@ -474,7 +474,7 @@ class PoloidalAdvection:
             The parallel velocity coordinate
 
         """
-        assert(f.shape == self._nPoints)
+        assert f.shape == self._nPoints
         self._interpolator.compute_interpolant(f, self._spline)
 
         phiBases = phi.basis
@@ -514,7 +514,7 @@ class PoloidalAdvection:
                                          self._constants.B0, self._TOL, self._nulEdge)
 
     def exact_step(self, f, endPts, v):
-        assert(f.shape == self._nPoints)
+        assert f.shape == self._nPoints
         self._interpolator.compute_interpolant(f, self._spline)
 
         for i in range(self._nPoints[0]):  # theta
@@ -524,8 +524,8 @@ class PoloidalAdvection:
     def gridStep(self, grid: Grid, phi: Grid, dt: float):
         gridLayout = grid.getLayout(grid.currentLayout)
         phiLayout = phi.getLayout(grid.currentLayout)
-        assert(gridLayout.dims_order[1:] == phiLayout.dims_order)
-        assert(gridLayout.dims_order == (3, 2, 1, 0))
+        assert gridLayout.dims_order[1:] == phiLayout.dims_order
+        assert gridLayout.dims_order == (3, 2, 1, 0)
         # Evaluate splines
         for j, _ in grid.getCoords(1):  # z
             self._interpolator.compute_interpolant(
@@ -537,7 +537,7 @@ class PoloidalAdvection:
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         gridLayout = grid.getLayout(grid.currentLayout)
-        assert(gridLayout.dims_order == (3, 2, 1, 0))
+        assert gridLayout.dims_order == (3, 2, 1, 0)
         # Do step
         for i, v in grid.getCoords(0):
             for j, _ in grid.getCoords(1):  # z
