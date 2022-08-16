@@ -109,7 +109,7 @@ def plot_all_slices(foldername):
 
                 font = {'size': 16}
                 pltFont('font', **font)
-                fig, ax = plt.subplots(1)
+                _, ax = plt.subplots(1)
                 ax.set_title('T = {}'.format(t))
                 clevels = np.linspace(data.min(), data.max(), 101)
                 im = ax.contourf(x, y, data, clevels, cmap='jet')
@@ -121,7 +121,6 @@ def plot_all_slices(foldername):
                 ax.set_ylabel("y [m]")
                 plt.savefig(foldername+'plots/t_{:06}'.format(t))
                 plt.close()
-                # plt.show()
 
 
 def make_movie(foldername):
@@ -238,7 +237,7 @@ def plot_conservation(simulationfolder):
     int_f2 = np.array(int_f2)[p]
     int_en = np.array(int_en)[p]
 
-    fig, ax = plt.subplots(1)
+    _, ax = plt.subplots(1)
     ax.set_title('Integral of $f$')
     ax.set_xlabel("t")
     ax.set_ylabel("$ \int f$")
@@ -246,7 +245,7 @@ def plot_conservation(simulationfolder):
     plt.savefig(simulationfolder+'plots/integral_f.png')
     plt.close()
 
-    fig, ax = plt.subplots(1)
+    _, ax = plt.subplots(1)
     ax.set_title('Integral of $f^2$')
     ax.set_xlabel("t")
     ax.set_ylabel("$ \int f^2$")
@@ -254,7 +253,7 @@ def plot_conservation(simulationfolder):
     plt.savefig(simulationfolder+'plots/integral_f_squared.png')
     plt.close()
 
-    fig, ax = plt.subplots(1)
+    _, ax = plt.subplots(1)
     ax.set_title('Energy')
     ax.set_xlabel("t")
     ax.set_ylabel("$ \int \phi f$")
