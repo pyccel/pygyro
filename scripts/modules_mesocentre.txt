@@ -1,0 +1,6 @@
+
+module purge
+module load userspace/all
+module load python3/3.8.6
+module load hdf5/gcc72/openmpi/1.10.1
+module load intel-compiler/64/2020.2.254
