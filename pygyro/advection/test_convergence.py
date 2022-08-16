@@ -163,6 +163,9 @@ def test_convergence(bc, order, problem, show_plot=False):
 
         problem : str
             which problem to consider for the convergence study: constant advection or vortex
+
+        show_plot : bool
+            if plots of the convergence curve should be shown
     """
     N_points = 15
     N_iter = 5
@@ -181,7 +184,7 @@ def test_convergence(bc, order, problem, show_plot=False):
     r_min = 0.01
     r_max = 14.1
 
-    for n in enumerate(N_iter):
+    for n in range(N_iter):
         N_theta = 2**n * N_points
         N_r = 2**n * (N_points - 1) + 1
 
