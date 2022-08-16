@@ -13,6 +13,16 @@ from pygyro.arakawa.utilities import compute_int_f, compute_int_f_squared, get_t
 
 
 def unpack_all(foldername):
+    """
+    Unpacks all Poloidal slices from the grid_xxxxxx.h5 and phi_xxxxxx.h5 
+    files in the given folder. For v and z we use the default parameters 
+    nv//2 and 0, as used in plot_poloidal_slice.py.
+
+    Parameters
+    ----------
+    foldername  : str
+                The folder containing the simulation
+    """
     filelist = os.listdir(foldername)
     ind_f = []
     ind_phi = []
@@ -30,6 +40,15 @@ def unpack_all(foldername):
 
 
 def plot_all_slices(foldername):
+    """
+    Given a folder of poloidal slices, we plot all of them in a subfolder called plots/. 
+
+    Parameters
+    ----------
+    foldername  : str
+                The folder containing the Poloidal Slices
+
+    """
 
     if (not os.path.isdir(foldername+"plots/")):
         os.mkdir(foldername+"plots/")
@@ -106,6 +125,15 @@ def plot_all_slices(foldername):
 
 
 def make_movie(foldername):
+    """
+    Given a folder with some frames called t_xxxxx.png, 
+    we create a movie.
+
+    Parameters
+    ----------
+    foldername : str
+                The folder containing the plotted frames
+    """
     stream = ffmpeg.input(foldername+"/t_*.png",
                           pattern_type="glob", framerate=30)
     stream = ffmpeg.output(stream, foldername+'/movie.mp4')
@@ -113,6 +141,16 @@ def make_movie(foldername):
 
 
 def plot_conservation(simulationfolder):
+    """
+    Calculates and plots the conserved quantities 
+    (integral of f, integral of f^2 and energy) 
+    of a simulation at all time-steps. 
+
+    Parameters
+    ----------
+    simulationfolder  : str
+                        The folder containing the simulation
+    """
     foldername = simulationfolder+"Slices_f/"
 
     if (not os.path.isdir(simulationfolder+"plots/")):
