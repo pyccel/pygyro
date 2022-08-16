@@ -55,7 +55,6 @@ def plot_all_slices(foldername):
 
     filelist = os.listdir(foldername)
     for fname in filelist:
-        get_total_energy
         if fname != "plots":
             filename = foldername+fname
             t_str = filename[filename.rfind('_')+1:filename.rfind('.')]
@@ -264,8 +263,45 @@ def plot_conservation(simulationfolder):
     plt.close()
 
 
+def plot_L2(foldername):
+    """
+    Plots the L2 norm of phi.
+
+    Parameters
+    ----------
+    simulationfolder  : str
+                        The folder containing the simulation
+    """
+    filename = os.path.join(foldername, 'phiDat.txt')
+
+    p = 3.54e-3
+    m = 4e-5
+
+    dataset = np.atleast_2d(np.loadtxt(filename))
+    sorted_times = np.sort(dataset[:, 0])
+
+    plt.figure()
+    plt.semilogy(sorted_times, m*np.exp(p*sorted_times),
+                 label=str(m)+'*exp('+str(p)+'*x)')
+
+    dataset = np.atleast_2d(np.loadtxt(os.path.join(foldername, 'phiDat.txt')))
+    shape = dataset.shape
+    times = np.ndarray(shape[0])
+    norm = np.ndarray(shape[0])
+    times[:] = dataset[:, 0]
+    norm[:] = dataset[:, 1]
+    plt.semilogy(times, norm, '.', label=foldername)
+
+    plt.xlabel('time')
+    plt.ylabel('$\|\phi\|_2$')
+    plt.grid()
+    plt.legend()
+    plt.savefig(foldername+'plots/L2_phi.png')
+    plt.close()
+
+
 if __name__ == "__main__":
-    foldername = "simulation_0/"
+    foldername = "simulation_2/"
 
     unpack_all(foldername)
     plot_all_slices(foldername+"Slices_f/")
@@ -273,3 +309,4 @@ if __name__ == "__main__":
     make_movie(foldername+"Slices_f/plots")
     make_movie(foldername+"Slices_phi/plots")
     plot_conservation(foldername)
+    plot_L2(foldername)
