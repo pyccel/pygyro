@@ -996,6 +996,11 @@ class PoloidalAdvectionArakawa:
         assert (gridLayout.dims_order[1:] == phiLayout.dims_order)
         assert (gridLayout.dims_order == (3, 2, 1, 0))
 
+        # get list of global indices when wanting to save diagnostics
+        if self._save_conservation:
+            global_inds_v = f.getGlobalIdxVals(0)
+            global_inds_z = f.getGlobalIdxVals(1)
+
         if self.bc == "extrapolation":
             # Do step
             for i, v in f.getCoords(0):  # v
@@ -1003,8 +1008,11 @@ class PoloidalAdvectionArakawa:
 
                     # if v is in the middle of the velocity distribution and it is
                     # the first slice in z-direction save it before and after the step
-                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
-                        self._save_consv_to_file('before', f, i, j, phi)
+                    if self._save_conservation:
+                        global_v = global_inds_v[i]
+                        global_z = global_inds_z[j]
+                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
+                            self._save_consv_to_file('before', f, i, j, phi)
 
                     # assume phi equals 0 outside
                     values_phi = np.zeros(self.order)
@@ -1019,8 +1027,11 @@ class PoloidalAdvectionArakawa:
                         i, j), dt, phi.get2DSlice(j), values_f, values_phi)
 
                     # Save conservation properties after step as well
-                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
-                        self._save_consv_to_file('after', f, i, j, phi)
+                    if self._save_conservation:
+                        global_v = global_inds_v[i]
+                        global_z = global_inds_z[j]
+                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
+                            self._save_consv_to_file('after', f, i, j, phi)
 
         else:
             # Do step
@@ -1029,15 +1040,21 @@ class PoloidalAdvectionArakawa:
 
                     # if v is in the middle of the velocity distribution and it is
                     # the first slice in z-direction save it before and after the step
-                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
-                        self._save_consv_to_file('before', f, i, j, phi)
+                    if self._save_conservation:
+                        global_v = global_inds_v[i]
+                        global_z = global_inds_z[j]
+                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
+                            self._save_consv_to_file('before', f, i, j, phi)
 
                     self.step_normal(f.get2DSlice(i, j),
                                      dt, phi.get2DSlice(j))
 
                     # Save conservation properties after step as well
-                    if self._save_conservation and i == (f.eta_grid[3].size // 2) and j == 0:
-                        self._save_consv_to_file('after', f, i, j, phi)
+                    if self._save_conservation:
+                        global_v = global_inds_v[i]
+                        global_z = global_inds_z[j]
+                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
+                            self._save_consv_to_file('after', f, i, j, phi)
 
     def _save_consv_to_file(self, boa: str, f: Grid, idx_v: int, idx_z: int, phi: Grid):
         """
