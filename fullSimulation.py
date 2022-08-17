@@ -43,16 +43,18 @@ def main():
                         default=[5],
                         help='Number of time steps between writing output')
     parser.add_argument('--nosave', action='store_true')
+    parser.add_argument('--akw_diagn', action='store_true')
 
     def my_print(rank, nosave, *args, **kwargs):
         if (rank == 0) and not nosave:
-            print(time.time()-setup_time_start, *args, **kwargs,
+            print(time.time() - setup_time_start, *args, **kwargs,
                   file=open("out{}.txt".format(MPI.COMM_WORLD.Get_size()), "a"))
 
     args = parser.parse_args()
     foldername = args.foldername[0]
     constantFile = args.constantFile[0]
     nosave = args.nosave
+    akw_diagnostics = args.akw_diagn
 
     loadable = False
 
@@ -134,8 +136,11 @@ def main():
         my_print(rank, nosave, "pol adv sl init done")
 
     elif poloidal_method == 'akw':
-        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants,
-                                          save_conservation=True, foldername=foldername)
+        if akw_diagnostics:
+            polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants,
+                                              save_conservation=True, foldername=foldername)
+        else:
+            polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
         my_print(rank, nosave, "pol adv akw init done")
 
     else:
@@ -155,8 +160,8 @@ def main():
     my_print(rank, nosave, "layout params ready")
 
     remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
-                                [nprocs, nprocs[0], nprocs[1]
-                                 ], distribFunc.eta_grid[:3],
+                                [nprocs, nprocs[0], nprocs[1]],
+                                distribFunc.eta_grid[:3],
                                 'mode_solve')
     my_print(rank, nosave, "remapper1 done")
 
