@@ -60,7 +60,7 @@ Run
 
 The pure python code can be run using the command:
 
-python fullSimulation
+python fullSimulation.py
 
 There are 2 obligatory positional arguments. The first is the end time of the simulation. The second is the maximum real-world runtime.
 
@@ -70,6 +70,8 @@ In addition there are 3 optional arguments:
 -s saveStep
 
 Either a constants file or a folder containing a constants file must be provided.
+
+Example constants files can be found in the testSetups/ folder
 
 Acceleration
 ============
