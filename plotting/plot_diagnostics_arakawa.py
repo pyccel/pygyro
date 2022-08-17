@@ -12,10 +12,10 @@ def plot_diagnostics(foldername, save_plot=True, show_plot=False):
     Parameters:
         foldername : str
             name of the directory where the data is saved.
-        
+
         save_plot : bool
             if the plots should be saved
-        
+
         show_plot : bool
             if the plots should be shown
     """
