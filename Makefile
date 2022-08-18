@@ -6,7 +6,7 @@
 ACC := pycc
 
 # Use GNU or intel compilers? [GNU|intel]
-COMP := GNU
+COMP := intel
 
 # Target language
 LANGUAGE := fortran
@@ -42,7 +42,7 @@ SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var
 
 ifeq ($(ACC), pycc)
 	TOOL := pyccel
-	TOOL_FLAGS := --compiler=$(COMP) --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
+	TOOL_FLAGS := --verbose --compiler=$(COMP) --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
 	NAME_PREFIX := 
 else
 	ifeq ($(ACC), numba)
@@ -82,7 +82,7 @@ export EXPORTED_VARS $(EXPORTED_VARS)
 # List of main targets
 ALL = \
 	splines \
-	initialisation \
+	initialisation  \
 	advection \
 	arakawa
 

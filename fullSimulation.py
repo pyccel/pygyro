@@ -138,7 +138,7 @@ def main():
     elif poloidal_method == 'akw':
         if akw_diagnostics:
             polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants,
-                                              save_conservation=True, foldername=foldername)
+                                              save_conservation=False, foldername=foldername)
         else:
             polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
         my_print(rank, nosave, "pol adv akw init done")
