@@ -634,13 +634,17 @@ class PoloidalAdvectionArakawa:
 
         foldername : str
             Where the conservation diagnsotics should be saved to if save_conservation == True.
+
+        CFL : int
+            CFL number of the explicit scheme (Runge-Kutta 4)
     """
 
     def __init__(self, eta_vals: list, constants,
-                 bc="extrapolation", order=4,
-                 equilibrium_outside=True, verbose=False,
+                 bc="extrapolation", order: int = 4,
+                 equilibrium_outside: bool = True, verbose: bool = False,
                  explicit: bool = False,
-                 save_conservation: bool = False, foldername=''):
+                 save_conservation: bool = False, foldername='',
+                 CFL: int = 1):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -661,6 +665,8 @@ class PoloidalAdvectionArakawa:
         self._constants = constants
 
         self._explicit = explicit
+
+        self.CFL = CFL
 
         self._save_conservation = save_conservation
         if self._save_conservation:
@@ -794,7 +800,7 @@ class PoloidalAdvectionArakawa:
         k3 = J.dot(z + dt/2*k2)
         k4 = J.dot(z + dt*k3)
 
-        return z + dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
+        z += dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
 
     def step(self, f: np.ndarray, dt: float, phi: np.ndarray, values_f=None, values_phi=None):
         """
@@ -883,8 +889,8 @@ class PoloidalAdvectionArakawa:
             B = I_s + dt/2 * J_phi
 
         # execute the time-step
-        if (self._explicit):
-            f[:] = self.RK4(f[:], J_s, dt)
+        if self._explicit:
+            self.RK4(f[:], J_s, dt)
         else:
             f[:] = spsolve(A, B.dot(f))
 
@@ -924,7 +930,7 @@ class PoloidalAdvectionArakawa:
         phi = np.real(phi)
 
         # set phi to zero on the boundary (if needed)
-        #phi[self.ind_bd] = np.zeros(len(self.ind_bd))
+        # phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # fill the working stencils
         self.f_stencil[self.ind_int_ep] = f
@@ -965,8 +971,16 @@ class PoloidalAdvectionArakawa:
             B = I_s + dt/2 * self.J_phi
 
         # execute the time-step
-        if (self._explicit):
-            f[:] = self.RK4(self.f_stencil, J_s, dt)[self.ind_int_ep]
+        if self._explicit:
+            J_max = np.max(np.abs(J_s))
+            dx_max = np.max([self._dr, self._dtheta])
+
+            k = int(J_max * dt / (self.CFL * dx_max) + 1)
+
+            for _ in range(1, k + 1):
+                self.RK4(self.f_stencil, J_s, dt/(k + 1))
+            f[:] = self.f_stencil[self.ind_int_ep]
+
         else:
             f[:] = spsolve(A, B.dot(self.f_stencil))[self.ind_int_ep]
 
