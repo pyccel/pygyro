@@ -634,17 +634,13 @@ class PoloidalAdvectionArakawa:
 
         foldername : str
             Where the conservation diagnsotics should be saved to if save_conservation == True.
-
-        CFL : int
-            CFL number of the explicit scheme (Runge-Kutta 4)
     """
 
     def __init__(self, eta_vals: list, constants,
                  bc="extrapolation", order: int = 4,
                  equilibrium_outside: bool = True, verbose: bool = False,
                  explicit: bool = False,
-                 save_conservation: bool = False, foldername='',
-                 CFL: int = 1):
+                 save_conservation: bool = False, foldername=''):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -665,8 +661,6 @@ class PoloidalAdvectionArakawa:
         self._constants = constants
 
         self._explicit = explicit
-
-        self.CFL = CFL
 
         self._save_conservation = save_conservation
         if self._save_conservation:
@@ -973,12 +967,12 @@ class PoloidalAdvectionArakawa:
         # execute the time-step
         if self._explicit:
             J_max = np.max(np.abs(J_s))
-            dx_max = np.max([self._dr, self._dtheta])
+            dx = np.min([self._dr, self._dtheta])
 
-            k = int(J_max * dt / (self.CFL * dx_max) + 1)
+            CFL = int(J_max * dt / dx + 1)
 
-            for _ in range(1, k + 1):
-                self.RK4(self.f_stencil, J_s, dt/(k + 1))
+            for _ in range(1, CFL + 1):
+                self.RK4(self.f_stencil, J_s, dt/(CFL + 1))
             f[:] = self.f_stencil[self.ind_int_ep]
 
         else:
