@@ -1,44 +1,223 @@
 import os
 import h5py
 import numpy as np
+from mpi4py import MPI
+
 import ffmpeg
 import matplotlib.pyplot as plt
 from matplotlib import rc as pltFont
 
+from pygyro.initialisation.setups import setupFromFile
 from pygyro.initialisation.constants import get_constants
 from pygyro import splines as spl
 from pygyro.tools.getSlice import get_grid_slice, get_flux_surface_grid_slice
 from pygyro.tools.getPhiSlice import get_phi_slice
 from pygyro.arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
 
-
-def unpack_all(foldername):
-    """
-    Unpacks all Poloidal slices from the grid_xxxxxx.h5 and phi_xxxxxx.h5
-    files in the given folder. For v and z we use the default parameters
-    nv//2 and 0, as used in plot_poloidal_slice.py.
-
-    Parameters
-    ----------
-    foldername  : str
-                The folder containing the simulation
-    """
-    filelist = os.listdir(foldername)
-
-    for f in filelist:
-        isgrid = f.find("grid_")
-        if isgrid != -1:
-            f_n = int(f[5:-3])
-            get_grid_slice(foldername, f_n, "Slices_f")
-            get_flux_surface_grid_slice(foldername, f_n, "FluxSlices_f")
-
-        isphi = f.find("phi_")
-        if isphi != -1:
-            phi_n = int(f[4:-3])
-            get_phi_slice(foldername, phi_n, "Slices_phi")
+from pygyro.model.process_grid import compute_2d_process_grid
+from pygyro.model.grid import Grid
+from pygyro.model.layout import LayoutSwapper
 
 
-def plot_all_slices(foldername):
+def get_data_from_4d_f(foldername, tEnd, z=None, v=None):
+
+    comm = MPI.COMM_WORLD
+
+    distribFunc, constants, _ = setupFromFile(foldername, comm=comm,
+                                              allocateSaveMemory=True,
+                                              timepoint=tEnd)
+
+    distribFunc.setLayout('poloidal')
+
+    if z is None:
+        z = 0
+    else:
+        assert z_idx < distribFunc.eta_grid[2].size
+
+    if v is None:
+        nv = distribFunc.eta_grid[3].size
+        v = nv//2
+    else:
+        assert v < distribFunc.eta_grid[3].size
+
+    if (v in distribFunc.getGlobalIdxVals(0) and z in distribFunc.getGlobalIdxVals(1)):
+        starts = distribFunc.getLayout(distribFunc.currentLayout).starts
+        i = v - starts[0]
+        j = z - starts[1]
+        dataset = distribFunc.get2DSlice(i, j)
+
+        shape = dataset.shape
+        data_shape = list(shape)
+        data_shape[0] += 1
+
+        data = np.ndarray(data_shape)
+
+        data[:-1, :] = dataset[:]
+        data[-1, :] = data[0, :]
+
+        return data, constants
+
+
+def get_data_from_4d_phi(foldername, tEnd, z=None):
+    comm = MPI.COMM_WORLD
+    mpi_size = comm.Get_size()
+
+    filename = os.path.join(foldername, "initParams.json")
+    constants = get_constants(filename)
+
+    npts = constants.npts
+
+    degree = constants.splineDegrees[:-1]
+    period = [False, True, True]
+    domain = [[constants.rMin, constants.rMax], [
+        0, 2*np.pi], [constants.zMin, constants.zMax]]
+
+    nkts = [n+1+d*(int(p)-1) for (n, d, p) in zip(npts, degree, period)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, d, p)
+             for (b, d, p) in zip(breaks, degree, period)]
+    bsplines = [spl.BSplines(k, d, p)
+                for (k, d, p) in zip(knots, degree, period)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    layout_poisson = {'v_parallel_2d': [0, 2, 1],
+                      'mode_solve': [1, 2, 0]}
+    layout_vpar = {'v_parallel_1d': [0, 2, 1]}
+    layout_poloidal = {'poloidal': [2, 1, 0]}
+
+    nprocs = compute_2d_process_grid(npts, mpi_size)
+
+    remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
+                                [nprocs, nprocs[0], nprocs[1]], eta_grids,
+                                'v_parallel_2d')
+
+    phi = Grid(eta_grids, bsplines, remapperPhi,
+               'v_parallel_2d', comm, dtype=np.complex128)
+    phi.loadFromFile(foldername, tEnd, "phi")
+
+    phi.setLayout('poloidal')
+
+    if z is None:
+        z = 0
+    else:
+        assert z_idx < phi.eta_grid[2].size
+
+    if (z in phi.getGlobalIdxVals(0)):
+
+        starts = phi.getLayout(phi.currentLayout).starts
+        dataset = np.real(phi.get2DSlice(z + starts[0]))
+
+        shape = dataset.shape
+        data_shape = list(shape)
+        data_shape[0] += 1
+
+        data = np.ndarray(data_shape)
+
+        data[:-1, :] = dataset[:]
+        data[-1, :] = data[0, :]
+
+    return data, constants
+
+
+def plot_f_slice(foldername, tEnd, z=None, v=None):
+
+    if (not os.path.isdir(foldername+"plots_f/")):
+        os.mkdir(foldername+"plots_f/")
+
+    data, constants = get_data_from_4d_f(foldername, tEnd, z=None, v=None)
+
+    if np.isnan(data).any() or np.isinf(data).any():
+        print("NaN or Inf encounter")
+    else:
+        npts = constants.npts[:2]
+        degree = constants.splineDegrees[:2]
+        period = [False, True]
+        domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
+
+        nkts = [n+1+d*(int(p)-1)
+                for (n, d, p) in zip(npts, degree, period)]
+        breaks = [np.linspace(*lims, num=num)
+                  for (lims, num) in zip(domain, nkts)]
+        knots = [spl.make_knots(b, d, p)
+                 for (b, d, p) in zip(breaks, degree, period)]
+        bsplines = [spl.BSplines(k, d, p)
+                    for (k, d, p) in zip(knots, degree, period)]
+        eta_grid = [bspl.greville for bspl in bsplines]
+
+        theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
+            .reshape(npts[1]+1, npts[0])
+        r = np.tile(eta_grid[0], npts[1]+1) \
+            .reshape(npts[1]+1, npts[0])
+
+        x = r*np.cos(theta)
+        y = r*np.sin(theta)
+
+        font = {'size': 16}
+        pltFont('font', **font)
+        _, ax = plt.subplots(1)
+        ax.set_title('T = {}'.format(tEnd))
+        clevels = np.linspace(data.min(), data.max(), 101)
+        im = ax.contourf(x, y, data, clevels, cmap='jet')
+        for c in im.collections:
+            c.set_edgecolor('face')
+        plt.colorbar(im)
+
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        plt.savefig(foldername+'plots_f/t_{:06}'.format(tEnd))
+        plt.close()
+
+
+def plot_phi_slice(foldername, tEnd, z=None):
+    if (not os.path.isdir(foldername+"plots_phi/")):
+        os.mkdir(foldername+"plots_phi/")
+
+    data, constants = get_data_from_4d_phi(foldername, tEnd, z=None)
+
+    if np.isnan(data).any() or np.isinf(data).any():
+        print("NaN or Inf encounter")
+    else:
+
+        npts = constants.npts[:2]
+        degree = constants.splineDegrees[:2]
+        period = [False, True]
+        domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
+
+        nkts = [n+1+d*(int(p)-1)
+                for (n, d, p) in zip(npts, degree, period)]
+        breaks = [np.linspace(*lims, num=num)
+                  for (lims, num) in zip(domain, nkts)]
+        knots = [spl.make_knots(b, d, p)
+                 for (b, d, p) in zip(breaks, degree, period)]
+        bsplines = [spl.BSplines(k, d, p)
+                    for (k, d, p) in zip(knots, degree, period)]
+        eta_grid = [bspl.greville for bspl in bsplines]
+
+        theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
+            .reshape(npts[1]+1, npts[0])
+        r = np.tile(eta_grid[0], npts[1]+1) \
+            .reshape(npts[1]+1, npts[0])
+
+        x = r*np.cos(theta)
+        y = r*np.sin(theta)
+
+        font = {'size': 16}
+        pltFont('font', **font)
+        _, ax = plt.subplots(1)
+        ax.set_title('T = {}'.format(tEnd))
+        clevels = np.linspace(data.min(), data.max(), 101)
+        im = ax.contourf(x, y, data, clevels, cmap='jet')
+        for c in im.collections:
+            c.set_edgecolor('face')
+        plt.colorbar(im)
+
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        plt.savefig(foldername+'plots_phi/t_{:06}'.format(tEnd))
+        plt.close()
+
+
+def plot_all_slices(foldername, z=None, v=None):
     """
     Given a folder of poloidal slices,
     we plot all of them in a subfolder called plots/.
@@ -50,77 +229,17 @@ def plot_all_slices(foldername):
 
     """
 
-    if (not os.path.isdir(foldername+"plots/")):
-        os.mkdir(foldername+"plots/")
-
     filelist = os.listdir(foldername)
-    for fname in filelist:
-        if fname != "plots":
-            filename = foldername+fname
-            t_str = filename[filename.rfind('_')+1:filename.rfind('.')]
-            t = int(t_str)
+    for f in filelist:
+        isgrid = f.find("grid_")
+        isphi = f.find("phi_")
+        if isgrid != -1:
+            t = int(f[-8:-3])
+            plot_f_slice(foldername, t, z, v)
 
-            file = h5py.File(filename, 'r')
-            dataset = file['/dset']
-
-            shape = dataset.shape
-            data_shape = list(shape)
-            data_shape[0] += 1
-
-            data = np.ndarray(data_shape)
-
-            data[:-1, :] = dataset[:]
-            data[-1, :] = data[0, :]
-
-            file.close()
-            if np.isnan(data).any() or np.isinf(data).any():
-                print("NaN or Inf encounter")
-            else:
-                superfolder = os.path.dirname(foldername[:-1])
-                constantFile = os.path.join(superfolder, 'initParams.json')
-                if not os.path.exists(constantFile):
-                    raise RuntimeError(
-                        "Can't find constants in simulation folder")
-
-                constants = get_constants(constantFile)
-
-                npts = constants.npts[:2]
-                degree = constants.splineDegrees[:2]
-                period = [False, True]
-                domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
-
-                nkts = [n+1+d*(int(p)-1)
-                        for (n, d, p) in zip(npts, degree, period)]
-                breaks = [np.linspace(*lims, num=num)
-                          for (lims, num) in zip(domain, nkts)]
-                knots = [spl.make_knots(b, d, p)
-                         for (b, d, p) in zip(breaks, degree, period)]
-                bsplines = [spl.BSplines(k, d, p)
-                            for (k, d, p) in zip(knots, degree, period)]
-                eta_grid = [bspl.greville for bspl in bsplines]
-
-                theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
-                    .reshape(npts[1]+1, npts[0])
-                r = np.tile(eta_grid[0], npts[1]+1) \
-                    .reshape(npts[1]+1, npts[0])
-
-                x = r*np.cos(theta)
-                y = r*np.sin(theta)
-
-                font = {'size': 16}
-                pltFont('font', **font)
-                _, ax = plt.subplots(1)
-                ax.set_title('T = {}'.format(t))
-                clevels = np.linspace(data.min(), data.max(), 101)
-                im = ax.contourf(x, y, data, clevels, cmap='jet')
-                for c in im.collections:
-                    c.set_edgecolor('face')
-                plt.colorbar(im)
-
-                ax.set_xlabel("x [m]")
-                ax.set_ylabel("y [m]")
-                plt.savefig(foldername+'plots/t_{:06}'.format(t))
-                plt.close()
+        elif isphi != -1:
+            t = int(f[-7:-3])
+            plot_phi_slice(foldername, t, z)
 
 
 def make_movie(foldername):
@@ -133,13 +252,13 @@ def make_movie(foldername):
     foldername : str
                 The folder containing the plotted frames
     """
-    stream = ffmpeg.input(foldername+"/t_*.png",
+    stream = ffmpeg.input(foldername+"t_*.png",
                           pattern_type="glob", framerate=30)
     stream = ffmpeg.output(stream, foldername+'/movie.mp4')
     ffmpeg.run(stream)
 
 
-def plot_conservation(simulationfolder):
+def plot_conservation(foldername):
     """
     Calculates and plots the conserved quantities
     (integral of f, integral of f^2 and energy)
@@ -150,13 +269,11 @@ def plot_conservation(simulationfolder):
     simulationfolder  : str
                         The folder containing the simulation
     """
-    foldername = simulationfolder+"Slices_f/"
 
-    if (not os.path.isdir(simulationfolder+"plots/")):
-        os.mkdir(simulationfolder+"plots/")
+    if (not os.path.isdir(foldername+"plots/")):
+        os.mkdir(foldername+"plots/")
 
     filelist = os.listdir(foldername)
-    n = len(filelist)
 
     t_f = []
     int_f = []
@@ -164,48 +281,14 @@ def plot_conservation(simulationfolder):
     int_en = []
 
     for fname in filelist:
-        if fname != "plots":
-            filename = foldername+fname
-            t_str = filename[filename.rfind('_')+1:filename.rfind('.')]
+        if fname.find("grid_") != -1:
+            #filename = foldername+fname
+            t_str = fname[fname.rfind('_')+1:fname.rfind('.')]
             t = int(t_str)
             t_f.append(t)
 
-            file = h5py.File(filename, 'r')
-            dataset = file['/dset']
-
-            shape = dataset.shape
-            data_shape = list(shape)
-            data_shape[0] += 1
-
-            f = np.ndarray(data_shape)
-
-            f[:-1, :] = dataset[:]
-            f[-1, :] = f[0, :]
-
-            file.close()
-
-            filename_phi = simulationfolder + \
-                "Slices_phi/"+"PhiSlice_{:06}.h5".format(t)
-            file = h5py.File(filename_phi, 'r')
-            dataset = file['/dset']
-
-            shape = dataset.shape
-            data_shape = list(shape)
-            data_shape[0] += 1
-
-            phi = np.ndarray(data_shape)
-
-            phi[:-1, :] = dataset[:]
-            phi[-1, :] = phi[0, :]
-
-            file.close()
-
-            superfolder = os.path.dirname(simulationfolder)
-            constantFile = os.path.join(superfolder, 'initParams.json')
-            if not os.path.exists(constantFile):
-                raise RuntimeError("Can't find constants in simulation folder")
-
-            constants = get_constants(constantFile)
+            f, constants = get_data_from_4d_f(foldername, t, z=None, v=None)
+            phi, _ = get_data_from_4d_phi(foldername, t, z=None)
 
             npts = constants.npts[:2]
             degree = constants.splineDegrees[:2]
@@ -242,7 +325,7 @@ def plot_conservation(simulationfolder):
     ax.set_xlabel("t")
     ax.set_ylabel("$ \int f$")
     ax.plot(t_f, int_f)
-    plt.savefig(simulationfolder+'plots/integral_f.png')
+    plt.savefig(foldername+'plots/integral_f.png')
     plt.close()
 
     _, ax = plt.subplots(1)
@@ -250,15 +333,15 @@ def plot_conservation(simulationfolder):
     ax.set_xlabel("t")
     ax.set_ylabel("$ \int f^2$")
     ax.plot(t_f, int_f2)
-    plt.savefig(simulationfolder+'plots/integral_f_squared.png')
+    plt.savefig(foldername+'plots/integral_f_squared.png')
     plt.close()
 
     _, ax = plt.subplots(1)
-    ax.set_title('Energy')
+    ax.set_title('Potential Energy')
     ax.set_xlabel("t")
     ax.set_ylabel("$ \int \phi f$")
     ax.plot(t_f, int_en)
-    plt.savefig(simulationfolder+'plots/energy.png')
+    plt.savefig(foldername+'plots/energy.png')
     plt.close()
 
 
@@ -300,12 +383,10 @@ def plot_L2(foldername):
 
 
 if __name__ == "__main__":
-    foldername = "simulation_2/"
+    foldername = "simulation_0/"
 
-    unpack_all(foldername)
-    plot_all_slices(foldername+"Slices_f/")
-    plot_all_slices(foldername+"Slices_phi/")
-    make_movie(foldername+"Slices_f/plots/")
-    make_movie(foldername+"Slices_phi/plots/")
+    plot_all_slices(foldername)
+    make_movie(foldername+"plots_f/")
+    make_movie(foldername+"plots_phi/")
     plot_conservation(foldername)
     plot_L2(foldername)

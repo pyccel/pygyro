@@ -1,3 +1,4 @@
+import json
 import numpy as np
 from numpy.linalg import solve
 from math import pi
@@ -665,13 +666,16 @@ class PoloidalAdvectionArakawa:
         if self._save_conservation:
             assert len(
                 foldername) != 0, "When wanting to save, a foldername has to be given!"
+
+            # save what full time step size is
+            with open(foldername + "/initParams.json") as file:
+                self._dt = json.load(file)["dt"]
+
             self._conservation_savefile = "{0}/akw_consv.txt".format(
                 foldername)
             with open(self._conservation_savefile, 'w') as savefile:
                 savefile.write(
-                    "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\t\t\tdiff int_f\t\t\t\tdiff int_f_sqd\t\t\tdiff energy\n")
-            # Create buffer for saving values of the conserved quantities before the step to compare against after the step
-            self._conservation_buffer = np.zeros(3, dtype=float)
+                    "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
 
         self.bc = bc
 
@@ -997,7 +1001,7 @@ class PoloidalAdvectionArakawa:
         assert (gridLayout.dims_order == (3, 2, 1, 0))
 
         # get list of global indices when wanting to save diagnostics
-        if self._save_conservation:
+        if self._save_conservation and dt == self._dt:
             global_inds_v = f.getGlobalIdxVals(0)
             global_inds_z = f.getGlobalIdxVals(1)
 
@@ -1008,7 +1012,7 @@ class PoloidalAdvectionArakawa:
 
                     # if v is in the middle of the velocity distribution and it is
                     # the first slice in z-direction save it before and after the step
-                    if self._save_conservation:
+                    if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
                         if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
@@ -1027,7 +1031,7 @@ class PoloidalAdvectionArakawa:
                         i, j), dt, phi.get2DSlice(j), values_f, values_phi)
 
                     # Save conservation properties after step as well
-                    if self._save_conservation:
+                    if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
                         if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
@@ -1040,7 +1044,7 @@ class PoloidalAdvectionArakawa:
 
                     # if v is in the middle of the velocity distribution and it is
                     # the first slice in z-direction save it before and after the step
-                    if self._save_conservation:
+                    if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
                         if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
@@ -1050,7 +1054,7 @@ class PoloidalAdvectionArakawa:
                                      dt, phi.get2DSlice(j))
 
                     # Save conservation properties after step as well
-                    if self._save_conservation:
+                    if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
                         if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
@@ -1088,10 +1092,6 @@ class PoloidalAdvectionArakawa:
                 savefile.write(
                     format(int_f_before, '.15E') + "\t" + format(int_f_squared_before, '.15E') + "\t" + format(energy_before, '.15E') + "\t")
 
-            self._conservation_buffer[0] = int_f_before
-            self._conservation_buffer[1] = int_f_squared_before
-            self._conservation_buffer[2] = energy_before
-
         elif boa == 'after':
             int_f_after = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
                                         self._points_r, method='trapz')
@@ -1101,19 +1101,8 @@ class PoloidalAdvectionArakawa:
                                             self._points_r, method='trapz')
             with open(self._conservation_savefile, 'a') as savefile:
                 savefile.write(
-                    format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\t")
+                    format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\n")
 
-            int_f_before = self._conservation_buffer[0]
-            int_f_squared_before = self._conservation_buffer[1]
-            energy_before = self._conservation_buffer[2]
-
-            with open(self._conservation_savefile, 'a') as savefile:
-                savefile.write(
-                    format(int_f_before -
-                           int_f_after, '.15E') + "\t"
-                    + format(int_f_squared_before -
-                             int_f_squared_after, '.15E') + "\t"
-                    + format(energy_before - energy_after, '.15E') + "\n")
         else:
             raise NotImplementedError(
                 f'Unknown option {boa} for function save_consv_to_file!')
