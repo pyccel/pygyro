@@ -971,6 +971,8 @@ class PoloidalAdvectionArakawa:
             J_max = np.max(np.abs(J_s))
             dx = np.min([self._dr, self._dtheta])
             CFL = int(J_max * dt / dx + 1)
+            if CFL > 80:
+                CFL = 80
 
             # Update f_stencil in-place
             for _ in range(1, CFL + 1):
