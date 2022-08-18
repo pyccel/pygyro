@@ -127,45 +127,47 @@ def plot_f_slice(foldername, tEnd, z=None, v=None):
     data, constants = get_data_from_4d_f(foldername, tEnd, z=None, v=None)
 
     if np.isnan(data).any() or np.isinf(data).any():
+        data[np.isnan(data)] = 0
+        data[np.isinf(data)] = 0
         print("NaN or Inf encounter")
-    else:
-        npts = constants.npts[:2]
-        degree = constants.splineDegrees[:2]
-        period = [False, True]
-        domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
+    
+    npts = constants.npts[:2]
+    degree = constants.splineDegrees[:2]
+    period = [False, True]
+    domain = [[constants.rMin, constants.rMax], [0, 2*np.pi]]
 
-        nkts = [n+1+d*(int(p)-1)
-                for (n, d, p) in zip(npts, degree, period)]
-        breaks = [np.linspace(*lims, num=num)
-                  for (lims, num) in zip(domain, nkts)]
-        knots = [spl.make_knots(b, d, p)
-                 for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
-                    for (k, d, p) in zip(knots, degree, period)]
-        eta_grid = [bspl.greville for bspl in bsplines]
+    nkts = [n+1+d*(int(p)-1)
+            for (n, d, p) in zip(npts, degree, period)]
+    breaks = [np.linspace(*lims, num=num)
+                for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, d, p)
+                for (b, d, p) in zip(breaks, degree, period)]
+    bsplines = [spl.BSplines(k, d, p)
+                for (k, d, p) in zip(knots, degree, period)]
+    eta_grid = [bspl.greville for bspl in bsplines]
 
-        theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
-            .reshape(npts[1]+1, npts[0])
-        r = np.tile(eta_grid[0], npts[1]+1) \
-            .reshape(npts[1]+1, npts[0])
+    theta = np.repeat(np.append(eta_grid[1], 2*np.pi), npts[0]) \
+        .reshape(npts[1]+1, npts[0])
+    r = np.tile(eta_grid[0], npts[1]+1) \
+        .reshape(npts[1]+1, npts[0])
 
-        x = r*np.cos(theta)
-        y = r*np.sin(theta)
+    x = r*np.cos(theta)
+    y = r*np.sin(theta)
 
-        font = {'size': 16}
-        pltFont('font', **font)
-        _, ax = plt.subplots(1)
-        ax.set_title('T = {}'.format(tEnd))
-        clevels = np.linspace(data.min(), data.max(), 101)
-        im = ax.contourf(x, y, data, clevels, cmap='jet')
-        for c in im.collections:
-            c.set_edgecolor('face')
-        plt.colorbar(im)
+    font = {'size': 16}
+    pltFont('font', **font)
+    _, ax = plt.subplots(1)
+    ax.set_title('T = {}'.format(tEnd))
+    clevels = np.linspace(data.min(), data.max(), 101)
+    im = ax.contourf(x, y, data, clevels, cmap='jet')
+    for c in im.collections:
+        c.set_edgecolor('face')
+    plt.colorbar(im)
 
-        ax.set_xlabel("x [m]")
-        ax.set_ylabel("y [m]")
-        plt.savefig(foldername+'plots_f/t_{:06}'.format(tEnd))
-        plt.close()
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    plt.savefig(foldername+'plots_f/t_{:06}'.format(tEnd))
+    plt.close()
 
 
 def plot_phi_slice(foldername, tEnd, z=None):
@@ -356,8 +358,8 @@ def plot_L2(foldername):
     """
     filename = os.path.join(foldername, 'phiDat.txt')
 
-    p = 3.54e-3
-    m = 4e-5
+    p = 3.83e-3
+    m = 1.12e-5
 
     dataset = np.atleast_2d(np.loadtxt(filename))
     sorted_times = np.sort(dataset[:, 0])
@@ -372,6 +374,10 @@ def plot_L2(foldername):
     norm = np.ndarray(shape[0])
     times[:] = dataset[:, 0]
     norm[:] = dataset[:, 1]
+
+    times = times[norm < 1e10]
+    norm = norm[norm < 1e10]
+
     plt.semilogy(times, norm, '.', label=foldername)
 
     plt.xlabel('time')
@@ -381,12 +387,24 @@ def plot_L2(foldername):
     plt.savefig(foldername+'plots/L2_phi.png')
     plt.close()
 
+    dt = 2
+    nb = 4000//dt
+    if shape[0] > nb:
+        plt.plot(times[nb:], norm[nb:], '.', label=foldername)
+
+        plt.xlabel('time')
+        plt.ylabel('$\|\phi\|_2$')
+        plt.grid()
+        plt.legend()
+        plt.savefig(foldername+'plots/L2_phi_nonlin.png')
+        plt.close()
+
 
 if __name__ == "__main__":
-    foldername = "simulation_0/"
-
-    plot_all_slices(foldername)
-    make_movie(foldername+"plots_f/")
-    make_movie(foldername+"plots_phi/")
-    plot_conservation(foldername)
-    plot_L2(foldername)
+    foldername = "cobra_simulation_1/"
+    plot_phi_slice(foldername, 3850)
+    #plot_all_slices(foldername)
+    #make_movie(foldername+"plots_f/")
+    #make_movie(foldername+"plots_phi/")
+    #plot_conservation(foldername)
+    #plot_L2(foldername)
