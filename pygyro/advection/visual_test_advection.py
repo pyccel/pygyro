@@ -4,6 +4,7 @@ from matplotlib import rc as pltFont
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from math import pi
+from time import time
 
 from .. import splines as spl
 from ..initialisation.setups import setupCylindricalGrid
@@ -209,8 +210,8 @@ def test_poloidalAdvectionArakawa_invariantPhi():
         N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
 
     for n in range(N):
-        polAdv.step(f_vals[n, :, :], dt, np.array(phiVals, dtype=float))
         f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -349,7 +350,7 @@ def test_poloidalAdvectionArakawa_vortex():
 
     constants = get_constants('testSetups/iota0.json')
 
-    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=False)
+    polAdv = PoloidalAdvectionArakawa(eta_vals, constants, explicit=True)
 
     assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
     assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
@@ -363,9 +364,15 @@ def test_poloidalAdvectionArakawa_vortex():
     assert phiVals.shape == (
         N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
 
+    values_f = [f_eq(polAdv.r_outside[k], v, constants.CN0, constants.kN0,
+                     constants.deltaRN0, constants.rp,
+                     constants.CTi, constants.kTi,
+                     constants.deltaRTi) for k in range(polAdv.order)]
+
     for n in range(N):
-        polAdv.step(f_vals[n, :, :], dt, np.array(phiVals, dtype=float))
         f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt,
+                    np.array(phiVals, dtype=float), values_f=values_f)
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
@@ -383,6 +390,7 @@ def test_poloidalAdvectionArakawa_vortex():
     line1 = ax.contourf(eta_vals[1], eta_vals[0],
                         f_vals[0, :, :].T, 20, **plotParams)
     fig.canvas.draw()
+
     fig.canvas.flush_events()
 
     fig.colorbar(line1, cax=colorbarax2)
@@ -520,8 +528,8 @@ def test_poloidalAdvectionArakawa_constantAdv():
         N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
 
     for n in range(N):
-        polAdv.step(f_vals[n, :, :], dt, np.array(phiVals, dtype=float))
         f_vals[n + 1, :, :] = f_vals[n, :, :]
+        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float))
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
