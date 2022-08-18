@@ -966,13 +966,17 @@ class PoloidalAdvectionArakawa:
 
         # execute the time-step
         if self._explicit:
+
+            # Do substepping such that the CFL condition is satisfied
             J_max = np.max(np.abs(J_s))
             dx = np.min([self._dr, self._dtheta])
-
             CFL = int(J_max * dt / dx + 1)
 
+            # Update f_stencil in-place
             for _ in range(1, CFL + 1):
-                self.RK4(self.f_stencil, J_s, dt/(CFL + 1))
+                self.RK4(self.f_stencil, J_s, dt/CFL)
+
+            # Update f
             f[:] = self.f_stencil[self.ind_int_ep]
 
         else:

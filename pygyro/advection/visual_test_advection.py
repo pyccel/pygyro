@@ -371,7 +371,8 @@ def test_poloidalAdvectionArakawa_vortex():
 
     for n in range(N):
         f_vals[n + 1, :, :] = f_vals[n, :, :]
-        polAdv.step(f_vals[n + 1, :, :], dt, np.array(phiVals, dtype=float), values_f=values_f)
+        polAdv.step(f_vals[n + 1, :, :], dt,
+                    np.array(phiVals, dtype=float), values_f=values_f)
 
     f_min = np.min(f_vals)
     f_max = np.max(f_vals)
