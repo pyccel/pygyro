@@ -639,7 +639,7 @@ class PoloidalAdvectionArakawa:
     def __init__(self, eta_vals: list, constants,
                  bc="extrapolation", order: int = 4,
                  equilibrium_outside: bool = True, verbose: bool = False,
-                 explicit: bool = False,
+                 explicit: bool = True,
                  save_conservation: bool = False, foldername=''):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
@@ -690,7 +690,7 @@ class PoloidalAdvectionArakawa:
                                  range(self._nPoints_r - 1, np.prod(self._nPoints), self._nPoints_r)])
 
         self.r_scaling = np.kron(np.ones(self._nPoints_theta), self._points_r)
-
+        
         # scaling of the boundary measure
         # needed for extrapolation, I guess not
         if self.bc == 'dirichlet':

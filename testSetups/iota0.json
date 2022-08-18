@@ -20,7 +20,7 @@
 "CTe" : "CTi",
 "m" : 15,
 "n" : 1,
-"dt" : 2,
+"dt" : 16,
 "iotaVal" : 0.0,
 "npts" : [256, 512, 64, 120],
 "_variableNames" : ["r", "theta", "z", "v"],
