@@ -680,6 +680,9 @@ class PoloidalAdvectionArakawa:
                 with open(self._conservation_savefile, 'w') as savefile:
                     savefile.write(
                         "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
+            else:
+                with open(self._conservation_savefile, 'w') as savefile:
+                    savefile.write("\n")
 
         self.bc = bc
 
