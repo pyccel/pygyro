@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import os
 from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
@@ -673,9 +674,12 @@ class PoloidalAdvectionArakawa:
 
             self._conservation_savefile = "{0}/akw_consv.txt".format(
                 foldername)
-            with open(self._conservation_savefile, 'w') as savefile:
-                savefile.write(
-                    "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
+
+            # Create savefile if it does not already exist from previous simulation
+            if not os.path.exists(self._conservation_savefile):
+                with open(self._conservation_savefile, 'w') as savefile:
+                    savefile.write(
+                        "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
 
         self.bc = bc
 
@@ -969,8 +973,8 @@ class PoloidalAdvectionArakawa:
 
             # Do substepping such that the CFL condition is satisfied
             J_max = np.max(np.abs(J_s))
-            dx = np.min([self._dr, self._dtheta])
-            CFL = int(J_max * dt / dx + 1)
+            dx = np.min([self._dr, self._points_r[0] * self._dtheta])
+            CFL = np.min([int(J_max * dt / dx + 1), 20])
 
             # Update f_stencil in-place
             for _ in range(1, CFL + 1):
