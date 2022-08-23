@@ -15,11 +15,10 @@ from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
 from pygyro.initialisation.initialiser_funcs import n0, f_eq
 
-def calc_energy_from_4d(foldername, tEnd, z=None, v=None):
+def calc_energy_from_4d(foldername, conservations, ind, comm, z=None, v=None):
 
-    comm = MPI.COMM_WORLD
     mpi_size = comm.Get_size()
-
+    tEnd = int(conservations[0, ind])
     distribFunc, constants, _ = setupFromFile(foldername,
                                               timepoint=tEnd, comm=comm)
 
@@ -60,14 +59,82 @@ def calc_energy_from_4d(foldername, tEnd, z=None, v=None):
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
     PEclass = PotentialEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-    
-    e_kin = KEclass.getKE(distribFunc)
-    e_pot = PEclass.getPE(distribFunc, phi)
 
-    print(e_kin)
-    print(e_pot)
-    print(e_kin+e_pot)
-    print("------")
+    conservations[1, ind] += KEclass.getKE(distribFunc)
+    conservations[2, ind] += PEclass.getPE(distribFunc, phi)
+
+def doall(foldername, z=None, v=None):
+    filelist = os.listdir(foldername)
+
+    t = []
+
+    for fname in filelist:
+        if fname.find("grid_") != -1:
+            t_str = fname[fname.rfind('_')+1:fname.rfind('.')]
+            t.append(int(t_str))
+
+    # time, int f, int f^2, int f phi, ekin, epot
+    conservations = np.zeros((3, len(t)))
+    conservations[0, :] = t
+    ekin = np.zeros(len(t))
+    epot = np.zeros(len(t))
+
+    comm = MPI.COMM_WORLD
+
+    for i in range(len(t)):
+        calc_energy_from_4d(foldername, conservations, i, comm, z=None, v=None)
+        
+    comm.Reduce(conservations[1, :],
+                        ekin, op=MPI.SUM, root=0)
+    comm.Reduce(conservations[2, :],
+                        epot, op=MPI.SUM, root=0)
+
+    if (comm.rank == 0):
+        if (not os.path.isdir(foldername+"plots/")):
+            os.mkdir(foldername+"plots/")
+        if (not os.path.isdir(foldername+"plots_f/")):
+            os.mkdir(foldername+"plots_f/")
+        if (not os.path.isdir(foldername+"plots_phi/")):
+            os.mkdir(foldername+"plots_phi/")
+
+        with open(foldername+"plots/energies.txt", 'w') as savefile:
+            savefile.write(
+                    "t\t\t\tpotential energie\t\tkinetic energy\t\t\ttotal energy\n")
+
+        perm = np.array(t).argsort()
+        t_f = conservations[0, perm]
+        ekin = ekin[perm]
+        epot = epot[perm]
+        en = ekin + epot 
+
+        with open(foldername+"plots/energies.txt", 'a') as savefile:
+            for i in range(len(t_f)):
+                savefile.write(
+                    format(t_f[i]) + "\t" + format(epot[i], '.15E')+ "\t" + format(ekin[i], '.15E') + "\t" + format(en[i], '.15E') + "\n")
+
+
+        _, ax = plt.subplots(1)
+        ax.set_title('Energies')
+        ax.set_xlabel("t")
+        ax.plot(t_f, ekin, label="Kinetic energy")
+        ax.plot(t_f, epot, label="Potential energy")
+        ax.plot(t_f, en, label="Total energy")
+        plt.legend()
+        plt.savefig(foldername+'plots/energies.png')
+        plt.close()
+    
+        _, ax = plt.subplots(1)
+        ax.set_title('Energies')
+        ax.set_xlabel("t")
+        dt = 2
+        nsave = 5
+        n = int(4000/(5*16))
+        ax.plot(t_f[:n], ekin[:n], label="Kinetic energy")
+        ax.plot(t_f[:n], epot[:n], label="Potential energy")
+        ax.plot(t_f[:n], en[:n], label="Total energy")
+        plt.legend()
+        plt.savefig(foldername+'plots/energies_cut.png')
+        plt.close()
 
 class KineticEnergy:
     """
@@ -93,11 +160,14 @@ class KineticEnergy:
         shape[idx_r] = my_r.size
         shape[idx_v] = my_v.size
         self._my_feq = np.empty(shape)
-
-        my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
+        if (idx_r < idx_v):
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
                         constants.CTi, constants.kTi,constants.deltaRTi) 
                         for r in my_r for v in my_v]
-
+        else:
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
+                        constants.CTi, constants.kTi,constants.deltaRTi) 
+                        for v in my_v for r in my_r]
         self._my_feq.flat = my_feq
         
         drMult = np.array(
@@ -135,9 +205,9 @@ class KineticEnergy:
         """
         TODO
         """
-        #assert self._layout == grid.currentLayout
+        assert self._layout == grid.currentLayout
 
-        points = (np.real(grid._f) - self._my_feq) * self._factor1
+        points = (grid._f - self._my_feq) * self._factor1
 
         return np.sum(points) * self._factor2
 
@@ -171,13 +241,12 @@ class PotentialEnergy:
         dr = r[1:] - r[:-1]
         dv = v[1:] - v[:-1]
 
-        shape = [1, 1, 1, 1]
+        shape = [1, 1, 1]
         shape[idx_r] = my_r.size
         self._myn0 = np.empty(shape)
-
         my_n0 = [n0(r, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp) 
                     for r in my_r]
-        self._myn0.flat = my_n0
+        self._myn0.flat = my_n0[:]
 
         drMult = np.array(
             [dr[0] * 0.5, *((dr[1:] + dr[:-1]) * 0.5), dr[-1] * 0.5])
@@ -198,6 +267,11 @@ class PotentialEnergy:
         else:
             self._factor1.flat = (
                 (mydrMult * my_r)[None, :] * (mydvMult)[:, None]).flat
+        
+        shape = [1, 1, 1]
+        shape[idx_r] = mydrMult.size 
+        self._factor12 = np.empty(shape)
+        self._factor12.flat = mydrMult * my_r
 
         self._layout = layout.name
 
@@ -208,20 +282,21 @@ class PotentialEnergy:
         assert dq > 0
         assert dz > 0
 
-        self._factor2 = 0.5* dq * dz
+        self._factor2 = 0.5 * dq * dz
 
     def getPE(self, f, phi):
         """
         TODO
         """
-        #assert self._layout == grid.currentLayout
+        assert self._layout == f.currentLayout
         phi_grid = np.empty(self._shape_phi)
         phi_grid.flat = np.real(phi._f).flat
 
-        points = (np.real(f._f) - self._myn0) * phi_grid * self._factor1
+        points = np.real(f._f) * phi_grid * self._factor1
+        points2 = -self._myn0 * np.real(phi._f) * self._factor12
 
-        return np.sum(points) * self._factor2
+        return (np.sum(points2)+np.sum(points)) * self._factor2
 
 if __name__ == "__main__":
-    foldername = "simulation_1/"
-    calc_energy_from_4d(foldername, 2000)
+    foldername = "cobra_simulation_0/"
+    doall(foldername)
