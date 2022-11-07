@@ -975,9 +975,14 @@ class PoloidalAdvectionArakawa:
         if self._explicit:
 
             # Do substepping such that the CFL condition is satisfied
-            J_max = np.max(np.abs(J_s))
-            dx = np.min([self._dr, self._points_r[0] * self._dtheta])
-            CFL = np.min([int(J_max * dt / dx + 1), 20])
+            # Use J_phi / (r*d_theta*dr) = unscaled bracket / dx
+            J_max = np.max(np.abs(self.J_phi))
+
+            dx = self._dr * self._dtheta
+            CFL = int(J_max * dt / dx + 1)
+
+            if self._verbose:
+                print(f'CFL number is {CFL}')
 
             # Update f_stencil in-place
             for _ in range(1, CFL + 1):
