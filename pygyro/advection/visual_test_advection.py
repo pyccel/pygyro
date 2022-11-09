@@ -4,7 +4,6 @@ from matplotlib import rc as pltFont
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from math import pi
-from time import time
 
 from .. import splines as spl
 from ..initialisation.setups import setupCylindricalGrid
