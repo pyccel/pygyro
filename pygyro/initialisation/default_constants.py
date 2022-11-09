@@ -18,7 +18,7 @@ defaults = {
     "iotaVal": 0.0,
     "npts": [256, 512, 32, 128],
     "splineDegrees": [3, 3, 3, 3],
-    "dt": 8,
+    "dt": 2,
     "poloidalAdvectionMethod": ["sl"],
     "_variableNames": ["r", "theta", "z", "v"]
 }

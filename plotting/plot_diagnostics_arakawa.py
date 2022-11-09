@@ -52,6 +52,8 @@ def plot_diagnostics(foldername, save_plot=True, show_plot=False):
     if show_plot:
         plt.show()
 
+    plt.close()
+
 
 def main():
     """
