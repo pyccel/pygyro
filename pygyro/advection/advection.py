@@ -668,6 +668,9 @@ class PoloidalAdvectionArakawa:
             assert len(
                 foldername) != 0, "When wanting to save, a foldername has to be given!"
 
+            self._CFL_savefile = "{0}/CFL.txt".format(
+                foldername)
+
             # save what full time step size is
             with open(foldername + "/initParams.json") as file:
                 self._dt = json.load(file)["dt"]
@@ -983,6 +986,10 @@ class PoloidalAdvectionArakawa:
 
             if self._verbose:
                 print(f'CFL number is {CFL}')
+
+            if self._save_conservation and dt == self._dt:
+                with open(self._CFL_savefile, "a") as CFL_file:
+                    CFL_file.write(str(CFL) + "\n")
 
             # Update f_stencil in-place
             for _ in range(1, CFL + 1):
