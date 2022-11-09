@@ -230,7 +230,7 @@ def main():
 
     diagnostic_start = time.time()
     # Calculate diagnostic quantities
-    diagnostics.collect(distribFunc, phi, t)
+    diagnostics.collect(distribFunc, phi, rho, t)
 
     diagnostic_time += (time.time() - diagnostic_start)
 
@@ -242,7 +242,7 @@ def main():
 
         output_start = time.time()
 
-        distribFunc.writeH5Dataset(foldername, t)
+        #distribFunc.writeH5Dataset(foldername, t)
 
         my_print(rank, nosave, "grid printed")
         phi.writeH5Dataset(foldername, t, "phi")
@@ -336,14 +336,14 @@ def main():
         # =====================
         diagnostic_start = time.time()
         # Calculate diagnostic quantities
-        diagnostics.collect(distribFunc, phi, t)
+        diagnostics.collect(distribFunc, phi, rho, t)
 
         diagnostic_time += (time.time() - diagnostic_start)
 
         if (ti % saveStep == saveStepCut) and (not nosave):
             my_print(rank, nosave, "save time", t)
             output_start = time.time()
-            distribFunc.writeH5Dataset(foldername, t)
+            #distribFunc.writeH5Dataset(foldername, t)
             phi.writeH5Dataset(foldername, t, "phi")
 
             diagnostics.reduce()
@@ -375,7 +375,7 @@ def main():
                 print(diagnostics.getLine(i), file=diagnosticFile)
             diagnosticFile.close()
 
-        distribFunc.writeH5Dataset(foldername, t)
+        #distribFunc.writeH5Dataset(foldername, t)
         phi.writeH5Dataset(foldername, t, "phi")
         output_time += (time.time() - output_start)
 
