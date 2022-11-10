@@ -2,6 +2,7 @@ import numpy as np
 
 from pygyro.model.grid import Grid
 from pygyro.model.layout import Layout
+from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
 
 
 class KineticEnergy:
@@ -59,8 +60,54 @@ class KineticEnergy:
         """
         TODO
         """
-        assert self._layout == grid.currentLayout
+        assert self._layout == grid.currentLayout, \
+            f'self._layout {self._layout} is not the same as grid.currentLayout {grid.currentLayout}'
 
         points = np.real(grid._f) * self._factor1
 
         return np.sum(points) * self._factor2
+
+
+class PotentialEnergy:
+    """
+    TODO
+    """
+
+    def __init__(self, eta_grid: list):
+        self._r_grid = eta_grid[0]
+        self._theta_grid = eta_grid[1]
+        self._z_grid = eta_grid[2]
+        self._v_grid = eta_grid[3]
+
+        self._dr = self._r_grid[1] - self._r_grid[0]
+        self._dtheta = self._theta_grid[1] - self._theta_grid[0]
+
+    def getPE(self, f: Grid, phi: Grid):
+        """
+        TODO
+        """
+        # get list of global indices when wanting to save diagnostics
+        global_inds_v = f.getGlobalIdxVals(0)
+        global_inds_z = f.getGlobalIdxVals(1)
+
+        int_f = 0.
+        int_f_squared = 0.
+        energy = 0.
+
+        for index_v, _ in f.getCoords(0):  # v
+                for index_z, _ in f.getCoords(1):  # z
+
+                    # if v is in the middle of the velocity distribution and it is
+                    # the first slice in z-direction save it before and after the step
+                    global_v = global_inds_v[index_v]
+                    global_z = global_inds_z[index_z]
+                    if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
+
+                        int_f = compute_int_f(f.get2DSlice(index_v, index_z), self._dtheta, self._dr,
+                                                    self._r_grid, method='trapz')
+                        int_f_squared = compute_int_f_squared(f.get2DSlice(index_v, index_z), self._dtheta, self._dr,
+                                                                    self._r_grid, method='trapz')
+                        energy = get_total_energy(f.get2DSlice(index_v, index_z), phi.get2DSlice(index_z), self._dtheta, self._dr,
+                                                        self._r_grid, method='trapz')
+
+        return int_f, int_f_squared, energy

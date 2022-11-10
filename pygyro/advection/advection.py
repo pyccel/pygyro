@@ -17,7 +17,6 @@ from .accelerated_advection_steps import get_lagrange_vals, flux_advection, \
     poloidal_advection_step_expl, \
     poloidal_advection_step_impl
 from ..initialisation.initialiser_funcs import f_eq
-from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
 
 
 def fieldline(theta, z_diff, iota, r, R0):
@@ -640,8 +639,7 @@ class PoloidalAdvectionArakawa:
     def __init__(self, eta_vals: list, constants,
                  bc="extrapolation", order: int = 4,
                  equilibrium_outside: bool = True, verbose: bool = False,
-                 explicit: bool = False,
-                 save_conservation: bool = False, foldername=''):
+                 explicit: bool = False):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -662,30 +660,6 @@ class PoloidalAdvectionArakawa:
         self._constants = constants
 
         self._explicit = explicit
-
-        self._save_conservation = save_conservation
-        if self._save_conservation:
-            assert len(
-                foldername) != 0, "When wanting to save, a foldername has to be given!"
-
-            self._CFL_savefile = "{0}/CFL.txt".format(
-                foldername)
-
-            # save what full time step size is
-            with open(foldername + "/initParams.json") as file:
-                self._dt = json.load(file)["dt"]
-
-            self._conservation_savefile = "{0}/akw_consv.txt".format(
-                foldername)
-
-            # Create savefile if it does not already exist from previous simulation
-            if not os.path.exists(self._conservation_savefile):
-                with open(self._conservation_savefile, 'w') as savefile:
-                    savefile.write(
-                        "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
-            else:
-                with open(self._conservation_savefile, 'w') as savefile:
-                    savefile.write("\n")
 
         self.bc = bc
 
@@ -987,10 +961,6 @@ class PoloidalAdvectionArakawa:
             if self._verbose:
                 print(f'CFL number is {CFL}')
 
-            if self._save_conservation and dt == self._dt:
-                with open(self._CFL_savefile, "a") as CFL_file:
-                    CFL_file.write(str(CFL) + "\n")
-
             # Update f_stencil in-place
             for _ in range(1, CFL + 1):
                 self.RK4(self.f_stencil, J_s, dt/CFL)
@@ -1031,23 +1001,10 @@ class PoloidalAdvectionArakawa:
         assert (gridLayout.dims_order[1:] == phiLayout.dims_order)
         assert (gridLayout.dims_order == (3, 2, 1, 0))
 
-        # get list of global indices when wanting to save diagnostics
-        if self._save_conservation and dt == self._dt:
-            global_inds_v = f.getGlobalIdxVals(0)
-            global_inds_z = f.getGlobalIdxVals(1)
-
         if self.bc == "extrapolation":
             # Do step
             for i, v in f.getCoords(0):  # v
                 for j, _ in f.getCoords(1):  # z
-
-                    # if v is in the middle of the velocity distribution and it is
-                    # the first slice in z-direction save it before and after the step
-                    if self._save_conservation and dt == self._dt:
-                        global_v = global_inds_v[i]
-                        global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('before', f, i, j, phi)
 
                     # assume phi equals 0 outside
                     values_phi = np.zeros(self.order)
@@ -1061,82 +1018,13 @@ class PoloidalAdvectionArakawa:
                     self.step_extrapolation(f.get2DSlice(
                         i, j), dt, phi.get2DSlice(j), values_f, values_phi)
 
-                    # Save conservation properties after step as well
-                    if self._save_conservation and dt == self._dt:
-                        global_v = global_inds_v[i]
-                        global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('after', f, i, j, phi)
-
         else:
             # Do step
             for i, _ in f.getCoords(0):  # v
                 for j, _ in f.getCoords(1):  # z
 
-                    # if v is in the middle of the velocity distribution and it is
-                    # the first slice in z-direction save it before and after the step
-                    if self._save_conservation and dt == self._dt:
-                        global_v = global_inds_v[i]
-                        global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('before', f, i, j, phi)
-
                     self.step_normal(f.get2DSlice(i, j),
                                      dt, phi.get2DSlice(j))
-
-                    # Save conservation properties after step as well
-                    if self._save_conservation and dt == self._dt:
-                        global_v = global_inds_v[i]
-                        global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('after', f, i, j, phi)
-
-    def _save_consv_to_file(self, boa: str, f: Grid, idx_v: int, idx_z: int, phi: Grid):
-        """
-        Compute the conserved quantities (integral of f and its square, energy) and save it to the savefile.
-
-        Parameters
-        ----------
-            boa : str
-                'before' or 'after'; if computation is before or after doing the grid_step
-
-            f : pygyro.model.grid.Grid
-                Grid object that characterizes the distribution function
-
-            idx_v : int
-                Index of the slice in v direction
-
-            idx_z : int
-                Index of the slice in z direction
-
-            phi : pygyro.model.grid.Grid
-                Grid object that characterizes the electric field
-        """
-        if boa == 'before':
-            int_f_before = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                         self._points_r, method='trapz')
-            int_f_squared_before = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                                         self._points_r, method='trapz')
-            energy_before = get_total_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
-                                             self._points_r, method='trapz')
-            with open(self._conservation_savefile, 'a') as savefile:
-                savefile.write(
-                    format(int_f_before, '.15E') + "\t" + format(int_f_squared_before, '.15E') + "\t" + format(energy_before, '.15E') + "\t")
-
-        elif boa == 'after':
-            int_f_after = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                        self._points_r, method='trapz')
-            int_f_squared_after = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                                        self._points_r, method='trapz')
-            energy_after = get_total_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
-                                            self._points_r, method='trapz')
-            with open(self._conservation_savefile, 'a') as savefile:
-                savefile.write(
-                    format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\n")
-
-        else:
-            raise NotImplementedError(
-                f'Unknown option {boa} for function save_consv_to_file!')
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         """

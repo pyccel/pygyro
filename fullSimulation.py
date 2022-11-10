@@ -5,7 +5,7 @@ def main():
     from mpi4py import MPI
     import time
 
-    from pygyro.diagnostics.diagnostic_collector import DiagnosticCollector
+    from pygyro.diagnostics.diagnostic_collector import DiagnosticCollector, AdvectionDiagnostics
     from pygyro.utilities.savingTools import setupSave
     from pygyro.poisson.poisson_solver import DensityFinder, QuasiNeutralitySolver
     from pygyro.advection.advection import FluxSurfaceAdvection, VParallelAdvection, PoloidalAdvection, PoloidalAdvectionArakawa, ParallelGradient
@@ -43,7 +43,7 @@ def main():
                         default=[5],
                         help='Number of time steps between writing output')
     parser.add_argument('--nosave', action='store_true')
-    parser.add_argument('--akw_diagn', action='store_true')
+    parser.add_argument('--adv_diagn', action='store_true')
 
     def my_print(rank, nosave, *args, **kwargs):
         if (rank == 0) and not nosave:
@@ -54,7 +54,11 @@ def main():
     foldername = args.foldername[0]
     constantFile = args.constantFile[0]
     nosave = args.nosave
-    akw_diagnostics = args.akw_diagn
+    adv_diagn = args.adv_diagn
+
+    # Have to save to also save advection diagnostics
+    if adv_diagn:
+        assert not nosave
 
     loadable = False
 
@@ -131,21 +135,30 @@ def main():
 
     # Poloidal Advection step: Semi-Lagrangian method or Arakawa scheme
     if poloidal_method == 'sl':
-        polAdv = PoloidalAdvection(
-            distribFunc.eta_grid, distribFunc.getSpline(slice(1, None, -1)), constants)
+        if adv_diagn:
+            advection_savefile = "{0}/sl_consv.txt".format(foldername)
+
+        polAdv = PoloidalAdvection(distribFunc.eta_grid,
+                                   distribFunc.getSpline(slice(1, None, -1)), constants)
         my_print(rank, nosave, "pol adv sl init done")
 
     elif poloidal_method == 'akw':
-        if akw_diagnostics:
-            polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants,
-                                              save_conservation=True, foldername=foldername)
-        else:
-            polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
+        if adv_diagn:
+            advection_savefile = "{0}/akw_consv.txt".format(foldername)
+
+        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
         my_print(rank, nosave, "pol adv akw init done")
 
     else:
         raise NotImplementedError(
             f"{poloidal_method} is an unknown option for the poloidal advection step!")
+
+    if adv_diagn and rank == 0:
+        # Create savefile if it does not already exist from previous simulation
+        if not os.path.exists(advection_savefile):
+            with open(advection_savefile, 'w') as savefile:
+                savefile.write(
+                    "int_f before\t\t\tl2_norm before\t\t\ten_pot before\t\t\ten_kin before\t\t\tint_f after\t\t\t\tl2_norm after\t\t\ten_pot after\t\t\ten_kin after\n")
 
     parGradVals = np.empty([distribFunc.getLayout(
         distribFunc.currentLayout).shape[0], constants.npts[2], constants.npts[1]])
@@ -192,6 +205,11 @@ def main():
     diagnostics = DiagnosticCollector(
         comm, saveStep, fullStep, distribFunc, phi)
     my_print(rank, nosave, "diagnostics ready")
+
+    if adv_diagn:
+        advection_diagnostics = AdvectionDiagnostics(
+            comm, fullStep, distribFunc, phi)
+        my_print(rank, nosave, "advection diagnostics ready")
 
     diagnostic_filename = "{0}/phiDat.txt".format(foldername)
 
@@ -307,11 +325,40 @@ def main():
         phi.setLayout('v_parallel_1d')
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
 
+        if adv_diagn:
+            advection_diagnostics.collect_kinetic_energy(distribFunc)
+
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
+
+        if adv_diagn:
+            advection_diagnostics.collect_rest(distribFunc, phi)
+            advection_diagnostics.reduce()
+            if (rank == 0):
+                with open(advection_savefile, 'a') as savefile:
+                    savefile.write(format(advection_diagnostics.mass_val[0], '.15E') + "\t" +
+                                   format(advection_diagnostics.l2_norm_val[0], '.15E') + "\t" +
+                                   format(advection_diagnostics.KE_val[0], '.15E') + "\t" +
+                                   format(advection_diagnostics.PE_val[0], '.15E') + "\t")
+
         polAdv.gridStep(distribFunc, phi, fullStep)
 
+        if adv_diagn:
+            advection_diagnostics.collect_rest(distribFunc, phi)
+
         distribFunc.setLayout('v_parallel')
+
+        if adv_diagn:
+            advection_diagnostics.collect_kinetic_energy(distribFunc)
+            advection_diagnostics.reduce()
+
+            if (rank == 0):
+                with open(advection_savefile, 'a') as savefile:
+                    savefile.write(format(advection_diagnostics.mass_val[0], '.15E') + "\t" +
+                                   format(advection_diagnostics.l2_norm_val[0], '.15E') + "\t" +
+                                   format(advection_diagnostics.KE_val[0], '.15E') + "\t" +
+                                   format(advection_diagnostics.PE_val[0], '.15E') + "\n")
+
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)
         distribFunc.setLayout('flux_surface')
         fluxAdv.gridStep(distribFunc)

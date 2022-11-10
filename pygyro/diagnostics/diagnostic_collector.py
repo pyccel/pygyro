@@ -3,7 +3,7 @@ import numpy as np
 
 from ..model.grid import Grid
 from .norms import l2, l1, nParticles
-from .energy import KineticEnergy
+from .energy import KineticEnergy, PotentialEnergy
 
 
 class DiagnosticCollector:
@@ -111,3 +111,64 @@ class DiagnosticCollector:
             format(t=self.diagnostics[0, i], l2P=self.l2PhiResult[i], l2G=self.l2GridResult[i],
                    l1=self.l1Result[i], np=self.nPartResult[i],
                    minim=self.min_val[i], maxim=self.max_val[i], ke=self.KE_val[i])
+
+
+class AdvectionDiagnostics:
+    """
+    A class to collect the diagnostics for the advection step. Mass, l2-norm, and
+    energy are collected before and after the advection step to compare methods.
+    The diagnostics attribute contains:
+        0 : mass
+        1 : l2-norm
+        2 : potential energy
+        3 : kinetic energy
+    """
+
+    def __init__(self, comm, dt: float, distribFunc: Grid, phi: Grid):
+        self.dt = dt
+        self.comm = comm
+        self.rank = comm.Get_rank()
+
+        self.diagnostics = np.zeros(8, dtype=float)
+
+        self.mass_val = np.zeros(1, dtype=float)
+        self.l2_norm_val = np.zeros(1, dtype=float)
+        self.PE_val = np.zeros(1, dtype=float)
+        self.KE_val = np.zeros(1, dtype=float)
+
+        self.KEclass = KineticEnergy(
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+        self.PEclass = PotentialEnergy(distribFunc.eta_grid)
+
+    def collect_kinetic_energy(self, f):
+        """
+        TODO
+        """
+        self.diagnostics[3] = self.KEclass.getKE(f)
+
+    def collect_rest(self, f, phi):
+        """
+        TODO
+        """
+        self.diagnostics[0], self.diagnostics[1], self.diagnostics[2] \
+            = self.PEclass.getPE(f, phi)
+
+        print(f'rank {self.rank} mass = {self.diagnostics[0]}')
+        print(f'rank {self.rank} l2norm = {self.diagnostics[1]}')
+        print(f'rank {self.rank} potential energy = {self.diagnostics[2]}')
+
+    def reduce(self):
+        """
+        TODO
+        """
+        self.comm.Reduce(self.diagnostics[0],
+                         self.mass_val, op=MPI.SUM, root=0)
+
+        self.comm.Reduce(self.diagnostics[1],
+                         self.l2_norm_val, op=MPI.SUM, root=0)
+
+        self.comm.Reduce(self.diagnostics[2],
+                         self.KE_val, op=MPI.SUM, root=0)
+
+        self.comm.Reduce(self.diagnostics[3],
+                         self.PE_val, op=MPI.SUM, root=0)
