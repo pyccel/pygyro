@@ -2,7 +2,8 @@ import numpy as np
 
 from pygyro.model.grid import Grid
 from pygyro.model.layout import Layout
-from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
+from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_potential_energy
+from pygyro.initialisation.initialiser_funcs import f_eq
 
 
 class KineticEnergy:
@@ -10,7 +11,7 @@ class KineticEnergy:
     TODO
     """
 
-    def __init__(self, eta_grid: list, layout: Layout):
+    def __init__(self, eta_grid: list, layout: Layout, constants):
         idx_r = layout.inv_dims_order[0]
         idx_v = layout.inv_dims_order[3]
 
@@ -24,6 +25,20 @@ class KineticEnergy:
 
         dr = r[1:] - r[:-1]
         dv = v[1:] - v[:-1]
+
+        shape = [1, 1, 1, 1]
+        shape[idx_r] = my_r.size
+        shape[idx_v] = my_v.size
+        self._my_feq = np.empty(shape)
+        if (idx_r < idx_v):
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
+                           constants.CTi, constants.kTi, constants.deltaRTi)
+                      for r in my_r for v in my_v]
+        else:
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
+                           constants.CTi, constants.kTi, constants.deltaRTi)
+                      for v in my_v for r in my_r]
+        self._my_feq.flat = my_feq
 
         drMult = np.array(
             [dr[0] * 0.5, *((dr[1:] + dr[:-1]) * 0.5), dr[-1] * 0.5])
@@ -63,7 +78,7 @@ class KineticEnergy:
         assert self._layout == grid.currentLayout, \
             f'self._layout {self._layout} is not the same as grid.currentLayout {grid.currentLayout}'
 
-        points = np.real(grid._f) * self._factor1
+        points = (grid._f - self._my_feq) * self._factor1
 
         return np.sum(points) * self._factor2
 
@@ -82,6 +97,13 @@ class PotentialEnergy:
         self._dr = self._r_grid[1] - self._r_grid[0]
         self._dtheta = self._theta_grid[1] - self._theta_grid[0]
 
+        dv = self._v_grid[1:] - self._v_grid[:-1]
+        dz = self._z_grid[1:] - self._z_grid[:-1]
+        self._dvMult = np.append(dv[0] * 0.5,
+                                 np.append((dv + np.roll(dv, 1))[1:] * 0.5, dv[-1] * 0.5))
+        self._dzMult = np.append(dz[0] * 0.5,
+                                 np.append((dz + np.roll(dz, 1))[1:] * 0.5, dz[-1] * 0.5))
+
     def getPE(self, f: Grid, phi: Grid):
         """
         TODO
@@ -95,19 +117,22 @@ class PotentialEnergy:
         energy = 0.
 
         for index_v, _ in f.getCoords(0):  # v
-                for index_z, _ in f.getCoords(1):  # z
+            for index_z, _ in f.getCoords(1):  # z
 
-                    # if v is in the middle of the velocity distribution and it is
-                    # the first slice in z-direction save it before and after the step
-                    global_v = global_inds_v[index_v]
-                    global_z = global_inds_z[index_z]
-                    if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
+                global_v = global_inds_v[index_v]
+                global_z = global_inds_z[index_z]
 
+                # Only compute for the first slice in z-direction save it
+                if global_z == 0:
+                    # Compute mass and l2-norm if v is in the middle of the velocity distribution
+                    if global_v == (f.eta_grid[3].size // 2):
                         int_f = compute_int_f(f.get2DSlice(index_v, index_z), self._dtheta, self._dr,
-                                                    self._r_grid, method='trapz')
+                                              self._r_grid, method='trapz')
                         int_f_squared = compute_int_f_squared(f.get2DSlice(index_v, index_z), self._dtheta, self._dr,
-                                                                    self._r_grid, method='trapz')
-                        energy = get_total_energy(f.get2DSlice(index_v, index_z), phi.get2DSlice(index_z), self._dtheta, self._dr,
-                                                        self._r_grid, method='trapz')
+                                                              self._r_grid, method='trapz')
+                energy += get_potential_energy(f.get2DSlice(index_v, index_z), phi.get2DSlice(index_z), self._dtheta, self._dr,
+                                            self._r_grid, method='trapz') * self._dzMult[index_z]
+            
+            energy *= self._dvMult[index_v]
 
-        return int_f, int_f_squared, energy
+        return int_f, int_f_squared, energy * 0.5

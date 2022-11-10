@@ -203,12 +203,12 @@ def main():
     my_print(rank, nosave, "par grad ready")
 
     diagnostics = DiagnosticCollector(
-        comm, saveStep, fullStep, distribFunc, phi)
+        comm, saveStep, fullStep, distribFunc, phi, constants)
     my_print(rank, nosave, "diagnostics ready")
 
     if adv_diagn:
         advection_diagnostics = AdvectionDiagnostics(
-            comm, fullStep, distribFunc, phi)
+            comm, fullStep, distribFunc, constants)
         my_print(rank, nosave, "advection diagnostics ready")
 
     diagnostic_filename = "{0}/phiDat.txt".format(foldername)

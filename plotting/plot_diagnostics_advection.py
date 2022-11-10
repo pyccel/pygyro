@@ -38,6 +38,7 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     times = np.arange(0, data.shape[0]) * dt
 
+    # Plot relative errors
     plt.plot(times, np.abs(np.divide(data[:, 0] - data[:, 4], data[:, 0])),
              label='mass')
     plt.plot(times, np.abs(np.divide(data[:, 1] - data[:, 5], data[:, 1])),
@@ -49,10 +50,27 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.legend()
     plt.xlabel('time')
     plt.ylabel('error')
-    plt.title('Relative error in mass, $l^2$-norm, and energy')
+    plt.title('Relative error in mass, $l^2$-norm, and energy for ' + method + ' advection')
 
     if save_plot:
         plt.savefig(foldername + 'plots/' + method + '_conservation.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # Plot energies
+    plt.plot(times, data[:, 2], label='potential energy')
+    plt.plot(times, data[:, 3], label='kinetic energy')
+    plt.plot(times, data[:, 2] + data[:, 3], label='sum')
+    plt.legend()
+    plt.xlabel('time')
+    plt.ylabel('energy')
+    plt.title('Energies for ' + method + ' advection')
+
+    if save_plot:
+        plt.savefig(foldername + 'plots/' + method + '_energies.png')
 
     if show_plot:
         plt.show()

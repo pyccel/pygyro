@@ -11,7 +11,7 @@ class DiagnosticCollector:
     TODO
     """
 
-    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid):
+    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid, constants):
         self.saveStep = saveStep
         self.dt = dt
         self.comm = comm
@@ -34,7 +34,7 @@ class DiagnosticCollector:
         self.npart = nParticles(distribFunc.eta_grid,
                                 distribFunc.getLayout('v_parallel'))
         self.KEclass = KineticEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
 
     def collect(self, f: Grid, phi: Grid, t: float):
         """
@@ -124,7 +124,7 @@ class AdvectionDiagnostics:
         3 : kinetic energy
     """
 
-    def __init__(self, comm, dt: float, distribFunc: Grid, phi: Grid):
+    def __init__(self, comm, dt: float, distribFunc: Grid, constants):
         self.dt = dt
         self.comm = comm
         self.rank = comm.Get_rank()
@@ -137,7 +137,7 @@ class AdvectionDiagnostics:
         self.KE_val = np.zeros(1, dtype=float)
 
         self.KEclass = KineticEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
         self.PEclass = PotentialEnergy(distribFunc.eta_grid)
 
     def collect_kinetic_energy(self, f):
