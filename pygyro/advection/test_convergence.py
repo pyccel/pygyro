@@ -139,14 +139,14 @@ def integrate_Arakawa_constAdv(N_theta, N_r, theta_grid, r_grid, order,
     return f_vals[-1, :, :], polAdv._dtheta, polAdv._dr
 
 
-@pytest.mark.long
-@pytest.mark.serial
-@pytest.mark.parametrize("bc, order", [('dirichlet', 2), ('dirichlet', 4),
-                                       ('periodic', 2), ('periodic', 4),
-                                       ('extrapolation', 4)])
-# @pytest.mark.parametrize("bc, order", [('extrapolation', 4)])
-@pytest.mark.parametrize("problem", ['constAdv', 'vortex'])
-def test_convergence(bc, order, problem, show_plot=False):
+# @pytest.mark.long
+# @pytest.mark.serial
+# @pytest.mark.parametrize("bc, order", [('dirichlet', 2), ('dirichlet', 4),
+#                                        ('periodic', 2), ('periodic', 4),
+#                                        ('extrapolation', 4)])
+# # @pytest.mark.parametrize("bc, order", [('extrapolation', 4)])
+# @pytest.mark.parametrize("problem", ['constAdv', 'vortex'])
+def convergence(bc, order, problem, show_plot=False):
     """
     Test the order of convergence of the Arakawa scheme for the poloidal advection step
     by comparing results on a mesh and a refinement to half grid spacing. The error between

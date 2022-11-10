@@ -22,6 +22,7 @@
 "n" : -11,
 "iotaVal" : 0.8,
 "npts" : [256,512,32,128],
+"dt": 16,
 "_variableNames" : ["r", "theta", "z", "v"],
 "poloidalAdvectionMethod" : ["sl"]
 }

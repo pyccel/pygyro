@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import os
 from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
@@ -637,8 +638,8 @@ class PoloidalAdvectionArakawa:
     """
 
     def __init__(self, eta_vals: list, constants,
-                 bc="extrapolation", order=4,
-                 equilibrium_outside=True, verbose=False,
+                 bc="extrapolation", order: int = 4,
+                 equilibrium_outside: bool = True, verbose: bool = False,
                  explicit: bool = False,
                  save_conservation: bool = False, foldername=''):
         self._points = eta_vals[1::-1]
@@ -667,15 +668,24 @@ class PoloidalAdvectionArakawa:
             assert len(
                 foldername) != 0, "When wanting to save, a foldername has to be given!"
 
+            self._CFL_savefile = "{0}/CFL.txt".format(
+                foldername)
+
             # save what full time step size is
             with open(foldername + "/initParams.json") as file:
                 self._dt = json.load(file)["dt"]
 
             self._conservation_savefile = "{0}/akw_consv.txt".format(
                 foldername)
-            with open(self._conservation_savefile, 'w') as savefile:
-                savefile.write(
-                    "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
+
+            # Create savefile if it does not already exist from previous simulation
+            if not os.path.exists(self._conservation_savefile):
+                with open(self._conservation_savefile, 'w') as savefile:
+                    savefile.write(
+                        "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
+            else:
+                with open(self._conservation_savefile, 'w') as savefile:
+                    savefile.write("\n")
 
         self.bc = bc
 
@@ -794,7 +804,7 @@ class PoloidalAdvectionArakawa:
         k3 = J.dot(z + dt/2*k2)
         k4 = J.dot(z + dt*k3)
 
-        return z + dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
+        z += dt/6*k1 + dt/3*k2 + dt/3*k3 + dt/6*k4
 
     def step(self, f: np.ndarray, dt: float, phi: np.ndarray, values_f=None, values_phi=None):
         """
@@ -883,8 +893,8 @@ class PoloidalAdvectionArakawa:
             B = I_s + dt/2 * J_phi
 
         # execute the time-step
-        if (self._explicit):
-            f[:] = self.RK4(f[:], J_s, dt)
+        if self._explicit:
+            self.RK4(f[:], J_s, dt)
         else:
             f[:] = spsolve(A, B.dot(f))
 
@@ -924,7 +934,7 @@ class PoloidalAdvectionArakawa:
         phi = np.real(phi)
 
         # set phi to zero on the boundary (if needed)
-        #phi[self.ind_bd] = np.zeros(len(self.ind_bd))
+        # phi[self.ind_bd] = np.zeros(len(self.ind_bd))
 
         # fill the working stencils
         self.f_stencil[self.ind_int_ep] = f
@@ -965,8 +975,29 @@ class PoloidalAdvectionArakawa:
             B = I_s + dt/2 * self.J_phi
 
         # execute the time-step
-        if (self._explicit):
-            f[:] = self.RK4(self.f_stencil, J_s, dt)[self.ind_int_ep]
+        if self._explicit:
+
+            # Do substepping such that the CFL condition is satisfied
+            # Use J_phi / (r*d_theta*dr) = unscaled bracket / dx
+            J_max = np.max(np.abs(self.J_phi))
+
+            dx = self._dr * self._dtheta
+            CFL = int(J_max * dt / dx + 1)
+
+            if self._verbose:
+                print(f'CFL number is {CFL}')
+
+            if self._save_conservation and dt == self._dt:
+                with open(self._CFL_savefile, "a") as CFL_file:
+                    CFL_file.write(str(CFL) + "\n")
+
+            # Update f_stencil in-place
+            for _ in range(1, CFL + 1):
+                self.RK4(self.f_stencil, J_s, dt/CFL)
+
+            # Update f
+            f[:] = self.f_stencil[self.ind_int_ep]
+
         else:
             f[:] = spsolve(A, B.dot(self.f_stencil))[self.ind_int_ep]
 

@@ -287,12 +287,68 @@ def test_poloidalAdvectionExplicit(dt, v, xc, yc):
     assert l2 < 0.2
 
 
+# @pytest.mark.serial
+# @pytest.mark.parametrize("dt", [8])
+# @pytest.mark.parametrize("omega", [1])
+# @pytest.mark.parametrize("xc", [0, 1, 3])
+# @pytest.mark.parametrize("yc", [0, 1, 3])
+# @pytest.mark.parametrize("order, bc", [(4, 'extrapolation')])
+# @pytest.mark.parametrize("CFL", [1, 2, 4])
+# def test_poloidalAdvectionArakawa_CFL(dt, omega, xc, yc, order, bc, CFL):
+#     """
+#     Test the explicit scheme of the poloidal advection step with Arakawa scheme for
+#     different parameters for the CFL number.
+
+#     Parameters
+#     ----------
+#         TODO
+#     """
+
+#     N_theta = 80
+#     N_r = 60
+
+#     r_min = 0.01
+#     r_max = 14.1
+
+#     theta_grid = np.linspace(0, 2*np.pi, N_theta, endpoint=False)
+#     r_grid = np.linspace(r_min, r_max, N_r, endpoint=True)
+
+#     eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
+
+#     N = 500
+
+#     f_vals = np.ndarray([N + 1, N_theta, N_r])
+#     phiVals = np.empty([N_theta, N_r])
+
+#     constants = Constants()
+
+#     polAdv = PoloidalAdvectionArakawa(
+#         eta_vals, constants, bc=bc, order=order, explicit=True, CFL=CFL)
+
+#     assert polAdv._nPoints_r == N_r, f'{polAdv._nPoints_r} != {N_r}'
+#     assert polAdv._nPoints_theta == N_theta, f'{polAdv._nPoints_theta} != {N_theta}'
+
+#     phiVals[:] = Phi(r_grid, np.atleast_2d(theta_grid).T, omega, xc, yc)
+
+#     assert phiVals.shape == (
+#         N_theta, N_r), f'{phiVals.shape} != ({N_theta}, {N_r})'
+
+#     f_vals[0, :, :] = initConds(r_grid, np.atleast_2d(theta_grid).T)
+
+#     for n in range(N):
+#         f_vals[n + 1, :, :] = f_vals[n, :, :]
+#         polAdv.step(f_vals[n + 1, :, :], dt, phiVals)
+
+#     assert not np.isnan(f_vals).any()
+
+
 @pytest.mark.serial
-@pytest.mark.parametrize("dt", [0.002])
+@pytest.mark.parametrize("dt", [0.1])
 @pytest.mark.parametrize("omega", [1])
 @pytest.mark.parametrize("xc", [0, 1])
 @pytest.mark.parametrize("yc", [0, 1])
-@pytest.mark.parametrize("order, bc", [(2, 'dirichlet'), (4, 'dirichlet'), (4, 'extrapolation')])
+# @pytest.mark.parametrize("order, bc", [(2, 'dirichlet'), (4, 'dirichlet'), (4, 'extrapolation')])
+@pytest.mark.parametrize("order, bc", [(4, 'extrapolation')])
 # @pytest.mark.parametrize("order", [2, 4])
 # @pytest.mark.parametrize("bc", ['dirichlet', 'periodic', 'extrapolation'])
 @pytest.mark.parametrize("int_method", ['sum', 'trapz'])
@@ -327,7 +383,7 @@ def test_poloidalAdvectionArakawaExplicit(dt, omega, xc, yc, order, bc, int_meth
 
     eta_vals = [r_grid, theta_grid, np.linspace(0, 1, 4), np.linspace(0, 1, 4)]
 
-    N = 20
+    N = 10
 
     f_vals = np.ndarray([N_theta, N_r])
     final_f_vals = np.ndarray([N_theta, N_r])
