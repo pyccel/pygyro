@@ -153,10 +153,6 @@ class AdvectionDiagnostics:
         self.diagnostics[0], self.diagnostics[1], self.diagnostics[2] \
             = self.PEclass.getPE(f, phi)
 
-        print(f'rank {self.rank} mass = {self.diagnostics[0]}')
-        print(f'rank {self.rank} l2norm = {self.diagnostics[1]}')
-        print(f'rank {self.rank} potential energy = {self.diagnostics[2]}')
-
     def reduce(self):
         """
         TODO
