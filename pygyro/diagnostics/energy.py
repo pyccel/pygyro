@@ -99,20 +99,14 @@ class PotentialEnergy:
         self.z_start_end = (layout.starts[idx_z], layout.ends[idx_z])
         self.v_start_end = (layout.starts[idx_v], layout.ends[idx_v])
 
-        print(f'index r : {idx_r}')
-        print(f'index q : {idx_q}')
-        print(f'index z : {idx_z}')
-        print(f'index v : {idx_v}')
-
         my_r = eta_grid[0][layout.starts[idx_r]:layout.ends[idx_r]]
-        my_q = eta_grid[1][layout.starts[idx_q]:layout.ends[idx_q]]
-        my_z = eta_grid[2][layout.starts[idx_z]:layout.ends[idx_z]]
         my_v = eta_grid[3][layout.starts[idx_v]:layout.ends[idx_v]]
 
-        print(f'local size of r : {my_r.size}')
-        print(f'local size of q : {my_q.size}')
-        print(f'local size of z : {my_z.size}')
-        print(f'local size of v : {my_v.size}')
+        # Create temporary buffer for storing phi values
+        self.phi_temp = np.zeros((self.r_start_end[1] - self.r_start_end[0],
+                                  self.z_start_end[1] - self.z_start_end[0],
+                                  1,
+                                  self.v_start_end[1] - self.v_start_end[0]), dtype=float)
 
         r = eta_grid[0]
         q = eta_grid[1]
@@ -174,21 +168,10 @@ class PotentialEnergy:
         assert self._layout == grid.currentLayout, \
             f'self._layout {self._layout} is not the same as grid.currentLayout {grid.currentLayout}'
 
-        # Create temporary buffer for storing phi values
-        phi_temp = np.zeros((self.r_start_end[1] - self.r_start_end[0],
-                            self.z_start_end[1] - self.z_start_end[0],
-                            1,
-                            self.v_start_end[1] - self.v_start_end[0]), dtype=float)
-        
-        phi_temp.flat = np.real(phi._f[:, self.z_start_end[0]: self.z_start_end[1], :].flat)
+        self.phi_temp.flat = np.real(
+            phi._f[:, self.z_start_end[0]: self.z_start_end[1], :].flat)
 
-        print(f'f layout : {grid.currentLayout}')
-        print(f'phi layout : {phi.currentLayout}')
-        print(f'f shape : {np.shape(grid._f)}')
-        print(f'f_eq shape : {np.shape(self._my_feq)}')
-        print(f'phi shape : {np.shape(phi._f)}')
-
-        points = (grid._f - self._my_feq) * phi_temp * self._factor1
+        points = (grid._f - self._my_feq) * self.phi_temp * self._factor1
 
         return np.sum(points) * self._factor2
 
