@@ -9,9 +9,8 @@
 # Queue (Partition):
 #SBATCH --partition=express
 # Number of nodes and MPI tasks per node:
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=42000
+#SBATCH --nodes=8
+#SBATCH --ntasks-per-node=40
 #
 #SBATCH --mail-type=begin,end,fail
 #SBATCH --mail-user=dominik.bell@ipp.mpg.de
