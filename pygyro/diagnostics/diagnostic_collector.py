@@ -129,38 +129,33 @@ class AdvectionDiagnostics:
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros(4, dtype=float)
-        self.diagnostics_val = np.array([[0.]] * 4)
+        self.diagnostics = np.zeros(2, dtype=float)
+        self.diagnostics_val = np.array([[0.]] * 2)
 
         self.KEclass = KineticEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        self.PEclass = PotentialEnergy(distribFunc.eta_grid)
+        self.PEclass = PotentialEnergy(
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+        # self.PEclass = PotentialEnergy(distribFunc.eta_grid)
 
     def collect_kinetic_energy(self, f):
         """
         TODO
         """
-        self.diagnostics[3] = self.KEclass.getKE(f)
+        self.diagnostics[1] = self.KEclass.getKE(f)
 
-    def collect_rest(self, f, phi):
+    def collect_potential_energy(self, f, phi):
         """
         TODO
         """
-        self.diagnostics[0], self.diagnostics[1], self.diagnostics[2] \
-            = self.PEclass.getPE(f, phi)
+        self.diagnostics[0] = self.PEclass.getPE(f, phi)
 
     def reduce(self):
         """
         TODO
         """
-        self.comm.Reduce(self.diagnostics[0],
-                         self.diagnostics_val[0], op=MPI.SUM, root=0)
-
-        self.comm.Reduce(self.diagnostics[1],
-                         self.diagnostics_val[1], op=MPI.SUM, root=0)
-
-        self.comm.Reduce(self.diagnostics[2],
-                         self.diagnostics_val[2], op=MPI.SUM, root=0)
-
-        self.comm.Reduce(self.diagnostics[3],
-                         self.diagnostics_val[3], op=MPI.SUM, root=0)
+        for k in range(len(self.diagnostics)):
+            self.comm.Reduce(self.diagnostics[k],
+                            self.diagnostics_val[k], op=MPI.SUM, root=0)
+            if self.rank == 0:
+                print(f'k = {k} : {self.diagnostics_val[k][0]}')

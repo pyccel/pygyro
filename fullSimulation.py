@@ -336,27 +336,24 @@ def main():
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
 
         if adv_diagn:
+            advection_diagnostics.collect_potential_energy(distribFunc, phi)
             advection_diagnostics.collect_kinetic_energy(distribFunc)
+            advection_diagnostics.reduce()
+            if (rank == 0):
+                with open(advection_savefile, 'a') as savefile:
+                    for k in range(len(quantities)):
+                        savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
+                    print('written before')
 
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
 
-        if adv_diagn:
-            advection_diagnostics.collect_rest(distribFunc, phi)
-            advection_diagnostics.reduce()
-            if (rank == 0):
-                with open(advection_savefile, 'a') as savefile:
-                    for k in range(len(quantities)):
-                        savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
-
         polAdv.gridStep(distribFunc, phi, fullStep)
-
-        if adv_diagn:
-            advection_diagnostics.collect_rest(distribFunc, phi)
 
         distribFunc.setLayout('v_parallel')
 
         if adv_diagn:
+            advection_diagnostics.collect_potential_energy(distribFunc, phi)
             advection_diagnostics.collect_kinetic_energy(distribFunc)
             advection_diagnostics.reduce()
 
@@ -364,6 +361,7 @@ def main():
                 with open(advection_savefile, 'a') as savefile:
                     for k in range(len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
+                    print('written after')
                     savefile.write("\n")
 
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)

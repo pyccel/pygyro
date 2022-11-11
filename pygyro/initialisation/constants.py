@@ -39,6 +39,7 @@ class Constants:
     _npts = None
     dt = None
     poloidalAdvectionMethod = None
+    AdvectionSaveQuantities = None
     _variableNames = None
 
     def __init__(self, setup=True):
@@ -108,9 +109,15 @@ class Constants:
             val = getattr(self, obj)
             if not callable(val) and obj[0] != '_':
                 if isinstance(val, list) and isinstance(val[0], str):
-                    s += "\""+obj+"\":"+"""["{}"] """.format(val[0])+",\n"
+                    s += "\"" + obj + "\":" + " ["
+                    for k, vals in enumerate(val):
+                        if k == len(val) - 1:
+                            s += "\"{}\"".format(vals)
+                        else:
+                            s += "\"{}\", ".format(vals)
+                    s += "],\n"
                 else:
-                    s += "\""+obj+"\":"+"{}".format(val)+",\n"
+                    s += "\"" + obj + "\":" + "{}".format(val) + ",\n"
         s = s[:-2]+"\n}"
         return s
 

@@ -25,5 +25,5 @@
 "dt": 64,
 "_variableNames" : ["r", "theta", "z", "v"],
 "poloidalAdvectionMethod" : ["akw"],
-"AdvectionSaveQuantities" : ["int_f", "l2_norm", "en_pot", "en_kin"]
+"AdvectionSaveQuantities" : ["en_pot", "en_kin"]
 }
