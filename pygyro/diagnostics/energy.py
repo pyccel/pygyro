@@ -132,7 +132,7 @@ class PotentialEnergy:
                                                               self._r_grid, method='trapz')
                 energy += get_potential_energy(f.get2DSlice(index_v, index_z), phi.get2DSlice(index_z), self._dtheta, self._dr,
                                             self._r_grid, method='trapz') * self._dzMult[index_z]
-            
+
             energy *= self._dvMult[index_v]
 
         return int_f, int_f_squared, energy * 0.5
