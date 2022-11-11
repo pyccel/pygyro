@@ -24,6 +24,6 @@
 "npts" : [64, 64, 32, 40],
 "dt": 32,
 "_variableNames" : ["r", "theta", "z", "v"],
-"poloidalAdvectionMethod" : ["akw"],
+"poloidalAdvectionMethod" : ["sl"],
 "AdvectionSaveQuantities" : ["en_pot", "en_kin"]
 }
