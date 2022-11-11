@@ -30,4 +30,4 @@ module list
 
 
 # Run the program:
-srun python3 fullSimulation.py 8000 1790 -c testSetups/iota0.json > prog.out
+srun python3 fullSimulation.py 8000 1790 -c testSetups/iota0.json --adv_diagn > prog.out
