@@ -639,7 +639,7 @@ class PoloidalAdvectionArakawa:
     def __init__(self, eta_vals: list, constants,
                  bc="extrapolation", order: int = 4,
                  equilibrium_outside: bool = True, verbose: bool = False,
-                 explicit: bool = False):
+                 explicit: bool = True):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]

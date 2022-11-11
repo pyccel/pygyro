@@ -146,7 +146,7 @@ def main():
         if adv_diagn:
             advection_savefile = "{0}/akw_consv.txt".format(foldername)
 
-        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
+        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants, explicit=True)
         my_print(rank, nosave, "pol adv akw init done")
 
     else:
