@@ -129,12 +129,8 @@ class AdvectionDiagnostics:
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros(8, dtype=float)
-
-        self.mass_val = np.zeros(1, dtype=float)
-        self.l2_norm_val = np.zeros(1, dtype=float)
-        self.PE_val = np.zeros(1, dtype=float)
-        self.KE_val = np.zeros(1, dtype=float)
+        self.diagnostics = np.zeros(4, dtype=float)
+        self.diagnostics_val = np.array([[0.]] * 4)
 
         self.KEclass = KineticEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
@@ -158,13 +154,13 @@ class AdvectionDiagnostics:
         TODO
         """
         self.comm.Reduce(self.diagnostics[0],
-                         self.mass_val, op=MPI.SUM, root=0)
+                         self.diagnostics_val[0], op=MPI.SUM, root=0)
 
         self.comm.Reduce(self.diagnostics[1],
-                         self.l2_norm_val, op=MPI.SUM, root=0)
+                         self.diagnostics_val[1], op=MPI.SUM, root=0)
 
         self.comm.Reduce(self.diagnostics[2],
-                         self.KE_val, op=MPI.SUM, root=0)
+                         self.diagnostics_val[2], op=MPI.SUM, root=0)
 
         self.comm.Reduce(self.diagnostics[3],
-                         self.PE_val, op=MPI.SUM, root=0)
+                         self.diagnostics_val[3], op=MPI.SUM, root=0)

@@ -117,6 +117,9 @@ def main():
     halfStep = constants.dt*0.5
     fullStep = constants.dt
     # --------------------------
+    if adv_diagn:
+        quantities = constants.AdvectionSaveQuantities
+    # --------------------------
 
     # Set method for poloidal advection step
     poloidal_method = constants.poloidalAdvectionMethod[0]
@@ -157,8 +160,15 @@ def main():
         # Create savefile if it does not already exist from previous simulation
         if not os.path.exists(advection_savefile):
             with open(advection_savefile, 'w') as savefile:
-                savefile.write(
-                    "int_f before\t\t\tl2_norm before\t\t\ten_pot before\t\t\ten_kin before\t\t\tint_f after\t\t\t\tl2_norm after\t\t\ten_pot after\t\t\ten_kin after\n")
+                for when in [" before", " after"]:
+                    for quantity in quantities:
+                        savefile.write(quantity)
+                        savefile.write(when)
+                        savefile.write("\t\t\t")
+                        if len(quantity + when) < 12:
+                            savefile.write("\t")
+
+                savefile.write("\n")
 
     parGradVals = np.empty([distribFunc.getLayout(
         distribFunc.currentLayout).shape[0], constants.npts[2], constants.npts[1]])
@@ -336,10 +346,8 @@ def main():
             advection_diagnostics.reduce()
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
-                    savefile.write(format(advection_diagnostics.mass_val[0], '.15E') + "\t" +
-                                   format(advection_diagnostics.l2_norm_val[0], '.15E') + "\t" +
-                                   format(advection_diagnostics.KE_val[0], '.15E') + "\t" +
-                                   format(advection_diagnostics.PE_val[0], '.15E') + "\t")
+                    for k in range(len(quantities)):
+                        savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
 
         polAdv.gridStep(distribFunc, phi, fullStep)
 
@@ -354,10 +362,9 @@ def main():
 
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
-                    savefile.write(format(advection_diagnostics.mass_val[0], '.15E') + "\t" +
-                                   format(advection_diagnostics.l2_norm_val[0], '.15E') + "\t" +
-                                   format(advection_diagnostics.KE_val[0], '.15E') + "\t" +
-                                   format(advection_diagnostics.PE_val[0], '.15E') + "\n")
+                    for k in range(len(quantities)):
+                        savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
+                    savefile.write("\n")
 
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)
         distribFunc.setLayout('flux_surface')
