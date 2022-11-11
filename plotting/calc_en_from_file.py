@@ -298,5 +298,12 @@ class PotentialEnergy:
         return (np.sum(points2)+np.sum(points)) * self._factor2
 
 if __name__ == "__main__":
-    foldername = "cobra_simulation_0/"
-    doall(foldername)
+    k = 0
+
+    while True:
+        foldername = "simulation_" + str(k) + "/"
+        if os.path.exists(foldername):
+            doall(foldername)
+            k += 1
+        else:
+            break
