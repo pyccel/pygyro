@@ -351,6 +351,7 @@ def main():
         polAdv.gridStep(distribFunc, phi, fullStep)
 
         distribFunc.setLayout('v_parallel')
+        phi.setLayout('v_parallel_1d')
 
         if adv_diagn:
             advection_diagnostics.collect_potential_energy(distribFunc, phi)

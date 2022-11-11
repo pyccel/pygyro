@@ -108,6 +108,8 @@ class Constants:
         for obj in dir(self):
             val = getattr(self, obj)
             if not callable(val) and obj[0] != '_':
+                # In order to save lists containing strings inside double quotation marks "something"
+                # again as lists containing strings inside double quotation marks
                 if isinstance(val, list) and isinstance(val[0], str):
                     s += "\"" + obj + "\":" + " ["
                     for k, vals in enumerate(val):
