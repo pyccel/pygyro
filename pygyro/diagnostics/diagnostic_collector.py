@@ -157,5 +157,5 @@ class AdvectionDiagnostics:
         for k in range(len(self.diagnostics)):
             self.comm.Reduce(self.diagnostics[k],
                             self.diagnostics_val[k], op=MPI.SUM, root=0)
-            if self.rank == 0:
-                print(f'k = {k} : {self.diagnostics_val[k][0]}')
+            # if self.rank == 0:
+            #     print(f'k = {k} : {self.diagnostics_val[k][0]}')
