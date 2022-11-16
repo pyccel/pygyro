@@ -42,31 +42,17 @@ def f_eq(r: 'float', vPar: 'float', CN0: 'float', kN0: 'float', deltaRN0: 'float
 
 def make_f_eq_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float',
                    rp: 'float', Cti: 'float', kti: 'float', deltaRti: 'float',
-                   grid_r: 'float[:]', grid_v: 'float[:]', output: 'float[:,:]', first_index: 'int'):
+                   grid_r: 'float[:]', grid_v: 'float[:]', output: 'float[:,:]'):
     """
-    Parameters
-    ----------
-        first_index : int
-            which index is the first when adressing the array:
-             0 : r
-             1 : v
+    output array is assumed to have r as the first index
     """
     from numpy import exp, sqrt, pi, real
 
-    if first_index == 0:
-        for i, r in enumerate(grid_r):
-            for j, vPar in enumerate(grid_v):
-                output[i, j] = n0(r, CN0, kN0, deltaRN0, rp) \
-                    * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
-                    / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
-    elif first_index == 1:
-        for i, vPar in enumerate(grid_v):
-            for j, r in enumerate(grid_r):
-                output[i, j] = n0(r, CN0, kN0, deltaRN0, rp) \
-                    * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
-                    / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
-    else:
-        print('Invalid first index')
+    for i, r in enumerate(grid_r):
+        for j, vPar in enumerate(grid_v):
+            output[i, j] = n0(r, CN0, kN0, deltaRN0, rp) \
+                * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
+                / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
 
 
 def make_n0_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',

@@ -129,23 +129,23 @@ class AdvectionDiagnostics:
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros(3, dtype=float)
-        self.diagnostics_val = np.array([[0.]] * 3)
+        self.diagnostics = np.zeros(1, dtype=float)
+        self.diagnostics_val = np.array([[0.]] * 1)
 
         self.KEclass = KineticEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        self.PEclass = PotentialEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        self.L2PHIclass = L2phi(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+        # self.PEclass = PotentialEnergy(
+        #     distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+        # self.L2PHIclass = L2phi(
+        #     distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
 
     def collect(self, f, phi):
         """
         TODO
         """
-        self.diagnostics[0] = self.PEclass.getPE(f, phi)
-        self.diagnostics[1] = self.KEclass.getKE(f)
-        self.diagnostics[2] = self.L2PHIclass.getl2(phi)
+        # self.diagnostics[0] = self.PEclass.getPE(f, phi)
+        self.diagnostics[0] = self.KEclass.getKE(f)
+        # self.diagnostics[2] = self.L2PHIclass.getl2(phi)
 
     def reduce(self):
         """

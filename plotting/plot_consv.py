@@ -60,44 +60,23 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
         else:
             break
 
-    assert k % 4 == 0
-
-    entries = int(k / 4)
-    for k in range(entries):
-        assert data[2*k] == data[2*(k + entries)], f'Labels not matching! {data[2*k]} != {data[2*(k + entries)]}'
-        assert data[2*k + 1] == 'before', f'Was expecting label before but got {data[2*k + 1]}'
-        assert data[2*(k + entries) + 1] == 'after', f'Was expecting label after but got {data[2*(k + entries) + 1]}'
+    entries = int(k)
 
     labels = []
-    for k in range(entries):
-        labels.append(data[2*k])
+    for k in range(1, entries):
+        labels.append(data[k])
 
     print(f'labels are : ')
     for label in labels:
         print(f'\t{label}')
 
-    data = np.array(data).reshape(-1, 2*entries)
+    data = np.array(data).reshape(-1, entries)
 
     data = np.float64(data[2:])
 
-    times = np.arange(0, data.shape[0]) * dt
+    times = data[:, 0]
 
-    # Plot relative errors
-    for k in range(entries):
-        plt.plot(times, np.abs(np.divide(data[:, k] - data[:, k + entries], data[:, k])),
-                label=labels[k])
-    plt.legend()
-    plt.xlabel('time')
-    plt.ylabel('error')
-    plt.title('Relative Errors for ' + method + ' Advection')
-
-    if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_conservation.png')
-
-    if show_plot:
-        plt.show()
-
-    plt.close()
+    data = data[:, 1:entries]
 
     for k, label in enumerate(labels):
         if label == 'l2_phi':
@@ -158,10 +137,29 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.legend()
     plt.xlabel('time')
     plt.ylabel('energy')
+    plt.yscale('log')
     plt.title('Energies for ' + method + ' advection')
 
     if save_plot:
         plt.savefig(foldername + 'plots/' + method + '_energies.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # Plot rest
+    for k, label in enumerate(labels):
+        if label[:3] != 'en_' and label != 'l2_phi':
+            plt.plot(times, data[:, k], label=label)
+
+    plt.legend()
+    plt.xlabel('time')
+    plt.yscale('log')
+    plt.title('Quantities for ' + method + ' advection')
+
+    if save_plot:
+        plt.savefig(foldername + 'plots/' + method + '_quantities.png')
 
     if show_plot:
         plt.show()
@@ -185,8 +183,9 @@ def main():
             else:
                 continue
 
-            if not os.path.exists(foldername + 'plots/') and os.path.exists(foldername + method + '_consv.txt'):
-                os.mkdir(foldername + 'plots/')
+            if os.path.exists(foldername + method + '_consv.txt'):
+                if not os.path.exists(foldername + 'plots/'):
+                    os.mkdir(foldername + 'plots/')
                 plot_diagnostics(foldername, method)
             k += 1
         else:

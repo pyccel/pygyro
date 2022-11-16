@@ -39,7 +39,7 @@ class Constants:
     _npts = None
     dt = None
     poloidalAdvectionMethod = None
-    AdvectionSaveQuantities = None
+    # AdvectionSaveQuantities = None
     _variableNames = None
 
     def __init__(self, setup=True):

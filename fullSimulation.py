@@ -351,6 +351,7 @@ def main():
         distribFunc.setLayout('v_parallel')
 
         if adv_diagn:
+            phi.setLayout('v_parallel_1d')
             advection_diagnostics.collect(distribFunc, phi)
             advection_diagnostics.reduce()
 
