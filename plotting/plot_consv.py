@@ -82,9 +82,9 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
         if label == 'l2_phi':
             plt.plot(times, data[:, k], label=label)
 
-            plt.yscale('log')
             plt.legend()
             plt.xlabel('time')
+            plt.yscale('log')
             plt.title('L2 norm of phi for ' + method + ' advection')
 
             if save_plot:
@@ -92,52 +92,20 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
             
             plt.close()
 
-    mark = 0
-    markers = {}
-    for label in labels:
-        if label[:3] == 'en_':
-            substring = get_last_string(label)
-            if substring is not None:
-                if substring in markers.keys:
-                    markers[substring][1] = mark
-                else:
-                    markers[substring] = [mark, None]
-                mark += 1
-            else:
-                # if only one method of computing the energies was used
-                markers = 'only one species'
-
-    if len(markers) == 0:
-        return
-
-    elif markers == 'only one species':
-        tot_en = np.zeros(np.shape(times))
-    
-    else:
-        tot_en = {}
-        for key in markers.keys:
-            tot_en[key] = np.zeros(np.shape(times))
+    tot_en = np.zeros(np.shape(times))
 
     # Plot energies
     for k, label in enumerate(labels):
         if label[:3] == 'en_':
             plt.plot(times, data[:, k], label=label)
-            if markers == 'only one species':
-                tot_en += data[:, k]
-            else:
-                key = get_last_string(label)
-                tot_en[key] += data[:, k]
+            tot_en += data[:, k]
 
-    if markers == 'only one species':
-        plt.plot(times, tot_en, label='sum')
-    else:
-        for key in tot_en.keys:
-            plt.plot(times, tot_en[key], label=key)
+    plt.plot(times, tot_en, label='sum')
 
     plt.legend()
     plt.xlabel('time')
     plt.ylabel('energy')
-    plt.yscale('log')
+    # plt.yscale('log')
     plt.title('Energies for ' + method + ' advection')
 
     if save_plot:
@@ -166,6 +134,23 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     plt.close()
 
+    # Plot rest
+    for k, label in enumerate(labels):
+        if label[:3] != 'en_' and label != 'l2_phi':
+            plt.plot(times, np.abs(np.divide(data[:, k] - data[0, k], data[0, k])), label=label)
+
+    plt.legend()
+    plt.xlabel('time')
+    plt.title('Relative Errors for Quantities for ' + method + ' advection')
+
+    if save_plot:
+        plt.savefig(foldername + 'plots/' + method + '_quantities_rel_err.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
 
 def main():
     """
@@ -187,7 +172,7 @@ def main():
                 if not os.path.exists(foldername + 'plots/'):
                     os.mkdir(foldername + 'plots/')
                 plot_diagnostics(foldername, method)
-            k += 1
+            break
         else:
             break
 

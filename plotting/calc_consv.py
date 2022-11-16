@@ -23,8 +23,9 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
 
     degree = constants.splineDegrees[:-1]
     period = [False, True, True]
-    domain = [[constants.rMin, constants.rMax], [
-        0, 2*np.pi], [constants.zMin, constants.zMax]]
+    domain = [[constants.rMin, constants.rMax],
+              [0, 2*np.pi],
+              [constants.zMin, constants.zMax]]
 
     nkts = [n + 1 + d * (int(p) - 1)
             for (n, d, p) in zip(npts, degree, period)]
@@ -77,8 +78,8 @@ def do_all(foldername):
     rank = comm.Get_rank()
 
     distribFunc, constants, _ = setupFromFile(foldername,
-                                    timepoint=0,
-                                    comm=comm)
+                                              timepoint=0,
+                                              comm=comm)
 
     # which quantities should be extracted
     quantities = ['mass_f', 'l2_f', 'l2_phi', 'en_kin', 'en_pot']
@@ -139,7 +140,8 @@ def do_all(foldername):
                 if len(str(time)) < 4:
                     savefile.write('\t')
                 for k in range(1, len(diagnostics)):
-                    savefile.write(format(diagnostics_val[k, i], '.15E') + "\t")
+                    savefile.write(
+                        format(diagnostics_val[k, i], '.15E') + "\t")
                 savefile.write('\n')
 
 

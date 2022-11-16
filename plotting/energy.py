@@ -36,14 +36,22 @@ class KineticEnergy:
         # global grids
         r = eta_grid[0]
         q = eta_grid[1]
-        z = np.roll(eta_grid[2], shift=-1)
+        z = eta_grid[2]
         v = eta_grid[3]
 
+        while True:
+            if z[0] > z[1] or z[-1] < z[-2]:
+                z = np.roll(z, shift=-1)
+            else:
+                break
+
         # local grids
-        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        my_v = eta_grid[3][layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.z_start = layout.starts[self.idx_z]
+        self.z_end = layout.ends[self.idx_z]
+        my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
@@ -55,8 +63,8 @@ class KineticEnergy:
 
         # Make f_eq array (only depends on r and v but has to have full size)
         self.f_eq = np.zeros((my_r.size, my_v.size), dtype=float)
-        # make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-        #                constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self.f_eq)
+        make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
+                       constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self.f_eq)
         shape_f_eq = [1, 1, 1, 1]
         shape_f_eq[self.idx_r] = my_r.size
         shape_f_eq[self.idx_v] = my_v.size
@@ -117,19 +125,25 @@ class Mass_f:
         self.idx_z = layout.inv_dims_order[2]
         self.idx_v = layout.inv_dims_order[3]
 
-        # local grids
-        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        self.z_start = layout.starts[self.idx_z]
-        self.z_end = layout.ends[self.idx_z]
-        my_v = eta_grid[3][layout.starts[self.idx_v]:layout.ends[self.idx_v]]
-
         # global grids
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
         v = eta_grid[3]
+
+        while True:
+            if z[0] > z[1] or z[-1] < z[-2]:
+                z = np.roll(z, shift=-1)
+            else:
+                break
+
+        # local grids
+        my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.z_start = layout.starts[self.idx_z]
+        self.z_end = layout.ends[self.idx_z]
+        my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
 
         shape_phi = [1, 1, 1]
         shape_phi[self.idx_r] = my_r.size
@@ -152,7 +166,7 @@ class Mass_f:
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
-        dzMult = make_trapz_grid(np.roll(z, shift=-1))
+        dzMult = make_trapz_grid(z)
         self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
@@ -202,19 +216,26 @@ class L2_f:
         self.idx_z = layout.inv_dims_order[2]
         self.idx_v = layout.inv_dims_order[3]
 
-        # local grids
-        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        self.z_start = layout.starts[self.idx_z]
-        self.z_end = layout.ends[self.idx_z]
-        my_v = eta_grid[3][layout.starts[self.idx_v]:layout.ends[self.idx_v]]
-
         # global grids
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
         v = eta_grid[3]
+
+        while True:
+            if z[0] > z[1] or z[-1] < z[-2]:
+                z = np.roll(z, shift=-1)
+            else:
+                break
+
+        # local grids
+        my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.z_start = layout.starts[self.idx_z]
+        self.z_end = layout.ends[self.idx_z]
+        my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+
 
         shape_phi = [1, 1, 1]
         shape_phi[self.idx_r] = my_r.size
@@ -237,7 +258,7 @@ class L2_f:
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
-        dzMult = make_trapz_grid(np.roll(z, shift=-1))
+        dzMult = make_trapz_grid(z)
         self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
@@ -287,17 +308,23 @@ class L2_phi:
         self.idx_q = layout.inv_dims_order[1]
         self.idx_z = layout.inv_dims_order[2]
 
-        # local grids
-        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        self.z_start = layout.starts[self.idx_z]
-        self.z_end = layout.ends[self.idx_z]
-
         # global grids
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
+
+        while True:
+            if z[0] > z[1] or z[-1] < z[-2]:
+                z = np.roll(z, shift=-1)
+            else:
+                break
+
+        # local grids
+        my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.z_start = layout.starts[self.idx_z]
+        self.z_end = layout.ends[self.idx_z]
 
         shape_phi = [1, 1, 1]
         shape_phi[self.idx_r] = my_r.size
@@ -313,7 +340,7 @@ class L2_phi:
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
-        dzMult = make_trapz_grid(np.roll(z, shift=-1))
+        dzMult = make_trapz_grid(z)
         self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
@@ -336,7 +363,7 @@ class L2_phi:
         # phi must be in v_parallel_1d layout
         assert phi.currentLayout == 'v_parallel_1d'
 
-        int_q = np.sum(np.real(phi._f[:, self.z_start: self.z_end, :])**2 * self.mydqMult,
+        int_q = np.sum(np.abs(phi._f[:, self.z_start: self.z_end, :])**2 * self.mydqMult,
                        axis=self.idx_q)
         int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
         int_r = np.sum(int_z * self.mydrMult, axis=self.idx_r)
@@ -364,16 +391,22 @@ class PotentialEnergy:
         # global grids
         r = eta_grid[0]
         q = eta_grid[1]
-        z = np.roll(eta_grid[2], shift=-1)
+        z = eta_grid[2]
         v = eta_grid[3]
 
+        while True:
+            if z[0] > z[1] or z[-1] < z[-2]:
+                z = np.roll(z, shift=-1)
+            else:
+                break
+
         # local grids
-        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         self.z_start = layout.starts[self.idx_z]
         self.z_end = layout.ends[self.idx_z]
-        my_v = eta_grid[3][layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
 
         shape_phi = [1, 1, 1]
         shape_phi[self.idx_r] = my_r.size
