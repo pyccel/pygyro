@@ -3,7 +3,7 @@ import numpy as np
 
 from ..model.grid import Grid
 from .norms import l2, l1, nParticles
-from .energy import KineticEnergy, PotentialEnergy
+from .energy import KineticEnergy, PotentialEnergy, L2phi
 
 
 class DiagnosticCollector:
@@ -129,26 +129,23 @@ class AdvectionDiagnostics:
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros(2, dtype=float)
-        self.diagnostics_val = np.array([[0.]] * 2)
+        self.diagnostics = np.zeros(3, dtype=float)
+        self.diagnostics_val = np.array([[0.]] * 3)
 
         self.KEclass = KineticEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
         self.PEclass = PotentialEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        # self.PEclass = PotentialEnergy(distribFunc.eta_grid)
+        self.L2PHIclass = L2phi(
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
 
-    def collect_kinetic_energy(self, f):
-        """
-        TODO
-        """
-        self.diagnostics[1] = self.KEclass.getKE(f)
-
-    def collect_potential_energy(self, f, phi):
+    def collect(self, f, phi):
         """
         TODO
         """
         self.diagnostics[0] = self.PEclass.getPE(f, phi)
+        self.diagnostics[1] = self.KEclass.getKE(f)
+        self.diagnostics[2] = self.L2PHIclass.getl2(phi)
 
     def reduce(self):
         """

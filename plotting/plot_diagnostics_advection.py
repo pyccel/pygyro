@@ -13,9 +13,10 @@ def get_last_string(string : str):
     assert isinstance(string, str), 'Object is not a string!'
 
     underscores = string.count('_')
-    assert underscores != 0, 'String does not contain a single underscore!'
 
-    if underscores == 1:
+    if underscores == 0:
+        return string
+    elif underscores == 1:
         return None
     else:
         last_index = string.rindex('_')
@@ -96,6 +97,20 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     if show_plot:
         plt.show()
 
+    plt.close()
+
+    for k, label in enumerate(labels):
+        if label == 'l2_phi':
+            plt.plot(times, data[:, k], label=label)
+
+    plt.yscale('log')
+    plt.legend()
+    plt.xlabel('time')
+    plt.title('L2 norm of phi for ' + method + ' advection')
+
+    if save_plot:
+        plt.savefig(foldername + 'plots/' + method + '_l2_phi.png')
+    
     plt.close()
 
     mark = 0
