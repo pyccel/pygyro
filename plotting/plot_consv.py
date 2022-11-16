@@ -172,7 +172,7 @@ def main():
                 if not os.path.exists(foldername + 'plots/'):
                     os.mkdir(foldername + 'plots/')
                 plot_diagnostics(foldername, method)
-            break
+            k += 1
         else:
             break
 
