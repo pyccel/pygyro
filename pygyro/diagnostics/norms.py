@@ -69,7 +69,16 @@ class l2:
         points = np.real(phi._f*phi._f.conj())*self._factor1
 
         return np.sum(points)*self._factor2
+    
+    def scalarProduct(self, phi: Grid, rho: Grid):
+        """
+        TODO
+        """
+        assert self._layout == phi.currentLayout
+        assert self._layout == rho.currentLayout
+        points = np.real(phi._f*rho._f.conj())*self._factor1
 
+        return np.sum(points)*self._factor2
 
 class l1:
     """

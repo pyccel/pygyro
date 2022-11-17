@@ -2,6 +2,7 @@ import numpy as np
 
 from pygyro.model.grid import Grid
 from pygyro.model.layout import Layout
+from pygyro.initialisation.initialiser_funcs import f_eq
 
 
 class KineticEnergy:
@@ -9,7 +10,7 @@ class KineticEnergy:
     TODO
     """
 
-    def __init__(self, eta_grid: list, layout: Layout):
+    def __init__(self, eta_grid: list, layout: Layout, constants):
         idx_r = layout.inv_dims_order[0]
         idx_v = layout.inv_dims_order[3]
 
@@ -23,6 +24,20 @@ class KineticEnergy:
 
         dr = r[1:] - r[:-1]
         dv = v[1:] - v[:-1]
+
+        shape = [1, 1, 1, 1]
+        shape[idx_r] = my_r.size
+        shape[idx_v] = my_v.size
+        self._my_feq = np.empty(shape)
+        if (idx_r < idx_v):
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
+                        constants.CTi, constants.kTi,constants.deltaRTi) 
+                        for r in my_r for v in my_v]
+        else:
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
+                        constants.CTi, constants.kTi,constants.deltaRTi) 
+                        for v in my_v for r in my_r]
+        self._my_feq.flat = my_feq
 
         drMult = np.array(
             [dr[0] * 0.5, *((dr[1:] + dr[:-1]) * 0.5), dr[-1] * 0.5])
@@ -61,6 +76,6 @@ class KineticEnergy:
         """
         assert self._layout == grid.currentLayout
 
-        points = np.real(grid._f) * self._factor1
+        points = np.real(grid._f - self._my_feq) * self._factor1
 
         return np.sum(points) * self._factor2

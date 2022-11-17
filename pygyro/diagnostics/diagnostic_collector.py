@@ -11,13 +11,13 @@ class DiagnosticCollector:
     TODO
     """
 
-    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid):
+    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid, constants):
         self.saveStep = saveStep
         self.dt = dt
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros([8, saveStep])
+        self.diagnostics = np.zeros([9, saveStep])
         self.l2PhiResult = np.zeros(saveStep)
         self.l2GridResult = np.zeros(saveStep)
         self.l1Result = np.zeros(saveStep)
@@ -25,6 +25,7 @@ class DiagnosticCollector:
         self.min_val = np.zeros(saveStep)
         self.max_val = np.zeros(saveStep)
         self.KE_val = np.zeros(saveStep)
+        self.PE_val = np.zeros(saveStep)
 
         self.l2_phi_class = l2(phi.eta_grid, phi.getLayout('v_parallel_2d'))
         self.l1class = l1(distribFunc.eta_grid,
@@ -34,9 +35,9 @@ class DiagnosticCollector:
         self.npart = nParticles(distribFunc.eta_grid,
                                 distribFunc.getLayout('v_parallel'))
         self.KEclass = KineticEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
 
-    def collect(self, f: Grid, phi: Grid, t: float):
+    def collect(self, f: Grid, phi: Grid, rho: Grid, t: float):
         """
         Collect various diagnostics to be saved in the following order:
          0 - time
@@ -47,6 +48,7 @@ class DiagnosticCollector:
          5 - minimum value of the distribution function
          6 - maximum value of the distribution function
          7 - Kinetic Energy
+         8 - Potential Energy
 
         Parameters
         ----------
@@ -70,6 +72,7 @@ class DiagnosticCollector:
         self.diagnostics[5, idx] = f.getMin()
         self.diagnostics[6, idx] = f.getMax()
         self.diagnostics[7, idx] = self.KEclass.getKE(f)
+        self.diagnostics[8, idx] = 0.5 * self.l2_phi_class.scalarProduct(phi, rho)
 
     def reduce(self):
         """
@@ -89,6 +92,9 @@ class DiagnosticCollector:
                          self.max_val, op=MPI.MAX, root=0)
         self.comm.Reduce(self.diagnostics[7, :],
                          self.KE_val, op=MPI.SUM, root=0)
+        self.comm.Reduce(self.diagnostics[8, :],
+                         self.PE_val, op=MPI.SUM, root=0)
+
         if (self.rank == 0):
             self.l2PhiResult = np.sqrt(self.l2PhiResult)
             self.l2GridResult = np.sqrt(self.l2GridResult)
@@ -107,7 +113,7 @@ class DiagnosticCollector:
         """
         TODO
         """
-        return "{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}". \
+        return "{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:16.10e}   {pe:16.10e}". \
             format(t=self.diagnostics[0, i], l2P=self.l2PhiResult[i], l2G=self.l2GridResult[i],
                    l1=self.l1Result[i], np=self.nPartResult[i],
-                   minim=self.min_val[i], maxim=self.max_val[i], ke=self.KE_val[i])
+                   minim=self.min_val[i], maxim=self.max_val[i], ke=self.KE_val[i], pe=self.PE_val[i])

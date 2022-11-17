@@ -157,7 +157,7 @@ def main():
     my_print(rank, "par grad ready")
 
     diagnostics = DiagnosticCollector(
-        comm, saveStep, fullStep, distribFunc, phi)
+        comm, saveStep, fullStep, distribFunc, phi, constants)
 
     my_print(rank, "diagnostics ready")
 
@@ -191,7 +191,7 @@ def main():
 
     diagnostic_start = time.time()
     # Calculate diagnostic quantities
-    diagnostics.collect(distribFunc, phi, t)
+    diagnostics.collect(distribFunc, phi, rho, t)
 
     diagnostic_time += (time.time()-diagnostic_start)
 
@@ -274,7 +274,7 @@ def main():
 
         diagnostic_start = time.time()
         # Calculate diagnostic quantities
-        diagnostics.collect(distribFunc, phi, t)
+        diagnostics.collect(distribFunc, phi, rho, t)
 
         diagnostic_time += (time.time()-diagnostic_start)
 
