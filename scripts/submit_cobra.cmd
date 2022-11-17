@@ -7,16 +7,16 @@
 # Job Name:
 #SBATCH -J pygyro
 # Queue (Partition):
-#SBATCH --partition=express
+#SBATCH --partition=n0064
 # Number of nodes and MPI tasks per node:
-#SBATCH --nodes=8
+#SBATCH --nodes=64
 #SBATCH --ntasks-per-node=40
 #
 #SBATCH --mail-type=begin,end,fail
 #SBATCH --mail-user=dominik.bell@ipp.mpg.de
 #
 # Wall clock limit:
-#SBATCH --time=00:30:00
+#SBATCH --time=24:00:00
 
 module purge
 module load intel/21.5.0
@@ -29,4 +29,4 @@ module list
 
 
 # Run the program:
-srun python3 fullSimulation.py 8000 1790 -c testSetups/iota0.json --adv_diagn > prog.out
+srun python3 fullSimulation.py 8000 85000 -c testSetups/iota0.json --adv_diagn > prog.out
