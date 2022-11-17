@@ -97,8 +97,8 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     # Plot energies
     for k, label in enumerate(labels):
         if label[:3] == 'en_':
-            plt.plot(times, data[:, k], label=label)
-            tot_en += data[:, k]
+            plt.plot(times, data[:, k] / np.max(np.abs(data[:, k])), label=label)
+            tot_en += data[:, k] / np.max(np.abs(data[:, k]))
 
     plt.plot(times, tot_en, label='sum')
 
@@ -172,7 +172,8 @@ def main():
                 if not os.path.exists(foldername + 'plots/'):
                     os.mkdir(foldername + 'plots/')
                 plot_diagnostics(foldername, method)
-            k += 1
+            # k += 1
+            break
         else:
             break
 

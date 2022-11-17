@@ -2,7 +2,6 @@ import numpy as np
 
 from pygyro.model.grid import Grid
 from pygyro.model.layout import Layout
-# from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_potential_energy
 from pygyro.initialisation.initialiser_funcs import make_f_eq_grid, make_n0_grid
 
 
@@ -12,7 +11,8 @@ def make_trapz_grid(grid):
     """
     d_grid = grid[1:] - grid[:-1]
     trapz_grid = np.append(d_grid[0] * 0.5,
-                           np.append((d_grid + np.roll(d_grid, 1))[1:] * 0.5, d_grid[-1] * 0.5))
+                           np.append((d_grid + np.roll(d_grid, 1))[1:] * 0.5,
+                           d_grid[-1] * 0.5))
     return trapz_grid
 
 
@@ -39,11 +39,8 @@ class KineticEnergy:
         z = eta_grid[2]
         v = eta_grid[3]
 
-        while True:
-            if z[0] > z[1] or z[-1] < z[-2]:
-                z = np.roll(z, shift=-1)
-            else:
-                break
+        while z[0] != np.min(z):
+            z = np.roll(z, shift=-1)
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
@@ -72,21 +69,24 @@ class KineticEnergy:
 
         # Make trapezoidal grid for integration over theta (aka q)
         dqMult = make_trapz_grid(q)
-        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        self.mydqMult = dqMult[layout.starts[self.idx_q]
+            :layout.ends[self.idx_q]]
         shape_q = [1, 1, 1]
         shape_q[self.idx_q] = my_q.size
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
         dzMult = make_trapz_grid(z)
-        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.mydzMult = dzMult[layout.starts[self.idx_z]
+            :layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
         self.mydzMult.resize(shape_z)
 
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
-        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        self.mydrMult = drMult[layout.starts[self.idx_r]
+            :layout.ends[self.idx_r]] * my_r
         shape_r = [1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)
@@ -99,7 +99,7 @@ class KineticEnergy:
         assert f.currentLayout == 'v_parallel'
 
         # Integration over v of (f - f_eq)
-        int_v = np.sum((f._f - self.f_eq) * self.mydvMult, axis=self.idx_v)
+        int_v = - np.sum(np.abs((f._f - self.f_eq)) * self.mydvMult, axis=self.idx_v)
 
         int_q = np.sum(int_v * self.mydqMult, axis=self.idx_q)
         int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
@@ -131,11 +131,8 @@ class Mass_f:
         z = eta_grid[2]
         v = eta_grid[3]
 
-        while True:
-            if z[0] > z[1] or z[-1] < z[-2]:
-                z = np.roll(z, shift=-1)
-            else:
-                break
+        while z[0] != np.min(z):
+            z = np.roll(z, shift=-1)
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
@@ -153,28 +150,32 @@ class Mass_f:
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
-        self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        self.mydvMult = dvMult[layout.starts[self.idx_v]
+            :layout.ends[self.idx_v]]
         shape_v = [1, 1, 1, 1]
         shape_v[self.idx_v] = my_v.size
         self.mydvMult.resize(shape_v)
 
         # Make trapezoidal grid for integration over theta (aka q)
         dqMult = make_trapz_grid(q)
-        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        self.mydqMult = dqMult[layout.starts[self.idx_q]
+            :layout.ends[self.idx_q]]
         shape_q = [1, 1, 1]
         shape_q[self.idx_q] = my_q.size
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
         dzMult = make_trapz_grid(z)
-        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.mydzMult = dzMult[layout.starts[self.idx_z]
+            :layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
         self.mydzMult.resize(shape_z)
 
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
-        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        self.mydrMult = drMult[layout.starts[self.idx_r]
+            :layout.ends[self.idx_r]] * my_r
         shape_r = [1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)
@@ -222,11 +223,8 @@ class L2_f:
         z = eta_grid[2]
         v = eta_grid[3]
 
-        while True:
-            if z[0] > z[1] or z[-1] < z[-2]:
-                z = np.roll(z, shift=-1)
-            else:
-                break
+        while z[0] != np.min(z):
+            z = np.roll(z, shift=-1)
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
@@ -236,7 +234,6 @@ class L2_f:
         self.z_end = layout.ends[self.idx_z]
         my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
 
-
         shape_phi = [1, 1, 1]
         shape_phi[self.idx_r] = my_r.size
         shape_phi[self.idx_z] = my_z.size
@@ -245,28 +242,32 @@ class L2_f:
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
-        self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        self.mydvMult = dvMult[layout.starts[self.idx_v]
+            :layout.ends[self.idx_v]]
         shape_v = [1, 1, 1, 1]
         shape_v[self.idx_v] = my_v.size
         self.mydvMult.resize(shape_v)
 
         # Make trapezoidal grid for integration over theta (aka q)
         dqMult = make_trapz_grid(q)
-        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        self.mydqMult = dqMult[layout.starts[self.idx_q]
+            :layout.ends[self.idx_q]]
         shape_q = [1, 1, 1]
         shape_q[self.idx_q] = my_q.size
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
         dzMult = make_trapz_grid(z)
-        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.mydzMult = dzMult[layout.starts[self.idx_z]
+            :layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
         self.mydzMult.resize(shape_z)
 
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
-        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        self.mydrMult = drMult[layout.starts[self.idx_r]
+            :layout.ends[self.idx_r]] * my_r
         shape_r = [1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)
@@ -313,11 +314,8 @@ class L2_phi:
         q = eta_grid[1]
         z = eta_grid[2]
 
-        while True:
-            if z[0] > z[1] or z[-1] < z[-2]:
-                z = np.roll(z, shift=-1)
-            else:
-                break
+        while z[0] != np.min(z):
+            z = np.roll(z, shift=-1)
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
@@ -334,21 +332,24 @@ class L2_phi:
 
         # Make trapezoidal grid for integration over theta (aka q)
         dqMult = make_trapz_grid(q)
-        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        self.mydqMult = dqMult[layout.starts[self.idx_q]
+            :layout.ends[self.idx_q]]
         shape_q = [1, 1, 1]
         shape_q[self.idx_q] = my_q.size
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
         dzMult = make_trapz_grid(z)
-        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.mydzMult = dzMult[layout.starts[self.idx_z]
+            :layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
         self.mydzMult.resize(shape_z)
 
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
-        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        self.mydrMult = drMult[layout.starts[self.idx_r]
+            :layout.ends[self.idx_r]] * my_r
         shape_r = [1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)
@@ -394,11 +395,8 @@ class PotentialEnergy:
         z = eta_grid[2]
         v = eta_grid[3]
 
-        while True:
-            if z[0] > z[1] or z[-1] < z[-2]:
-                z = np.roll(z, shift=-1)
-            else:
-                break
+        while z[0] != np.min(z):
+            z = np.roll(z, shift=-1)
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
@@ -416,28 +414,32 @@ class PotentialEnergy:
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
-        self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        self.mydvMult = dvMult[layout.starts[self.idx_v]
+            :layout.ends[self.idx_v]]
         shape_v = [1, 1, 1, 1]
         shape_v[self.idx_v] = my_v.size
         self.mydvMult.resize(shape_v)
 
         # Make trapezoidal grid for integration over theta (aka q)
         dqMult = make_trapz_grid(q)
-        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        self.mydqMult = dqMult[layout.starts[self.idx_q]
+            :layout.ends[self.idx_q]]
         shape_q = [1, 1, 1]
         shape_q[self.idx_q] = my_q.size
         self.mydqMult.resize(shape_q)
 
         # Make trapezoidal grid for integration over z
         dzMult = make_trapz_grid(z)
-        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.mydzMult = dzMult[layout.starts[self.idx_z]
+            :layout.ends[self.idx_z]]
         shape_z = [1, 1]
         shape_z[self.idx_z] = my_z.size
         self.mydzMult.resize(shape_z)
 
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
-        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        self.mydrMult = drMult[layout.starts[self.idx_r]
+            :layout.ends[self.idx_r]] * my_r
         shape_r = [1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)

@@ -139,7 +139,7 @@ def main():
     # Poloidal Advection step: Semi-Lagrangian method or Arakawa scheme
     if poloidal_method == 'sl':
         if adv_diagn:
-            advection_savefile = "{0}/sl_consv.txt".format(foldername)
+            advection_savefile = "{0}/sl_adv_consv.txt".format(foldername)
 
         polAdv = PoloidalAdvection(distribFunc.eta_grid,
                                    distribFunc.getSpline(slice(1, None, -1)), constants)
@@ -147,7 +147,7 @@ def main():
 
     elif poloidal_method == 'akw':
         if adv_diagn:
-            advection_savefile = "{0}/akw_consv.txt".format(foldername)
+            advection_savefile = "{0}/akw_adv_consv.txt".format(foldername)
 
         polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
         my_print(rank, nosave, "pol adv akw init done")

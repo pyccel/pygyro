@@ -46,7 +46,7 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     with open(foldername + "initParams.json") as file:
         dt = json.load(file)["dt"]
 
-    with open(foldername + method + "_consv.txt") as file:
+    with open(foldername + method + "_adv_consv.txt") as file:
         for line in file:
             for entry in line.split():
                 data.append(entry)
@@ -84,6 +84,12 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     # Plot relative errors
     for k in range(entries):
+        if labels[k] == 'en_kin':
+            print(labels[k] + ' : ' )
+            print('before : ')
+            print(data[:, k])
+            print('after : ')
+            print(data[:, k + entries])
         plt.plot(times, np.abs(np.divide(data[:, k] - data[:, k + entries], data[:, k])),
                 label=labels[k])
     plt.legend()
@@ -173,14 +179,14 @@ def main():
     """
     TODO
     """
-    k = 0
+    k = 6
 
     while True:
         foldername = 'simulation_' + str(k) + '/'
         if os.path.exists(foldername):
-            if os.path.exists(foldername + 'akw_consv.txt'):
+            if os.path.exists(foldername + 'akw_adv_consv.txt'):
                 method = 'akw'
-            elif os.path.exists(foldername + 'sl_consv.txt'):
+            elif os.path.exists(foldername + 'sl_adv_consv.txt'):
                 method = 'sl'
             else:
                 continue

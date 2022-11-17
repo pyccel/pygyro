@@ -22,7 +22,8 @@
 "n" : 1,
 "iotaVal" : 0.0,
 "npts" : [32, 32, 16, 20],
-"dt": 10,
+"dt": 40,
 "_variableNames" : ["r", "theta", "z", "v"],
-"poloidalAdvectionMethod" : ["akw"]
+"poloidalAdvectionMethod" : ["akw"],
+"AdvectionSaveQuantities" : ["mass_f", "l2_f", "l2_phi", "en_kin", "en_pot"]
 }

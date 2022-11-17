@@ -155,7 +155,8 @@ def main():
         foldername = 'simulation_' + str(k) + '/'
         if os.path.exists(foldername):
             do_all(foldername)
-            k += 1
+            # k += 1
+            break
         else:
             break
 
