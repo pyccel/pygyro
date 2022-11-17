@@ -3,7 +3,7 @@ import numpy as np
 from pygyro.model.grid import Grid
 from pygyro.model.layout import Layout
 # from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_potential_energy
-from pygyro.initialisation.initialiser_funcs import f_eq, make_f_eq_grid
+from pygyro.initialisation.initialiser_funcs import make_f_eq_grid, make_n0_grid
 
 
 def make_trapz_grid(grid):
@@ -18,159 +18,226 @@ def make_trapz_grid(grid):
 
 class KineticEnergy:
     """
-    TODO
+    Layout has to be in v_parallel, i.e.:
+        (r, z, theta, v)
+
+    Integrate first over v, then theta, then z, then r
     """
 
     def __init__(self, eta_grid: list, layout: Layout, constants):
-        idx_r = layout.inv_dims_order[0]
-        idx_v = layout.inv_dims_order[3]
+        assert layout.name == 'v_parallel', f'Layout is {layout.name} not v_parallel'
+        self._layout = layout.name
 
-        my_r = eta_grid[0][layout.starts[idx_r]:layout.ends[idx_r]]
-        my_v = eta_grid[3][layout.starts[idx_v]:layout.ends[idx_v]]
+        self.idx_r = layout.inv_dims_order[0]
+        self.idx_q = layout.inv_dims_order[1]
+        self.idx_z = layout.inv_dims_order[2]
+        self.idx_v = layout.inv_dims_order[3]
 
+        # local grids
+        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        my_v = eta_grid[3][layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+
+        # global grids
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
         v = eta_grid[3]
 
-        # dr = r[1:] - r[:-1]
-        # dv = v[1:] - v[:-1]
-
-        self._my_feq = np.empty(my_r.size * my_v.size)
-        if (idx_r < idx_v):
-            # my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-            #                constants.CTi, constants.kTi, constants.deltaRTi)
-            #           for r in my_r for v in my_v]
-            make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-                           constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self._my_feq, 1)
-        else:
-            # my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-            #                constants.CTi, constants.kTi, constants.deltaRTi)
-            #           for v in my_v for r in my_r]
-            make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-                           constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self._my_feq, 0)
-
-        # assert np.allclose(self._my_feq, my_feq), 'These arrays are not the same'
-
-        shape = [1, 1, 1, 1]
-        shape[idx_r] = my_r.size
-        shape[idx_v] = my_v.size
-        self._my_feq = self._my_feq.reshape(shape)
-
-        drMult = make_trapz_grid(r)
+        # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
+        self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        shape_v = [1, 1, 1, 1]
+        shape_v[self.idx_v] = my_v.size
+        self.mydvMult.resize(shape_v)
 
-        mydrMult = drMult[layout.starts[idx_r]:layout.ends[idx_r]]
-        mydvMult = dvMult[layout.starts[idx_v]:layout.ends[idx_v]]
+        # Make f_eq array (only depends on r and v but has to have full size)
+        self.f_eq = np.zeros((my_r.size, my_v.size), dtype=float)
+        make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
+                       constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self.f_eq)
+        shape_f_eq = [1, 1, 1, 1]
+        shape_f_eq[self.idx_r] = my_r.size
+        shape_f_eq[self.idx_v] = my_v.size
+        self.f_eq.resize(shape_f_eq)
 
-        shape = [1, 1, 1, 1]
-        shape[idx_r] = mydrMult.size
-        shape[idx_v] = mydvMult.size
+        # Make trapezoidal grid for integration over theta (aka q)
+        dqMult = make_trapz_grid(q)
+        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        shape_q = [1, 1, 1]
+        shape_q[self.idx_q] = my_q.size
+        self.mydqMult.resize(shape_q)
 
-        self._factor1 = np.empty(shape)
-        if (idx_r < idx_v):
-            self._factor1.flat = ((mydrMult * my_r)[:, None]
-                                  * (mydvMult * my_v**2)[None, :]).flat
-        else:
-            self._factor1.flat = ((mydrMult * my_r)[None, :]
-                                  * (mydvMult * my_v**2)[:, None]).flat
+        # Make trapezoidal grid for integration over z
+        dzMult = make_trapz_grid(z)
+        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        shape_z = [1, 1]
+        shape_z[self.idx_z] = my_z.size
+        self.mydzMult.resize(shape_z)
 
-        self._layout = layout.name
+        # Make trapezoidal grid for integration over r
+        drMult = make_trapz_grid(r)
+        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        shape_r = [1]
+        shape_r[self.idx_r] = my_r.size
+        self.mydrMult.resize(shape_r)
 
-        dq = q[2] - q[1]
-        assert dq * eta_grid[1].size - 2 * np.pi < 1e-7
-
-        dz = z[2] - z[1]
-        assert dq > 0
-        assert dz > 0
-
-        self._factor2 = 0.5 * dq * dz
-
-    def getKE(self, grid: Grid):
+    def getKE(self, f: Grid):
         """
-        TODO
+        Integrate first over v, then theta, then z, then r
         """
-        assert self._layout == grid.currentLayout, \
-            f'self._layout {self._layout} is not the same as grid.currentLayout {grid.currentLayout}'
+        # must be in v_parallel layout
+        assert f.currentLayout == 'v_parallel'
 
-        points = (grid._f - self._my_feq) * self._factor1
+        # Integration over v of (f - f_eq)
+        int_v = np.sum((f._f - self.f_eq) * self.mydvMult, axis=self.idx_v)
 
-        return np.sum(points) * self._factor2
+        int_q = np.sum(int_v * self.mydqMult, axis=self.idx_q)
+        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_r = np.sum(int_z * self.mydrMult, axis=self.idx_r)
+
+        return int_r * 0.5
 
 
 class PotentialEnergy:
     """
-    TODO
+    Layout has to be in v_parallel, i.e.:
+        (r, z, theta, v)
+
+    Integrate first over v, then theta, then z, then r
     """
 
     def __init__(self, eta_grid: list, layout: Layout, constants):
-        idx_r = layout.inv_dims_order[0]
-        idx_q = layout.inv_dims_order[1]
-        idx_z = layout.inv_dims_order[2]
-        idx_v = layout.inv_dims_order[3]
+        assert layout.name == 'v_parallel', f'Layout is {layout.name} not v_parallel'
+        self._layout = layout.name
 
-        self.r_start_end = (layout.starts[idx_r], layout.ends[idx_r])
-        self.q_start_end = (layout.starts[idx_q], layout.ends[idx_q])
-        self.z_start_end = (layout.starts[idx_z], layout.ends[idx_z])
-        self.v_start_end = (layout.starts[idx_v], layout.ends[idx_v])
+        self.idx_r = layout.inv_dims_order[0]
+        self.idx_q = layout.inv_dims_order[1]
+        self.idx_z = layout.inv_dims_order[2]
+        self.idx_v = layout.inv_dims_order[3]
 
-        my_r = eta_grid[0][layout.starts[idx_r]:layout.ends[idx_r]]
-        my_v = eta_grid[3][layout.starts[idx_v]:layout.ends[idx_v]]
+        # local grids
+        my_r = eta_grid[0][layout.starts[self.idx_r]:layout.ends[self.idx_r]]
+        my_q = eta_grid[1][layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        my_z = eta_grid[2][layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        self.z_start = layout.starts[self.idx_z]
+        self.z_end = layout.ends[self.idx_z]
+        my_v = eta_grid[3][layout.starts[self.idx_v]:layout.ends[self.idx_v]]
 
-        # Create temporary buffer for storing phi values
-        self.phi_temp = np.zeros((self.r_start_end[1] - self.r_start_end[0],
-                                  self.z_start_end[1] - self.z_start_end[0],
-                                  1,
-                                  self.v_start_end[1] - self.v_start_end[0]), dtype=float)
-
+        # global grids
         r = eta_grid[0]
         q = eta_grid[1]
         z = eta_grid[2]
         v = eta_grid[3]
 
-        # dr = r[1:] - r[:-1]
-        # dv = v[1:] - v[:-1]
+        shape_phi = [1, 1, 1]
+        shape_phi[self.idx_r] = my_r.size
+        shape_phi[self.idx_z] = my_z.size
+        shape_phi[self.idx_q] = my_q.size
+        self._shape_phi = shape_phi
 
-        self._my_feq = np.empty(my_r.size * my_v.size)
-        if (idx_r < idx_v):
-            # my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-            #                constants.CTi, constants.kTi, constants.deltaRTi)
-            #           for r in my_r for v in my_v]
-            make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-                           constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self._my_feq, 1)
-        else:
-            # my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-            #                constants.CTi, constants.kTi, constants.deltaRTi)
-            #           for v in my_v for r in my_r]
-            make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
-                           constants.CTi, constants.kTi, constants.deltaRTi, my_r, my_v, self._my_feq, 0)
+        # Make trapezoidal grid for integration over v
+        dvMult = make_trapz_grid(v)
+        self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
+        shape_v = [1, 1, 1, 1]
+        shape_v[self.idx_v] = my_v.size
+        self.mydvMult.resize(shape_v)
 
-        # assert np.allclose(self._my_feq, my_feq), 'These arrays are not the same'
+        # Make trapezoidal grid for integration over theta (aka q)
+        dqMult = make_trapz_grid(q)
+        self.mydqMult = dqMult[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        shape_q = [1, 1, 1]
+        shape_q[self.idx_q] = my_q.size
+        self.mydqMult.resize(shape_q)
 
-        shape = [1, 1, 1, 1]
+        # Make trapezoidal grid for integration over z
+        dzMult = make_trapz_grid(z)
+        self.mydzMult = dzMult[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        shape_z = [1, 1]
+        shape_z[self.idx_z] = my_z.size
+        self.mydzMult.resize(shape_z)
+
+        # Make trapezoidal grid for integration over r
+        drMult = make_trapz_grid(r)
+        self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] * my_r
+        shape_r = [1]
+        shape_r[self.idx_r] = my_r.size
+        self.mydrMult.resize(shape_r)
+
+        # Make n_0 array (only depends on r but must be 3d (r, z, theta))
+        self.n_0 = np.zeros(my_r.size, dtype=float)
+        make_n0_grid(constants.CN0, constants.kN0,
+                     constants.deltaRN0, constants.rp, my_r, self.n_0)
+        shape_n0 = [1, 1, 1]
+        shape_n0[self.idx_r] = my_r.size
+        self.n_0.resize(shape_n0)
+
+    def getPE(self, f: Grid, phi: Grid):
+        """
+        Layout has to be in v_parallel, i.e.:
+            (r, z, theta, v)
+        
+        Phi is in 'v_parallel_1d':
+            (r, z, theta)
+
+        Integrate first over v, then theta, then z, then r
+        """
+        # must be in v_parallel layout
+        assert f.currentLayout == 'v_parallel'
+
+        # phi must be in v_parallel_1d layout
+        assert phi.currentLayout == 'v_parallel_1d'
+
+        # Integration over v of f -> yields n_i
+        n_i = np.sum(f._f * self.mydvMult, axis=self.idx_v)
+
+        # print(f'shape of f : {np.shape(f._f)}')
+        # print(f'shape of dvMult : {np.shape(self.mydvMult)}')
+        # print(f'shape of f * dvMult : {np.shape(f._f * self.mydvMult)}')
+        # print(f'shape of n_i : {np.shape(n_i)}')
+        # print(f'shape of n0 : {np.shape(self.n_0)}')
+        # print(f'shape of phi._f : {np.shape(phi._f)}')
+        # print(f'layout of phi._f : {phi.currentLayout}')
+        # print(f'shape of drMult : {np.shape(self.mydrMult)}')
+
+        int_q = np.sum((n_i - self.n_0) * np.real(phi._f[:, self.z_start:self.z_end, :]) * self.mydqMult,
+                       axis=self.idx_q)
+        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_r = np.sum(int_z * self.mydrMult, axis=self.idx_r)
+
+        return int_r * 0.5
+
+
+class L2phi:
+    """
+    TODO
+    """
+
+    def __init__(self, eta_grid: list, layout):
+        idx_r = layout.inv_dims_order[0]
+        idx_q = layout.inv_dims_order[1]
+        idx_z = layout.inv_dims_order[2]
+
+        my_r = eta_grid[0][layout.starts[idx_r]:layout.ends[idx_r]]
+        my_q = eta_grid[1][layout.starts[idx_q]:layout.ends[idx_q]]
+        my_z = eta_grid[2][layout.starts[idx_z]:layout.ends[idx_z]]
+
+        shape = [1, 1, 1]
         shape[idx_r] = my_r.size
-        shape[idx_v] = my_v.size
-        self._my_feq = self._my_feq.reshape(shape)
+        shape[idx_q] = my_q.size
+        shape[idx_z] = my_z.size
+        self._shape_phi = shape
+
+        r = eta_grid[0]
+        q = eta_grid[1]
+        z = eta_grid[2]
 
         drMult = make_trapz_grid(r)
-        dvMult = make_trapz_grid(v)
+        self.mydrMult = drMult[layout.starts[idx_r]:layout.ends[idx_r]] * my_r
 
-        mydrMult = drMult[layout.starts[idx_r]:layout.ends[idx_r]]
-        mydvMult = dvMult[layout.starts[idx_v]:layout.ends[idx_v]]
-
-        shape = [1, 1, 1, 1]
-        shape[idx_r] = mydrMult.size
-        shape[idx_v] = mydvMult.size
-
-        self._factor1 = np.empty(shape)
-        if (idx_r < idx_v):
-            self._factor1.flat = ((mydrMult * my_r)[:, None]
-                                  * (mydvMult)[None, :]).flat
-        else:
-            self._factor1.flat = ((mydrMult * my_r)[None, :]
-                                  * (mydvMult)[:, None]).flat
-
-        self._layout = layout.name
+        shape = [1, 1, 1]
+        shape[idx_r] = self.mydrMult.size
+        self.mydrMult.resize(shape)
 
         dq = q[2] - q[1]
         assert dq * eta_grid[1].size - 2 * np.pi < 1e-7
@@ -179,18 +246,13 @@ class PotentialEnergy:
         assert dq > 0
         assert dz > 0
 
-        self._factor2 = 0.5 * dq * dz
+        self._factor_int_theta_z = 0.5 * dq * dz
 
-    def getPE(self, grid: Grid, phi: Grid):
+    def getl2(self, phi: Grid):
         """
         TODO
         """
-        assert self._layout == grid.currentLayout, \
-            f'self._layout {self._layout} is not the same as grid.currentLayout {grid.currentLayout}'
+        phi_grid = np.empty(self._shape_phi)
+        phi_grid.flat = np.real(phi._f).flat
 
-        self.phi_temp.flat = np.real(
-            phi._f[:, self.z_start_end[0]: self.z_start_end[1], :].flat)
-
-        points = (grid._f - self._my_feq) * self.phi_temp * self._factor1
-
-        return np.sum(points) * self._factor2
+        return np.sum(phi_grid**2 * self.mydrMult) * self._factor_int_theta_z

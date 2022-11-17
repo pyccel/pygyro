@@ -42,26 +42,27 @@ def f_eq(r: 'float', vPar: 'float', CN0: 'float', kN0: 'float', deltaRN0: 'float
 
 def make_f_eq_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float',
                    rp: 'float', Cti: 'float', kti: 'float', deltaRti: 'float',
-                   grid_r: 'float[:]', grid_v: 'float[:]', output: 'float[:]', r_before_v: 'int'):
+                   grid_r: 'float[:]', grid_v: 'float[:]', output: 'float[:,:]'):
     """
-    Parameters
-    ----------
-        r_before_v : is 0 is v is before r (idx_v < idx_r) or 1 if r is before v (idx_r < idx_v)
+    output array is assumed to have r as the first index
     """
     from numpy import exp, sqrt, pi, real
 
-    if r_before_v == 0:
-        for i, vPar in enumerate(grid_v):
-            for j, r in enumerate(grid_r):
-                output[i*len(grid_r) + j] = n0(r, CN0, kN0, deltaRN0, rp) \
-                    * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
-                    / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
-    else:
-        for i, r in enumerate(grid_r):
-            for j, vPar in enumerate(grid_v):
-                output[i*len(grid_v) + j] = n0(r, CN0, kN0, deltaRN0, rp) \
-                    * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
-                    / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
+    for i, r in enumerate(grid_r):
+        for j, vPar in enumerate(grid_v):
+            output[i, j] = n0(r, CN0, kN0, deltaRN0, rp) \
+                * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
+                / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
+
+
+def make_n0_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
+                 grid_r: 'float[:]', output: 'float[:]'):
+    """
+    TODO
+    """
+
+    for i, r in enumerate(grid_r):
+        output[i] = n0(r, CN0, kN0, deltaRN0, rp)
 
 
 @pure
