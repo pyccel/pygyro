@@ -5,6 +5,7 @@ from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
+from mpi4py import MPI
 
 from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa, assemble_row_columns_akw_bracket_4th_order_extrapolation, update_bracket_4th_order_dirichlet_extrapolation
 from ..splines.splines import BSplines, Spline1D, Spline2D
@@ -17,7 +18,7 @@ from .accelerated_advection_steps import get_lagrange_vals, flux_advection, \
     poloidal_advection_step_expl, \
     poloidal_advection_step_impl
 from ..initialisation.initialiser_funcs import f_eq
-from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
+from ..arakawa.utilities import compute_int_f, compute_int_f_squared, get_potential_energy
 
 
 def fieldline(theta, z_diff, iota, r, R0):
@@ -642,6 +643,9 @@ class PoloidalAdvectionArakawa:
                  equilibrium_outside: bool = True, verbose: bool = False,
                  explicit: bool = False,
                  save_conservation: bool = False, foldername=''):
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -679,13 +683,10 @@ class PoloidalAdvectionArakawa:
                 foldername)
 
             # Create savefile if it does not already exist from previous simulation
-            if not os.path.exists(self._conservation_savefile):
+            if not os.path.exists(self._conservation_savefile) and rank == 0:
                 with open(self._conservation_savefile, 'w') as savefile:
                     savefile.write(
-                        "int_f before\t\t\tint_f_sqd before\t\tenergy before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\tenergy after\n")
-            else:
-                with open(self._conservation_savefile, 'w') as savefile:
-                    savefile.write("\n")
+                        "int_f before\t\t\tint_f_sqd before\t\ten_pot before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\ten_pot after\n")
 
         self.bc = bc
 
@@ -1117,7 +1118,7 @@ class PoloidalAdvectionArakawa:
                                          self._points_r, method='trapz')
             int_f_squared_before = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
                                                          self._points_r, method='trapz')
-            energy_before = get_total_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
+            energy_before = get_potential_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
                                              self._points_r, method='trapz')
             with open(self._conservation_savefile, 'a') as savefile:
                 savefile.write(
@@ -1128,7 +1129,7 @@ class PoloidalAdvectionArakawa:
                                         self._points_r, method='trapz')
             int_f_squared_after = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
                                                         self._points_r, method='trapz')
-            energy_after = get_total_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
+            energy_after = get_potential_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
                                             self._points_r, method='trapz')
             with open(self._conservation_savefile, 'a') as savefile:
                 savefile.write(

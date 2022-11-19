@@ -40,11 +40,11 @@ def plot_diagnostics(foldername, save_plot=True, show_plot=False):
     plt.plot(times, np.abs(np.divide(data[:, 1] - data[:, 4], data[:, 1])),
              label='$l^2$-norm')
     plt.plot(times, np.abs(np.divide(data[:, 2] - data[:, 5], data[:, 2])),
-             label='energy')
+             label='potential energy')
     plt.legend()
     plt.xlabel('time')
     plt.ylabel('error')
-    plt.title('Relative error in mass, $l^2$-norm, and energy')
+    plt.title('Relative error in mass, $l^2$-norm, and potential energy')
 
     if save_plot:
         plt.savefig(foldername + 'plots/akw_conservation.png')
