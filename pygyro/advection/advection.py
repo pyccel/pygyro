@@ -679,14 +679,23 @@ class PoloidalAdvectionArakawa:
             with open(foldername + "/initParams.json") as file:
                 self._dt = json.load(file)["dt"]
 
-            self._conservation_savefile = "{0}/akw_consv.txt".format(
+            self._consv_savefile_v_0 = "{0}/akw_consv_v_0.txt".format(
                 foldername)
 
             # Create savefile if it does not already exist from previous simulation
-            if not os.path.exists(self._conservation_savefile) and rank == 0:
-                with open(self._conservation_savefile, 'w') as savefile:
+            if not os.path.exists(self._consv_savefile_v_0) and rank == 0:
+                with open(self._consv_savefile_v_0, 'w') as savefile:
                     savefile.write(
-                        "int_f before\t\t\tint_f_sqd before\t\ten_pot before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\ten_pot after\n")
+                        "int_f before\t\t\tl2_norm_f before\t\ten_pot before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\ten_pot after\n")
+
+            self._consv_savefile_v_max = "{0}/akw_consv_v_max.txt".format(
+                foldername)
+
+            # Create savefile if it does not already exist from previous simulation
+            if not os.path.exists(self._consv_savefile_v_max) and rank == 0:
+                with open(self._consv_savefile_v_max, 'w') as savefile:
+                    savefile.write(
+                        "int_f before\t\t\tl2_norm_f before\t\ten_pot before\t\t\tint_f after\t\t\t\tint_f_sqd after\t\t\ten_pot after\n")
 
         self.bc = bc
 
@@ -1047,8 +1056,13 @@ class PoloidalAdvectionArakawa:
                     if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('before', f, i, j, phi)
+                        if global_z == 0:
+                            if global_v == (f.eta_grid[3].size // 2):
+                                self._save_consv_to_file(
+                                    'before', '0', f, i, j, phi)
+                            elif global_v == f.eta_grid[3].size - 1:
+                                self._save_consv_to_file(
+                                    'before', 'max', f, i, j, phi)
 
                     # assume phi equals 0 outside
                     values_phi = np.zeros(self.order)
@@ -1066,8 +1080,13 @@ class PoloidalAdvectionArakawa:
                     if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('after', f, i, j, phi)
+                        if global_z == 0:
+                            if global_v == (f.eta_grid[3].size // 2):
+                                self._save_consv_to_file(
+                                    'after', '0', f, i, j, phi)
+                            elif global_v == f.eta_grid[3].size - 1:
+                                self._save_consv_to_file(
+                                    'after', 'max', f, i, j, phi)
 
         else:
             # Do step
@@ -1079,8 +1098,13 @@ class PoloidalAdvectionArakawa:
                     if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('before', f, i, j, phi)
+                        if global_z == 0:
+                            if global_v == (f.eta_grid[3].size // 2):
+                                self._save_consv_to_file(
+                                    'before', '0', f, i, j, phi)
+                            elif global_v == f.eta_grid[3].size - 1:
+                                self._save_consv_to_file(
+                                    'before', 'max', f, i, j, phi)
 
                     self.step_normal(f.get2DSlice(i, j),
                                      dt, phi.get2DSlice(j))
@@ -1089,10 +1113,15 @@ class PoloidalAdvectionArakawa:
                     if self._save_conservation and dt == self._dt:
                         global_v = global_inds_v[i]
                         global_z = global_inds_z[j]
-                        if global_v == (f.eta_grid[3].size // 2) and global_z == 0:
-                            self._save_consv_to_file('after', f, i, j, phi)
+                        if global_z == 0:
+                            if global_v == (f.eta_grid[3].size // 2):
+                                self._save_consv_to_file(
+                                    'after', '0', f, i, j, phi)
+                            elif global_v == f.eta_grid[3].size - 1:
+                                self._save_consv_to_file(
+                                    'after', 'max', f, i, j, phi)
 
-    def _save_consv_to_file(self, boa: str, f: Grid, idx_v: int, idx_z: int, phi: Grid):
+    def _save_consv_to_file(self, boa: str, v_loc: str, f: Grid, idx_v: int, idx_z: int, phi: Grid):
         """
         Compute the conserved quantities (integral of f and its square, energy) and save it to the savefile.
 
@@ -1100,6 +1129,9 @@ class PoloidalAdvectionArakawa:
         ----------
             boa : str
                 'before' or 'after'; if computation is before or after doing the grid_step
+
+            v_loc : str
+                '0' or 'max'; where in the velocity distribution the slice (idx_v) is
 
             f : pygyro.model.grid.Grid
                 Grid object that characterizes the distribution function
@@ -1114,26 +1146,36 @@ class PoloidalAdvectionArakawa:
                 Grid object that characterizes the electric field
         """
         if boa == 'before':
-            int_f_before = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                         self._points_r, method='trapz')
-            int_f_squared_before = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                                         self._points_r, method='trapz')
-            energy_before = get_potential_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
-                                             self._points_r, method='trapz')
-            with open(self._conservation_savefile, 'a') as savefile:
-                savefile.write(
-                    format(int_f_before, '.15E') + "\t" + format(int_f_squared_before, '.15E') + "\t" + format(energy_before, '.15E') + "\t")
+            int_f = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                  self._points_r, method='trapz')
+            l2_norm_f = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                              self._points_r, method='trapz')
+            en_pot = get_potential_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
+                                          self._points_r, method='trapz')
+            if v_loc == '0':
+                with open(self._consv_savefile_v_0, 'a') as savefile:
+                    savefile.write(
+                        format(int_f, '.15E') + "\t" + format(l2_norm_f, '.15E') + "\t" + format(en_pot, '.15E') + "\t")
+            elif v_loc == 'max':
+                with open(self._consv_savefile_v_max, 'a') as savefile:
+                    savefile.write(
+                        format(int_f, '.15E') + "\t" + format(l2_norm_f, '.15E') + "\t" + format(en_pot, '.15E') + "\t")
 
         elif boa == 'after':
-            int_f_after = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                        self._points_r, method='trapz')
-            int_f_squared_after = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
-                                                        self._points_r, method='trapz')
-            energy_after = get_potential_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
-                                            self._points_r, method='trapz')
-            with open(self._conservation_savefile, 'a') as savefile:
-                savefile.write(
-                    format(int_f_after, '.15E') + "\t" + format(int_f_squared_after, '.15E') + "\t" + format(energy_after, '.15E') + "\n")
+            int_f = compute_int_f(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                  self._points_r, method='trapz')
+            l2_norm_f = compute_int_f_squared(f.get2DSlice(idx_v, idx_z), self._dtheta, self._dr,
+                                              self._points_r, method='trapz')
+            en_pot = get_potential_energy(f.get2DSlice(idx_v, idx_z), phi.get2DSlice(idx_z), self._dtheta, self._dr,
+                                          self._points_r, method='trapz')
+            if v_loc == '0':
+                with open(self._consv_savefile_v_0, 'a') as savefile:
+                    savefile.write(
+                        format(int_f, '.15E') + "\t" + format(l2_norm_f, '.15E') + "\t" + format(en_pot, '.15E') + "\n")
+            elif v_loc == 'max':
+                with open(self._consv_savefile_v_max, 'a') as savefile:
+                    savefile.write(
+                        format(int_f, '.15E') + "\t" + format(l2_norm_f, '.15E') + "\t" + format(en_pot, '.15E') + "\n")
 
         else:
             raise NotImplementedError(
