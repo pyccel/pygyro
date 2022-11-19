@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
+import argparse
 
 
 def get_last_string(string : str):
@@ -97,15 +98,17 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     # Plot energies
     for k, label in enumerate(labels):
         if label[:3] == 'en_':
-            plt.plot(times, data[:, k] / np.max(np.abs(data[:, k])), label=label)
-            tot_en += data[:, k] / np.max(np.abs(data[:, k]))
+            plt.plot(times, data[:, k], label=label)
+            tot_en += data[:, k]
+            # plt.plot(times, data[:, k] / np.max(np.abs(data[:, k])), label=label)
+            # tot_en += data[:, k] / np.max(np.abs(data[:, k]))
 
     plt.plot(times, tot_en, label='sum')
 
     plt.legend()
     plt.xlabel('time')
     plt.ylabel('energy')
-    # plt.yscale('log')
+    # plt.ylim([-50, 50])
     plt.title('Energies for ' + method + ' advection')
 
     if save_plot:
@@ -156,7 +159,12 @@ def main():
     """
     TODO
     """
-    k = 0
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-k', metavar='foldername',
+                        nargs='*', type=int)
+
+    args = parser.parse_args()
+    k = args.k[0]
 
     while True:
         foldername = 'simulation_' + str(k) + '/'
@@ -171,6 +179,7 @@ def main():
             if os.path.exists(foldername + method + '_consv.txt'):
                 if not os.path.exists(foldername + 'plots/'):
                     os.mkdir(foldername + 'plots/')
+                print(f'Now plotting conservations for {foldername}')
                 plot_diagnostics(foldername, method)
             # k += 1
             break

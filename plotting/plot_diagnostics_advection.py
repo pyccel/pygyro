@@ -1,12 +1,12 @@
+import json
+import matplotlib.pyplot as plt
 import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import json
 
 
-def get_last_string(string : str):
+def get_last_string(string: str):
     """
     Get the last piece of a string after an underscore
     """
@@ -64,9 +64,12 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     entries = int(k / 4)
     for k in range(entries):
-        assert data[2*k] == data[2*(k + entries)], f'Labels not matching! {data[2*k]} != {data[2*(k + entries)]}'
-        assert data[2*k + 1] == 'before', f'Was expecting label before but got {data[2*k + 1]}'
-        assert data[2*(k + entries) + 1] == 'after', f'Was expecting label after but got {data[2*(k + entries) + 1]}'
+        assert data[2*k] == data[2 *
+                                 (k + entries)], f'Labels not matching! {data[2*k]} != {data[2*(k + entries)]}'
+        assert data[2*k +
+                    1] == 'before', f'Was expecting label before but got {data[2*k + 1]}'
+        assert data[2*(k + entries) +
+                    1] == 'after', f'Was expecting label after but got {data[2*(k + entries) + 1]}'
 
     labels = []
     for k in range(entries):
@@ -84,21 +87,15 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     # Plot relative errors
     for k in range(entries):
-        if labels[k] == 'en_kin':
-            print(labels[k] + ' : ' )
-            print('before : ')
-            print(data[:, k])
-            print('after : ')
-            print(data[:, k + entries])
         plt.plot(times, np.abs(np.divide(data[:, k] - data[:, k + entries], data[:, k])),
-                label=labels[k])
+                 label=labels[k])
     plt.legend()
     plt.xlabel('time')
     plt.ylabel('error')
     plt.title('Relative Errors for ' + method + ' Advection')
 
     if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_conservation.png')
+        plt.savefig(foldername + 'plots/' + method + '_adv_conservation.png')
 
     if show_plot:
         plt.show()
@@ -115,8 +112,8 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
             plt.title('L2 norm of phi for ' + method + ' advection')
 
             if save_plot:
-                plt.savefig(foldername + 'plots/' + method + '_l2_phi.png')
-            
+                plt.savefig(foldername + 'plots/' + method + '_adv_l2_phi.png')
+
             plt.close()
 
     mark = 0
@@ -139,7 +136,7 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     elif markers == 'only one species':
         tot_en = np.zeros(np.shape(times))
-    
+
     else:
         tot_en = {}
         for key in markers.keys:
@@ -167,7 +164,7 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.title('Energies for ' + method + ' advection')
 
     if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_energies.png')
+        plt.savefig(foldername + 'plots/' + method + '_adv_energies.png')
 
     if show_plot:
         plt.show()
@@ -179,7 +176,7 @@ def main():
     """
     TODO
     """
-    k = 6
+    k = 7
 
     while True:
         foldername = 'simulation_' + str(k) + '/'
@@ -191,7 +188,7 @@ def main():
             else:
                 continue
 
-            if not os.path.exists(foldername + 'plots/') and os.path.exists(foldername + method + '_consv.txt'):
+            if not os.path.exists(foldername + 'plots/') and os.path.exists(foldername + method + '_adv_consv.txt'):
                 os.mkdir(foldername + 'plots/')
                 plot_diagnostics(foldername, method)
             k += 1

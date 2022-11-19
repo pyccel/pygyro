@@ -213,7 +213,7 @@ def main():
     my_print(rank, nosave, "par grad ready")
 
     diagnostics = DiagnosticCollector(
-        comm, saveStep, fullStep, distribFunc, phi, constants)
+        comm, saveStep, fullStep, distribFunc, phi)
     my_print(rank, nosave, "diagnostics ready")
 
     if adv_diagn:
@@ -294,6 +294,7 @@ def main():
 
         t += fullStep
         my_print(rank, nosave, "t=", t)
+        print(f'time = {t}')
 
         # =============================================
         # ==== Compute f^n+1/2 using Lie splitting ====
@@ -335,6 +336,9 @@ def main():
         phi.setLayout('v_parallel_1d')
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
 
+        distribFunc.setLayout('poloidal')
+        phi.setLayout('poloidal')
+
         if adv_diagn:
             advection_diagnostics.collect(distribFunc, phi)
             advection_diagnostics.reduce()
@@ -343,15 +347,9 @@ def main():
                     for k in range(len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
 
-        distribFunc.setLayout('poloidal')
-        phi.setLayout('poloidal')
-
         polAdv.gridStep(distribFunc, phi, fullStep)
 
-        distribFunc.setLayout('v_parallel')
-
         if adv_diagn:
-            phi.setLayout('v_parallel_1d')
             advection_diagnostics.collect(distribFunc, phi)
             advection_diagnostics.reduce()
 
@@ -361,6 +359,7 @@ def main():
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
                     savefile.write("\n")
 
+        distribFunc.setLayout('v_parallel')
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)
         distribFunc.setLayout('flux_surface')
         fluxAdv.gridStep(distribFunc)

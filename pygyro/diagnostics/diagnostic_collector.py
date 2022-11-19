@@ -3,7 +3,8 @@ import numpy as np
 
 from ..model.grid import Grid
 from .norms import l2, l1, nParticles
-from plotting.energy import KineticEnergy, PotentialEnergy, L2_f, Mass_f, L2_phi
+from .energy import KineticEnergy
+from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, L2_f, Mass_f, L2_phi
 
 
 class DiagnosticCollector:
@@ -11,7 +12,7 @@ class DiagnosticCollector:
     TODO
     """
 
-    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid, constants):
+    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid):
         self.saveStep = saveStep
         self.dt = dt
         self.comm = comm
@@ -34,7 +35,7 @@ class DiagnosticCollector:
         self.npart = nParticles(distribFunc.eta_grid,
                                 distribFunc.getLayout('v_parallel'))
         self.KEclass = KineticEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
 
     def collect(self, f: Grid, phi: Grid, t: float):
         """
@@ -132,24 +133,27 @@ class AdvectionDiagnostics:
         self.diagnostics = np.zeros(5, dtype=float)
         self.diagnostics_val = np.array([[0.]] * 5)
 
-        self.MASSFclass = Mass_f(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
-        self.L2Fclass = L2_f(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
-        self.L2PHIclass = L2_phi(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
-        self.KEclass = KineticEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        self.PEclass = PotentialEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+        # self.MASSFclass = Mass_f(
+        #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+        # self.L2Fclass = L2_f(
+        #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+        # self.L2PHIclass = L2_phi(
+        #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+        self.KEclass = KineticEnergy_v2(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
+        self.PEclass = PotentialEnergy_v2(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
 
     def collect(self, f, phi):
         """
         TODO
         """
-        self.diagnostics[0] = self.MASSFclass.getMASSF(f)
-        self.diagnostics[1] = self.L2Fclass.getL2F(f)
-        self.diagnostics[2] = self.L2PHIclass.getL2Phi(phi)
+        self.diagnostics[0] = 0.
+        self.diagnostics[1] = 0.
+        self.diagnostics[2] = 0.
+        # self.diagnostics[0] = self.MASSFclass.getMASSF(f)
+        # self.diagnostics[1] = self.L2Fclass.getL2F(f)
+        # self.diagnostics[2] = self.L2PHIclass.getL2Phi(phi)
         self.diagnostics[3] = self.KEclass.getKE(f)
         self.diagnostics[4] = self.PEclass.getPE(f, phi)
 

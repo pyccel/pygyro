@@ -40,21 +40,19 @@ def f_eq(r: 'float', vPar: 'float', CN0: 'float', kN0: 'float', deltaRN0: 'float
         / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
 
 
+@pure
 def make_f_eq_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float',
                    rp: 'float', Cti: 'float', kti: 'float', deltaRti: 'float',
-                   grid_r: 'float[:]', grid_v: 'float[:]', output: 'float[:,:]'):
+                   grid_v: 'float[:]', grid_r: 'float[:]', output: 'float[:,:]'):
     """
-    output array is assumed to have r as the first index
+    output array is assumed to have v as the first index
     """
-    from numpy import exp, sqrt, pi, real
-
-    for i, r in enumerate(grid_r):
-        for j, vPar in enumerate(grid_v):
-            output[i, j] = n0(r, CN0, kN0, deltaRN0, rp) \
-                * exp(-0.5 * vPar * vPar / Ti(r, Cti, kti, deltaRti, rp)) \
-                / real(sqrt(2.0*pi * Ti(r, Cti, kti, deltaRti, rp)))
+    for i, vPar in enumerate(grid_v):
+        for j, r in enumerate(grid_r):
+            output[i, j] = f_eq(r, vPar, CN0, kN0, deltaRN0, rp, Cti, kti, deltaRti)
 
 
+@pure
 def make_n0_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
                  grid_r: 'float[:]', output: 'float[:]'):
     """

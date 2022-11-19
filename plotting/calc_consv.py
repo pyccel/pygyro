@@ -1,13 +1,14 @@
 import os
 import numpy as np
 from mpi4py import MPI
+import argparse
 
 from pygyro import splines as spl
 from pygyro.initialisation.setups import setupFromFile
 from pygyro.model.layout import LayoutSwapper
 from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
-from plotting.energy import KineticEnergy, PotentialEnergy, Mass_f, L2_f, L2_phi
+from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, KineticEnergy_fresch, PotentialEnergy_fresch, Mass_f, L2_f, L2_phi
 
 
 def calc_consv(foldername, diagnostics, ind, comm, classes):
@@ -51,9 +52,9 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
                'v_parallel_2d', comm, dtype=np.complex128)
     phi.loadFromFile(foldername, time, "phi")
 
-    distribFunc.setLayout('v_parallel')
+    distribFunc.setLayout('poloidal')
+    phi.setLayout('poloidal')
 
-    phi.setLayout('v_parallel_1d')
     for k, myclass in enumerate(classes):
         if k == 0:
             diagnostics[k + 1, ind] = myclass.getMASSF(distribFunc)
@@ -62,8 +63,13 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
         elif k == 2:
             diagnostics[k + 1, ind] = myclass.getL2Phi(phi)
         elif k == 3:
+            if isinstance(myclass, KineticEnergy_fresch):
+                distribFunc.setLayout('v_parallel')
             diagnostics[k + 1, ind] = myclass.getKE(distribFunc)
         elif k == 4:
+            if isinstance(myclass, PotentialEnergy_fresch):
+                distribFunc.setLayout('v_parallel')
+                phi.setLayout('v_parallel_2d')
             diagnostics[k + 1, ind] = myclass.getPE(distribFunc, phi)
         else:
             raise ValueError
@@ -81,21 +87,30 @@ def do_all(foldername):
                                               timepoint=0,
                                               comm=comm)
 
+    # type = 'fresch'
+    type = 'v2'
+
     # which quantities should be extracted
     quantities = ['mass_f', 'l2_f', 'l2_phi', 'en_kin', 'en_pot']
     method = constants.poloidalAdvectionMethod[0]
 
     # create classes for computing quantities
     MASSFclass = Mass_f(
-        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+        distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2Fclass = L2_f(
-        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+        distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2PHIclass = L2_phi(
-        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
-    KEclass = KineticEnergy(
-        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-    PEclass = PotentialEnergy(
-        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+        distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+    if type == 'v2':
+        KEclass = KineticEnergy_v2(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
+        PEclass = PotentialEnergy_v2(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
+    elif type == 'fresch':
+        KEclass = KineticEnergy_fresch(
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+        PEclass = PotentialEnergy_fresch(
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
 
     classes = [MASSFclass, L2Fclass, L2PHIclass, KEclass, PEclass]
 
@@ -149,11 +164,21 @@ def main():
     """
     TODO
     """
-    k = 0
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-k', metavar='foldername',
+                        nargs='*', type=int)
+
+    args = parser.parse_args()
+    k = args.k[0]
+
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
 
     while True:
         foldername = 'simulation_' + str(k) + '/'
         if os.path.exists(foldername):
+            if rank == 0:
+                print(f'Now computing conservation for {foldername}')
             do_all(foldername)
             # k += 1
             break

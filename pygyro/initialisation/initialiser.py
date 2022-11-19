@@ -1,7 +1,9 @@
+from pygyro.model.grid import Grid
+from pygyro.initialisation.constants import Constants
 from .initialiser_funcs import init_f_flux, init_f_pol, init_f_vpar
 
 
-def initialise_flux_surface(grid, constants):
+def initialise_flux_surface(grid: Grid, constants: Constants):
     """
     TODO
     """
@@ -21,7 +23,7 @@ def initialise_flux_surface(grid, constants):
                         constants.deltaRTi, constants.deltaR, constants.R0)
 
 
-def initialise_poloidal(grid, constants):
+def initialise_poloidal(grid: Grid, constants: Constants):
     """
     TODO
     """
@@ -41,7 +43,7 @@ def initialise_poloidal(grid, constants):
                        constants.deltaRTi, constants.deltaR, constants.R0)
 
 
-def initialise_v_parallel(grid, constants):
+def initialise_v_parallel(grid: Grid, constants: Constants):
     """
     TODO
     """
