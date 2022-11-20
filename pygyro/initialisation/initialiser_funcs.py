@@ -53,17 +53,6 @@ def make_f_eq_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float',
 
 
 @pure
-def make_n0_grid(CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
-                 grid_r: 'float[:]', output: 'float[:]'):
-    """
-    TODO
-    """
-
-    for i, r in enumerate(grid_r):
-        output[i] = n0(r, CN0, kN0, deltaRN0, rp)
-
-
-@pure
 def n0deriv_normalised(r: 'float', kN0: 'float', rp: 'float', deltaRN0: 'float') -> 'float':
     """
     TODO

@@ -8,8 +8,7 @@ from pygyro.initialisation.setups import setupFromFile
 from pygyro.model.layout import LayoutSwapper
 from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
-from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, PotentialEnergy_fresch, Mass_f, L2_f, L2_phi
-from pygyro.diagnostics.norms import l2
+from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, Mass_f, L2_f, L2_phi
 
 
 def calc_consv(foldername, diagnostics, ind, comm, classes):
@@ -67,13 +66,9 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
             diagnostics[k + 1, ind] = myclass.getL2F(distribFunc)
         elif k == 2:
             diagnostics[k + 1, ind] = myclass.getL2Phi(phi)
-            # diagnostics[k + 1, ind] = myclass.l2NormSquared(phi)
         elif k == 3:
             diagnostics[k + 1, ind] = myclass.getKE(distribFunc)
         elif k == 4:
-            if isinstance(myclass, PotentialEnergy_fresch):
-                distribFunc.setLayout('v_parallel')
-                phi.setLayout('v_parallel_2d')
             diagnostics[k + 1, ind] = myclass.getPE(distribFunc, phi)
         else:
             raise ValueError
@@ -100,16 +95,12 @@ def do_all(foldername):
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2Fclass = L2_f(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
-    # L2PHIclass = l2(
-    #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2PHIclass = L2_phi(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     KEclass = KineticEnergy_v2(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
-    # PEclass = PotentialEnergy_v2(
-    #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
-    PEclass = PotentialEnergy_fresch(
-        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+    PEclass = PotentialEnergy_v2(
+        distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
 
     classes = [MASSFclass, L2Fclass, L2PHIclass, KEclass, PEclass]
 
