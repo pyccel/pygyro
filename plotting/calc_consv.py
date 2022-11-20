@@ -8,7 +8,8 @@ from pygyro.initialisation.setups import setupFromFile
 from pygyro.model.layout import LayoutSwapper
 from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
-from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, Mass_f, L2_f, L2_phi
+from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, PotentialEnergy_fresch, Mass_f, L2_f, L2_phi
+from pygyro.diagnostics.norms import l2
 
 
 def calc_consv(foldername, diagnostics, ind, comm, classes):
@@ -19,9 +20,7 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
     time = int(diagnostics[0, ind])
     distribFunc, constants, _ = setupFromFile(foldername,
                                               timepoint=time,
-                                              comm=comm,
-                                              allocateSaveMemory=True,
-                                              layout='v_parallel')
+                                              comm=comm)
 
     npts = constants.npts
 
@@ -56,24 +55,6 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
     phi = Grid(eta_grids, bsplines, remapperPhi,
                'v_parallel_2d', comm, dtype=np.complex128)
 
-    # rank = comm.Get_rank()
-    # if rank == 0:
-    #     print(np.shape(distribFunc.eta_grid[0]))
-    #     print(np.min(distribFunc.eta_grid[0]))
-    #     print(np.max(distribFunc.eta_grid[0]))
-    #     print(np.shape(distribFunc.eta_grid[1]))
-    #     print(np.min(distribFunc.eta_grid[1]))
-    #     print(np.max(distribFunc.eta_grid[1]))
-    #     print(np.shape(distribFunc.eta_grid[2]))
-    #     print(np.min(distribFunc.eta_grid[2]))
-    #     print(np.max(distribFunc.eta_grid[2]))
-
-    # remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
-    #                             [nprocs, nprocs[0], nprocs[1]],
-    #                             distribFunc.eta_grid[:3],
-    #                             'v_parallel_2d')
-    # phi = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
-    #            remapperPhi, 'v_parallel_2d', comm, dtype=np.complex128)
     phi.loadFromFile(foldername, time, "phi")
 
     distribFunc.setLayout('poloidal')
@@ -86,9 +67,13 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
             diagnostics[k + 1, ind] = myclass.getL2F(distribFunc)
         elif k == 2:
             diagnostics[k + 1, ind] = myclass.getL2Phi(phi)
+            # diagnostics[k + 1, ind] = myclass.l2NormSquared(phi)
         elif k == 3:
             diagnostics[k + 1, ind] = myclass.getKE(distribFunc)
         elif k == 4:
+            if isinstance(myclass, PotentialEnergy_fresch):
+                distribFunc.setLayout('v_parallel')
+                phi.setLayout('v_parallel_2d')
             diagnostics[k + 1, ind] = myclass.getPE(distribFunc, phi)
         else:
             raise ValueError
@@ -115,12 +100,16 @@ def do_all(foldername):
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2Fclass = L2_f(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+    # L2PHIclass = l2(
+    #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2PHIclass = L2_phi(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     KEclass = KineticEnergy_v2(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
-    PEclass = PotentialEnergy_v2(
-        distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
+    # PEclass = PotentialEnergy_v2(
+    #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
+    PEclass = PotentialEnergy_fresch(
+        distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
 
     classes = [MASSFclass, L2Fclass, L2PHIclass, KEclass, PEclass]
 
@@ -157,6 +146,12 @@ def do_all(foldername):
     for k in range(1, len(diagnostics)):
         comm.Reduce(diagnostics[k, :],
                     diagnostics_val[k, :], op=MPI.SUM, root=0)
+
+    index_l2_f = quantities.index('l2_f') + 1
+    index_l2_phi = quantities.index('l2_phi') + 1
+
+    diagnostics_val[index_l2_f, :] = np.sqrt(diagnostics_val[index_l2_f, :])
+    diagnostics_val[index_l2_phi, :] = np.sqrt(diagnostics_val[index_l2_phi, :])
 
     if rank == 0:
         with open(advection_savefile, 'a') as savefile:

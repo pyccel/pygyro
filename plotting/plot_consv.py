@@ -94,14 +94,14 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
             times2[:] = dataset[:, 0]
             norm[:] = dataset[:, 1]
 
-            plt.plot(times, data[:, k], label=label)
             plt.plot(times2, norm, 'co', label='saved')
+            plt.plot(times, data[:, k], label=label)
             plt.plot(times, a * np.exp(b * times), label='analytical')
 
             plt.legend()
             plt.xlabel('time')
             plt.yscale('log')
-            plt.title('L2 norm of phi for ' + method + ' advection, data saved during the simulation, and analytical linear growth rate')
+            plt.title('L2 norm of phi for ' + method + ' advection, data saved during the simulation,\n and analytical linear growth rate')
 
             if save_plot:
                 plt.savefig(foldername + 'plots/' + method + '_l2_phi.png')
