@@ -176,7 +176,7 @@ def main():
     """
     TODO
     """
-    k = 7
+    k = 2
 
     while True:
         foldername = 'simulation_' + str(k) + '/'

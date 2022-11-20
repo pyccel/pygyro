@@ -294,7 +294,8 @@ def main():
 
         t += fullStep
         my_print(rank, nosave, "t=", t)
-        print(f'time = {t}')
+        if rank == 0:
+            print(f'time = {t}')
 
         # =============================================
         # ==== Compute f^n+1/2 using Lie splitting ====

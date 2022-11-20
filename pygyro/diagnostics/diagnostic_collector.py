@@ -133,12 +133,12 @@ class AdvectionDiagnostics:
         self.diagnostics = np.zeros(5, dtype=float)
         self.diagnostics_val = np.array([[0.]] * 5)
 
-        # self.MASSFclass = Mass_f(
-        #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
-        # self.L2Fclass = L2_f(
-        #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
-        # self.L2PHIclass = L2_phi(
-        #     distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+        self.MASSFclass = Mass_f(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+        self.L2Fclass = L2_f(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
+        self.L2PHIclass = L2_phi(
+            distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
         self.KEclass = KineticEnergy_v2(
             distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
         self.PEclass = PotentialEnergy_v2(
@@ -148,12 +148,12 @@ class AdvectionDiagnostics:
         """
         TODO
         """
-        self.diagnostics[0] = 0.
-        self.diagnostics[1] = 0.
-        self.diagnostics[2] = 0.
-        # self.diagnostics[0] = self.MASSFclass.getMASSF(f)
-        # self.diagnostics[1] = self.L2Fclass.getL2F(f)
-        # self.diagnostics[2] = self.L2PHIclass.getL2Phi(phi)
+        # self.diagnostics[0] = 0.
+        # self.diagnostics[1] = 0.
+        # self.diagnostics[2] = 0.
+        self.diagnostics[0] = self.MASSFclass.getMASSF(f)
+        self.diagnostics[1] = self.L2Fclass.getL2F(f)
+        self.diagnostics[2] = self.L2PHIclass.getL2Phi(phi)
         self.diagnostics[3] = self.KEclass.getKE(f)
         self.diagnostics[4] = self.PEclass.getPE(f, phi)
 
@@ -164,5 +164,3 @@ class AdvectionDiagnostics:
         for k in range(len(self.diagnostics)):
             self.comm.Reduce(self.diagnostics[k],
                             self.diagnostics_val[k], op=MPI.SUM, root=0)
-            # if self.rank == 0:
-            #     print(f'k = {k} : {self.diagnostics_val[k][0]}')

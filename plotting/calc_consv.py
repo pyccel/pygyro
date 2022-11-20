@@ -8,7 +8,7 @@ from pygyro.initialisation.setups import setupFromFile
 from pygyro.model.layout import LayoutSwapper
 from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
-from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, KineticEnergy_fresch, PotentialEnergy_fresch, Mass_f, L2_f, L2_phi
+from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, Mass_f, L2_f, L2_phi
 
 
 def calc_consv(foldername, diagnostics, ind, comm, classes):
@@ -18,7 +18,10 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
     size = comm.Get_size()
     time = int(diagnostics[0, ind])
     distribFunc, constants, _ = setupFromFile(foldername,
-                                              timepoint=time, comm=comm)
+                                              timepoint=time,
+                                              comm=comm,
+                                              allocateSaveMemory=True,
+                                              layout='v_parallel')
 
     npts = constants.npts
 
@@ -44,12 +47,33 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
 
     nprocs = compute_2d_process_grid(npts, size)
 
+    nprocs = distribFunc.getLayout(distribFunc.currentLayout).nprocs[:2]
+
     remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
                                 [nprocs, nprocs[0], nprocs[1]], eta_grids,
                                 'v_parallel_2d')
 
     phi = Grid(eta_grids, bsplines, remapperPhi,
                'v_parallel_2d', comm, dtype=np.complex128)
+
+    # rank = comm.Get_rank()
+    # if rank == 0:
+    #     print(np.shape(distribFunc.eta_grid[0]))
+    #     print(np.min(distribFunc.eta_grid[0]))
+    #     print(np.max(distribFunc.eta_grid[0]))
+    #     print(np.shape(distribFunc.eta_grid[1]))
+    #     print(np.min(distribFunc.eta_grid[1]))
+    #     print(np.max(distribFunc.eta_grid[1]))
+    #     print(np.shape(distribFunc.eta_grid[2]))
+    #     print(np.min(distribFunc.eta_grid[2]))
+    #     print(np.max(distribFunc.eta_grid[2]))
+
+    # remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
+    #                             [nprocs, nprocs[0], nprocs[1]],
+    #                             distribFunc.eta_grid[:3],
+    #                             'v_parallel_2d')
+    # phi = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
+    #            remapperPhi, 'v_parallel_2d', comm, dtype=np.complex128)
     phi.loadFromFile(foldername, time, "phi")
 
     distribFunc.setLayout('poloidal')
@@ -63,13 +87,8 @@ def calc_consv(foldername, diagnostics, ind, comm, classes):
         elif k == 2:
             diagnostics[k + 1, ind] = myclass.getL2Phi(phi)
         elif k == 3:
-            if isinstance(myclass, KineticEnergy_fresch):
-                distribFunc.setLayout('v_parallel')
             diagnostics[k + 1, ind] = myclass.getKE(distribFunc)
         elif k == 4:
-            if isinstance(myclass, PotentialEnergy_fresch):
-                distribFunc.setLayout('v_parallel')
-                phi.setLayout('v_parallel_2d')
             diagnostics[k + 1, ind] = myclass.getPE(distribFunc, phi)
         else:
             raise ValueError
@@ -87,9 +106,6 @@ def do_all(foldername):
                                               timepoint=0,
                                               comm=comm)
 
-    # type = 'fresch'
-    type = 'v2'
-
     # which quantities should be extracted
     quantities = ['mass_f', 'l2_f', 'l2_phi', 'en_kin', 'en_pot']
     method = constants.poloidalAdvectionMethod[0]
@@ -101,16 +117,10 @@ def do_all(foldername):
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
     L2PHIclass = L2_phi(
         distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
-    if type == 'v2':
-        KEclass = KineticEnergy_v2(
-            distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
-        PEclass = PotentialEnergy_v2(
-            distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
-    elif type == 'fresch':
-        KEclass = KineticEnergy_fresch(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        PEclass = PotentialEnergy_fresch(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+    KEclass = KineticEnergy_v2(
+        distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
+    PEclass = PotentialEnergy_v2(
+        distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
 
     classes = [MASSFclass, L2Fclass, L2PHIclass, KEclass, PEclass]
 

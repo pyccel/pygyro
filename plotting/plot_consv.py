@@ -79,18 +79,33 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     data = data[:, 1:entries]
 
+    a = 4e-5
+    b = 0.00354
+
     for k, label in enumerate(labels):
         if label == 'l2_phi':
+            dataset = np.atleast_2d(np.loadtxt(os.path.join(foldername, 'phiDat.txt')))
+
+            shape = dataset.shape
+
+            times2 = np.ndarray(shape[0])
+            norm = np.ndarray(shape[0])
+
+            times2[:] = dataset[:, 0]
+            norm[:] = dataset[:, 1]
+
             plt.plot(times, data[:, k], label=label)
+            plt.plot(times2, norm, 'co', label='saved')
+            plt.plot(times, a * np.exp(b * times), label='analytical')
 
             plt.legend()
             plt.xlabel('time')
             plt.yscale('log')
-            plt.title('L2 norm of phi for ' + method + ' advection')
+            plt.title('L2 norm of phi for ' + method + ' advection, data saved during the simulation, and analytical linear growth rate')
 
             if save_plot:
                 plt.savefig(foldername + 'plots/' + method + '_l2_phi.png')
-            
+
             plt.close()
 
     tot_en = np.zeros(np.shape(times))
@@ -137,7 +152,7 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     plt.close()
 
-    # Plot rest
+    # Plot relative error for rest
     for k, label in enumerate(labels):
         if label[:3] != 'en_' and label != 'l2_phi':
             plt.plot(times, np.abs(np.divide(data[:, k] - data[0, k], data[0, k])), label=label)
