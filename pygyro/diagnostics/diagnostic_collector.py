@@ -11,7 +11,7 @@ class DiagnosticCollector:
     TODO
     """
 
-    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid):
+    def __init__(self, comm, saveStep: int, dt: float, distribFunc: Grid, phi: Grid, constants):
         self.saveStep = saveStep
         self.dt = dt
         self.comm = comm
@@ -35,7 +35,7 @@ class DiagnosticCollector:
         self.npart = nParticles(distribFunc.eta_grid,
                                 distribFunc.getLayout('v_parallel'))
         self.KEclass = KineticEnergy(
-            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'))
+            distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
 
     def collect(self, f: Grid, phi: Grid, rho: Grid, t: float):
         """
@@ -112,7 +112,7 @@ class DiagnosticCollector:
         """
         TODO
         """
-        return "{t:10g}   {l2P:16.10e}   {l2G:16.10e}   {l1:16.10e}   {np:16.10e}   {minim:16.10e}   {maxim:16.10e}   {ke:1.20g} {pe:1.20g} ". \
+        return "{t:10g}\t{l2P:16.10e}\t{l2G:16.10e}\t{l1:16.10e}\t{np:16.10e}\t{minim:16.10e}\t{maxim:16.10e}\t{ke:1.20g}\t{pe:1.20g} ". \
             format(t=self.diagnostics[0, i], l2P=self.l2PhiResult[i], l2G=self.l2GridResult[i],
                    l1=self.l1Result[i], np=self.nPartResult[i],
                    minim=self.min_val[i], maxim=self.max_val[i], ke=self.KE_val[i], pe=self.PE_val[i])

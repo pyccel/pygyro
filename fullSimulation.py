@@ -190,7 +190,7 @@ def main():
     my_print(rank, nosave, "par grad ready")
 
     diagnostics = DiagnosticCollector(
-        comm, saveStep, fullStep, distribFunc, phi)
+        comm, saveStep, fullStep, distribFunc, phi, constants)
     my_print(rank, nosave, "diagnostics ready")
 
     diagnostic_filename = "{0}/phiDat.txt".format(foldername)
@@ -343,7 +343,7 @@ def main():
         if (ti % saveStep == saveStepCut) and (not nosave):
             my_print(rank, nosave, "save time", t)
             output_start = time.time()
-            #distribFunc.writeH5Dataset(foldername, t)
+            distribFunc.writeH5Dataset(foldername, t)
             phi.writeH5Dataset(foldername, t, "phi")
 
             diagnostics.reduce()
