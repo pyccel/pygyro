@@ -3,7 +3,7 @@ import numpy as np
 
 from ..model.grid import Grid
 from .norms import l2, l1, nParticles
-from .energy import KineticEnergy
+from .energy import KineticEnergy, PotentialEnergy
 
 
 class DiagnosticCollector:
@@ -36,6 +36,8 @@ class DiagnosticCollector:
                                 distribFunc.getLayout('v_parallel'))
         self.KEclass = KineticEnergy(
             distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
+        # self.PEclass = PotentialEnergy(
+        #     distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
 
     def collect(self, f: Grid, phi: Grid, rho: Grid, t: float):
         """
@@ -73,6 +75,7 @@ class DiagnosticCollector:
         self.diagnostics[6, idx] = f.getMax()
         self.diagnostics[7, idx] = self.KEclass.getKE(f)
         self.diagnostics[8, idx] = 0.5*self.l2_phi_class.scalarProduct(phi,rho)
+        # self.diagnostics[8, idx] = self.PEclass.getPE(f, phi)
 
     def reduce(self):
         """

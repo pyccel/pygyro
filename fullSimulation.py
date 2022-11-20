@@ -242,7 +242,7 @@ def main():
 
         output_start = time.time()
 
-        #distribFunc.writeH5Dataset(foldername, t)
+        distribFunc.writeH5Dataset(foldername, t)
 
         my_print(rank, nosave, "grid printed")
         phi.writeH5Dataset(foldername, t, "phi")
@@ -288,7 +288,7 @@ def main():
         distribFunc.setLayout('v_parallel')
         density.getPerturbedRho(distribFunc, rho)
         QNSolver.getModes(rho)
-
+    
         rho.setLayout('mode_solve')
         phi.setLayout('mode_solve')
         QNSolver.solveEquation(phi, rho)
@@ -375,7 +375,7 @@ def main():
                 print(diagnostics.getLine(i), file=diagnosticFile)
             diagnosticFile.close()
 
-        #distribFunc.writeH5Dataset(foldername, t)
+        distribFunc.writeH5Dataset(foldername, t)
         phi.writeH5Dataset(foldername, t, "phi")
         output_time += (time.time() - output_start)
 
