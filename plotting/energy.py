@@ -4,7 +4,7 @@ from mpi4py import MPI
 from pygyro.model.grid import Grid
 from pygyro.model.layout import Layout
 from pygyro.initialisation.constants import Constants
-from pygyro.initialisation.initialiser_funcs import make_f_eq_grid, make_n0_grid, n0, f_eq
+from pygyro.initialisation.initialiser_funcs import make_f_eq_grid
 
 
 def make_trapz_grid(grid):
@@ -176,11 +176,6 @@ class Mass_f:
         shape_v = [1]
         shape_v[self.idx_v] = my_v.size
         self.mydvMult.resize(shape_v)
-
-        # Trapezoidal grid for integrating f_eq over v and comparing to n_0
-        shape_dv_int_f_eq = [1, 1, 1, 1]
-        shape_dv_int_f_eq[self.idx_v] = my_v.size
-        self.mydvMult_int_f_eq = self.mydvMult.reshape(shape_dv_int_f_eq)
 
     def getMASSF(self, f: Grid):
         """
