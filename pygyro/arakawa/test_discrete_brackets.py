@@ -3,7 +3,7 @@ import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
 
-from .utilities import compute_int_f, compute_int_f_squared, get_total_energy
+from .utilities import compute_int_f, compute_int_f_squared, get_potential_energy
 from .discrete_brackets_polar import assemble_bracket_arakawa
 
 
@@ -250,8 +250,8 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
                                r_grid, method=int_method)
     int_f_squared_init = compute_int_f_squared(f, d_theta, d_r,
                                                r_grid, method=int_method)
-    total_energy_init = get_total_energy(f, phi, d_theta, d_r,
-                                         r_grid, method=int_method)
+    total_energy_init = get_potential_energy(f, phi, d_theta, d_r,
+                                             r_grid, method=int_method)
 
     for _ in range(N):
         # scaling is only found in the identity
@@ -265,8 +265,8 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
                               r_grid, method=int_method)
         int_f_squared = compute_int_f_squared(f, d_theta, d_r,
                                               r_grid, method=int_method)
-        total_energy = get_total_energy(f, phi, d_theta, d_r,
-                                        r_grid, method=int_method)
+        total_energy = get_potential_energy(f, phi, d_theta, d_r,
+                                            r_grid, method=int_method)
 
         assert np.abs(int_f - int_f_init)/int_f_init < iter_tol
         assert np.abs(int_f_squared - int_f_squared_init) / \

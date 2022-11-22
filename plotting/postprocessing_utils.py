@@ -12,7 +12,7 @@ from pygyro.initialisation.constants import get_constants
 from pygyro import splines as spl
 from pygyro.tools.getSlice import get_grid_slice, get_flux_surface_grid_slice
 from pygyro.tools.getPhiSlice import get_phi_slice
-from pygyro.arakawa.utilities import compute_int_f, compute_int_f_squared, get_total_energy
+from pygyro.arakawa.utilities import compute_int_f, compute_int_f_squared, get_potential_energy
 
 from pygyro.model.process_grid import compute_2d_process_grid
 from pygyro.model.grid import Grid
@@ -311,7 +311,7 @@ def plot_conservation(foldername):
 
             int_f.append(compute_int_f(f.ravel(), dtheta, dr, r))
             int_f2.append(compute_int_f_squared(f.ravel(), dtheta, dr, r))
-            int_en.append(get_total_energy(
+            int_en.append(get_potential_energy(
                 f.ravel(), phi.ravel(), dtheta, dr, r))
 
     p = np.array(t_f).argsort()

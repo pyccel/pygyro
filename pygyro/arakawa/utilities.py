@@ -240,10 +240,10 @@ def compute_int_f_squared(f: np.ndarray,
     return res
 
 
-def get_total_energy(f: np.ndarray, phi: np.ndarray,
-                     d_theta: float, d_r: float,
-                     r_grid: np.ndarray,
-                     method: str = 'sum'):
+def get_potential_energy(f: np.ndarray, phi: np.ndarray,
+                         d_theta: float, d_r: float,
+                         r_grid: np.ndarray,
+                         method: str = 'sum'):
     """
     Compute the total energy, i.e. the integral of f times phi over the whole
     domain in polar coordinates. A uniform grid is assumed.
