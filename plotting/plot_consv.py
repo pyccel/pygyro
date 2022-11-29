@@ -182,13 +182,14 @@ def main():
     k = args.k[0]
 
     while True:
-        foldername = 'simulation_' + str(k) + '/'
+        foldername = 'raven/simulation_' + str(k) + '/'
         if os.path.exists(foldername):
             if os.path.exists(foldername + 'akw_consv.txt'):
                 method = 'akw'
             elif os.path.exists(foldername + 'sl_consv.txt'):
                 method = 'sl'
             else:
+                k += 1
                 continue
 
             if os.path.exists(foldername + method + '_consv.txt'):
@@ -196,8 +197,7 @@ def main():
                     os.mkdir(foldername + 'plots/')
                 print(f'Now plotting conservations for {foldername}')
                 plot_diagnostics(foldername, method)
-            # k += 1
-            break
+            k += 1
         else:
             break
 

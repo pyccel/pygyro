@@ -348,6 +348,8 @@ def main():
                     for k in range(len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
 
+        # distribFunc.setLayout('poloidal')
+        # phi.setLayout('poloidal')
         polAdv.gridStep(distribFunc, phi, fullStep)
 
         if adv_diagn:

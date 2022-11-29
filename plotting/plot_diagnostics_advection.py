@@ -95,7 +95,24 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.title('Relative Errors for ' + method + ' Advection')
 
     if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_adv_conservation.png')
+        plt.savefig(foldername + 'plots/' + method + '_adv_rel_err.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # Plot absolute errors
+    for k in range(entries):
+        plt.plot(times, data[:, k] - data[:, k + entries],
+                 label=labels[k])
+    plt.legend()
+    plt.xlabel('time')
+    plt.ylabel('error')
+    plt.title('Absolute Errors for ' + method + ' Advection')
+
+    if save_plot:
+        plt.savefig(foldername + 'plots/' + method + '_adv_abs_err.png')
 
     if show_plot:
         plt.show()
@@ -176,10 +193,11 @@ def main():
     """
     TODO
     """
-    k = 2
+    k = 14
 
     while True:
-        foldername = 'simulation_' + str(k) + '/'
+        # foldername = 'simulation_' + str(k) + '/'
+        foldername = 'cobra/'
         if os.path.exists(foldername):
             if os.path.exists(foldername + 'akw_adv_consv.txt'):
                 method = 'akw'
@@ -192,6 +210,7 @@ def main():
                 os.mkdir(foldername + 'plots/')
                 plot_diagnostics(foldername, method)
             k += 1
+            break
         else:
             break
 
