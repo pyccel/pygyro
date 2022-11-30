@@ -15,14 +15,13 @@ def plot_file(foldername):
     e_kin = np.ndarray(shape[0])
     e_pot = np.ndarray(shape[0])
 
-    print(dataset)
     times[:] = dataset[perm, 0]
     e_kin[:] = dataset[perm, 7]
     e_pot[:] = dataset[perm, 8]
     e_tot = e_kin + e_pot
 
     plt.plot(times, e_kin, '-.', label="kinetic Energy")
-    plt.plot(times, e_pot, '-', label="potential Energy")
+    plt.plot(times, e_pot, '-.', label="potential Energy")
     plt.plot(times, e_tot, '-', label="total Energy")
 
 parser = argparse.ArgumentParser(
