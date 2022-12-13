@@ -42,15 +42,15 @@ class KineticEnergy_v2:
         v = eta_grid[3]
 
         # Introduce shift because z variable is another bish
-        self.shift = 0
-        while z[0] != np.min(z):
-            z = np.roll(z, shift=-1)
-            self.shift -= 1
+        # self.shift = 0
+        # while z[0] != np.min(z):
+        #     z = np.roll(z, shift=-1)
+        #     self.shift -= 1
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        # my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         self.z_start = layout.starts[self.idx_z]
         self.z_end = layout.ends[self.idx_z]
         my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
@@ -74,14 +74,18 @@ class KineticEnergy_v2:
 
         # Use simple approximation of the integral by summing because theta variable is a bish
         self.dq = q[1] - q[0]
-        assert self.dq * q.size - 2 * np.pi < 1e-7, "Grid spacing in theta direction is wrong"
+        assert np.abs(self.dq * q.size - 2 *
+                      np.pi) < 1e-7, "Grid spacing in theta direction is wrong"
 
         # Make trapezoidal grid for integration over z, shift because z is also a bish
-        dzMult = make_trapz_grid(z)
-        self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        shape_z = [1, 1]
-        shape_z[self.idx_z] = my_z.size
-        self.mydzMult.resize(shape_z)
+        # dzMult = make_trapz_grid(z)
+        # self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # shape_z = [1, 1]
+        # shape_z[self.idx_z] = my_z.size
+        # self.mydzMult.resize(shape_z)
+        self.dz = z[1] - z[0]
+        assert np.abs(self.dz * z.size - np.max(z)) < 1e-7, \
+            "Grid spacing in z direction is wrong"
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
@@ -108,7 +112,8 @@ class KineticEnergy_v2:
         int_q = np.sum(int_r, axis=self.idx_q) * self.dq
 
         # Integrate over z
-        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        # int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_z = np.sum(int_q, axis=self.idx_z) * self.dz
         int_v = np.sum(int_z * self.mydvMult, axis=self.idx_v)
 
         return int_v * 0.5
@@ -138,15 +143,15 @@ class Mass_f:
         v = eta_grid[3]
 
         # Introduce shift because z variable is another bish
-        self.shift = 0
-        while z[0] != np.min(z):
-            z = np.roll(z, shift=-1)
-            self.shift -= 1
+        # self.shift = 0
+        # while z[0] != np.min(z):
+        #     z = np.roll(z, shift=-1)
+        #     self.shift -= 1
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        # my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         self.z_start = layout.starts[self.idx_z]
         self.z_end = layout.ends[self.idx_z]
         my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
@@ -164,11 +169,14 @@ class Mass_f:
         assert self.dq * q.size - 2 * np.pi < 1e-7, "Grid spacing in theta direction is wrong"
 
         # Make trapezoidal grid for integration over z, shift because z is also a bish
-        dzMult = make_trapz_grid(z)
-        self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        shape_z = [1, 1]
-        shape_z[self.idx_z] = my_z.size
-        self.mydzMult.resize(shape_z)
+        # dzMult = make_trapz_grid(z)
+        # self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # shape_z = [1, 1]
+        # shape_z[self.idx_z] = my_z.size
+        # self.mydzMult.resize(shape_z)
+        self.dz = z[1] - z[0]
+        assert np.abs(self.dz * z.size - np.max(z)) < 1e-7, \
+            "Grid spacing in z direction is wrong"
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
@@ -191,7 +199,8 @@ class Mass_f:
         int_r = np.sum(f._f * self.mydrMult, axis=self.idx_r)
 
         int_q = np.sum(int_r, axis=self.idx_q) * self.dq
-        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        # int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_z = np.sum(int_q, axis=self.idx_z) * self.dz
         int_v = np.sum(int_z * self.mydvMult, axis=self.idx_v)
 
         return int_v * 0.5
@@ -221,15 +230,15 @@ class L2_f:
         v = eta_grid[3]
 
         # Introduce shift because z variable is another bish
-        self.shift = 0
-        while z[0] != np.min(z):
-            z = np.roll(z, shift=-1)
-            self.shift -= 1
+        # self.shift = 0
+        # while z[0] != np.min(z):
+        #     z = np.roll(z, shift=-1)
+        #     self.shift -= 1
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        # my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         self.z_start = layout.starts[self.idx_z]
         self.z_end = layout.ends[self.idx_z]
         my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
@@ -247,11 +256,14 @@ class L2_f:
         assert self.dq * q.size - 2 * np.pi < 1e-7, "Grid spacing in theta direction is wrong"
 
         # Make trapezoidal grid for integration over z, shift because z is also a bish
-        dzMult = make_trapz_grid(z)
-        self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        shape_z = [1, 1]
-        shape_z[self.idx_z] = my_z.size
-        self.mydzMult.resize(shape_z)
+        # dzMult = make_trapz_grid(z)
+        # self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # shape_z = [1, 1]
+        # shape_z[self.idx_z] = my_z.size
+        # self.mydzMult.resize(shape_z)
+        self.dz = z[1] - z[0]
+        assert np.abs(self.dz * z.size - np.max(z)) < 1e-7, \
+            "Grid spacing in z direction is wrong"
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
@@ -274,7 +286,8 @@ class L2_f:
         int_r = np.sum(np.abs(f._f)**2 * self.mydrMult, axis=self.idx_r)
 
         int_q = np.sum(int_r, axis=self.idx_q) * self.dq
-        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        # int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_z = np.sum(int_q, axis=self.idx_z) * self.dz
         int_v = np.sum(int_z * self.mydvMult, axis=self.idx_v)
 
         return int_v
@@ -304,15 +317,15 @@ class L2_phi:
         v = eta_grid[3]
 
         # Introduce shift because z variable is another bish
-        self.shift = 0
-        while z[0] != np.min(z):
-            z = np.roll(z, shift=-1)
-            self.shift -= 1
+        # self.shift = 0
+        # while z[0] != np.min(z):
+        #     z = np.roll(z, shift=-1)
+        #     self.shift -= 1
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        # my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         self.z_start = layout.starts[self.idx_z]
         self.z_end = layout.ends[self.idx_z]
 
@@ -329,11 +342,14 @@ class L2_phi:
         assert self.dq * q.size - 2 * np.pi < 1e-7, "Grid spacing in theta direction is wrong"
 
         # Make trapezoidal grid for integration over z, shift because z is also a bish
-        dzMult = make_trapz_grid(z)
-        self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        shape_z = [1, 1]
-        shape_z[self.idx_z] = my_z.size
-        self.mydzMult.resize(shape_z)
+        # dzMult = make_trapz_grid(z)
+        # self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # shape_z = [1, 1]
+        # shape_z[self.idx_z] = my_z.size
+        # self.mydzMult.resize(shape_z)
+        self.dz = z[1] - z[0]
+        assert np.abs(self.dz * z.size - np.max(z)) < 1e-7, \
+            "Grid spacing in z direction is wrong"
 
     def getL2Phi(self, phi: Grid):
         """
@@ -348,7 +364,8 @@ class L2_phi:
         int_r = np.sum(np.abs(phi._f)**2 * self.mydrMult,
                        axis=self.idx_r)
         int_q = np.sum(int_r, axis=self.idx_q) * self.dq
-        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        # int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_z = np.sum(int_q, axis=self.idx_z) * self.dz
 
         return int_z * 0.5
 
@@ -381,15 +398,15 @@ class PotentialEnergy_v2:
         v = eta_grid[3]
 
         # Introduce shift because z variable is another bish
-        self.shift = 0
-        while z[0] != np.min(z):
-            z = np.roll(z, shift=-1)
-            self.shift -= 1
+        # self.shift = 0
+        # while z[0] != np.min(z):
+        #     z = np.roll(z, shift=-1)
+        #     self.shift -= 1
 
         # local grids
         my_r = r[layout.starts[self.idx_r]:layout.ends[self.idx_r]]
-        my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
-        my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # my_q = q[layout.starts[self.idx_q]:layout.ends[self.idx_q]]
+        # my_z = z[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
         self.z_start = layout.starts[self.idx_z]
         self.z_end = layout.ends[self.idx_z]
         my_v = v[layout.starts[self.idx_v]:layout.ends[self.idx_v]]
@@ -407,11 +424,14 @@ class PotentialEnergy_v2:
         assert self.dq * q.size - 2 * np.pi < 1e-7, "Grid spacing in theta direction is wrong"
 
         # Make trapezoidal grid for integration over z, shift because z is also a bish
-        dzMult = make_trapz_grid(z)
-        self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
-        shape_z = [1, 1]
-        shape_z[self.idx_z] = my_z.size
-        self.mydzMult.resize(shape_z)
+        # dzMult = make_trapz_grid(z)
+        # self.mydzMult = np.roll(dzMult, shift=-self.shift)[layout.starts[self.idx_z]:layout.ends[self.idx_z]]
+        # shape_z = [1, 1]
+        # shape_z[self.idx_z] = my_z.size
+        # self.mydzMult.resize(shape_z)
+        self.dz = z[1] - z[0]
+        assert np.abs(self.dz * z.size - np.max(z)) < 1e-7, \
+            "Grid spacing in z direction is wrong"
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
@@ -446,12 +466,13 @@ class PotentialEnergy_v2:
         assert phi.currentLayout == 'poloidal'
 
         # Integration over r of (f - n_0) * phi
-        int_r = np.sum((f._f - self.f_eq) * np.real(phi._f) \
+        int_r = np.sum((f._f - self.f_eq) * np.real(phi._f)
                        * self.mydrMult, axis=self.idx_r)
 
         # Integrate over theta, then z, then v
         int_q = np.sum(int_r, axis=self.idx_q) * self.dq
-        int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        # int_z = np.sum(int_q * self.mydzMult, axis=self.idx_z)
+        int_z = np.sum(int_q, axis=self.idx_z) * self.dz
         int_v = np.sum(int_z * self.mydvMult, axis=self.idx_v)
 
         return int_v * 0.5
@@ -476,21 +497,21 @@ class KineticEnergy_fresch:
 
         dr = r[1:] - r[:-1]
         dv = v[1:] - v[:-1]
-        
+
         shape = [1, 1, 1, 1]
         shape[idx_r] = my_r.size
         shape[idx_v] = my_v.size
         self._my_feq = np.empty(shape)
         if (idx_r < idx_v):
-            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
-                        constants.CTi, constants.kTi,constants.deltaRTi) 
-                        for r in my_r for v in my_v]
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
+                           constants.CTi, constants.kTi, constants.deltaRTi)
+                      for r in my_r for v in my_v]
         else:
-            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp, 
-                        constants.CTi, constants.kTi,constants.deltaRTi) 
-                        for v in my_v for r in my_r]
+            my_feq = [f_eq(r, v, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
+                           constants.CTi, constants.kTi, constants.deltaRTi)
+                      for v in my_v for r in my_r]
         self._my_feq.flat = my_feq
-        
+
         drMult = np.array(
             [dr[0] * 0.5, *((dr[1:] + dr[:-1]) * 0.5), dr[-1] * 0.5])
         dvMult = np.array(
@@ -532,6 +553,7 @@ class KineticEnergy_fresch:
 
         return np.sum(points) * self._factor2
 
+
 class PotentialEnergy_fresch:
     """
     TODO
@@ -565,8 +587,8 @@ class PotentialEnergy_fresch:
         shape = [1, 1, 1]
         shape[idx_r] = my_r.size
         self._myn0 = np.empty(shape)
-        my_n0 = [n0(r, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp) 
-                    for r in my_r]
+        my_n0 = [n0(r, constants.CN0, constants.kN0, constants.deltaRN0, constants.rp)
+                 for r in my_r]
         self._myn0.flat = my_n0[:]
 
         drMult = np.array(
@@ -588,9 +610,9 @@ class PotentialEnergy_fresch:
         else:
             self._factor1.flat = (
                 (mydrMult * my_r)[None, :] * (mydvMult)[:, None]).flat
-        
+
         shape = [1, 1, 1]
-        shape[idx_r] = mydrMult.size 
+        shape[idx_r] = mydrMult.size
         self._factor12 = np.empty(shape)
         self._factor12.flat = mydrMult * my_r
 

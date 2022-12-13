@@ -1,9 +1,11 @@
 import json
-import matplotlib.pyplot as plt
 import os
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
+import argparse
+
+# import matplotlib
+# matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 def get_last_string(string: str):
@@ -193,11 +195,28 @@ def main():
     """
     TODO
     """
-    k = 14
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-k', metavar='foldername',
+                        nargs='*', type=int)
+    parser.add_argument('-cluster', metavar='foldername',
+                        nargs='*', type=str)
+
+    args = parser.parse_args()
+    if args.k is not None:
+        k = args.k[0]
+    else:
+        k = 0
+    
+    if args.cluster is not None:
+        cluster = args.cluster[0]
+    else:
+        cluster = None
 
     while True:
-        # foldername = 'simulation_' + str(k) + '/'
-        foldername = 'cobra/'
+        if cluster is not None:
+            foldername = cluster + '/sim_' + str(k) + '/'
+        else:
+            foldername = 'simulation_' + str(k) + '/'
         if os.path.exists(foldername):
             if os.path.exists(foldername + 'akw_adv_consv.txt'):
                 method = 'akw'
@@ -206,10 +225,11 @@ def main():
             else:
                 continue
 
-            if not os.path.exists(foldername + 'plots/') and os.path.exists(foldername + method + '_adv_consv.txt'):
-                os.mkdir(foldername + 'plots/')
-                plot_diagnostics(foldername, method)
-            k += 1
+            if os.path.exists(foldername + method + '_adv_consv.txt'):
+                if not os.path.exists(foldername + 'plots/'):
+                    os.mkdir(foldername + 'plots/')
+                plot_diagnostics(foldername, method, show_plot=True)
+            # k += 1
             break
         else:
             break

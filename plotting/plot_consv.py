@@ -182,7 +182,7 @@ def main():
     k = args.k[0]
 
     while True:
-        foldername = 'raven/simulation_' + str(k) + '/'
+        foldername = 'simulation_' + str(k) + '/'
         if os.path.exists(foldername):
             if os.path.exists(foldername + 'akw_consv.txt'):
                 method = 'akw'
