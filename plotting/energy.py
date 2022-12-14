@@ -60,6 +60,8 @@ class KineticEnergy_v2:
         if with_feq:
             make_f_eq_grid(constants.CN0, constants.kN0, constants.deltaRN0, constants.rp,
                         constants.CTi, constants.kTi, constants.deltaRTi, my_v, my_r, self.f_eq)
+        else:
+            assert np.all(self.f_eq[:, :] == 0.)
         shape_f_eq = [1, 1, 1, 1]
         shape_f_eq[self.idx_v] = my_v.size
         shape_f_eq[self.idx_r] = my_r.size
@@ -178,7 +180,7 @@ class Mass_f:
         int_z = np.sum(int_q, axis=self.idx_z) * self.dz
         int_v = np.sum(int_z * self.mydvMult, axis=self.idx_v)
 
-        return int_v * 0.5
+        return int_v
 
 
 class L2_f:
@@ -317,7 +319,7 @@ class L2_phi:
         int_q = np.sum(int_r, axis=self.idx_q) * self.dq
         int_z = np.sum(int_q, axis=self.idx_z) * self.dz
 
-        return int_z * 0.5
+        return int_z
 
 
 class PotentialEnergy_v2:
