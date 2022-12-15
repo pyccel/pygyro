@@ -12,8 +12,25 @@ from pygyro.model.grid import Grid
 
 
 """
-Test the plotting.energy module by integrating over different functions both by inserting values
-in f and phi.
+Test the plotting.energy module by integrating over a suite of different functions:
+The non-periodic ones are:
+ - f(x) = 1
+ - f(x) = x
+ - f(x) = x^2
+ - f(x) = x^3
+ - f(x) = x * sin(x)
+ 
+The periodic functions are:
+ - f(x) = sin(x)
+ - f(x) = cos(x)
+ - f(x) = sin^2(x)
+ - f(x) = cos^2(x)
+ - f(x) = sinx(x) * cos(x)
+ - f(x) = sin^2(x) * cos(x)
+ - f(x) = sin(x) * cos^2(x)
+ - f(x) = sin^2(x) * cos^2(x)
+
+The potential energy is tested by inserting values both in f and phi.
 """
 
 
@@ -71,6 +88,18 @@ def get_callables(fun_type: str, fun_factor: str = "1", period: float = 2*np.pi)
             def Fun(x): return x**4 / 4
         elif fun_factor == "x**2":
             def Fun(x): return x**5 / 5
+        else:
+            raise NotImplementedError(
+                f'The fun_factor {fun_factor} is not implemented!')
+
+    elif fun_type == "x**3":
+        def fun(x): return x**3
+        if fun_factor == "1":
+            def Fun(x): return x**4 / 4
+        elif fun_factor == "x":
+            def Fun(x): return x**5 / 5
+        elif fun_factor == "x**2":
+            def Fun(x): return x**6 / 6
         else:
             raise NotImplementedError(
                 f'The fun_factor {fun_factor} is not implemented!')
@@ -170,11 +199,11 @@ def get_callables(fun_type: str, fun_factor: str = "1", period: float = 2*np.pi)
     return fun, Fun
 
 
-@pytest.mark.parametrize("fun_type_r", ["1"])
-@pytest.mark.parametrize("fun_type_q", ["1"])
-@pytest.mark.parametrize("fun_type_z", ["1"])
+@pytest.mark.parametrize("fun_type_r", ["1", "x", "x**2", "x*sin"])
 # @pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
 # @pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+@pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos**2", "sin*cos"])
+@pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos**2", "sin*cos"])
 @pytest.mark.parametrize("fun_type_v", ["1", "x", "x**2", "x*sin"])
 def test_en_kin(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
     """
@@ -194,8 +223,6 @@ def test_en_kin(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
     Fun_v has to be the primitive function of fun_v * v**2, because of the definition of the
     kinetic energy!
     """
-    print()
-
     # Instantiate MPI communicator
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -229,12 +256,10 @@ def test_en_kin(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
     my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
 
-    # fun_v, Fun_v = get_callables(fun_type_v, fun_factor="x**2")
-    fun_v, Fun_v = get_callables(fun_type_v)
+    fun_v, Fun_v = get_callables(fun_type_v, fun_factor="x**2")
     fun_z, Fun_z = get_callables(fun_type_z, period=constants.zMax)
     fun_q, Fun_q = get_callables(fun_type_q)
-    # fun_r, Fun_r = get_callables(fun_type_r, fun_factor="x")
-    fun_r, Fun_r = get_callables(fun_type_r)
+    fun_r, Fun_r = get_callables(fun_type_r, fun_factor="x")
 
     fun_vals_v = np.array(fun_v(my_v))
     fun_vals_z = np.array(fun_z(my_z))
@@ -347,16 +372,18 @@ def test_en_kin(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
 
     if rank == 0:
         if np.abs(res_exact) >= 1e-7:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-5
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-2
         else:
-            assert np.abs(res_num - res_exact) < 1e-10
+            assert np.abs(res_num - res_exact) < 5e-9
 
 
-@pytest.mark.parametrize("fun_v, Fun_v", [(lambda x: 1 + 0 * x, lambda x: x), (lambda x: np.sin(x), lambda x: - np.cos(x))])
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x), (lambda x: np.sin(x), lambda x: - np.cos(x))])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x), (lambda x: np.sin(x), lambda x: - np.cos(x))])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2), (np.sin, lambda x: np.sin(x) - x * np.cos(x))])
-def test_mass_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=False):
+@pytest.mark.parametrize("fun_type_r", ["1", "x", "x**2"])
+# @pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+# @pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+@pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos**2", "sin*cos"])
+@pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos**2", "sin*cos"])
+@pytest.mark.parametrize("fun_type_v", ["1", "x", "x**2"])
+def test_mass_f(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
     """
     Test the class Mass_f in plotting.energy by integrating different functions.
 
@@ -404,6 +431,11 @@ def test_mass_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=
     my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
     my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
+
+    fun_v, Fun_v = get_callables(fun_type_v)
+    fun_z, Fun_z = get_callables(fun_type_z, period=constants.zMax)
+    fun_q, Fun_q = get_callables(fun_type_q)
+    fun_r, Fun_r = get_callables(fun_type_r, fun_factor="x")
 
     fun_vals_v = np.array(fun_v(my_v))
     fun_vals_z = np.array(fun_z(my_z))
@@ -502,24 +534,24 @@ def test_mass_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=
     if rank == 0 and verbose:
         print(f'numerical result : {res_num}')
         print(f'exact result : {res_exact}')
-        if res_exact != 0.:
+        if np.abs(res_exact) >= 1e-7:
             print(
                 f'relative error : {np.abs((res_num - res_exact) / res_exact) * 100} %')
         else:
             print(f'absolute error : {np.abs(res_num - res_exact)}')
 
     if rank == 0:
-        if res_exact != 0.:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-7
+        if np.abs(res_exact) >= 1e-7:
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-2
         else:
-            assert np.abs(res_num - res_exact) < 1e-7
+            assert np.abs(res_num - res_exact) < 2e-9
 
 
-@pytest.mark.parametrize("fun_v, Fun_v", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
-def test_l2_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=False):
+@pytest.mark.parametrize("fun_type_r, Fun_type_r", [("1", "1"), ("x", "x**2")])
+@pytest.mark.parametrize("fun_type_q, Fun_type_q", [("1", "1"), ("sin", "sin**2"), ("cos", "cos**2"), ("sin*cos", "sin**2*cos**2")])
+@pytest.mark.parametrize("fun_type_z, Fun_type_z", [("1", "1"), ("sin", "sin**2"), ("cos", "cos**2"), ("sin*cos", "sin**2*cos**2")])
+@pytest.mark.parametrize("fun_type_v, Fun_type_v", [("1", "1"), ("x", "x**2")])
+def test_l2_f(fun_type_v, fun_type_z, fun_type_q, fun_type_r, Fun_type_v, Fun_type_z, Fun_type_q, Fun_type_r, verbose=True):
     """
     Test the class L2_f in plotting.energy by integrating different functions.
 
@@ -568,6 +600,15 @@ def test_l2_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=Fa
     my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
     my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
+
+    fun_v, _ = get_callables(fun_type_v)
+    _, Fun_v = get_callables(Fun_type_v)
+    fun_z, _ = get_callables(fun_type_z, period=constants.zMax)
+    _, Fun_z = get_callables(Fun_type_z, period=constants.zMax)
+    fun_q, _ = get_callables(fun_type_q)
+    _, Fun_q = get_callables(Fun_type_q)
+    fun_r, _ = get_callables(fun_type_r, fun_factor="x")
+    _, Fun_r = get_callables(Fun_type_r, fun_factor="x")
 
     fun_vals_v = np.array(fun_v(my_v))
     fun_vals_z = np.array(fun_z(my_z))
@@ -666,23 +707,23 @@ def test_l2_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=Fa
     if rank == 0 and verbose:
         print(f'numerical result : {res_num}')
         print(f'exact result : {res_exact}')
-        if res_exact != 0.:
+        if np.abs(res_exact) >= 1e-7:
             print(
                 f'relative error : {np.abs((res_num - res_exact) / res_exact) * 100} %')
         else:
             print(f'absolute error : {np.abs(res_num - res_exact)}')
 
     if rank == 0:
-        if res_exact != 0.:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-7
+        if np.abs(res_exact) >= 1e-7:
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-2
         else:
-            assert np.abs(res_num - res_exact) < 1e-7
+            assert np.abs(res_num - res_exact) < 1e-9
 
 
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
-def test_l2_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
+@pytest.mark.parametrize("fun_type_r, Fun_type_r", [("1", "1"), ("x", "x**2")])
+@pytest.mark.parametrize("fun_type_q, Fun_type_q", [("1", "1"), ("sin", "sin**2"), ("cos", "cos**2"), ("sin*cos", "sin**2*cos**2")])
+@pytest.mark.parametrize("fun_type_z, Fun_type_z", [("1", "1"), ("sin", "sin**2"), ("cos", "cos**2"), ("sin*cos", "sin**2*cos**2")])
+def test_l2_phi(fun_type_z, fun_type_q, fun_type_r, Fun_type_z, Fun_type_q, Fun_type_r, verbose=True):
     """
     Test the class L2_phi in plotting.energy by integrating different functions.
 
@@ -762,6 +803,13 @@ def test_l2_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
     my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
 
+    fun_z, _ = get_callables(fun_type_z, period=constants.zMax)
+    _, Fun_z = get_callables(Fun_type_z, period=constants.zMax)
+    fun_q, _ = get_callables(fun_type_q)
+    _, Fun_q = get_callables(Fun_type_q)
+    fun_r, _ = get_callables(fun_type_r, fun_factor="x")
+    _, Fun_r = get_callables(Fun_type_r, fun_factor="x")
+
     fun_vals_z = np.array(fun_z(my_z))
     fun_vals_q = np.array(fun_q(my_q))
     fun_vals_r = np.array(fun_r(my_r))
@@ -773,7 +821,6 @@ def test_l2_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
     assert np.shape(fun_vals_r) == np.shape(my_r), \
         f'shape of fun_vals_r : {np.shape(fun_vals_r)}, shape of my_r : {np.shape(my_r)}'
 
-    distribFunc._f[:, :, :, :] = 1.
     phi._f[:, :, :] = 0.
     """
     Layout has to be in poloidal, i.e.:
@@ -828,35 +875,42 @@ def test_l2_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
     res_exact *= Fun_q(2*np.pi) - Fun_q(0.)
     res_exact *= Fun_r(constants.rMax) - Fun_r(constants.rMin)
 
+    # Gather numerical result
     res_num_loc = np.zeros(1, dtype=float)
     res_num_glob = np.array([[0.]])
 
     res_num_loc[0] = L2_phi_class.getL2Phi(phi)
     comm.Reduce(res_num_loc, res_num_glob, op=MPI.SUM, root=0)
 
-    res_num = res_num_glob[0][0]
+    # have to divide by number of splits in v since no integration over v is performed
+    v = eta_grid[3]
+    idx_v = layout.inv_dims_order[3]
+    split_v = int(np.round(v.size / (layout.ends[idx_v] - layout.starts[idx_v])))
+    res_num = res_num_glob[0][0] / split_v
 
     if rank == 0 and verbose:
         print(f'numerical result : {res_num}')
         print(f'exact result : {res_exact}')
-        if res_exact != 0.:
+        if np.abs(res_exact) >= 1e-7:
             print(
                 f'relative error : {np.abs((res_num - res_exact) / res_exact) * 100} %')
         else:
             print(f'absolute error : {np.abs(res_num - res_exact)}')
 
     if rank == 0:
-        if res_exact != 0.:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-7
+        if np.abs(res_exact) >= 1e-7:
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-2
         else:
-            assert np.abs(res_num - res_exact) < 1e-7
+            assert np.abs(res_num - res_exact) < 1e-9
 
 
-@pytest.mark.parametrize("fun_v, Fun_v", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
-def test_en_pot_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=False):
+@pytest.mark.parametrize("fun_type_r", ["1", "x", "x**2"])
+# @pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+# @pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+@pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos**2", "sin*cos"])
+@pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos**2", "sin*cos"])
+@pytest.mark.parametrize("fun_type_v", ["1", "x", "x**2"])
+def test_en_pot_f(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
     """
     Test the class PotentialEnergy_v2 in plotting.energy by integrating different functions.
     This test only tests by inserting values into f.
@@ -941,6 +995,11 @@ def test_en_pot_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbos
     my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
     my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
+
+    fun_v, Fun_v = get_callables(fun_type_v)
+    fun_z, Fun_z = get_callables(fun_type_z, period=constants.zMax)
+    fun_q, Fun_q = get_callables(fun_type_q)
+    fun_r, Fun_r = get_callables(fun_type_r, fun_factor="x")
 
     fun_vals_v = np.array(fun_v(my_v))
     fun_vals_z = np.array(fun_z(my_z))
@@ -1041,23 +1100,25 @@ def test_en_pot_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbos
     if rank == 0 and verbose:
         print(f'numerical result : {res_num}')
         print(f'exact result : {res_exact}')
-        if res_exact != 0.:
+        if np.abs(res_exact) >= 1e-7:
             print(
                 f'relative error : {np.abs((res_num - res_exact) / res_exact) * 100} %')
         else:
             print(f'absolute error : {np.abs(res_num - res_exact)}')
 
     if rank == 0:
-        if res_exact != 0.:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-7
+        if np.abs(res_exact) >= 1e-7:
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-2
         else:
-            assert np.abs(res_num - res_exact) < 1e-7
+            assert np.abs(res_num - res_exact) < 1e-9
 
 
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
-def test_en_pot_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
+@pytest.mark.parametrize("fun_type_r", ["1", "x", "x**2"])
+# @pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+# @pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+@pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos**2", "sin*cos"])
+@pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos**2", "sin*cos"])
+def test_en_pot_phi(fun_type_z, fun_type_q, fun_type_r, verbose=True):
     """
     Test the class PotentialEnergy_v2 in plotting.energy by integrating different functions.
     This test only tests by inserting values into phi.
@@ -1142,6 +1203,10 @@ def test_en_pot_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
     my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
 
+    fun_z, Fun_z = get_callables(fun_type_z, period=constants.zMax)
+    fun_q, Fun_q = get_callables(fun_type_q)
+    fun_r, Fun_r = get_callables(fun_type_r, fun_factor="x")
+
     fun_vals_z = np.array(fun_z(my_z))
     fun_vals_q = np.array(fun_q(my_q))
     fun_vals_r = np.array(fun_r(my_r))
@@ -1220,17 +1285,17 @@ def test_en_pot_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
     if rank == 0 and verbose:
         print(f'numerical result : {res_num}')
         print(f'exact result : {res_exact}')
-        if res_exact != 0.:
+        if np.abs(res_exact) >= 1e-7:
             print(
                 f'relative error : {np.abs((res_num - res_exact) / res_exact) * 100} %')
         else:
             print(f'absolute error : {np.abs(res_num - res_exact)}')
 
     if rank == 0:
-        if res_exact != 0.:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-7
+        if np.abs(res_exact) >= 1e-7:
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-2
         else:
-            assert np.abs(res_num - res_exact) < 1e-7
+            assert np.abs(res_num - res_exact) < 1e-9
 
 
 def main():

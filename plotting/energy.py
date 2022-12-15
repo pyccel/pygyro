@@ -51,7 +51,7 @@ class KineticEnergy_v2:
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
         self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] \
-            # * my_r
+            * my_r
         shape_r = [1, 1, 1, 1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)
@@ -84,7 +84,7 @@ class KineticEnergy_v2:
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
         self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]] \
-            # * (my_v ** 2)
+            * (my_v ** 2)
         shape_v = [1]
         shape_v[self.idx_v] = my_v.size
         self.mydvMult.resize(shape_v)
