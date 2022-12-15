@@ -17,11 +17,166 @@ in f and phi.
 """
 
 
-@pytest.mark.parametrize("fun_v, Fun_v", [(lambda x: 1 + 0 * x, lambda x: x**3 / 3)])
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
-def test_en_kin(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=False):
+def get_callables(fun_type: str, fun_factor: str = "1", period: float = 2*np.pi):
+    """
+    Get callable functions and their primitive functions.
+
+    Parameters
+    ----------
+    fun_type : str
+        which function and its primitive should be returned
+
+    factor : str
+        the primitive will be function of fun_type * factor
+
+    period : float
+        period of a periodic function
+    """
+    if fun_factor not in ["1", "x", "x**2"]:
+        raise NotImplementedError(
+            f'{fun_factor} is an unsupported type of factor!')
+
+    # ========================================
+    # ======== non-periodic functions ========
+    # ========================================
+    if fun_type == "1":
+        def fun(x): return 1 + 0 * x
+        if fun_factor == "1":
+            def Fun(x): return x
+        elif fun_factor == "x":
+            def Fun(x): return x**2 / 2
+        elif fun_factor == "x**2":
+            def Fun(x): return x**3 / 3
+        else:
+            raise NotImplementedError(
+                f'The fun_factor {fun_factor} is not implemented!')
+
+    elif fun_type == "x":
+        def fun(x): return x
+        if fun_factor == "1":
+            def Fun(x): return x**2 / 2
+        elif fun_factor == "x":
+            def Fun(x): return x**3 / 3
+        elif fun_factor == "x**2":
+            def Fun(x): return x**4 / 4
+        else:
+            raise NotImplementedError(
+                f'The fun_factor {fun_factor} is not implemented!')
+
+    elif fun_type == "x**2":
+        def fun(x): return x**2
+        if fun_factor == "1":
+            def Fun(x): return x**3 / 3
+        elif fun_factor == "x":
+            def Fun(x): return x**4 / 4
+        elif fun_factor == "x**2":
+            def Fun(x): return x**5 / 5
+        else:
+            raise NotImplementedError(
+                f'The fun_factor {fun_factor} is not implemented!')
+
+    elif fun_type == "x*sin":
+        def fun(x): return x * np.sin(x)
+        if fun_factor == "1":
+            def Fun(x): return np.sin(x) - x * np.cos(x)
+        elif fun_factor == "x":
+            def Fun(x): return 2 * x * np.sin(x) - (x**2 - 2) * np.cos(x)
+        elif fun_factor == "x**2":
+            def Fun(x): return 3 * (x**2 - 2) * np.sin(x) - x * (x**2 - 6) * np.cos(x)
+        else:
+            raise NotImplementedError(
+                f'The fun_factor {fun_factor} is not implemented!')
+
+    # ====================================
+    # ======== periodic functions ========
+    # ====================================
+
+    elif fun_type == "sin":
+        omega = 2 * np.pi / period
+        def fun(x): return np.sin(omega * x)
+        if fun_factor == "1":
+            def Fun(x): return - np.cos(omega * x) / omega
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "cos":
+        omega = 2 * np.pi / period
+        def fun(x): return np.cos(omega * x)
+        if fun_factor == "1":
+            def Fun(x): return np.sin(omega * x) / omega
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "sin**2":
+        omega = 2 * np.pi / period
+        def fun(x): return np.sin(omega * x) ** 2
+        if fun_factor == "1":
+            def Fun(x): return x / 2 - np.sin(2 * omega * x) / (4 * omega)
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "cos**2":
+        omega = 2 * np.pi / period
+        def fun(x): return np.cos(omega * x) ** 2
+        if fun_factor == "1":
+            def Fun(x): return x / 2 + np.sin(2 * omega * x) / (4 * omega)
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "sin*cos":
+        omega = 2 * np.pi / period
+        def fun(x): return np.sin(omega * x) * np.cos(omega * x)
+        if fun_factor == "1":
+            def Fun(x): return - np.cos(omega * x)**2 / (2 * omega)
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "sin**2*cos":
+        omega = 2 * np.pi / period
+        def fun(x): return np.sin(omega * x) ** 2 * np.cos(omega * x)
+        if fun_factor == "1":
+            def Fun(x): return np.sin(omega * x)**3 / (3 * omega)
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "sin*cos**2":
+        omega = 2 * np.pi / period
+        def fun(x): return np.sin(omega * x) * np.cos(omega * x) ** 2
+        if fun_factor == "1":
+            def Fun(x): return - np.cos(omega * x)**3 / (3 * omega)
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    elif fun_type == "sin**2*cos**2":
+        omega = 2 * np.pi / period
+        def fun(x): return np.sin(omega * x) ** 2 * np.cos(omega * x) ** 2
+        if fun_factor == "1":
+            def Fun(x): return x / 8 - np.sin(4 * omega * x) / (32 * omega)
+        else:
+            raise ValueError(
+                'periodic funtions cannot be multiplied with a factor that breaks periodicity!')
+
+    else:
+        raise NotImplementedError(
+            f'The function {fun_type} is not implemented!')
+
+    return fun, Fun
+
+
+@pytest.mark.parametrize("fun_type_r", ["1"])
+@pytest.mark.parametrize("fun_type_q", ["1"])
+@pytest.mark.parametrize("fun_type_z", ["1"])
+# @pytest.mark.parametrize("fun_type_q", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+# @pytest.mark.parametrize("fun_type_z", ["1", "sin", "cos", "sin**2", "cos**2", "sin*cos", "sin**2*cos", "sin*cos**2", "sin**2*cos**2"])
+@pytest.mark.parametrize("fun_type_v", ["1", "x", "x**2", "x*sin"])
+def test_en_kin(fun_type_v, fun_type_z, fun_type_q, fun_type_r, verbose=True):
     """
     Test the class KineticEnergy_v2 in plotting.energy by integrating different functions.
 
@@ -39,6 +194,7 @@ def test_en_kin(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=
     Fun_v has to be the primitive function of fun_v * v**2, because of the definition of the
     kinetic energy!
     """
+    print()
 
     # Instantiate MPI communicator
     comm = MPI.COMM_WORLD
@@ -73,6 +229,13 @@ def test_en_kin(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=
     my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
     my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
 
+    # fun_v, Fun_v = get_callables(fun_type_v, fun_factor="x**2")
+    fun_v, Fun_v = get_callables(fun_type_v)
+    fun_z, Fun_z = get_callables(fun_type_z, period=constants.zMax)
+    fun_q, Fun_q = get_callables(fun_type_q)
+    # fun_r, Fun_r = get_callables(fun_type_r, fun_factor="x")
+    fun_r, Fun_r = get_callables(fun_type_r)
+
     fun_vals_v = np.array(fun_v(my_v))
     fun_vals_z = np.array(fun_z(my_z))
     fun_vals_q = np.array(fun_q(my_q))
@@ -88,6 +251,10 @@ def test_en_kin(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=
         f'shape of fun_vals_r : {np.shape(fun_vals_r)}, shape of my_r : {np.shape(my_r)}'
 
     distribFunc._f[:, :, :, :] = 0.
+    assert distribFunc._f.shape[idx_v] == my_v.shape[0]
+    assert distribFunc._f.shape[idx_z] == my_z.shape[0]
+    assert distribFunc._f.shape[idx_q] == my_q.shape[0]
+    assert distribFunc._f.shape[idx_r] == my_r.shape[0]
     """
     Layout has to be in poloidal, i.e.:
         (v, z, theta, r)
@@ -172,23 +339,23 @@ def test_en_kin(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=
     if rank == 0 and verbose:
         print(f'numerical result : {res_num}')
         print(f'exact result : {res_exact}')
-        if res_exact != 0.:
+        if np.abs(res_exact) >= 1e-7:
             print(
                 f'relative error : {np.abs((res_num - res_exact) / res_exact) * 100} %')
         else:
             print(f'absolute error : {np.abs(res_num - res_exact)}')
 
     if rank == 0:
-        if res_exact != 0.:
-            assert np.abs((res_num - res_exact) / res_exact) < 1e-3
+        if np.abs(res_exact) >= 1e-7:
+            assert np.abs((res_num - res_exact) / res_exact) < 1e-5
         else:
-            assert np.abs(res_num - res_exact) < 1e-7
+            assert np.abs(res_num - res_exact) < 1e-10
 
 
-@pytest.mark.parametrize("fun_v, Fun_v", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
-@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
+@pytest.mark.parametrize("fun_v, Fun_v", [(lambda x: 1 + 0 * x, lambda x: x), (lambda x: np.sin(x), lambda x: - np.cos(x))])
+@pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x), (lambda x: np.sin(x), lambda x: - np.cos(x))])
+@pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x), (lambda x: np.sin(x), lambda x: - np.cos(x))])
+@pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2), (np.sin, lambda x: np.sin(x) - x * np.cos(x))])
 def test_mass_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=False):
     """
     Test the class Mass_f in plotting.energy by integrating different functions.
@@ -515,7 +682,7 @@ def test_l2_f(fun_v, fun_z, fun_q, fun_r, Fun_v, Fun_z, Fun_q, Fun_r, verbose=Fa
 @pytest.mark.parametrize("fun_z, Fun_z", [(lambda x: 1 + 0 * x, lambda x: x)])
 @pytest.mark.parametrize("fun_q, Fun_q", [(lambda x: 1 + 0 * x, lambda x: x)])
 @pytest.mark.parametrize("fun_r, Fun_r", [(lambda x: 1 + 0 * x, lambda x: x**2 / 2)])
-def test_l2_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=True):
+def test_l2_phi(fun_z, fun_q, fun_r, Fun_z, Fun_q, Fun_r, verbose=False):
     """
     Test the class L2_phi in plotting.energy by integrating different functions.
 

@@ -12,9 +12,10 @@ def make_trapz_grid(grid):
     Generate a trapezoidal grid from a grid
     """
     d_grid = grid[1:] - grid[:-1]
-    trapz_grid = np.append(d_grid[0] * 0.5,
-                           np.append((d_grid + np.roll(d_grid, 1))[1:] * 0.5,
-                           d_grid[-1] * 0.5))
+    trapz_grid = np.zeros(grid.shape, dtype=float)
+    trapz_grid[0] = d_grid[0] * 0.5
+    trapz_grid[1:-1] = (d_grid + np.roll(d_grid, 1))[1:] * 0.5
+    trapz_grid[-1] = d_grid[-1] * 0.5
     return trapz_grid
 
 
@@ -50,7 +51,7 @@ class KineticEnergy_v2:
         # Make trapezoidal grid for integration over r
         drMult = make_trapz_grid(r)
         self.mydrMult = drMult[layout.starts[self.idx_r]:layout.ends[self.idx_r]] \
-            * my_r
+            # * my_r
         shape_r = [1, 1, 1, 1]
         shape_r[self.idx_r] = my_r.size
         self.mydrMult.resize(shape_r)
@@ -67,25 +68,30 @@ class KineticEnergy_v2:
         shape_f_eq[self.idx_r] = my_r.size
         self.f_eq.resize(shape_f_eq)
 
-        # Use simple approximation of the integral by summing because theta variable is a bish
+        # trapezoidal rule for periodic, uniform grid is just summing
         self.dq = q[1] - q[0]
         assert np.abs(self.dq * q.size - 2 * np.pi) < 1e-7, \
             "Grid spacing in theta direction is wrong"
 
-        # Use simple approximation of the integral by summing because z variable is also a bish
+        # trapezoidal rule for periodic, uniform grid is just summing
         self.dz = z[2] - z[1]
+        assert np.all(z[2:] - z[1:-1] - self.dz < 1e-10), f'dz = {self.dz} but grid is \n {z[2:] - z[1:-1]}'
         # because z is periodic and so last entry is zMax - dz
-        # first entry can be either 0 or zMax
+        # first entry can be either 0 or zMax (because of spline reasons)
         assert np.abs(self.dz * (z.size - 1) - z[-1]) < 1e-7, \
             f"{self.dz} * {z.size} != {np.max(z)}"
 
         # Make trapezoidal grid for integration over v
         dvMult = make_trapz_grid(v)
         self.mydvMult = dvMult[layout.starts[self.idx_v]:layout.ends[self.idx_v]] \
-            * (my_v ** 2)
+            # * (my_v ** 2)
         shape_v = [1]
         shape_v[self.idx_v] = my_v.size
         self.mydvMult.resize(shape_v)
+
+        # temp = [slice(None)] * 2
+        # temp[self.idx_z] = 0
+        # self.inds = tuple(temp)
 
     def getKE(self, f: Grid):
         """
