@@ -1,5 +1,5 @@
 from pyccel.decorators import pure
-from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar
+from ..splines.spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar, eval_spline_1d_scalar, eval_spline_1d_vector
 from ..initialisation.initialiser_funcs import f_eq
 
 
@@ -157,17 +157,14 @@ def get_lagrange_vals(i: 'int', shifts: 'int[:]',
     """
     TODO
     """
-    from numpy import pi
+    from numpy import pi, empty_like
     nz = vals.shape[0]
+    new_q = empty_like(qVals)
 
     for j, s in enumerate(shifts):
-        for k, q in enumerate(qVals):
-            new_q = q + thetaShifts[j]
-            new_q = new_q % (2*pi)
-
-            # the first index can be negative, but allow_negative_index will take the necessary modulo
-            vals[(i - s) % nz, k, j] = eval_spline_1d_scalar(new_q,
-                                                             kts, deg, coeffs, 0)
+        idx = (i - s) % nz
+        new_q[:] = (qVals + thetaShifts[j]) % (2*pi)
+        eval_spline_1d_vector(new_q, kts, deg, coeffs, vals[idx, :, j], 0)
 
 
 @pure
