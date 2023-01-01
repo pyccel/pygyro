@@ -2,14 +2,14 @@ from numba import njit
 from numba.pycc import CC
 from numpy import empty
 
-cc = CC('spline_eval_funcs')
+cc = CC('spline_nu_eval_funcs')
 
 # ==============================================================================
 
 
-@cc.export('find_span', 'i4(f8[:], i4,f8)')
+@cc.export('nu_find_span', 'i4(f8[:], i4,f8)')
 @njit
-def find_span(knots, degree, x):
+def nu_find_span(knots, degree, x):
     """
     Determine the knot span index at location x, given the
     B-Splines' knot sequence and polynomial degree. See
@@ -64,9 +64,9 @@ def find_span(knots, degree, x):
 # ==============================================================================
 
 
-@cc.export('basis_funs', '(f8[:], i4,f8,i4,f8[:])')
+@cc.export('nu_basis_funs', '(f8[:], i4,f8,i4,f8[:])')
 @njit
-def basis_funs(knots, degree, x, span, values):
+def nu_basis_funs(knots, degree, x, span, values):
     """
     Compute the non-vanishing B-splines at location x,
     given the knot sequence, polynomial degree and knot
@@ -116,15 +116,15 @@ def basis_funs(knots, degree, x, span, values):
         values[j+1] = saved
 
 
-@cc.export('basis_funs_1st_der', '(f8[:], i4,f8,i4,f8[:])')
+@cc.export('nu_basis_funs_1st_der', '(f8[:], i4,f8,i4,f8[:])')
 @njit
-def basis_funs_1st_der(knots, degree, x, span, ders):
+def nu_basis_funs_1st_der(knots, degree, x, span, ders):
     """
     Compute the first derivative of the non-vanishing B-splines
     at location x, given the knot sequence, polynomial degree
     and knot span.
 
-    See function 's_bsplines_non_uniform__eval_deriv' in
+    See function 's_bsplines_non_uniform__nu_eval_deriv' in
     Selalib's source file
     'src/splines/sll_m_bsplines_non_uniform.F90'.
 
@@ -151,7 +151,7 @@ def basis_funs_1st_der(knots, degree, x, span, ders):
     # Compute nonzero basis functions and knot differences for splines
     # up to degree deg-1
     values = empty(degree)
-    basis_funs(knots, degree-1, x, span, values)
+    nu_basis_funs(knots, degree-1, x, span, values)
 
     # Compute derivatives at x using formula based on difference of
     # splines of degree deg-1
@@ -170,19 +170,19 @@ def basis_funs_1st_der(knots, degree, x, span, ders):
     ders[degree] = saved
 
 
-@cc.export('eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
+@cc.export('nu_eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
 @njit
-def eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
+def nu_eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
     """
     TODO
     """
-    span = find_span(knots, degree, x)
+    span = nu_find_span(knots, degree, x)
 
     basis = empty(degree+1)
     if (der == 0):
-        basis_funs(knots, degree, x, span, basis)
+        nu_basis_funs(knots, degree, x, span, basis)
     elif (der == 1):
-        basis_funs_1st_der(knots, degree, x, span, basis)
+        nu_basis_funs_1st_der(knots, degree, x, span, basis)
 
     y = 0.0
     for j in range(degree+1):
@@ -190,9 +190,9 @@ def eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
     return y
 
 
-@cc.export('eval_spline_1d_vector', '(f8[:],f8[:],i4,f8[:],f8[:],i4)')
+@cc.export('nu_eval_spline_1d_vector', '(f8[:],f8[:],i4,f8[:],f8[:],i4)')
 @njit
-def eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
+def nu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
     """
     TODO
     """
@@ -200,8 +200,8 @@ def eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
 
     if (der == 0):
         for i, xi in enumerate(x):
-            span = find_span(knots, degree, xi)
-            basis_funs(knots, degree, xi, span, basis)
+            span = nu_find_span(knots, degree, xi)
+            nu_basis_funs(knots, degree, xi, span, basis)
 
             y[i] = 0.0
             for j in range(degree+1):
@@ -209,35 +209,35 @@ def eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
 
     elif (der == 1):
         for i, xi in enumerate(x):
-            span = find_span(knots, degree, xi)
-            basis_funs(knots, degree, xi, span, basis)
-            basis_funs_1st_der(knots, degree, xi, span, basis)
+            span = nu_find_span(knots, degree, xi)
+            nu_basis_funs(knots, degree, xi, span, basis)
+            nu_basis_funs_1st_der(knots, degree, xi, span, basis)
 
             y[i] = 0.0
             for j in range(degree+1):
                 y[i] += coeffs[span-degree+j]*basis[j]
 
 
-@cc.export('eval_spline_2d_scalar', 'f8(f8,f8,f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
+@cc.export('nu_eval_spline_2d_scalar', 'f8(f8,f8,f8[:],i4,f8[:],i4,f8[:,:],i4,i4)')
 @njit
-def eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=0):
+def nu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=0):
     """
     TODO
     """
-    span1 = find_span(kts1, deg1, x)
-    span2 = find_span(kts2, deg2, y)
+    span1 = nu_find_span(kts1, deg1, x)
+    span2 = nu_find_span(kts2, deg2, y)
 
     basis1 = empty(deg1+1)
     basis2 = empty(deg2+1)
 
     if (der1 == 0):
-        basis_funs(kts1, deg1, x, span1, basis1)
+        nu_basis_funs(kts1, deg1, x, span1, basis1)
     elif (der1 == 1):
-        basis_funs_1st_der(kts1, deg1, x, span1, basis1)
+        nu_basis_funs_1st_der(kts1, deg1, x, span1, basis1)
     if (der2 == 0):
-        basis_funs(kts2, deg2, y, span2, basis2)
+        nu_basis_funs(kts2, deg2, y, span2, basis2)
     elif (der2 == 1):
-        basis_funs_1st_der(kts2, deg2, y, span2, basis2)
+        nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
     theCoeffs = empty((deg1+1, deg2+1))
     theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
@@ -251,9 +251,9 @@ def eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=0):
     return z
 
 
-@cc.export('eval_spline_2d_cross', '(f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:,:],i4,i4)')
+@cc.export('nu_eval_spline_2d_cross', '(f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:,:],i4,i4)')
 @njit
-def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
+def nu_eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
     """
     TODO
     """
@@ -263,12 +263,12 @@ def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):
-            span1 = find_span(kts1, deg1, x)
-            basis_funs(kts1, deg1, x, span1, basis1)
+            span1 = nu_find_span(kts1, deg1, x)
+            nu_basis_funs(kts1, deg1, x, span1, basis1)
 
             for j, y in enumerate(Y):
-                span2 = find_span(kts2, deg2, y)
-                basis_funs(kts2, deg2, y, span2, basis2)
+                span2 = nu_find_span(kts2, deg2, y)
+                nu_basis_funs(kts2, deg2, y, span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -283,12 +283,12 @@ def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0
 
     elif (der1 == 0 and der2 == 1):
         for i, x in enumerate(X):
-            span1 = find_span(kts1, deg1, x)
-            basis_funs(kts1, deg1, x, span1, basis1)
+            span1 = nu_find_span(kts1, deg1, x)
+            nu_basis_funs(kts1, deg1, x, span1, basis1)
 
             for j, y in enumerate(Y):
-                span2 = find_span(kts2, deg2, y)
-                basis_funs_1st_der(kts2, deg2, y, span2, basis2)
+                span2 = nu_find_span(kts2, deg2, y)
+                nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -302,12 +302,12 @@ def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0
 
     elif (der1 == 1 and der2 == 0):
         for i, x in enumerate(X):
-            span1 = find_span(kts1, deg1, x)
-            basis_funs_1st_der(kts1, deg1, x, span1, basis1)
+            span1 = nu_find_span(kts1, deg1, x)
+            nu_basis_funs_1st_der(kts1, deg1, x, span1, basis1)
 
             for j, y in enumerate(Y):
-                span2 = find_span(kts2, deg2, y)
-                basis_funs(kts2, deg2, y, span2, basis2)
+                span2 = nu_find_span(kts2, deg2, y)
+                nu_basis_funs(kts2, deg2, y, span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -321,11 +321,11 @@ def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0
 
     elif (der1 == 1 and der2 == 1):
         for i, x in enumerate(X):
-            span1 = find_span(kts1, deg1, x)
-            basis_funs_1st_der(kts1, deg1, x, span1, basis1)
+            span1 = nu_find_span(kts1, deg1, x)
+            nu_basis_funs_1st_der(kts1, deg1, x, span1, basis1)
             for j, y in enumerate(Y):
-                span2 = find_span(kts2, deg2, y)
-                basis_funs_1st_der(kts2, deg2, y, span2, basis2)
+                span2 = nu_find_span(kts2, deg2, y)
+                nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -339,9 +339,9 @@ def eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0
 
 
 
-@cc.export('eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:],i4,i4)')
+@cc.export('nu_eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:],i4,i4)')
 @njit
-def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
+def nu_eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
     """
     TODO
     """
@@ -352,10 +352,10 @@ def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=
     if (der1 == 0):
         if (der2 == 0):
             for i in range(len(x)):
-                span1 = find_span(kts1, deg1, x[i])
-                span2 = find_span(kts2, deg2, y[i])
-                basis_funs(kts1, deg1, x[i], span1, basis1)
-                basis_funs(kts2, deg2, y[i], span2, basis2)
+                span1 = nu_find_span(kts1, deg1, x[i])
+                span2 = nu_find_span(kts2, deg2, y[i])
+                nu_basis_funs(kts1, deg1, x[i], span1, basis1)
+                nu_basis_funs(kts2, deg2, y[i], span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -368,10 +368,10 @@ def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=
                     z[i] += theCoeffs[j, 0]*basis1[j]
         elif (der2 == 1):
             for i in range(len(x)):
-                span1 = find_span(kts1, deg1, x[i])
-                span2 = find_span(kts2, deg2, y[i])
-                basis_funs(kts1, deg1, x[i], span1, basis1)
-                basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
+                span1 = nu_find_span(kts1, deg1, x[i])
+                span2 = nu_find_span(kts2, deg2, y[i])
+                nu_basis_funs(kts1, deg1, x[i], span1, basis1)
+                nu_basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -385,10 +385,10 @@ def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=
     elif (der1 == 1):
         if (der2 == 0):
             for i in range(len(x)):
-                span1 = find_span(kts1, deg1, x[i])
-                span2 = find_span(kts2, deg2, y[i])
-                basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
-                basis_funs(kts2, deg2, y[i], span2, basis2)
+                span1 = nu_find_span(kts1, deg1, x[i])
+                span2 = nu_find_span(kts2, deg2, y[i])
+                nu_basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
+                nu_basis_funs(kts2, deg2, y[i], span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -401,10 +401,10 @@ def eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=
                     z[i] += theCoeffs[j, 0]*basis1[j]
         elif (der2 == 1):
             for i in range(len(x)):
-                span1 = find_span(kts1, deg1, x[i])
-                span2 = find_span(kts2, deg2, y[i])
-                basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
-                basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
+                span1 = nu_find_span(kts1, deg1, x[i])
+                span2 = nu_find_span(kts2, deg2, y[i])
+                nu_basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
+                nu_basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
