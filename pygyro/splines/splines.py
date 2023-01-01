@@ -6,6 +6,20 @@ import numpy as np
 from .spline_eval_funcs import eval_spline_1d_scalar, eval_spline_1d_vector
 from .spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar
 from .spline_eval_funcs import find_span, basis_funs
+from .cubic_uniform_spline_eval_funcs import eval_spline_1d_scalar, eval_spline_1d_vector
+from .cubic_uniform_spline_eval_funcs import eval_spline_2d_cross, eval_spline_2d_scalar
+from .spline_type import cubic_uniform_splines
+
+if cubic_uniform_splines:
+    eval_spline_1d_scalar = cu_eval_spline_1d_scalar
+    eval_spline_1d_vector = cu_eval_spline_1d_vector
+    eval_spline_2d_cross  = cu_eval_spline_2d_cross
+    eval_spline_2d_scalar = cu_eval_spline_2d_scalar
+else:
+    eval_spline_1d_scalar = nu_eval_spline_1d_scalar
+    eval_spline_1d_vector = nu_eval_spline_1d_vector
+    eval_spline_2d_cross  = nu_eval_spline_2d_cross
+    eval_spline_2d_scalar = nu_eval_spline_2d_scalar
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
@@ -89,7 +103,12 @@ class BSplines():
 
     def __init__(self, knots, degree, periodic):
 
-        self._knots = knots
+        if cubic_uniform_splines:
+            assert degree == 3
+            self._knots = np.array([knots[0], knots[1]-knots[0]])
+        else:
+            self._knots = knots
+
         self._degree = degree
         self._periodic = periodic
         self._ncells = len(knots)-2*degree-1
@@ -97,7 +116,8 @@ class BSplines():
         self._offset = degree//2 if periodic else 0
         self._integrals = None
 
-        self._build_integrals()
+        if not cubic_uniform_splines:
+            self._build_integrals()
 
     @property
     def degree(self):
@@ -162,6 +182,7 @@ class BSplines():
 
     @property
     def integrals(self):
+        assert not cubic_uniform_splines
         return self._integrals
 
     # ...
