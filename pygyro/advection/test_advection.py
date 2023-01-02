@@ -119,13 +119,13 @@ def test_vParallelAdvection(function, N):
     x = spline.greville
 
     r = 4.0
+
     fEdge = fEq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
                 constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
     assert (fEq(r, x[0], constants.CN0, constants.kN0, constants.deltaRN0,
                 constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
             == fEq(r, x[-1], constants.CN0, constants.kN0, constants.deltaRN0,
                    constants.rp, constants.CTi, constants.kTi, constants.deltaRTi))
-
     f[:] = function(x)+fEdge
 
     vParAdv = VParallelAdvection([0, 0, 0, x], spline, constants, 'null')
@@ -235,10 +235,14 @@ def test_poloidalAdvection(dt, v, xc, yc):
 
     interp.compute_interpolant(phiVals, phi)
 
-    f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
+    fEdge = fEq(domain[0][1], v, constants.CN0, constants.kN0, constants.deltaRN0,
+                constants.rp, constants.CTi, constants.kTi, constants.deltaRTi)
+
+    f_vals[:, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)+fEdge
 
     for n in range(N):
         polAdv.step(f_vals[:, :], dt, phi, v)
+
 
     x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
     y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
@@ -251,7 +255,7 @@ def test_poloidalAdvection(dt, v, xc, yc):
     finalPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
     finalPts[0][:] = np.mod(np.arctan2(y, x), 2 * np.pi)
     finalPts[1][:] = np.sqrt(x * x + y * y)
-    final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
+    final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])+fEdge
 
     l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
