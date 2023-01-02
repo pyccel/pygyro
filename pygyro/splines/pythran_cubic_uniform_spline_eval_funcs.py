@@ -144,7 +144,7 @@ def cu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
 
     if (der == 0):
         for i, xi in enumerate(x):
-            span, offset = cu_find_span(xmin, dx, x)
+            span, offset = cu_find_span(xmin, dx, xi)
             cu_basis_funs(span, offset, basis)
 
             y[i] = 0.0
@@ -153,7 +153,7 @@ def cu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
 
     elif (der == 1):
         for i, xi in enumerate(x):
-            span, offset = cu_find_span(xmin, dx, x)
+            span, offset = cu_find_span(xmin, dx, xi)
             cu_basis_funs(span, offset, basis)
             cu_basis_funs_1st_der(span, offset, dx, basis)
 

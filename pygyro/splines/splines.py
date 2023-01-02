@@ -242,7 +242,7 @@ class BSplines():
         inv_deg = 1 / (d + 1)
 
         if self.cubic_uniform:
-            xmin, xmax, dx = self.knots
+            xmin, _, dx = self.knots
             if self.periodic:
                 self._integrals[:] = dx
             else:
@@ -252,8 +252,6 @@ class BSplines():
                 test_pt = xmin + 4*dx
                 span = nu_find_span(knots, 4, test_pt)
                 nu_basis_funs(knots, 4, test_pt, span, values)
-
-                d_eval = 1
 
                 for i in range(3):
                     step = dx*(1 - sum(values[:3-i]))
