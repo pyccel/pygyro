@@ -1,6 +1,8 @@
 from numpy import empty
 
 # pythran export cu_find_span(float64, float64, float64)
+
+
 def cu_find_span(xmin: 'float', dx: 'float', x: 'float'):
     """
     Determine the knot span index at location x, given the
@@ -38,7 +40,7 @@ def cu_find_span(xmin: 'float', dx: 'float', x: 'float'):
 
 
 # pythran export cu_basis_funs(int, float64, float64[:])
-def cu_basis_funs(span : 'int', offset : 'float', values : 'float[:]'):
+def cu_basis_funs(span: 'int', offset: 'float', values: 'float[:]'):
     """
     Compute the non-vanishing B-splines at location x,
     given the knot sequence, polynomial degree and knot
@@ -76,7 +78,7 @@ def cu_basis_funs(span : 'int', offset : 'float', values : 'float[:]'):
 
 
 # pythran export cu_basis_funs_1st_der(int, float64, float64, float64[:])
-def cu_basis_funs_1st_der(span: 'int', offset : 'float', dx : 'float', ders: 'float[:]'):
+def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'float[:]'):
     """
     Compute the first derivative of the non-vanishing B-splines
     at location x, given the knot sequence, polynomial degree
@@ -117,6 +119,8 @@ def cu_basis_funs_1st_der(span: 'int', offset : 'float', dx : 'float', ders: 'fl
     ders[3] = 3*o*o*idx
 
 # pythran export cu_eval_spline_1d_scalar(float64, float64[:], int, float64[:], int)
+
+
 def cu_eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
     xmin, dx = knots
     span, offset = cu_find_span(xmin, dx, x)
@@ -311,7 +315,7 @@ def cu_eval_spline_2d_vector_00(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         cu_basis_funs(span1, offset1, basis1)
         cu_basis_funs(span2, offset2, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(4):
@@ -334,7 +338,7 @@ def cu_eval_spline_2d_vector_01(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         cu_basis_funs(span1, offset1, basis1)
         cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(4):
@@ -357,7 +361,7 @@ def cu_eval_spline_2d_vector_10(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         cu_basis_funs_1st_der(span1, offset1, dx, basis1)
         cu_basis_funs(span2, offset2, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(4):
@@ -380,7 +384,7 @@ def cu_eval_spline_2d_vector_11(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         cu_basis_funs_1st_der(span1, offset1, dx, basis1)
         cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(4):

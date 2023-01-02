@@ -1,6 +1,7 @@
 from pyccel.decorators import pure, stack_array
 from numpy import empty
 
+
 @pure
 def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     """
@@ -45,7 +46,7 @@ def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
 
 
 @pure
-def cu_basis_funs(span : 'int', offset : 'float', values : 'float[:]'):
+def cu_basis_funs(span: 'int', offset: 'float', values: 'float[:]'):
     """
     Compute the non-vanishing B-splines at location x,
     given the knot sequence, polynomial degree and knot
@@ -83,7 +84,7 @@ def cu_basis_funs(span : 'int', offset : 'float', values : 'float[:]'):
 
 
 @pure
-def cu_basis_funs_1st_der(span: 'int', offset : 'float', dx : 'float', ders: 'float[:]'):
+def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'float[:]'):
     """
     Compute the first derivative of the non-vanishing B-splines
     at location x, given the knot sequence, polynomial degree
@@ -122,6 +123,7 @@ def cu_basis_funs_1st_der(span: 'int', offset : 'float', dx : 'float', ders: 'fl
     ders[1] = 3*b*idx*(3*b-4)
     ders[2] = 3*o*idx*(4-3*o)
     ders[3] = 3*o*o*idx
+
 
 @pure
 @stack_array('basis')
@@ -174,7 +176,7 @@ def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                          coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
+                             coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
     """
     TODO
     """
@@ -211,7 +213,7 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                         coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
+                            coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
@@ -301,7 +303,7 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                          coeffs: 'float[:,:]', z: 'float[:]', der1: 'int' = 0, der2: 'int' = 0):
+                             coeffs: 'float[:,:]', z: 'float[:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """

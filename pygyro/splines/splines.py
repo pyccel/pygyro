@@ -115,7 +115,8 @@ class BSplines():
 
         if self._cubic_uniform_splines:
             if periodic:
-                self._interp_pts = np.linspace(xmin, xmax, self._ncells, endpoint=False)
+                self._interp_pts = np.linspace(
+                    xmin, xmax, self._ncells, endpoint=False)
             else:
                 self._interp_pts = np.array([xmin,
                                             xmin+dx/3,
@@ -253,7 +254,7 @@ class BSplines():
                 nu_basis_funs(knots, 4, test_pt, span, values)
 
                 d_eval = 1
-    
+
                 for i in range(3):
                     step = dx*(1 - sum(values[:3-i]))
                     self._integrals[i] = step
@@ -281,7 +282,8 @@ class BSplines():
                 min_idx = first_wanted-first_available
                 u = np.sum(values[min_idx:])
 
-                self._integrals[i] = (knots[d+2+i] - knots[i+1])*inv_deg*(u - l)
+                self._integrals[i] = (
+                    knots[d+2+i] - knots[i+1])*inv_deg*(u - l)
 
             if self.periodic:
                 self._integrals[n:] = self._integrals[:d]
@@ -321,10 +323,10 @@ class Spline1D():
             result = np.empty_like(x)
             if self._basis.cubic_uniform:
                 cu_eval_spline_1d_vector(x, self._basis.knots,
-                                      self._basis.degree, self._coeffs, result, der)
+                                         self._basis.degree, self._coeffs, result, der)
             else:
                 nu_eval_spline_1d_vector(x, self._basis.knots,
-                                      self._basis.degree, self._coeffs, result, der)
+                                         self._basis.degree, self._coeffs, result, der)
         else:
             if self._basis.cubic_uniform:
                 result = cu_eval_spline_1d_scalar(
@@ -345,10 +347,10 @@ class Spline1D():
         """
         if self._basis.cubic_uniform:
             cu_eval_spline_1d_vector(x, self._basis.knots,
-                                  self._basis.degree, self._coeffs, y, der)
+                                     self._basis.degree, self._coeffs, y, der)
         else:
             nu_eval_spline_1d_vector(x, self._basis.knots,
-                                  self._basis.degree, self._coeffs, y, der)
+                                     self._basis.degree, self._coeffs, y, der)
 
 # ===============================================================================
 
@@ -398,21 +400,21 @@ class Spline2D():
             result = np.empty((len(x1), len(x2)))
             if self._basis1.cubic_uniform:
                 cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-                                     self._basis2.knots, self._basis2.degree,
-                                     self._coeffs, result, der1, der2)
+                                        self._basis2.knots, self._basis2.degree,
+                                        self._coeffs, result, der1, der2)
             else:
                 nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-                                     self._basis2.knots, self._basis2.degree,
-                                     self._coeffs, result, der1, der2)
+                                        self._basis2.knots, self._basis2.degree,
+                                        self._coeffs, result, der1, der2)
         else:
             if self._basis1.cubic_uniform:
                 result = cu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
-                                               self._basis2.knots, self._basis2.degree,
-                                               self._coeffs, der1, der2)
+                                                  self._basis2.knots, self._basis2.degree,
+                                                  self._coeffs, der1, der2)
             else:
                 result = nu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
-                                               self._basis2.knots, self._basis2.degree,
-                                               self._coeffs, der1, der2)
+                                                  self._basis2.knots, self._basis2.degree,
+                                                  self._coeffs, der1, der2)
         return result
 
         """
@@ -432,9 +434,9 @@ class Spline2D():
         """
         if self._basis1.cubic_uniform:
             cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-                                 self._basis2.knots, self._basis2.degree,
-                                 self._coeffs, y, der1, der2)
+                                    self._basis2.knots, self._basis2.degree,
+                                    self._coeffs, y, der1, der2)
         else:
             nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-                                 self._basis2.knots, self._basis2.degree,
-                                 self._coeffs, y, der1, der2)
+                                    self._basis2.knots, self._basis2.degree,
+                                    self._coeffs, y, der1, der2)

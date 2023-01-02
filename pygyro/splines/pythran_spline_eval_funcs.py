@@ -58,6 +58,8 @@ def nu_find_span(knots, degree, x):
 # ==============================================================================
 
 # pythran export nu_basis_funs(float64[:], int, float64, int, float64[:])
+
+
 def nu_basis_funs(knots, degree, x, span, values):
     """
     Compute the non-vanishing B-splines at location x,
@@ -336,7 +338,7 @@ def nu_eval_spline_2d_vector_00(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         nu_basis_funs(kts1, deg1, x[i], span1, basis1)
         nu_basis_funs(kts2, deg2, y[i], span2, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(deg1+1):
@@ -356,7 +358,7 @@ def nu_eval_spline_2d_vector_01(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         nu_basis_funs(kts1, deg1, x[i], span1, basis1)
         nu_basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(deg1+1):
@@ -376,7 +378,7 @@ def nu_eval_spline_2d_vector_10(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         nu_basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
         nu_basis_funs(kts2, deg2, y[i], span2, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(deg1+1):
@@ -396,7 +398,7 @@ def nu_eval_spline_2d_vector_11(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         nu_basis_funs_1st_der(kts1, deg1, x[i], span1, basis1)
         nu_basis_funs_1st_der(kts2, deg2, y[i], span2, basis2)
 
-        theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+        theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
         for j in range(deg1+1):

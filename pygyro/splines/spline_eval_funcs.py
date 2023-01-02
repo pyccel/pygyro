@@ -57,6 +57,7 @@ def nu_find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
 
 # ==============================================================================
 
+
 @pure
 @stack_array('left', 'right')
 def nu_basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', values: 'float[:]'):
@@ -214,7 +215,7 @@ def nu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                          coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
+                             coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
     """
     TODO
     """
@@ -248,7 +249,7 @@ def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def nu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                         coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
+                            coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
@@ -336,7 +337,7 @@ def nu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def nu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                          coeffs: 'float[:,:]', z: 'float[:]', der1: 'int' = 0, der2: 'int' = 0):
+                             coeffs: 'float[:,:]', z: 'float[:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """

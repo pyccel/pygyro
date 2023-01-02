@@ -434,7 +434,8 @@ class DiffEqSolver:
         rhoVec = np.zeros(self._rspline.greville.size)
 
         for j in range(self._rspline.nbasis):
-            self._rspline[j].eval_vector(self._evalPts.flatten(), self._evalRes)
+            self._rspline[j].eval_vector(
+                self._evalPts.flatten(), self._evalRes)
             rhoVec[j] = np.sum(np.tile(self._weights, len(self._evalPts))*self._multFactor
                                * self._evalRes * self._evalPts.flatten()
                                * rho(self._evalPts.flatten()))

@@ -240,7 +240,7 @@ def nu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
         nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
     theCoeffs = empty((deg1+1, deg2+1))
-    theCoeffs[:,:] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
+    theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
     z = 0.0
     for i in range(deg1+1):
@@ -336,7 +336,6 @@ def nu_eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der
                     for l in range(1, deg2+1):
                         theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
                     z[i, j] += theCoeffs[k, 0]*basis1[k]
-
 
 
 @cc.export('nu_eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:],i4,i4)')
