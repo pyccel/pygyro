@@ -198,7 +198,7 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
     if (der2 == 0):
         cu_basis_funs(span2, offset2, basis2)
     elif (der2 == 1):
-        cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+        cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
     theCoeffs = empty((4, 4))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
@@ -252,7 +252,7 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 
             for j, y in enumerate(Y):
                 span2, offset2 = cu_find_span(ymin, ymax, dy, y)
-                cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+                cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -289,7 +289,7 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
             cu_basis_funs_1st_der(span1, offset1, dx, basis1)
             for j, y in enumerate(Y):
                 span2, offset2 = cu_find_span(ymin, ymax, dy, y)
-                cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+                cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
@@ -338,7 +338,7 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
                 span1, offset1 = cu_find_span(xmin, xmax, dx, xi)
                 span2, offset2 = cu_find_span(ymin, ymax, dy, y[i])
                 cu_basis_funs(span1, offset1, basis1)
-                cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+                cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
