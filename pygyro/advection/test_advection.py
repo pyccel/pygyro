@@ -591,7 +591,8 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
         spline_theta = spl.BSplines(spl.make_knots(
             breaks_theta, phiOrder, True), phiOrder, True, True)
         breaks_z = np.linspace(0, 20, npts[2]+1)
-        spline_z = spl.BSplines(spl.make_knots(breaks_z, 3, True), 3, True, True)
+        spline_z = spl.BSplines(spl.make_knots(
+            breaks_z, 3, True), 3, True, True)
 
         eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
 
