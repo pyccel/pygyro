@@ -73,5 +73,5 @@ plt.colorbar(im)
 
 ax.set_xlabel("x [m]")
 ax.set_ylabel("y [m]")
-#~ plt.savefig('debug_results/WO-Flux{}'.format(filename[filename.rfind('/'):-3]))
+# ~ plt.savefig('debug_results/WO-Flux{}'.format(filename[filename.rfind('/'):-3]))
 plt.show()
