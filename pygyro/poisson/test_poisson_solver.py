@@ -564,7 +564,7 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -615,7 +615,7 @@ def test_grad_discrete(param_grad):
 
     ps.solveEquation(phi, rho)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -713,7 +713,7 @@ def test_grad_r_discrete(param_grad_r):
     q = eta_grid[1]
     ps.solveEquation(phi, rho)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -759,7 +759,7 @@ def test_grad_r_function(param_grad_r):
 
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0]))*r)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -816,7 +816,7 @@ def test_grad_withFFT(deg, npt, eps):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -876,7 +876,7 @@ def test_Sin_r_Sin_theta(param_sin_sin):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -999,7 +999,7 @@ def test_phi(param_fft):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < eps).all()
 
 
@@ -1080,7 +1080,7 @@ def test_quasiNeutrality():
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
     assert (np.abs(phi._f-phi_exact._f) < 0.1).all()
 
 

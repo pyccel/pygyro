@@ -117,8 +117,8 @@ def test_poloidalAdvection_invariantPhi():
 
     # ~ f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
     # ~ + fEq(0.1,v,constants.CN0,constants.kN0,
-    #~ constants.deltaRN0,constants.rp,
-    #~ constants.CTi,constants.kTi,
+    # ~ constants.deltaRN0,constants.rp,
+    # ~ constants.CTi,constants.kTi,
     # ~ constants.deltaRTi)
     f_vals[0, :, :] = phiVals + f_eq(0.1, v, constants.CN0, constants.kN0,
                                      constants.deltaRN0, constants.rp,
@@ -136,7 +136,7 @@ def test_poloidalAdvection_invariantPhi():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    # ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -212,7 +212,7 @@ def test_poloidalAdvection_vortex():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    # ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -288,7 +288,7 @@ def test_poloidalAdvection_constantAdv():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    # ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -429,7 +429,7 @@ def test_poloidalAdvection():
 
     f_vals[0, :-1, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
     f_vals[0, -1, :] = f_vals[0, 0, :]
-    #f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    # f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
 
     endPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
     endPts[0][:] = polAdv._shapedQ + 2*a*dt/constants.B0
@@ -541,8 +541,8 @@ def test_fluxAdvection_dz():
     layout = Layout('flux', [1], [0, 3, 1, 2], eta_vals, [0])
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
 
-    #dz = eta_vals[2][1]-eta_vals[2][0]
-    #dtheta = iota0()*dz/constants.R0
+    # dz = eta_vals[2][1]-eta_vals[2][0]
+    # dtheta = iota0()*dz/constants.R0
 
     f_vals[0, :, :] = initCondsF(np.atleast_2d(eta_vals[1]).T, eta_vals[2])
 
@@ -570,7 +570,7 @@ def test_fluxAdvection_dz():
 
     fig.colorbar(line1, cax=colorbarax2)
 
-    #~ plt.show()
+    # ~ plt.show()
 
     for n in range(1, N+1):
         del line1
@@ -662,7 +662,7 @@ def test_flux_aligned():
     fig.colorbar(line1, cax=colorbarax1)
     fig.colorbar(line2, cax=colorbarax2)
 
-    #~ plt.show()
+    # ~ plt.show()
 
     for n in range(1, N+1):
         del line1
@@ -709,16 +709,16 @@ def test_Phi_deriv():
 
     eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
 
-    #dz = eta_grid[2][1]-eta_grid[2][0]
-    #dtheta = iota8()*dz/constants.R0
+    # dz = eta_grid[2][1]-eta_grid[2][0]
+    # dtheta = iota8()*dz/constants.R0
 
     r = eta_grid[0]
 
     bz = 1 / np.sqrt(1+(r * iota8(r)/constants.R0)**2)
     btheta = r * iota8(r)/constants.R0 / np.sqrt(1 +
                                                  (r * iota8(r)/constants.R0)**2)
-    #bz = dz/np.sqrt(dz**2+dtheta**2)
-    #btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
+    # bz = dz/np.sqrt(dz**2+dtheta**2)
+    # btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
 
     phiVals = np.empty([npts[2], npts[1]])
     phiVals[:] = Phi(eta_grid[1][None, :], eta_grid[2][:, None])

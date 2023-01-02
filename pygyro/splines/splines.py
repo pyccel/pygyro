@@ -2,7 +2,7 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-#from scipy.interpolate  import splev, bisplev
+# from scipy.interpolate  import splev, bisplev
 from .spline_eval_funcs import nu_eval_spline_1d_scalar, nu_eval_spline_1d_vector
 from .spline_eval_funcs import nu_eval_spline_2d_cross, nu_eval_spline_2d_scalar
 from .spline_eval_funcs import nu_find_span, nu_basis_funs

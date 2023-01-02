@@ -73,7 +73,7 @@ def test_BasicPoissonEquation_pointConverge(deg):
             plane[:] = np.sin(a*(r-domain[0][0]))
 
         ps.solveEquation(phi, rho)
-        #~ ps.solveEquationForFunction(phi,lambda r: a*a*np.sin(a*(r-domain[0][0])))
+        # ~ ps.solveEquationForFunction(phi,lambda r: a*a*np.sin(a*(r-domain[0][0])))
 
         rspline = bsplines[0]
 
@@ -866,8 +866,8 @@ def test_QuasiNeutralityEquation_pointConverge():
                 #           + (1/r - constants.kN0*(1-np.tanh((r-constants.rp)/constants.deltaRN0)**2)) * \
                 #           4 * np.cos(rArg)**3*np.sin(rArg)*a \
                 #           + np.cos(rArg)**4 / initialiser.Te(r,constants.CTe,constants.kTe,constants.deltaRTe,constants.rp)
-                #plane = phi_exact.get2DSlice(i)
-                #plane[:] = np.cos(rArg)**4
+                # plane = phi_exact.get2DSlice(i)
+                # plane[:] = np.cos(rArg)**4
 
             ps.getModes(rho)
 
@@ -1085,12 +1085,12 @@ def test_QuasiNeutralityEquation_degreeConverge():
             m = np.max(np.abs(approxSpline.eval(evalPts)-np.cos(rArg)**4))
             if (m > lI):
                 lI = m
-            #~ plt.figure()
-            #~ plt.plot(evalPts,approxSpline.eval(evalPts),label='approx')
-            #~ plt.plot(evalPts,np.cos(rArg)**4,label='exact')
+            # ~ plt.figure()
+            # ~ plt.plot(evalPts,approxSpline.eval(evalPts),label='approx')
+            # ~ plt.plot(evalPts,np.cos(rArg)**4,label='exact')
             # ~ #~ plt.plot(evalPts,np.cos(rArg)**4*np.sin(q)**3,label='exact')
-            #~ plt.legend()
-            #~ plt.show()
+            # ~ plt.legend()
+            # ~ plt.show()
             # ~ l2Q[i]=np.sum((approxSpline.eval(evalPts)-np.cos(rArg)**4*np.sin(q)**3)**2 \
                 # ~ * multFactor*weights)
             l2Q[i] = np.sum((approxSpline.eval(evalPts)-np.cos(rArg)**4)**2

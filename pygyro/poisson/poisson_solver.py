@@ -616,7 +616,7 @@ class QuasiNeutralitySolver(DiffEqSolver):
         assert rho.getLayout(rho.currentLayout).dims_order[-1] == 0
 
         for i, I in enumerate(rho.getGlobalIdxVals(0)):
-            #m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
+            # m = i + rho.getLayout(rho.currentLayout).starts[0]-self._nq2
             # For each mode on this process, create the necessary matrix
             if (self._mVals[I] == 0):
                 stiffnessMatrix = self._stiffness0

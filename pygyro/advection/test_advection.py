@@ -97,7 +97,7 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
 
     for n in range(N):
         fluxAdv.step(f_vals, 0)
-    #~ print(np.max(np.abs(f_vals-f_end)))
+    # ~ print(np.max(np.abs(f_vals-f_end)))
     assert np.max(np.abs(f_vals-f_end)) < err
 
 

@@ -639,7 +639,7 @@ def test_Phi_deriv_dtheta():
         r = eta_grid[0]
 
         bz = 1 / np.sqrt(1 + (r * constants.iota(r) / constants.R0)**2)
-        #bz = dz/np.sqrt(dz**2+dtheta**2)
+        # bz = dz/np.sqrt(dz**2+dtheta**2)
         btheta = r * constants.iota(r) / constants.R0 / \
             np.sqrt(1 + (r * constants.iota(r) / constants.R0)**2)
         # ~ btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
@@ -722,8 +722,8 @@ def test_Phi_deriv_dz():
         bz = 1 / np.sqrt(1+(r * constants.iota(r)/constants.R0)**2)
         btheta = r * constants.iota(r) / constants.R0 / \
             np.sqrt(1 + (r * constants.iota(r) / constants.R0)**2)
-        #bz = dz/np.sqrt(dz**2+dtheta**2)
-        #btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
+        # bz = dz/np.sqrt(dz**2+dtheta**2)
+        # btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
 
         phiVals = np.empty([npts[2], npts[1]])
         phiVals[:] = Phi(eta_grid[1][None, :], eta_grid[2][:, None])

@@ -72,7 +72,7 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
 
     f = AnalyticalProfile1D_Cos()
 
-    #breaks = random_grid(f.domain, ncells, 0.5)
+    # breaks = random_grid(f.domain, ncells, 0.5)
     breaks = np.linspace(*f.domain, ncells+1)
     knots = make_knots(breaks, degree, periodic)
     basis = BSplines(knots, degree, periodic)
