@@ -245,10 +245,11 @@ class BSplines():
             xmin, _, dx = self.knots
             if self.periodic:
                 self._integrals[:] = dx
+                self._integrals[n:] = 0
             else:
                 self._integrals[d:-d] = dx
                 values = np.empty(d+2)
-                knots = make_knots(self.breaks, 4, False)
+                knots = np.linspace(xmin, xmin+dx*11, 12)
                 test_pt = xmin + 4*dx
                 span = nu_find_span(knots, 4, test_pt)
                 nu_basis_funs(knots, 4, test_pt, span, values)
@@ -284,7 +285,8 @@ class BSplines():
                     knots[d+2+i] - knots[i+1])*inv_deg*(u - l)
 
             if self.periodic:
-                self._integrals[n:] = self._integrals[:d]
+                for i in range(d):
+                    self._integrals[n+i] = self._integrals[d-i-1]
 
 # ===============================================================================
 

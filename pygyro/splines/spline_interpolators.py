@@ -25,7 +25,6 @@ class SplineInterpolator1D():
         self._basis = basis
         self._imat = self.collocation_matrix(
             basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
-        print(self._imat)
         if basis.periodic:
             self._splu = splu(csc_matrix(self._imat))
             self._offset = self._basis.degree // 2
@@ -112,8 +111,8 @@ class SplineInterpolator1D():
         if self._basis.periodic:
             inv_deg = 1 / (p + 1)
             knots = self._basis.knots
-            basis_quads = np.array(
-                [(knots[i+p+1]-knots[i])*inv_deg for i in range(n)])
+            basis_quads = self._basis.integrals[:n].copy()
+            basis_quads[:p] += self._basis.integrals[n:]
             return self._splu.solve(basis_quads, trans='T')
         else:
             c, self._sinfo = self._solveFunc(
