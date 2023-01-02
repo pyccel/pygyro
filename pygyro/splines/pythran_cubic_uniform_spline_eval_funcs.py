@@ -139,7 +139,7 @@ def cu_eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
         cu_basis_funs_1st_der(span, offset, dx, basis)
 
     y = 0.0
-    for j in range(4):
+    for j in range(degree+1):
         y += coeffs[span-3+j]*basis[j]
     return y
 
@@ -155,7 +155,7 @@ def cu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
             cu_basis_funs(span, offset, basis)
 
             y[i] = 0.0
-            for j in range(4):
+            for j in range(degree+1):
                 y[i] += coeffs[span-3+j]*basis[j]
 
     elif (der == 1):
@@ -164,7 +164,7 @@ def cu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
             cu_basis_funs_1st_der(span, offset, dx, basis)
 
             y[i] = 0.0
-            for j in range(4):
+            for j in range(degree+1):
                 y[i] += coeffs[span-3+j]*basis[j]
 
 
@@ -192,9 +192,9 @@ def cu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
     z = 0.0
-    for i in range(4):
+    for i in range(degree+1):
         theCoeffs[i, 0] = theCoeffs[i, 0]*basis2[0]
-        for j in range(1, 4):
+        for j in range(1, degree+1):
             theCoeffs[i, 0] += theCoeffs[i, j]*basis2[j]
         z += theCoeffs[i, 0]*basis1[i]
     return z
@@ -219,10 +219,10 @@ def cu_eval_spline_2d_cross_00(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
                                      deg1:span1+1, span2-deg2:span2+1]
 
             z[i, j] = 0.0
-            for k in range(4):
+            for k in range(degree+1):
                 theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
 
-                for l in range(1, 4):
+                for l in range(1, degree+1):
                     theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
                 z[i, j] += theCoeffs[k, 0]*basis1[k]
 
@@ -246,9 +246,9 @@ def cu_eval_spline_2d_cross_01(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
                                      deg1:span1+1, span2-deg2:span2+1]
 
             z[i, j] = 0.0
-            for k in range(4):
+            for k in range(degree+1):
                 theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                for l in range(1, 4):
+                for l in range(1, degree+1):
                     theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
                 z[i, j] += theCoeffs[k, 0]*basis1[k]
 
@@ -271,9 +271,9 @@ def cu_eval_spline_2d_cross_10(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
                                      deg1:span1+1, span2-deg2:span2+1]
 
             z[i, j] = 0.0
-            for k in range(4):
+            for k in range(degree+1):
                 theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                for l in range(1, 4):
+                for l in range(1, degree+1):
                     theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
                 z[i, j] += theCoeffs[k, 0]*basis1[k]
 
@@ -295,9 +295,9 @@ def cu_eval_spline_2d_cross_11(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
             theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
             z[i, j] = 0.0
-            for k in range(4):
+            for k in range(degree+1):
                 theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
-                for l in range(1, 4):
+                for l in range(1, degree+1):
                     theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
 
 
@@ -329,9 +329,9 @@ def cu_eval_spline_2d_vector_00(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
-        for j in range(4):
+        for j in range(degree+1):
             theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-            for k in range(1, 4):
+            for k in range(1, degree+1):
                 theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
             z[i] += theCoeffs[j, 0]*basis1[j]
 
@@ -352,9 +352,9 @@ def cu_eval_spline_2d_vector_01(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
-        for j in range(4):
+        for j in range(degree+1):
             theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-            for k in range(1, 4):
+            for k in range(1, degree+1):
                 theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
             z[i] += theCoeffs[j, 0]*basis1[j]
 
@@ -375,9 +375,9 @@ def cu_eval_spline_2d_vector_10(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
-        for j in range(4):
+        for j in range(degree+1):
             theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-            for k in range(1, 4):
+            for k in range(1, degree+1):
                 theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
             z[i] += theCoeffs[j, 0]*basis1[j]
 
@@ -398,9 +398,9 @@ def cu_eval_spline_2d_vector_11(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
         theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
         z[i] = 0.0
-        for j in range(4):
+        for j in range(degree+1):
             theCoeffs[j, 0] = theCoeffs[j, 0]*basis2[0]
-            for k in range(1, 4):
+            for k in range(1, degree+1):
                 theCoeffs[j, 0] += theCoeffs[j, k]*basis2[k]
             z[i] += theCoeffs[j, 0]*basis1[j]
 
