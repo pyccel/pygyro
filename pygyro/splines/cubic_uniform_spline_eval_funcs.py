@@ -83,6 +83,7 @@ def cu_basis_funs(span: 'int', offset: 'float', values: 'float[:]'):
     values[2] = 1/6+o*tmp
     values[3] = o*o*o/6
 
+
 @pure
 def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'float[:]'):
     """
@@ -124,6 +125,7 @@ def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'floa
     ders[2] = 0.5*idx*(o*o-1)
     ders[3] = 0.5*o*o*idx
 
+
 @pure
 @stack_array('basis')
 def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', der: 'int') -> 'float':
@@ -162,6 +164,7 @@ def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
             y[i] = 0.0
             for j in range(4):
                 y[i] += coeffs[span-3+j]*basis[j]
+
     elif (der == 1):
         for i, xi in enumerate(x):
             span, offset = cu_find_span(xmin, xmax, dx, xi)
@@ -368,7 +371,7 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
                 span1, offset1 = cu_find_span(xmin, xmax, dx, xi)
                 span2, offset2 = cu_find_span(ymin, ymax, dy, y[i])
                 cu_basis_funs_1st_der(span1, offset1, dx, basis1)
-                cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+                cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
                                          deg1:span1+1, span2-deg2:span2+1]
