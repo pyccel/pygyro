@@ -48,6 +48,40 @@ def test_SplineInterpolator1D_exact(ncells, degree):
     assert max_norm_err < 2.0e-14
     assert max_norm_derr < 2.0e-12
 
+
+@pytest.mark.serial
+@pytest.mark.parametrize("ncells", [1, 5, 10, 23])
+@pytest.mark.parametrize("degree", range(1, 11))
+def test_SplineInterpolator1D_exact_uniform(ncells, degree):
+    """
+    TODO
+    """
+
+    domain = [-1.0, 1.0]
+    periodic = False
+
+    poly = AnalyticalProfile1D_Poly(degree)
+
+    breaks = np.linspace(*domain, ncells+1)
+    knots = make_knots(breaks, degree, periodic)
+    basis = BSplines(knots, degree, periodic, True)
+    spline = Spline1D(basis)
+    interp = SplineInterpolator1D(basis)
+
+    xg = basis.greville
+    ug = poly.eval(xg)
+
+    interp.compute_interpolant(ug, spline)
+
+    xt = np.linspace(*domain, num=100)
+    err = spline.eval(xt) - poly.eval(xt)
+    derr = spline.eval(xt, der=1) - poly.eval(xt, diff=1)
+
+    max_norm_err = np.max(abs(err))
+    max_norm_derr = np.max(abs(derr))
+    assert max_norm_err < 2.0e-14
+    assert max_norm_derr < 2.0e-12
+
 # ===============================================================================
 
 
