@@ -5,9 +5,8 @@ import numpy as np
 from numpy.polynomial.legendre import leggauss
 
 from ..model.grid import Grid
-from ..splines.splines import BSplines, Spline1D
+from ..splines.splines import BSplines, Spline1D, make_knots
 from ..splines.spline_interpolators import SplineInterpolator1D
-from ..splines.spline_eval_funcs import eval_spline_1d_vector
 from ..initialisation import initialiser_funcs as init
 from .poisson_tools import get_perturbed_rho, get_rho
 
@@ -29,14 +28,14 @@ class DensityFinder:
 
     """
 
-    def __init__(self, degree: int, spline: BSplines, eta_grid: list, constants):
+    def __init__(self, degree: int, bspline: BSplines, eta_grid: list, constants):
         # Calculate the number of points required for the Gauss-Legendre
         # quadrature
         n = degree//2+1
 
         # Get the quadrature coefficients
         self._quad_coeffs = SplineInterpolator1D(
-            spline).get_quadrature_coefficients()
+            bspline).get_quadrature_coefficients()
 
         self._fEq = np.empty([eta_grid[0].size, eta_grid[3].size])
         init.feq_vector(self._fEq, eta_grid[0], eta_grid[3], constants.CN0, constants.kN0,
@@ -162,7 +161,11 @@ class DiffEqSolver:
 
         self._mVals = np.fft.fftfreq(nTheta, 1/nTheta)
 
-        self._rspline = rspline
+        if rspline.cubic_uniform:
+            knots = make_knots(rspline.breaks, 3, False)
+            self._rspline = BSplines(knots, 3, False, False)
+        else:
+            self._rspline = rspline
 
         # Calculate the points and weights required for the Gauss-Legendre
         # quadrature over the required domain
@@ -415,14 +418,10 @@ class DiffEqSolver:
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
             self._real_spline.coeffs[:] = np.real(self._coeffs)
-            eval_spline_1d_vector(phi.getCoordVals(2), self._real_spline.basis.knots,
-                                  self._real_spline.basis.degree, self._real_spline.coeffs,
-                                  self._realMem, 0)
+            self._real_spline.eval_vector(phi.getCoordVals(2), self._realMem)
 
             self._real_spline.coeffs[:] = np.imag(self._coeffs)
-            eval_spline_1d_vector(phi.getCoordVals(2), self._real_spline.basis.knots,
-                                  self._real_spline.basis.degree, self._real_spline.coeffs,
-                                  self._imagMem, 0)
+            self._real_spline.eval_vector(phi.getCoordVals(2), self._imagMem)
 
             phi.get1DSlice(i, j)[:] = self._realMem+1j*self._imagMem
 
@@ -435,9 +434,7 @@ class DiffEqSolver:
         rhoVec = np.zeros(self._rspline.greville.size)
 
         for j in range(self._rspline.nbasis):
-            eval_spline_1d_vector(self._evalPts.flatten(), self._rspline[j].basis.knots,
-                                  self._rspline[j].basis.degree, self._rspline[j].coeffs,
-                                  self._evalRes, 0)
+            self._rspline[j].eval_vector(self._evalPts.flatten(), self._evalRes)
             rhoVec[j] = np.sum(np.tile(self._weights, len(self._evalPts))*self._multFactor
                                * self._evalRes * self._evalPts.flatten()
                                * rho(self._evalPts.flatten()))
@@ -451,14 +448,10 @@ class DiffEqSolver:
             # Find the values at the greville points by interpolating
             # the real and imaginary parts of the coefficients individually
             self._real_spline.coeffs[:] = np.real(self._coeffs)
-            eval_spline_1d_vector(phi.getCoordVals(2), self._real_spline.basis.knots,
-                                  self._real_spline.basis.degree, self._real_spline.coeffs,
-                                  self._realMem, 0)
+            self._real_spline.eval_vector(phi.getCoordVals(2), self._realMem)
 
             self._real_spline.coeffs[:] = np.imag(self._coeffs)
-            eval_spline_1d_vector(phi.getCoordVals(2), self._real_spline.basis.knots,
-                                  self._real_spline.basis.degree, self._real_spline.coeffs,
-                                  self._imagMem, 0)
+            self._real_spline.eval_vector(phi.getCoordVals(2), self._imagMem)
 
             phi.get1DSlice(i, j)[:] = self._realMem+1j*self._imagMem
 
