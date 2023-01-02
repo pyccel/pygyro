@@ -36,13 +36,13 @@ def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     """
     normalised_pos = (x-xmin)/dx
 
-    span = int(normalised_pos)+3
+    span = int(normalised_pos)
     offset = normalised_pos-span
 
     if x == xmax:
-        return span-1, offset
+        return span+2, 1.0
     else:
-        return span, offset
+        return span+3, offset
 
 
 @pure
@@ -77,11 +77,11 @@ def cu_basis_funs(span: 'int', offset: 'float', values: 'float[:]'):
     b = 1-offset
     o = offset
 
-    values[0] = b*b*b
-    values[1] = 1 + 3*(1-b*b*(2-b))
-    values[2] = 1 + 3*(1-o*o*(2-o))
-    values[3] = o*o*o
-
+    values[0] = b*b*b/6
+    tmp = 0.5*(1+b*o)
+    values[1] = 1/6+b*tmp
+    values[2] = 1/6+o*tmp
+    values[3] = o*o*o/6
 
 @pure
 def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'float[:]'):
@@ -119,11 +119,10 @@ def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'floa
 
     idx = 1/dx
 
-    ders[0] = 3*b*b*idx
-    ders[1] = 3*b*idx*(3*b-4)
-    ders[2] = 3*o*idx*(4-3*o)
-    ders[3] = 3*o*o*idx
-
+    ders[0] = 0.5*b*b*idx
+    ders[1] = 0.5*idx*(b*b-1)
+    ders[2] = 0.5*idx*(o*o-1)
+    ders[3] = 0.5*o*o*idx
 
 @pure
 @stack_array('basis')
