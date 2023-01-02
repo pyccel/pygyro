@@ -150,11 +150,11 @@ def test_Spline2D_unit(ncells, degree, periodic, npts=10, tol=1e-15):
 
     breaks1 = np.arange(n1+1, dtype=float)
     knots1 = make_knots(breaks1, d1, P1)
-    basis1 = BSplines(knots1, d1, P1, True)
+    basis1 = BSplines(knots1, d1, P1, d2==3)
 
     breaks2 = np.arange(n2+1, dtype=float)
     knots2 = make_knots(breaks2, d2, P2)
-    basis2 = BSplines(knots2, d2, P2, True)
+    basis2 = BSplines(knots2, d2, P2, d1==3)
 
     spline = Spline2D(basis1, basis2)
     spline.coeffs.fill(1.0)
