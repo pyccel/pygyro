@@ -192,9 +192,9 @@ def cu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
     z = 0.0
-    for i in range(degree+1):
+    for i in range(deg1+1):
         theCoeffs[i, 0] = theCoeffs[i, 0]*basis2[0]
-        for j in range(1, degree+1):
+        for j in range(1, deg2+1):
             theCoeffs[i, 0] += theCoeffs[i, j]*basis2[j]
         z += theCoeffs[i, 0]*basis1[i]
     return z
