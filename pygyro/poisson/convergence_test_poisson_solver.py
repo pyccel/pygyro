@@ -43,7 +43,7 @@ def test_BasicPoissonEquation_pointConverge(deg):
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -154,7 +154,7 @@ def test_BasicPoissonEquation_degreeConverge():
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -261,7 +261,7 @@ def test_grad_pointConverge(deg):
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -371,7 +371,7 @@ def test_grad_degreeConverge():
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -486,7 +486,7 @@ def test_grad_r_pointConverge(deg):
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -595,7 +595,7 @@ def test_grad_r_degreeConverge():
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -710,7 +710,7 @@ def test_ddTheta(deg):
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -817,7 +817,7 @@ def test_QuasiNeutralityEquation_pointConverge():
                       for (lims, num) in zip(domain, nkts)]
             knots = [spl.make_knots(b, d, p)
                      for (b, d, p) in zip(breaks, degree, period)]
-            bsplines = [spl.BSplines(k, d, p)
+            bsplines = [spl.BSplines(k, d, p, True)
                         for (k, d, p) in zip(knots, degree, period)]
             eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -1004,7 +1004,7 @@ def test_QuasiNeutralityEquation_degreeConverge():
                   for (lims, num) in zip(domain, nkts)]
         knots = [spl.make_knots(b, d, p)
                  for (b, d, p) in zip(breaks, degree, period)]
-        bsplines = [spl.BSplines(k, d, p)
+        bsplines = [spl.BSplines(k, d, p, True)
                     for (k, d, p) in zip(knots, degree, period)]
         eta_grid = [bspl.greville for bspl in bsplines]
 

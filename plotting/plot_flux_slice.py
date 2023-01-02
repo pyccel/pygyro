@@ -52,7 +52,8 @@ domain = [[0, 2*np.pi], [constants.zMin, constants.zMax]]
 nkts = [n+1+d*(int(p)-1) for (n, d, p) in zip(npts, degree, period)]
 breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
 knots = [spl.make_knots(b, d, p) for (b, d, p) in zip(breaks, degree, period)]
-bsplines = [spl.BSplines(k, d, p) for (k, d, p) in zip(knots, degree, period)]
+bsplines = [spl.BSplines(k, d, p, True)
+            for (k, d, p) in zip(knots, degree, period)]
 eta_grid = [bspl.greville for bspl in bsplines]
 
 theta = np.repeat(np.append(eta_grid[0] % (2*np.pi), 2*np.pi), npts[1]+1) \

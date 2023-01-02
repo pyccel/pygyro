@@ -32,7 +32,7 @@ period = [False, True, True, False]
 # Compute breakpoints, knots, spline space and grid points
 breaks = [np.linspace(*lims, num=num) for lims, num in zip(domain, npts)]
 knots = [make_knots(b, d, p) for b, d, p in zip(breaks, degree, period)]
-bsplines = [BSplines(k, d, p) for k, d, p in zip(knots, degree, period)]
+bsplines = [BSplines(k, d, p, True) for k, d, p in zip(knots, degree, period)]
 eta_grids = [bspl.greville for bspl in bsplines]
 
 # ===============================================================================
