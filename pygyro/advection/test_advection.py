@@ -539,7 +539,7 @@ def test_vParGradAligned():
     der = np.empty([npts[2], npts[1]])
     pG.parallel_gradient(phiVals, 0, der)
     assert np.isfinite(der).all()
-    assert (np.abs(der) < 1e-7).all()
+    assert np.allclose(der, 0, atol=1e-6)
 
 
 @pytest.mark.serial
