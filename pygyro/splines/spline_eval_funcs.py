@@ -204,7 +204,6 @@ def nu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
     elif (der == 1):
         for i, xi in enumerate(x):
             span = nu_find_span(knots, degree, xi)
-            nu_basis_funs(knots, degree, xi, span, basis)
             nu_basis_funs_1st_der(knots, degree, xi, span, basis)
 
             y[i] = 0.0
