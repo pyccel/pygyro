@@ -30,7 +30,7 @@ def test_fluxSurfaceAdvection(fact, dt):
     nkts = [n+1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
-    bsplines = [spl.BSplines(k, 3, True) for k in knots]
+    bsplines = [spl.BSplines(k, 3, True, True) for k in knots]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     c = 2
@@ -74,7 +74,7 @@ def test_fluxSurfaceAdvectionAligned(nptZ, dt, err):
     nkts = [n+1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
-    bsplines = [spl.BSplines(k, 3, True) for k in knots]
+    bsplines = [spl.BSplines(k, 3, True, True) for k in knots]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     c = 2
@@ -115,7 +115,7 @@ def test_vParallelAdvection(function, N):
     nkts = npts-2
     breaks = np.linspace(-5, 5, num=nkts)
     knots = spl.make_knots(breaks, 3, False)
-    spline = spl.BSplines(knots, 3, False)
+    spline = spl.BSplines(knots, 3, False, True)
     x = spline.greville
 
     r = 4.0
@@ -157,7 +157,7 @@ def test_vParallelAdvectionPeriodic(N):
     nkts = npts-2
     breaks = np.linspace(-5, 5, num=nkts)
     knots = spl.make_knots(breaks, 3, False)
-    spline = spl.BSplines(knots, 3, False)
+    spline = spl.BSplines(knots, 3, False, True)
     x = spline.greville
 
     r = 4.0
@@ -218,7 +218,7 @@ def test_poloidalAdvection(dt, v, xc, yc):
     nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[0] = eta_grids[0]
@@ -280,7 +280,7 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[0] = eta_grids[0]
@@ -589,9 +589,9 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
     for i in range(nconvpts):
         breaks_theta = np.linspace(0, 2*np.pi, npts[1]+1)
         spline_theta = spl.BSplines(spl.make_knots(
-            breaks_theta, phiOrder, True), phiOrder, True)
+            breaks_theta, phiOrder, True), phiOrder, True, True)
         breaks_z = np.linspace(0, 20, npts[2]+1)
-        spline_z = spl.BSplines(spl.make_knots(breaks_z, 3, True), 3, True)
+        spline_z = spl.BSplines(spl.make_knots(breaks_z, 3, True), 3, True, True)
 
         eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
 
