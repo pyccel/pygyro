@@ -13,5 +13,6 @@ pyccel>=1.2.3
 # HDF5_MPI="ON"
 # HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 #
---no-binary --no-cache-dir h5py
+--no-cache-dir hypy mpi4py
+--no-binary h5py
 
