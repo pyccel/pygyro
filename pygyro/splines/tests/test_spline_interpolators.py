@@ -4,8 +4,9 @@
 import pytest
 import numpy as np
 
-from .utilities import horner, random_grid
+from .utilities import random_grid
 from .splines_error_bounds import spline_1d_error_bound, spline_2d_error_bound
+from .analytical_profiles_1d import AnalyticalProfile1D_Poly
 from .analytical_profiles_1d import AnalyticalProfile1D_Cos
 from .analytical_profiles_2d import AnalyticalProfile2D_CosCos
 from ..splines import make_knots, BSplines, Spline1D, Spline2D
@@ -25,9 +26,7 @@ def test_SplineInterpolator1D_exact(ncells, degree):
     domain = [-1.0, 1.0]
     periodic = False
 
-    poly_coeffs = np.random.random_sample(degree+1)  # 0 <= c < 1
-    poly_coeffs = 1.0 - poly_coeffs                   # 0 < c <= 1
-    def f(x): return horner(x, *poly_coeffs)
+    poly = AnalyticalProfile1D_Poly(degree)
 
     breaks = random_grid(domain, ncells, 0.5)
     knots = make_knots(breaks, degree, periodic)
@@ -36,12 +35,13 @@ def test_SplineInterpolator1D_exact(ncells, degree):
     interp = SplineInterpolator1D(basis)
 
     xg = basis.greville
-    ug = f(xg)
+    ug = poly.eval(xg)
 
     interp.compute_interpolant(ug, spline)
 
     xt = np.linspace(*domain, num=100)
-    err = spline.eval(xt) - f(xt)
+    err = spline.eval(xt) - poly.eval(xt)
+    derr = spline.eval(xt, der=1) - poly.eval(xt, diff=1)
 
     max_norm_err = np.max(abs(err))
     assert max_norm_err < 2.0e-14
@@ -109,9 +109,8 @@ def test_SplineInterpolator2D_exact(nc1, nc2, deg1, deg2):
 
     degree = min(deg1, deg2)
 
-    poly_coeffs = np.random.random_sample(degree+1)  # 0 <= c < 1
-    poly_coeffs = 1.0 - poly_coeffs                   # 0 < c <= 1
-    def f(x1, x2): return horner(x1-0.5*x2, *poly_coeffs)
+    poly = AnalyticalProfile1D_Poly(degree)
+    def f(x1, x2): return poly.eval(x1-0.5*x2)
 
     # Along x1
     breaks1 = random_grid(domain1, nc1, 0.0)
