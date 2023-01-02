@@ -186,7 +186,7 @@ def cu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
     if (der2 == 0):
         cu_basis_funs(span2, offset2, basis2)
     elif (der2 == 1):
-        cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+        cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
     theCoeffs = empty((4, 4))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
@@ -240,7 +240,7 @@ def cu_eval_spline_2d_cross_01(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
 
         for j, y in enumerate(Y):
             span2, offset2 = cu_find_span(ymin, ymax, dy, y)
-            cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+            cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
             theCoeffs[:, :] = coeffs[span1 -
                                      deg1:span1+1, span2-deg2:span2+1]
@@ -263,6 +263,7 @@ def cu_eval_spline_2d_cross_10(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
     for i, x in enumerate(X):
         span1, offset1 = cu_find_span(xmin, xmax, dx, x)
         cu_basis_funs_1st_der(span1, offset1, dx, basis1)
+
         for j, y in enumerate(Y):
             span2, offset2 = cu_find_span(ymin, ymax, dy, y)
             cu_basis_funs(span2, offset2, basis2)
@@ -290,7 +291,7 @@ def cu_eval_spline_2d_cross_11(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
         cu_basis_funs_1st_der(span1, offset1, dx, basis1)
         for j, y in enumerate(Y):
             span2, offset2 = cu_find_span(ymin, ymax, dy, y)
-            cu_basis_funs_1st_der(span2, offset2, dx, basis2)
+            cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
             theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
@@ -299,6 +300,7 @@ def cu_eval_spline_2d_cross_11(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
                 theCoeffs[k, 0] = theCoeffs[k, 0]*basis2[0]
                 for l in range(1, deg2+1):
                     theCoeffs[k, 0] += theCoeffs[k, l]*basis2[l]
+                z[i, j] += theCoeffs[k, 0]*basis1[k]
 
 
 # pythran export cu_eval_spline_2d_cross(float64[:], float64[:], float64[:], int, float64[:], int, float64[:,:], float[:,:], int, int)
