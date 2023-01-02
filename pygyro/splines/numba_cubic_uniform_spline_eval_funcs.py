@@ -125,12 +125,12 @@ def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'floa
     b = 1-offset
     o = offset
 
-    idx = 1/dx
+    coeff = 0.5/dx
 
-    ders[0] = 0.5*b*b*idx
-    ders[1] = 0.5*idx*(b*b-1)
-    ders[2] = 0.5*idx*(o*o-1)
-    ders[3] = 0.5*o*o*idx
+    ders[0] = -coeff*b*b
+    ders[1] = -coeff * (1+2*b-3*b*b)
+    ders[2] = coeff * (1+2*o-3*o*o)
+    ders[3] = coeff*o*o
 
 
 @cc.export('cu_eval_spline_1d_scalar', 'f8(f8,f8[:],i4,f8[:],i4)')
