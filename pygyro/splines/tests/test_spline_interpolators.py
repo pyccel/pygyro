@@ -31,7 +31,7 @@ def test_SplineInterpolator1D_exact(ncells, degree):
 
     breaks = random_grid(domain, ncells, 0.5)
     knots = make_knots(breaks, degree, periodic)
-    basis = BSplines(knots, degree, periodic)
+    basis = BSplines(knots, degree, periodic, False)
     spline = Spline1D(basis)
     interp = SplineInterpolator1D(basis)
 
@@ -72,7 +72,7 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
 
     breaks = random_grid(f.domain, ncells, 0.5)
     knots = make_knots(breaks, degree, periodic)
-    basis = BSplines(knots, degree, periodic)
+    basis = BSplines(knots, degree, periodic, False)
     spline = Spline1D(basis)
     interp = SplineInterpolator1D(basis)
 
@@ -116,12 +116,12 @@ def test_SplineInterpolator2D_exact(nc1, nc2, deg1, deg2):
     # Along x1
     breaks1 = random_grid(domain1, nc1, 0.0)
     knots1 = make_knots(breaks1, deg1, periodic1)
-    basis1 = BSplines(knots1, deg1, periodic1)
+    basis1 = BSplines(knots1, deg1, periodic1, False)
 
     # Along x2
     breaks2 = random_grid(domain2, nc2, 0.0)
     knots2 = make_knots(breaks2, deg2, periodic2)
-    basis2 = BSplines(knots2, deg2, periodic2)
+    basis2 = BSplines(knots2, deg2, periodic2, False)
 
     # 2D spline and interpolator on tensor-product space
     spline = Spline2D(basis1, basis2)
@@ -162,12 +162,12 @@ def test_SplineInterpolator2D_cosine(ncells, degree, periodic1, periodic2):
     # Along x1
     breaks1 = random_grid(domain1, nc1, 0.0)
     knots1 = make_knots(breaks1, deg1, periodic1)
-    basis1 = BSplines(knots1, deg1, periodic1)
+    basis1 = BSplines(knots1, deg1, periodic1, False)
 
     # Along x2
     breaks2 = random_grid(domain2, nc2, 0.0)
     knots2 = make_knots(breaks2, deg2, periodic2)
-    basis2 = BSplines(knots2, deg2, periodic2)
+    basis2 = BSplines(knots2, deg2, periodic2, False)
 
     # 2D spline and interpolator on tensor-product space
     spline = Spline2D(basis1, basis2)
