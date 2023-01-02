@@ -705,7 +705,8 @@ def test_Phi_deriv():
     constants = get_constants('testSetups/iota8.json')
 
     breaks_theta = np.linspace(0, 2*pi, npts[1]+1)
-    spline_theta = spl.BSplines(spl.make_knots(breaks_theta, 3, True), 3, True, True)
+    spline_theta = spl.BSplines(spl.make_knots(
+        breaks_theta, 3, True), 3, True, True)
     breaks_z = np.linspace(0, 20, npts[2]+1)
     spline_z = spl.BSplines(spl.make_knots(breaks_z, 3, True), 3, True, True)
 

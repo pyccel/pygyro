@@ -243,7 +243,6 @@ def test_poloidalAdvection(dt, v, xc, yc):
     for n in range(N):
         polAdv.step(f_vals[:, :], dt, phi, v)
 
-
     x0 = polAdv._points[1] * np.cos(polAdv._shapedQ)
     y0 = polAdv._points[1] * np.sin(polAdv._shapedQ)
 
