@@ -204,7 +204,9 @@ def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
     for j, s in enumerate(shifts):
         idx = (i - s) % nz
         new_q[:] = (qVals + thetaShifts[j]) % (2*pi)
-        eval_spline_1d_vector(new_q, kts, deg, coeffs, vals[idx, :, j], 0)
+        #eval_spline_1d_vector(new_q, kts, deg, coeffs, vals[idx, :, j], 0)
+        for k, q in enumerate(new_q):
+            vals[idx, k, j] = eval_spline_1d_scalar(q, kts, deg, coeffs, 0)
 
 
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',
