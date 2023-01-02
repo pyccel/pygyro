@@ -1,11 +1,12 @@
 from numba import njit
 from numba.pycc import CC
+from numba.types import Tuple
 from numpy import empty
 
 cc = CC('spline_eval_funcs')
 
 
-@cc.export('cu_find_span', '(i4,f8)(f8, f8, f8, f8)')
+@cc.export('cu_find_span', 'Tuple((i4,f8))(f8, f8, f8, f8)')
 @njit
 def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     """

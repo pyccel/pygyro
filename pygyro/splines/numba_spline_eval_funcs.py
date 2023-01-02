@@ -338,7 +338,7 @@ def nu_eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der
                     z[i, j] += theCoeffs[k, 0]*basis1[k]
 
 
-@cc.export('nu_eval_spline_2d_vector', 'f8[:](f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:],i4,i4)')
+@cc.export('nu_eval_spline_2d_vector', '(f8[:],f8[:],f8[:],i4,f8[:],i4,f8[:,:],f8[:],i4,i4)')
 @njit
 def nu_eval_spline_2d_vector(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
     """
