@@ -153,6 +153,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                                              deg1Phi, deg2Phi, kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol, CN0, kN0, deltaRN0,
                                              rp, CTi, kTi, deltaRTi, B0, nulBound, nu_eval_spline_2d_cross, nu_eval_spline_2d_scalar)
 
+
 @njit
 def general_v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                                            rPos: 'float', vMin: 'float', vMax: 'float',
@@ -187,6 +188,7 @@ def general_v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                 v -= vDiff
             f[i] = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
 
+
 @cc.export('v_parallel_advection_eval_step', '(f8[:],f8[:],f8,f8,f8,f8[:],i4,f8[:],\
                                         f8,f8,f8,f8,f8,f8,f8,i4,b1)')
 def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
@@ -201,6 +203,7 @@ def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
     else:
         general_v_parallel_advection_eval_step(f, vPts, rPos, vMin, vMax, kts, deg, coeffs,
                                                CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi, bound, nu_eval_spline_1d_scalar)
+
 
 @njit
 def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
@@ -218,9 +221,10 @@ def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
     for j, s in enumerate(shifts):
         idx = (i - s) % nz
         new_q[:] = (qVals + thetaShifts[j]) % (2*pi)
-        #eval_spline_1d_vector(new_q, kts, deg, coeffs, vals[idx, :, j], 0)
+        # eval_spline_1d_vector(new_q, kts, deg, coeffs, vals[idx, :, j], 0)
         for k, q in enumerate(new_q):
             vals[idx, k, j] = eval_spline_1d_scalar(q, kts, deg, coeffs, 0)
+
 
 @njit
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',
@@ -246,6 +250,7 @@ def flux_advection(nq: 'int', nr: 'int',
             f[j, i] = coeffs[0]*vals[i, j, 0]
             for k in range(1, len(coeffs)):
                 f[j, i] += coeffs[k]*vals[i, j, k]
+
 
 @njit
 def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
@@ -379,6 +384,7 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
                     f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
                                                     kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
+
 
 @cc.export('poloidal_advection_step_impl', (f8[:, :], f8, f8, f8[:], f8[:],
                                             f8[:, :], f8[:, :], f8[:, :],
