@@ -3,7 +3,7 @@ from numpy import empty
 
 
 @pure
-def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float', ncells : 'int'):
+def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float', ncells: 'int'):
     """
     Determine the knot span index at location x, given the
     cell size and start of the domain.

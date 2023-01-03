@@ -108,7 +108,7 @@ class BSplines():
 
         if self._cubic_uniform_splines:
             self._knots = np.array([xmin, xmax, dx, self._ncells])
-            assert(int(self._knots[3]) == self._ncells)
+            assert (int(self._knots[3]) == self._ncells)
         else:
             self._knots = knots
 

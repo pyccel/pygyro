@@ -2,7 +2,7 @@
 # Copyright 2018 Yaman Güçlü
 
 import numpy as np
-from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs, dpttrf, dpttrs
+from scipy.linalg.lapack import zgbtrf, zgbtrs, zpttrf, zpttrs, dgbtrf, dgbtrs, dpttrf, dpttrs
 from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
 
@@ -28,6 +28,25 @@ class SplineInterpolator1D():
         if basis.periodic:
             self._splu = splu(csc_matrix(self._imat))
             self._offset = self._basis.degree // 2
+        elif basis.cubic_uniform and basis.nbasis > 4:
+            print(self._imat)
+            dmat = dia_matrix(self._imat[2:-2, 2:-2])
+            self._diag = dmat.diagonal(0)
+            self._ldiag = dmat.diagonal(-1)
+            udiag = dmat.diagonal(1)
+            assert np.allclose(self._ldiag, udiag)
+            for i in range(2, dmat.offsets.max()):
+                assert np.allclose(dmat.diagonal(i), 0)
+            for i in range(dmat.offsets.min(), -1):
+                assert np.allclose(dmat.diagonal(i), 0)
+            nl = dmat.offsets.min()
+            nu = dmat.offsets.max()
+            self._delta = np.vstack([np.hstack([self._imat[:2, :2], np.zeros(
+                (2, 2))]), np.hstack([np.zeros((2, 2)), self._imat[-2:, -2:]])])
+            self._lambda = csr_matrix(
+                np.hstack([self._imat[:2, 2:-2], self._imat[-2:, 2:-2]]))
+            self._gamma = csr_matrix(
+                np.vstack([self._imat[2:-2, :2], self._imat[2:-2, -2:]]))
         else:
             dmat = dia_matrix(self._imat)
             self._l = abs(dmat.offsets.min())
