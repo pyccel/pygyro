@@ -99,17 +99,18 @@ class BSplines():
 
         self._cubic_uniform_splines = (degree == 3) and uniform
 
-        if self._cubic_uniform_splines:
-            self._knots = np.array([xmin, xmax, dx])
-        else:
-            self._knots = knots
-
         self._degree = degree
         self._periodic = periodic
         self._ncells = len(knots)-2*degree-1
         self._nbasis = self._ncells if periodic else self._ncells+degree
         self._offset = degree//2 if periodic else 0
         self._integrals = None
+
+        if self._cubic_uniform_splines:
+            self._knots = np.array([xmin, xmax, dx, self._ncells])
+            assert(int(self._knots[3]) == self._ncells)
+        else:
+            self._knots = knots
 
         self._build_integrals()
 
@@ -159,7 +160,7 @@ class BSplines():
         """ List of breakpoints.
         """
         if self.cubic_uniform:
-            xmin, xmax, _ = self._knots
+            xmin, xmax, _, _ = self._knots
             return np.linspace(xmin, xmax, self._ncells+1)
         else:
             p = self._degree
@@ -242,7 +243,7 @@ class BSplines():
         inv_deg = 1 / (d + 1)
 
         if self.cubic_uniform:
-            xmin, _, dx = self.knots
+            xmin, _, dx, _ = self.knots
             if self.periodic:
                 self._integrals[:] = dx
                 self._integrals[n:] = 0

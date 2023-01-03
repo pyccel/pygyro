@@ -161,10 +161,11 @@ class SplineInterpolator1D():
         basis = np.empty(degree+1)
 
         if cubic_uniform_splines:
-            xmin, xmax, dx = knots
+            xmin, xmax, dx, f_ncells = knots
+            ncells = int(f_ncells)
             # Fill in non-zero matrix values
             for i, x in enumerate(xgrid):
-                span, offset = cu_find_span(xmin, xmax, dx, x)
+                span, offset = cu_find_span(xmin, xmax, dx, x, ncells)
                 cu_basis_funs(span, offset, basis)
                 mat[i, js(span)] = basis
         else:

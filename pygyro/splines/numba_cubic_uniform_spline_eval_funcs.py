@@ -30,6 +30,9 @@ def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     x : float
         Location of interest.
 
+    ncells : int
+        The number of cells
+
     Returns
     -------
     span : int
@@ -43,7 +46,7 @@ def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     span = int(normalised_pos)
     offset = normalised_pos-span
 
-    if span*dx >= xmax:
+    if span == ncells:
         return span+2, 1.0
     else:
         return span+3, offset
@@ -138,8 +141,9 @@ def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeff
     """
     TODO
     """
-    xmin, xmax, dx = knots[0], knots[1], knots[2]
-    span, offset = cu_find_span(xmin, xmax, dx, x)
+    xmin, xmax, dx, f_ncells_x = knots[0], knots[1], knots[2], knots[3]
+    ncells_x = int(f_ncells_x)
+    span, offset = cu_find_span(xmin, xmax, dx, x, ncells_x)
 
     basis = empty(4)
     if (der == 0):
@@ -159,12 +163,13 @@ def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
     """
     TODO
     """
-    xmin, xmax, dx = knots[0], knots[1], knots[2]
+    xmin, xmax, dx, f_ncells_x = knots[0], knots[1], knots[2], knots[3]
+    ncells_x = int(f_ncells_x)
     basis = empty(4)
 
     if (der == 0):
         for i, xi in enumerate(x):
-            span, offset = cu_find_span(xmin, xmax, dx, xi)
+            span, offset = cu_find_span(xmin, xmax, dx, xi, ncells_x)
             cu_basis_funs(span, offset, basis)
 
             y[i] = 0.0
@@ -173,7 +178,7 @@ def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
 
     elif (der == 1):
         for i, xi in enumerate(x):
-            span, offset = cu_find_span(xmin, xmax, dx, xi)
+            span, offset = cu_find_span(xmin, xmax, dx, xi, ncells_x)
             cu_basis_funs_1st_der(span, offset, dx, basis)
 
             y[i] = 0.0
@@ -188,11 +193,13 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
     """
     TODO
     """
-    xmin, xmax, dx = kts1[0], kts1[1], kts1[2]
-    ymin, ymax, dy = kts2[0], kts2[1], kts2[2]
+    xmin, xmax, dx, f_ncells_x = kts1[0], kts1[1], kts1[2], kts1[3]
+    ncells_x = int(f_ncells_x)
+    ymin, ymax, dy, f_ncells_y = kts2[0], kts2[1], kts2[2], kts2[3]
+    ncells_y = int(f_ncells_y)
 
-    span1, offset1 = cu_find_span(xmin, xmax, dx, x)
-    span2, offset2 = cu_find_span(ymin, ymax, dy, y)
+    span1, offset1 = cu_find_span(xmin, xmax, dx, x, ncells_x)
+    span2, offset2 = cu_find_span(ymin, ymax, dy, y, ncells_y)
 
     basis1 = empty(4)
     basis2 = empty(4)
@@ -225,8 +232,10 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
     """
     TODO
     """
-    xmin, xmax, dx = kts1[0], kts1[1], kts1[2]
-    ymin, ymax, dy = kts2[0], kts2[1], kts2[2]
+    xmin, xmax, dx, f_ncells_x = kts1[0], kts1[1], kts1[2], kts1[3]
+    ncells_x = int(f_ncells_x)
+    ymin, ymax, dy, f_ncells_y = kts2[0], kts2[1], kts2[2], kts2[3]
+    ncells_y = int(f_ncells_y)
 
     basis1 = empty(4)
     basis2 = empty(4)
@@ -234,10 +243,10 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):
-            span1, offset1 = cu_find_span(xmin, xmax, dx, x)
+            span1, offset1 = cu_find_span(xmin, xmax, dx, x, ncells_x)
             cu_basis_funs(span1, offset1, basis1)
             for j, y in enumerate(Y):
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y, ncells_y)
                 cu_basis_funs(span2, offset2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
@@ -253,11 +262,11 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 
     elif (der1 == 0 and der2 == 1):
         for i, x in enumerate(X):
-            span1, offset1 = cu_find_span(xmin, xmax, dx, x)
+            span1, offset1 = cu_find_span(xmin, xmax, dx, x, ncells_x)
             cu_basis_funs(span1, offset1, basis1)
 
             for j, y in enumerate(Y):
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y, ncells_y)
                 cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
@@ -272,11 +281,11 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 
     elif (der1 == 1 and der2 == 0):
         for i, x in enumerate(X):
-            span1, offset1 = cu_find_span(xmin, xmax, dx, x)
+            span1, offset1 = cu_find_span(xmin, xmax, dx, x, ncells_x)
             cu_basis_funs_1st_der(span1, offset1, dx, basis1)
 
             for j, y in enumerate(Y):
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y, ncells_y)
                 cu_basis_funs(span2, offset2, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
@@ -291,10 +300,10 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 
     elif (der1 == 1 and der2 == 1):
         for i, x in enumerate(X):
-            span1, offset1 = cu_find_span(xmin, xmax, dx, x)
+            span1, offset1 = cu_find_span(xmin, xmax, dx, x, ncells_x)
             cu_basis_funs_1st_der(span1, offset1, dx, basis1)
             for j, y in enumerate(Y):
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y, ncells_y)
                 cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
                 theCoeffs[:, :] = coeffs[span1 -
@@ -315,8 +324,10 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
     """
     TODO
     """
-    xmin, xmax, dx = kts1[0], kts1[1], kts1[2]
-    ymin, ymax, dy = kts2[0], kts2[1], kts2[2]
+    xmin, xmax, dx, f_ncells_x = kts1[0], kts1[1], kts1[2], kts1[3]
+    ncells_x = int(f_ncells_x)
+    ymin, ymax, dy, f_ncells_y = kts2[0], kts2[1], kts2[2], kts2[3]
+    ncells_y = int(f_ncells_y)
 
     basis1 = empty(4)
     basis2 = empty(4)
@@ -325,8 +336,8 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
     if (der1 == 0):
         if (der2 == 0):
             for i, xi in enumerate(x):
-                span1, offset1 = cu_find_span(xmin, xmax, dx, xi)
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i])
+                span1, offset1 = cu_find_span(xmin, xmax, dx, xi, ncells_x)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i], ncells_y)
                 cu_basis_funs(span1, offset1, basis1)
                 cu_basis_funs(span2, offset2, basis2)
 
@@ -341,8 +352,8 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
                     z[i] += theCoeffs[j, 0]*basis1[j]
         elif (der2 == 1):
             for i, xi in enumerate(x):
-                span1, offset1 = cu_find_span(xmin, xmax, dx, xi)
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i])
+                span1, offset1 = cu_find_span(xmin, xmax, dx, xi, ncells_x)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i], ncells_y)
                 cu_basis_funs(span1, offset1, basis1)
                 cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
@@ -358,8 +369,8 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
     elif (der1 == 1):
         if (der2 == 0):
             for i, xi in enumerate(x):
-                span1, offset1 = cu_find_span(xmin, xmax, dx, xi)
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i])
+                span1, offset1 = cu_find_span(xmin, xmax, dx, xi, ncells_x)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i], ncells_y)
                 cu_basis_funs_1st_der(span1, offset1, dx, basis1)
                 cu_basis_funs(span2, offset2, basis2)
 
@@ -374,8 +385,8 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
                     z[i] += theCoeffs[j, 0]*basis1[j]
         elif (der2 == 1):
             for i, xi in enumerate(x):
-                span1, offset1 = cu_find_span(xmin, xmax, dx, xi)
-                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i])
+                span1, offset1 = cu_find_span(xmin, xmax, dx, xi, ncells_x)
+                span2, offset2 = cu_find_span(ymin, ymax, dy, y[i], ncells_y)
                 cu_basis_funs_1st_der(span1, offset1, dx, basis1)
                 cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
