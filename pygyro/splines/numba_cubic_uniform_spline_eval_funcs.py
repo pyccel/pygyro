@@ -5,7 +5,7 @@ from numpy import empty
 cc = CC('spline_eval_funcs')
 
 
-@cc.export('cu_find_span', 'Tuple((i4,f8))(f8, f8, f8, f8)')
+@cc.export('cu_find_span', 'Tuple((i4,f8))(f8, f8, f8, f8, i4)')
 @njit
 def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     """
