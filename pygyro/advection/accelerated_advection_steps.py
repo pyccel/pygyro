@@ -193,7 +193,8 @@ def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
                               vals: 'float[:,:,:]', qVals: 'float[:]',
                               thetaShifts: 'float[:]', kts: 'float[:]',
                               deg: 'int', coeffs: 'float[:]',
-                              eval_spline_1d_vector: '()(const float[:], const float[:], int, const float[:], float[:], int)'):
+                              eval_spline_1d_vector: '()(const float[:], const float[:], int, const float[:], float[:], int)',
+                              eval_spline_1d_scalar: '(float)(float, const float[:], int, const float[:], int)'):
     """
     TODO
     """
@@ -215,10 +216,10 @@ def get_lagrange_vals(i: 'int', shifts: 'int[:]',
                       deg: 'int', coeffs: 'float[:]', cubic_uniform_splines: 'bool'):
     if cubic_uniform_splines:
         general_get_lagrange_vals(
-            i, shifts, vals, qVals, thetaShifts, kts, deg, coeffs, cu_eval_spline_1d_vector)
+            i, shifts, vals, qVals, thetaShifts, kts, deg, coeffs, cu_eval_spline_1d_vector, cu_eval_spline_1d_scalar)
     else:
         general_get_lagrange_vals(
-            i, shifts, vals, qVals, thetaShifts, kts, deg, coeffs, nu_eval_spline_1d_vector)
+            i, shifts, vals, qVals, thetaShifts, kts, deg, coeffs, nu_eval_spline_1d_vector, nu_eval_spline_1d_scalar)
 
 
 @pure
