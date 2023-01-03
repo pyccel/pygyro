@@ -226,7 +226,7 @@ def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
             vals[idx, k, j] = eval_spline_1d_scalar(q, kts, deg, coeffs, 0)
 
 
-@njit
+@cc.export('get_lagrange_vals', '(i4,i8[:],f8[:,:,:],f8[:],f8[:],f8[:],i4,f8[:],b1)')
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',
                       vals: 'float[:,:,:]', qVals: 'float[:]',
                       thetaShifts: 'float[:]', kts: 'float[:]',
