@@ -43,7 +43,7 @@ def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
     span = int(normalised_pos)
     offset = normalised_pos-span
 
-    if x == xmax:
+    if span*dx >= xmax:
         return span+2, 1.0
     else:
         return span+3, offset
