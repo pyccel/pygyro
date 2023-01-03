@@ -92,8 +92,8 @@ def nu_basis_funs(knots, degree, x, span, values):
     arrays that are one element shorter.
 
     """
-    left = empty(3)
-    right = empty(3)
+    left = empty(degree)
+    right = empty(degree)
 
     values[0] = 1.0
 
@@ -143,7 +143,7 @@ def nu_basis_funs_1st_der(knots, degree, x, span, ders):
     """
     # Compute nonzero basis functions and knot differences for splines
     # up to degree deg-1
-    values = empty(3)
+    values = empty(degree)
     nu_basis_funs(knots, degree-1, x, span, values)
 
     # Compute derivatives at x using formula based on difference of
@@ -167,7 +167,7 @@ def nu_basis_funs_1st_der(knots, degree, x, span, ders):
 def nu_eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
     span = nu_find_span(knots, degree, x)
 
-    basis = empty(4)
+    basis = empty(degree+1)
     if (der == 0):
         nu_basis_funs(knots, degree, x, span, basis)
     elif (der == 1):
@@ -181,7 +181,7 @@ def nu_eval_spline_1d_scalar(x, knots, degree, coeffs, der=0):
 
 # pythran export nu_eval_spline_1d_vector(float64[:], float64[:], int, float64[:], float64[:], int)
 def nu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
-    basis = empty(4)
+    basis = empty(degree+1)
 
     if (der == 0):
         for i, xi in enumerate(x):
@@ -195,7 +195,6 @@ def nu_eval_spline_1d_vector(x, knots, degree, coeffs, y, der=0):
     elif (der == 1):
         for i, xi in enumerate(x):
             span = nu_find_span(knots, degree, xi)
-            nu_basis_funs(knots, degree, xi, span, basis)
             nu_basis_funs_1st_der(knots, degree, xi, span, basis)
 
             y[i] = 0.0
@@ -208,8 +207,8 @@ def nu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
     span1 = nu_find_span(kts1, deg1, x)
     span2 = nu_find_span(kts2, deg2, y)
 
-    basis1 = empty(4)
-    basis2 = empty(4)
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
 
     if (der1 == 0):
         nu_basis_funs(kts1, deg1, x, span1, basis1)
@@ -220,7 +219,7 @@ def nu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
     elif (der2 == 1):
         nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((deg1+1, deg2+1))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
     z = 0.0
@@ -233,9 +232,9 @@ def nu_eval_spline_2d_scalar(x, y, kts1, deg1, kts2, deg2, coeffs, der1=0, der2=
 
 
 def nu_eval_spline_2d_cross_00(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
 
     for i, x in enumerate(X):
         span1 = nu_find_span(kts1, deg1, x)
@@ -255,9 +254,9 @@ def nu_eval_spline_2d_cross_00(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
 
 
 def nu_eval_spline_2d_cross_01(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i, x in enumerate(X):
         span1 = nu_find_span(kts1, deg1, x)
         nu_basis_funs(kts1, deg1, x, span1, basis1)
@@ -276,9 +275,9 @@ def nu_eval_spline_2d_cross_01(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
 
 
 def nu_eval_spline_2d_cross_10(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i, x in enumerate(X):
         span1 = nu_find_span(kts1, deg1, x)
         nu_basis_funs_1st_der(kts1, deg1, x, span1, basis1)
@@ -297,9 +296,9 @@ def nu_eval_spline_2d_cross_10(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
 
 
 def nu_eval_spline_2d_cross_11(X, Y, kts1, deg1, kts2, deg2, coeffs, z):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i, x in enumerate(X):
         span1 = nu_find_span(kts1, deg1, x)
         nu_basis_funs_1st_der(kts1, deg1, x, span1, basis1)
@@ -329,9 +328,9 @@ def nu_eval_spline_2d_cross(X, Y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der
 
 
 def nu_eval_spline_2d_vector_00(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i in range(len(x)):
         span1 = nu_find_span(kts1, deg1, x[i])
         span2 = nu_find_span(kts2, deg2, y[i])
@@ -349,9 +348,9 @@ def nu_eval_spline_2d_vector_00(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
 
 
 def nu_eval_spline_2d_vector_01(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i in range(len(x)):
         span1 = nu_find_span(kts1, deg1, x[i])
         span2 = nu_find_span(kts2, deg2, y[i])
@@ -369,9 +368,9 @@ def nu_eval_spline_2d_vector_01(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
 
 
 def nu_eval_spline_2d_vector_10(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i in range(len(x)):
         span1 = nu_find_span(kts1, deg1, x[i])
         span2 = nu_find_span(kts2, deg2, y[i])
@@ -389,9 +388,9 @@ def nu_eval_spline_2d_vector_10(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0,
 
 
 def nu_eval_spline_2d_vector_11(x, y, kts1, deg1, kts2, deg2, coeffs, z, der1=0, der2=0):
-    basis1 = empty(4)
-    basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    basis1 = empty(deg1+1)
+    basis2 = empty(deg2+1)
+    theCoeffs = empty((deg1+1, deg2+1))
     for i in range(len(x)):
         span1 = nu_find_span(kts1, deg1, x[i])
         span2 = nu_find_span(kts2, deg2, y[i])
