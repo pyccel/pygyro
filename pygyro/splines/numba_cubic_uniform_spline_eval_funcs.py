@@ -7,7 +7,7 @@ cc = CC('spline_eval_funcs')
 
 @cc.export('cu_find_span', 'Tuple((i4,f8))(f8, f8, f8, f8, i4)')
 @njit
-def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float'):
+def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float', ncells: 'int'):
     """
     Determine the knot span index at location x, given the
     cell size and start of the domain.
