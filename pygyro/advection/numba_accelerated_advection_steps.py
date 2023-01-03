@@ -1,4 +1,4 @@
-from numba.types import Tuple, f8, i4, b1
+from numba.types import f8, i4, b1
 from numba.pycc import CC
 from numba import njit
 from numpy import pi, empty_like, abs as np_abs
@@ -7,9 +7,6 @@ from splines.numba_spline_eval_funcs import nu_eval_spline_2d_cross, nu_eval_spl
 from splines.numba_cubic_uniform_spline_eval_funcs import cu_eval_spline_1d_scalar, cu_eval_spline_1d_vector
 from splines.numba_cubic_uniform_spline_eval_funcs import cu_eval_spline_2d_cross, cu_eval_spline_2d_scalar
 from initialisation.numba_initialiser_funcs import f_eq
-
-
-shape2 = Tuple([i4, i4])
 
 cc = CC('accelerated_advection_steps')
 

@@ -265,7 +265,7 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
         The parallel velocity coordinate
 
     """
-    from numpy import pi, abs
+    from numpy import pi, abs as np_abs
 
     multFactor = dt/B0
 
@@ -332,12 +332,12 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
                 elif (endPts_k2_r[i, j] > rMax):
                     endPts_k2_r[i, j] = rMax
 
-                diff = abs(endPts_k2_q[i, j]-endPts_k1_q[i, j])
+                diff = np_abs(endPts_k2_q[i, j]-endPts_k1_q[i, j])
                 if diff > pi:
                     diff = 2*pi - diff
                 if (diff > norm):
                     norm = diff
-                diff = abs(endPts_k2_r[i, j]-endPts_k1_r[i, j])
+                diff = np_abs(endPts_k2_r[i, j]-endPts_k1_r[i, j])
                 if (diff > norm):
                     norm = diff
                 endPts_k1_q[i, j] = endPts_k2_q[i, j]

@@ -1,6 +1,5 @@
 from numba import njit
 from numba.pycc import CC
-from numba.types import Tuple
 from numpy import empty
 
 cc = CC('spline_eval_funcs')
