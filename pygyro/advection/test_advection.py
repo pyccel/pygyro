@@ -215,8 +215,8 @@ def test_poloidalAdvection(dt, v, xc, yc):
 
     domain = [[1, 14.5], [0, 2*np.pi]]
     periodic = [False, True]
-    nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
-    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    nbreaks = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nbreaks)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
     bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
