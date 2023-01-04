@@ -7,7 +7,6 @@ from scipy.linalg.lapack import zgbtrf, zgbtrs, zpttrf, zpttrs, zgetrf, zgetrs
 from scipy.linalg.lapack import dgbtrf, dgbtrs, dpttrf, dpttrs, dgetrf, dgetrs
 from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
-from scipy.linalg import solve_circulant
 from scipy.fft import fft, ifft
 
 from .splines import BSplines, Spline1D, Spline2D
