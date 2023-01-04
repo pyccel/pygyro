@@ -29,7 +29,6 @@ class SplineInterpolator1D():
         self._imat = self.collocation_matrix(
             basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
         self._cubic_solve = basis.cubic_uniform and basis.nbasis > 4
-        print(basis.periodic, self._cubic_solve)
         if basis.periodic:
             self._offset = self._basis.degree // 2
             if self._cubic_solve:
