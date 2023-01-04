@@ -31,17 +31,8 @@ class SplineInterpolator1D():
         self._cubic_solve = basis.cubic_uniform and basis.nbasis > 4
         if basis.periodic:
             self._offset = self._basis.degree // 2
-            if self._cubic_solve:
-                self._splu_solve = lambda ug: solve_circulant(
-                    self._imat[:, 0], ug)
-                self._splu_solve_T = lambda ug: solve_circulant(
-                    self._imat[0, :], ug)
-            else:
-                self._splu_solve = lambda ug: splu(
-                    csc_matrix(self._imat)).solve(ug)
-                self._splu_solve_T = lambda ug: splu(
-                    csc_matrix(self._imat)).solve(ug, trans='T')
-        elif self._cubic_solve:
+
+        if self._cubic_solve:
             n = 1 if basis.periodic else 2
             dmat = dia_matrix(self._imat[n:-n, n:-n])
             self._diag = dmat.diagonal(0)
@@ -71,6 +62,9 @@ class SplineInterpolator1D():
             self._delta -= self._lambda @ self._beta
 
             self._n_reorganisation = n
+        elif basis.periodic:
+            self._offset = self._basis.degree // 2
+            self._splu = splu(csc_matrix(self._imat))
         else:
             dmat = dia_matrix(self._imat)
             self._l = abs(dmat.offsets.min())
@@ -111,10 +105,10 @@ class SplineInterpolator1D():
         assert spl.basis is self._basis
         assert len(ug) == self._basis.nbasis
 
-        if self._basis.periodic:
-            self._solve_system_periodic(ug, spl.coeffs)
-        elif self._cubic_solve:
+        if self._cubic_solve:
             self._solve_system_cubic(ug, spl.coeffs)
+        elif self._basis.periodic:
+            self._solve_system_periodic(ug, spl.coeffs)
         else:
             self._solve_system_nonperiodic(ug, spl.coeffs)
 
@@ -128,7 +122,7 @@ class SplineInterpolator1D():
         n = self._basis.nbasis
         p = self._basis.degree
 
-        c[0:n] = self._splu_solve(ug)
+        c[0:n] = self._splu.solve(ug)
         c[n:n+p] = c[0:p]
 
     # ...
@@ -177,7 +171,7 @@ class SplineInterpolator1D():
             knots = self._basis.knots
             basis_quads = self._basis.integrals[:n].copy()
             basis_quads[:p] += self._basis.integrals[n:]
-            return self._splu_solve_T(basis_quads)
+            return self._splu.solve(basis_quads, trans='T')
         elif self._cubic_solve:
             c = np.empty_like(self._basis.integrals)
             self._solve_transpose_system_cubic(self._basis.integrals, c)
