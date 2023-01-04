@@ -37,7 +37,7 @@ class SplineInterpolator1D():
         if basis.periodic:
             self._offset = self._basis.degree // 2
             if self._cubic_solve:
-                self._circulant_line = self._imat[:, 0]
+                self._circulant_line = self._imat[:, 0].copy()
             else:
                 self._splu = splu(csc_matrix(self._imat))
         elif self._cubic_solve:
@@ -209,7 +209,10 @@ class SplineInterpolator1D():
             knots = self._basis.knots
             basis_quads = self._basis.integrals[:n].copy()
             basis_quads[:p] += self._basis.integrals[n:]
-            return self._splu.solve(basis_quads, trans='T')
+            if self._cubic_solve:
+                return ifft(fft(basis_quads) / fft(self._imat[0, :])).real
+            else:
+                return self._splu.solve(basis_quads, trans='T')
         elif self._cubic_solve:
             c = np.empty_like(self._basis.integrals)
             self._solve_transpose_system_cubic(self._basis.integrals, c)
