@@ -373,7 +373,7 @@ def test_poloidalAdvection_gridIntegration():
     polAdv = PoloidalAdvection(grid.eta_grid, basis, constants)
 
     phi = spl.Spline2D(basis[0], basis[1])
-    phiVals = np.full((npts[1], npts[0]), 2)
+    phiVals = np.full((npts[1], npts[0]), 2.0)
     interp = spl.SplineInterpolator2D(basis[0], basis[1])
 
     interp.compute_interpolant(phiVals, phi)
