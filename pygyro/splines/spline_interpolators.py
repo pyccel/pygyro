@@ -41,14 +41,9 @@ class SplineInterpolator1D():
             else:
                 self._splu = splu(csc_matrix(self._imat))
         elif self._cubic_solve:
-            if basis.periodic:
-                n = 1
-                self._offset = 1
-            else:
-                n = 2
-                self._offset = 0
+            n = 2
             dmat = dia_matrix(
-                self._imat[n-self._offset:-n, n:nb-n+self._offset])
+                self._imat[n:-n, n:nb-n])
             self._diag = dmat.diagonal(0)
             self._ldiag = dmat.diagonal(-1)
             udiag = dmat.diagonal(1)
@@ -57,18 +52,11 @@ class SplineInterpolator1D():
                 assert np.allclose(dmat.diagonal(i), 0)
             for i in range(dmat.offsets.min(), -1):
                 assert np.allclose(dmat.diagonal(i), 0)
-            if basis.periodic:
-                self._delta = np.array([[self._diag[0]]])
-                self._lambda = self._imat[np.newaxis, -1, 1:]
-                gamma = self._imat[:-1, 0, np.newaxis]
-            else:
-                self._delta = np.vstack([np.hstack([self._imat[:n, :n], np.zeros(
-                    (n, n))]), np.hstack([np.zeros((n, n)), self._imat[-n:, -n:]])])
-                self._lambda = np.vstack(
-                    [self._imat[:n, n:-n], self._imat[-n:, n:-n]])
-                gamma = np.hstack(
-                    [self._imat[n:-n, :n], self._imat[n:-n, -n:]])
-
+            self._delta_mat = np.vstack([np.hstack([self._imat[:n, :n], np.zeros(
+                (n, n))]), np.hstack([np.zeros((n, n)), self._imat[-n:, -n:]])])
+            self._lambda = np.vstack(
+                [self._imat[:n, n:-n], self._imat[-n:, n:-n]])
+            gamma = np.hstack([self._imat[n:-n, :n], self._imat[n:-n, -n:]])
             if (dtype == complex):
                 self._diag, self._ldiag, self._finfo = zpttrf(
                     self._diag, self._ldiag)
@@ -80,13 +68,13 @@ class SplineInterpolator1D():
 
             self._beta, sinfo = self._solveFunc(self._diag, self._ldiag, gamma)
             self._finfo = self._finfo or sinfo
-            self._delta -= self._lambda @ self._beta
+            self._delta_mat -= self._lambda @ self._beta
 
             if (dtype == complex):
-                self._delta, self._ipiv, _ = zgetrf(self._delta)
+                self._delta, self._ipiv, _ = zgetrf(self._delta_mat)
                 self._solve_dense = zgetrs
             else:
-                self._delta, self._ipiv, _ = dgetrf(self._delta)
+                self._delta, self._ipiv, _ = dgetrf(self._delta_mat)
                 self._solve_dense = dgetrs
 
             self._n_reorganisation = n
@@ -172,28 +160,18 @@ class SplineInterpolator1D():
         for a non-uniform cubic spline
         """
         n = self._n_reorganisation
-        s = len(ug)
-        b1 = n-self._offset
-        t1 = s-n
-        b2 = n
-        t2 = s-n+self._offset
 
-        v = ug[b1:t1]
-        u = np.array([*ug[:b1], *ug[t1:]])
+        v = ug[n:-n]
+        u = np.array([*ug[:n], *ug[-n:]])
         v, self._sinfo = self._solveFunc(
             self._diag, self._ldiag, v)
         u -= self._lambda @ v
-        u,_ = self._solve_dense(self._delta, self._ipiv, u)
+        u, _ = self._solve_dense(self._delta, self._ipiv, u)
         v -= self._beta @ u
 
-        c[:b2] = u[:b2]
-        c[b2:t2] = v
-        c[t2:s] = u[b2:]
-
-        if self._basis.periodic:
-            p = self._basis.degree
-
-            c[s:s+p] = c[0:p]
+        c[:n] = u[:n]
+        c[n:-n] = v
+        c[-n:] = u[-n:]
 
     # ...
     def get_quadrature_coefficients(self):
@@ -232,7 +210,7 @@ class SplineInterpolator1D():
         v = ug[n:-n]
         u = np.array([*ug[:n], *ug[-n:]])
         u -= self._beta.T @ v
-        u = solve(self._delta.T, u)
+        u = solve(self._delta_mat.T, u)
         v -= self._lambda.T @ u
         v, self._sinfo = self._solveFunc(
             self._diag, self._ldiag, v)
