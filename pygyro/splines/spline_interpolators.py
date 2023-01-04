@@ -180,10 +180,34 @@ class SplineInterpolator1D():
             basis_quads = self._basis.integrals[:n].copy()
             basis_quads[:p] += self._basis.integrals[n:]
             return self._splu_solve_T(basis_quads)
+        elif self._basis.cubic_uniform:
+            c = np.empty_like(self._basis.integrals)
+            self._solve_transpose_system_cubic(self._basis.integrals, c)
+            return c
         else:
             c, self._sinfo = self._solveFunc(
                 self._bmat, self._l, self._u, self._basis.integrals, self._ipiv, trans=True)
             return c
+
+    def _solve_transpose_system_cubic(self, ug, c):
+        """
+        Compute the coefficients c of the spline which interpolates the points ug
+        for a non-uniform cubic spline
+        """
+        n = self._n_reorganisation
+
+        v = ug[n:-n]
+        u = np.hstack([ug[:n], ug[-n:]])
+        u -= self._beta.T @ v
+        u = solve(self._delta.T, u)
+        v -= self._lambda.T @ u
+        v, self._sinfo = self._solveFunc(
+            self._diag, self._ldiag, v)
+
+        c[:n] = u[:n]
+        c[n:-n] = v
+        c[-n:] = u[-n:]
+
 
     @staticmethod
     def collocation_matrix(nb, knots, degree, xgrid, periodic, cubic_uniform_splines):
