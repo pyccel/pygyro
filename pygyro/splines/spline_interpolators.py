@@ -7,6 +7,7 @@ from scipy.linalg.lapack import zgbtrf, zgbtrs, zpttrf, zpttrs
 from scipy.linalg.lapack import dgbtrf, dgbtrs, dpttrf, dpttrs
 from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
+from scipy.linalg import solve_circulant
 
 from .splines import BSplines, Spline1D, Spline2D
 from .spline_eval_funcs import nu_find_span, nu_basis_funs
@@ -28,7 +29,15 @@ class SplineInterpolator1D():
         self._imat = self.collocation_matrix(
             basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
         self._cubic_solve = basis.cubic_uniform and basis.nbasis > 4
-        if self._cubic_solve:
+        if basis.periodic:
+            self._offset = self._basis.degree // 2
+            if self._cubic_solve:
+                self._splu_solve = lambda ug: solve_circulant(self._imat[:,0], ug)
+                self._splu_solve_T = lambda ug: solve_circulant(self._imat[0,:], ug)
+            else:
+                self._splu_solve = lambda ug: splu(csc_matrix(self._imat)).solve(ug)
+                self._splu_solve_T = lambda ug: splu(csc_matrix(self._imat)).solve(ug, trans='T')
+        elif self._cubic_solve:
             n = 1 if basis.periodic else 2
             dmat = dia_matrix(self._imat[n:-n, n:-n])
             self._diag = dmat.diagonal(0)
@@ -60,9 +69,6 @@ class SplineInterpolator1D():
             self._delta -= self._lambda @ self._beta
 
             self._n_reorganisation = n
-        elif basis.periodic:
-            self._splu = splu(csc_matrix(self._imat))
-            self._offset = self._basis.degree // 2
         else:
             dmat = dia_matrix(self._imat)
             self._l = abs(dmat.offsets.min())
@@ -103,10 +109,10 @@ class SplineInterpolator1D():
         assert spl.basis is self._basis
         assert len(ug) == self._basis.nbasis
 
-        if self._cubic_solve:
-            self._solve_system_cubic(ug, spl.coeffs)
-        elif self._basis.periodic:
+        if self._basis.periodic:
             self._solve_system_periodic(ug, spl.coeffs)
+        elif self._cubic_solve:
+            self._solve_system_cubic(ug, spl.coeffs)
         else:
             self._solve_system_nonperiodic(ug, spl.coeffs)
 
@@ -120,7 +126,7 @@ class SplineInterpolator1D():
         n = self._basis.nbasis
         p = self._basis.degree
 
-        c[0:n] = self._splu.solve(ug)
+        c[0:n] = self._splu_solve(ug)
         c[n:n+p] = c[0:p]
 
     # ...
@@ -139,7 +145,7 @@ class SplineInterpolator1D():
     def _solve_system_cubic(self, ug, c):
         """
         Compute the coefficients c of the spline which interpolates the points ug
-        for a cubic spline
+        for a non-uniform cubic spline
         """
         n = self._n_reorganisation
 
@@ -169,7 +175,7 @@ class SplineInterpolator1D():
             knots = self._basis.knots
             basis_quads = self._basis.integrals[:n].copy()
             basis_quads[:p] += self._basis.integrals[n:]
-            return self._splu.solve(basis_quads, trans='T')
+            return self._splu_solve_T(basis_quads)
         else:
             c, self._sinfo = self._solveFunc(
                 self._bmat, self._l, self._u, self._basis.integrals, self._ipiv, trans=True)
