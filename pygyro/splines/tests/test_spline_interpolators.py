@@ -127,6 +127,48 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
 
 # ===============================================================================
 
+def args_SplineInterpolator1D_uniform_cosine():
+    """
+    TODO
+    """
+    for ncells in [5, 10, 23]:
+        for periodic in [True, False]:
+            yield (ncells, periodic)
+
+
+@pytest.mark.serial
+@pytest.mark.parametrize("ncells,periodic",
+                         args_SplineInterpolator1D_uniform_cosine())
+def test_SplineInterpolator1D_uniform_cosine(ncells, periodic):
+    """
+    TODO
+    """
+
+    f = AnalyticalProfile1D_Cos()
+
+    degree = 3
+    breaks = np.linspace(*f.domain, ncells+1)
+    knots = make_knots(breaks, degree, periodic)
+    basis = BSplines(knots, degree, periodic, True)
+    spline = Spline1D(basis)
+    interp = SplineInterpolator1D(basis)
+
+    xg = basis.greville
+    ug = f.eval(xg)
+
+    interp.compute_interpolant(ug, spline)
+
+    xt = np.linspace(*f.domain, num=100)
+    err = spline.eval(xt) - f.eval(xt)
+
+    max_norm_err = np.max(abs(err))
+    err_bound = spline_1d_error_bound(f, np.diff(breaks).max(), degree)
+
+    assert max_norm_err < err_bound
+
+
+# ===============================================================================
+
 
 @pytest.mark.parametrize("nc1", [1, 5, 10, 23])
 @pytest.mark.parametrize("nc2", [1, 5, 10, 23])
