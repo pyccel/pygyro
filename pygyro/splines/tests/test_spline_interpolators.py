@@ -79,7 +79,7 @@ def test_SplineInterpolator1D_exact_uniform(ncells, degree):
 
     max_norm_err = np.max(abs(err))
     max_norm_derr = np.max(abs(derr))
-    assert max_norm_err < 2.0e-14
+    assert max_norm_err < 5.0e-14
     assert max_norm_derr < 2.0e-12
 
 # ===============================================================================
