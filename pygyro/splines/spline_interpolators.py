@@ -32,11 +32,15 @@ class SplineInterpolator1D():
         if basis.periodic:
             self._offset = self._basis.degree // 2
             if self._cubic_solve:
-                self._splu_solve = lambda ug: solve_circulant(self._imat[:,0], ug)
-                self._splu_solve_T = lambda ug: solve_circulant(self._imat[0,:], ug)
+                self._splu_solve = lambda ug: solve_circulant(
+                    self._imat[:, 0], ug)
+                self._splu_solve_T = lambda ug: solve_circulant(
+                    self._imat[0, :], ug)
             else:
-                self._splu_solve = lambda ug: splu(csc_matrix(self._imat)).solve(ug)
-                self._splu_solve_T = lambda ug: splu(csc_matrix(self._imat)).solve(ug, trans='T')
+                self._splu_solve = lambda ug: splu(
+                    csc_matrix(self._imat)).solve(ug)
+                self._splu_solve_T = lambda ug: splu(
+                    csc_matrix(self._imat)).solve(ug, trans='T')
         elif self._cubic_solve:
             n = 1 if basis.periodic else 2
             dmat = dia_matrix(self._imat[n:-n, n:-n])

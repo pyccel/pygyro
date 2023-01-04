@@ -127,6 +127,7 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
 
 # ===============================================================================
 
+
 def args_SplineInterpolator1D_uniform_cosine():
     """
     TODO
