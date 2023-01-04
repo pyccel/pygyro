@@ -8,6 +8,7 @@ from scipy.linalg.lapack import dgbtrf, dgbtrs, dpttrf, dpttrs, dgetrf, dgetrs
 from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
 from scipy.linalg import solve_circulant
+from scipy.fft import fft, ifft
 
 from .splines import BSplines, Spline1D, Spline2D
 from .spline_eval_funcs import nu_find_span, nu_basis_funs
@@ -33,7 +34,13 @@ class SplineInterpolator1D():
         if basis.periodic:
             self._offset = self._basis.degree // 2
 
-        if self._cubic_solve:
+        if basis.periodic:
+            self._offset = self._basis.degree // 2
+            if self._cubic_solve:
+                self._circulant_line = self._imat[:, 0]
+            else:
+                self._splu = splu(csc_matrix(self._imat))
+        elif self._cubic_solve:
             if basis.periodic:
                 n = 1
                 self._offset = 1
@@ -83,9 +90,6 @@ class SplineInterpolator1D():
                 self._solve_dense = dgetrs
 
             self._n_reorganisation = n
-        elif basis.periodic:
-            self._offset = self._basis.degree // 2
-            self._splu = splu(csc_matrix(self._imat))
         else:
             dmat = dia_matrix(self._imat)
             self._l = abs(dmat.offsets.min())
@@ -126,10 +130,10 @@ class SplineInterpolator1D():
         assert spl.basis is self._basis
         assert len(ug) == self._basis.nbasis
 
-        if self._cubic_solve:
-            self._solve_system_cubic(ug, spl.coeffs)
-        elif self._basis.periodic:
+        if self._basis.periodic:
             self._solve_system_periodic(ug, spl.coeffs)
+        elif self._cubic_solve:
+            self._solve_system_cubic(ug, spl.coeffs)
         else:
             self._solve_system_nonperiodic(ug, spl.coeffs)
 
@@ -143,7 +147,10 @@ class SplineInterpolator1D():
         n = self._basis.nbasis
         p = self._basis.degree
 
-        c[0:n] = self._splu.solve(ug)
+        if self._cubic_solve:
+            c[0:n] = ifft(fft(ug) / fft(self._circulant_line)).real
+        else:
+            c[0:n] = self._splu.solve(ug)
         c[n:n+p] = c[0:p]
 
     # ...
