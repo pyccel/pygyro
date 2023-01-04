@@ -52,8 +52,6 @@ class SplineInterpolator1D():
                 assert np.allclose(dmat.diagonal(i), 0)
             for i in range(dmat.offsets.min(), -1):
                 assert np.allclose(dmat.diagonal(i), 0)
-            nl = dmat.offsets.min()
-            nu = dmat.offsets.max()
             self._delta = np.vstack([np.hstack([self._imat[:n, :n], np.zeros(
                 (n, n))]), np.hstack([np.zeros((n, n)), self._imat[-n:, -n:]])])
             self._lambda = np.vstack(
@@ -207,7 +205,6 @@ class SplineInterpolator1D():
         c[:n] = u[:n]
         c[n:-n] = v
         c[-n:] = u[-n:]
-
 
     @staticmethod
     def collocation_matrix(nb, knots, degree, xgrid, periodic, cubic_uniform_splines):
