@@ -43,15 +43,16 @@ class SplineInterpolator1D():
             nu = dmat.offsets.max()
             self._delta = np.vstack([np.hstack([self._imat[:n, :n], np.zeros(
                 (n, n))]), np.hstack([np.zeros((n, n)), self._imat[-n:, -n:]])])
-            self._lambda = np.vstack([self._imat[:n, n:-n], self._imat[-n:, n:-n]])
+            self._lambda = np.vstack(
+                [self._imat[:n, n:-n], self._imat[-n:, n:-n]])
             gamma = np.hstack([self._imat[n:-n, :n], self._imat[n:-n, -n:]])
             if (dtype == complex):
                 self._diag, self._ldiag, self._finfo = zpttrf(
-                        self._diag, self._ldiag)
+                    self._diag, self._ldiag)
                 self._solveFunc = zpttrs
             else:
                 self._diag, self._ldiag, self._finfo = dpttrf(
-                        self._diag, self._ldiag)
+                    self._diag, self._ldiag)
                 self._solveFunc = dpttrs
 
             self._beta, sinfo = self._solveFunc(self._diag, self._ldiag, gamma)
@@ -145,7 +146,7 @@ class SplineInterpolator1D():
         v = ug[n:-n]
         u = np.hstack([ug[:n], ug[-n:]])
         v, self._sinfo = self._solveFunc(
-                self._diag, self._ldiag, v)
+            self._diag, self._ldiag, v)
         u -= self._lambda @ v
         u = solve(self._delta, u)
         v -= self._beta @ u
