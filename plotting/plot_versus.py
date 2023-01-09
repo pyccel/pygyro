@@ -175,7 +175,7 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
     plt.suptitle(r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
 
     if save_plot:
-        plt.savefig(foldername + 'abs_err.png')
+        plt.savefig(foldername + 'abs_err_log.png')
 
     if show_plot:
         plt.show()
