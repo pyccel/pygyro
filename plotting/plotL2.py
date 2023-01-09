@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 import os
+plt.switch_backend('TkAgg')
 
 
 def plot_file(foldername):
@@ -38,13 +39,18 @@ m = args.mult
 dataset = np.atleast_2d(np.loadtxt(filename))
 sorted_times = np.sort(dataset[:, 0])
 
-plt.figure()
+# plt.figure()
+plt.figure(figsize=(9.5, 7), dpi=250)
 plt.semilogy(sorted_times, m*np.exp(p*sorted_times),
-             label=str(m)+'*exp('+str(p)+'*x)')
+             label = str(m) + ' * exp('+str(p)+' * x)')
 for f in args.foldername:
     plot_file(f)
 plt.xlabel('time')
+plt.xlim([0, 4000])
+plt.ylim([0, 100])
+plt.title('$L^2$ - norm of $\phi$ with Arakawa scheme')
 plt.ylabel('$\|\phi\|_2$')
 plt.grid()
 plt.legend()
-plt.show()
+# plt.show()
+plt.savefig(os.path.join(args.foldername[0], 'L2phi.png'))

@@ -8,23 +8,6 @@ import argparse
 import matplotlib.pyplot as plt
 
 
-def get_last_string(string: str):
-    """
-    Get the last piece of a string after an underscore
-    """
-    assert isinstance(string, str), 'Object is not a string!'
-
-    underscores = string.count('_')
-
-    if underscores == 0:
-        return string
-    elif underscores == 1:
-        return None
-    else:
-        last_index = string.rindex('_')
-        return string[last_index:]
-
-
 def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     """
     Plot the relative errors of quantities in the 'method'_consv.txt
@@ -66,12 +49,12 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     entries = int(k / 4)
     for k in range(entries):
-        assert data[2*k] == data[2 *
-                                 (k + entries)], f'Labels not matching! {data[2*k]} != {data[2*(k + entries)]}'
-        assert data[2*k +
-                    1] == 'before', f'Was expecting label before but got {data[2*k + 1]}'
-        assert data[2*(k + entries) +
-                    1] == 'after', f'Was expecting label after but got {data[2*(k + entries) + 1]}'
+        assert data[2*k] == data[2 * (k + entries)], \
+            f'Labels not matching! {data[2*k]} != {data[2*(k + entries)]}'
+        assert data[2*k + 1] == 'before', \
+            f'Was expecting label before but got {data[2*k + 1]}'
+        assert data[2*(k + entries) + 1] == 'after', \
+            f'Was expecting label after but got {data[2*(k + entries) + 1]}'
 
     labels = []
     for k in range(entries):
@@ -87,7 +70,9 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
 
     times = np.arange(0, data.shape[0]) * dt
 
-    # Plot relative errors
+    # ======================================
+    # ======== Plot relative errors ========
+    # ======================================
     for k in range(entries):
         plt.plot(times, np.abs(np.divide(data[:, k] - data[:, k + entries], data[:, k])),
                  label=labels[k])
@@ -97,14 +82,36 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.title('Relative Errors for ' + method + ' Advection')
 
     if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_adv_rel_err.png')
+        plt.savefig(foldername + 'plots/' + method + '_rel_err.png')
 
     if show_plot:
         plt.show()
 
     plt.close()
 
-    # Plot absolute errors
+    # ======================================================
+    # ======== Plot relative errors (without e_kin) ========
+    # ======================================================
+    for k in range(entries):
+        if labels[k] != 'en_kin':
+            plt.plot(times, np.abs(np.divide(data[:, k] - data[:, k + entries], data[:, k])),
+                    label=labels[k])
+    plt.legend()
+    plt.xlabel('time')
+    plt.ylabel('error')
+    plt.title('Relative Errors for ' + method + ' Advection')
+
+    if save_plot:
+        plt.savefig(foldername + 'plots/' + method + '_rel_err_wo_en_kin.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # ======================================
+    # ======== Plot absolute errors ========
+    # ======================================
     for k in range(entries):
         plt.plot(times, data[:, k] - data[:, k + entries],
                  label=labels[k])
@@ -114,13 +121,16 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.title('Absolute Errors for ' + method + ' Advection')
 
     if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_adv_abs_err.png')
+        plt.savefig(foldername + 'plots/' + method + '_abs_err.png')
 
     if show_plot:
         plt.show()
 
     plt.close()
 
+    # =====================================
+    # ======== Plot l2-norm of phi ========
+    # =====================================
     for k, label in enumerate(labels):
         if label == 'l2_phi':
             plt.plot(times, data[:, k], label=label)
@@ -131,51 +141,21 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
             plt.title('L2 norm of phi for ' + method + ' advection')
 
             if save_plot:
-                plt.savefig(foldername + 'plots/' + method + '_adv_l2_phi.png')
+                plt.savefig(foldername + 'plots/' + method + '_l2_phi.png')
 
             plt.close()
 
-    mark = 0
-    markers = {}
-    for label in labels:
-        if label[:3] == 'en_':
-            substring = get_last_string(label)
-            if substring is not None:
-                if substring in markers.keys:
-                    markers[substring][1] = mark
-                else:
-                    markers[substring] = [mark, None]
-                mark += 1
-            else:
-                # if only one method of computing the energies was used
-                markers = 'only one species'
+    tot_en = np.zeros(np.shape(times))
 
-    if len(markers) == 0:
-        return
-
-    elif markers == 'only one species':
-        tot_en = np.zeros(np.shape(times))
-
-    else:
-        tot_en = {}
-        for key in markers.keys:
-            tot_en[key] = np.zeros(np.shape(times))
-
-    # Plot energies
+    # ===============================
+    # ======== Plot energies ========
+    # ===============================
     for k, label in enumerate(labels):
         if label[:3] == 'en_':
             plt.plot(times, data[:, k], label=label)
-            if markers == 'only one species':
-                tot_en += data[:, k]
-            else:
-                key = get_last_string(label)
-                tot_en[key] += data[:, k]
+            tot_en += data[:, k]
 
-    if markers == 'only one species':
-        plt.plot(times, tot_en, label='sum')
-    else:
-        for key in tot_en.keys:
-            plt.plot(times, tot_en[key], label=key)
+    plt.plot(times, tot_en, label='sum')
 
     plt.legend()
     plt.xlabel('time')
@@ -183,7 +163,7 @@ def plot_diagnostics(foldername, method, save_plot=True, show_plot=False):
     plt.title('Energies for ' + method + ' advection')
 
     if save_plot:
-        plt.savefig(foldername + 'plots/' + method + '_adv_energies.png')
+        plt.savefig(foldername + 'plots/' + method + '_energies.png')
 
     if show_plot:
         plt.show()
@@ -206,7 +186,7 @@ def main():
         k = args.k[0]
     else:
         k = 0
-    
+
     if args.cluster is not None:
         cluster = args.cluster[0]
     else:
