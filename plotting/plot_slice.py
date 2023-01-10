@@ -39,8 +39,6 @@ def main():
         else:
             raise ValueError('some naming gone wrong')
 
-        filename = os.path.join(foldername, 'grid_00' + t)
-
         distribFunc, constants, _ = setupFromFile(foldername, comm=comm,
                                           allocateSaveMemory=True,
                                           timepoint=k*1000)
@@ -73,9 +71,6 @@ def main():
         shape_f_eq[idx_v] = my_v.size
         shape_f_eq[idx_r] = my_r.size
         f_eq.resize(shape_f_eq)
-    
-        f_min = np.min(distribFunc._f)
-        f_max = np.max(distribFunc._f)
 
         min_loc = np.argmin(np.abs(v_grid))
 
@@ -89,7 +84,7 @@ def main():
         # ========================
 
         # total distribution function
-        plot_f[:, :] = distribFunc._f[min_loc, 0, :, :]
+        plot_f[:, :] = distribFunc._f[min_loc, 0, :, :] * 0.01 + 0.4
         plot_f = np.append(plot_f, plot_f[0, :]).reshape((-1, plot_f.shape[1]))
 
         fig = plt.figure(figsize=(9.5, 7), dpi=250)
@@ -97,6 +92,9 @@ def main():
         ax.set_title("T = " + t)
 
         colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
+
+        f_min = np.min(plot_f)
+        f_max = np.max(plot_f)
 
         plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
 
@@ -112,6 +110,9 @@ def main():
         plt.close()
 
         # with f_eq subtracted
+        f_min = np.min(distribFunc._f)
+        f_max = np.max(distribFunc._f)
+
         plot_f = np.empty((np.shape(distribFunc._f)[-2],
                            np.shape(distribFunc._f)[-1]))
         plot_f[:, :] = (distribFunc._f - f_eq)[min_loc, 0, :, :]
