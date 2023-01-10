@@ -28,7 +28,7 @@ class SplineInterpolator1D():
         if basis.periodic:
             self._splu = splu(csc_matrix(self._imat))
             self._offset = self._basis.degree // 2
-        #elif basis.cubic_uniform and basis.nbasis > 4:
+        # elif basis.cubic_uniform and basis.nbasis > 4:
         #    print(self._imat)
         #    dmat = dia_matrix(self._imat[2:-2, 2:-2])
         #    self._diag = dmat.diagonal(0)
