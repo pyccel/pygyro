@@ -117,7 +117,10 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             plt.legend()
         plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
-    plt.suptitle(r'Relative Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    if dt[0] == 2:
+        plt.suptitle(r'Relative Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Relative Errors for Poloidal Advection Step')
 
     if save_plot:
         plt.savefig(foldername + 'rel_err.png')
@@ -145,7 +148,10 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
         plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
         plt.yscale('log')
-    plt.suptitle(r'Relative Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    if dt[0] == 2:
+        plt.suptitle(r'Relative Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Relative Errors for Poloidal Advection Step')
 
     if save_plot:
         plt.savefig(foldername + 'rel_err_log.png')
@@ -167,15 +173,18 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             plt.subplot(2, 2, p)
             p += 1
             for k in range(len(methods)):
-                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]], data[k][:, i]),
+                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]]),
                          label=plot_labels[k])
             plt.legend()
         plt.subplots_adjust(left=0.08, right=0.98)
         plt.title(labels[k][i])
-    plt.suptitle(r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    if dt[0] == 2:
+        plt.suptitle(r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Absolute Errors for Poloidal Advection Step')
 
     if save_plot:
-        plt.savefig(foldername + 'abs_err_log.png')
+        plt.savefig(foldername + 'abs_err.png')
 
     if show_plot:
         plt.show()
@@ -194,16 +203,19 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             plt.subplot(2, 2, p)
             p += 1
             for k in range(len(methods)):
-                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]], data[k][:, i]),
+                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]]),
                          label=plot_labels[k])
             plt.legend()
         plt.subplots_adjust(left=0.08, right=0.98)
         plt.title(labels[k][i])
         plt.yscale('log')
-    plt.suptitle(r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    if dt[0] == 2:
+        plt.suptitle(r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Absolute Errors for Poloidal Advection Step')
 
     if save_plot:
-        plt.savefig(foldername + 'abs_err.png')
+        plt.savefig(foldername + 'abs_err_log.png')
 
     if show_plot:
         plt.show()

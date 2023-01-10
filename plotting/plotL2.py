@@ -43,32 +43,31 @@ def main():
     sorted_times = np.sort(dataset[:, 0])
 
     # plt.figure()
-    plt.figure(figsize=(9.5, 7), dpi=250)
-    plt.semilogy(sorted_times, m*np.exp(p*sorted_times),
+    plt.figure(figsize=(12, 5), dpi=250)
+    ax1 = plt.subplot(1, 2, 1)
+    ax1.semilogy(sorted_times, m*np.exp(p*sorted_times),
                 label = str(m) + ' * exp('+str(p)+' * x)')
     for f in args.foldername:
         plot_file(f)
     plt.xlabel('time')
     plt.xlim([0, 4000])
     plt.ylim([0, 100])
-    plt.title('$L^2$ - norm of $\phi$ with Arakawa scheme')
     plt.ylabel('$\|\|\phi\|\|_2$')
     plt.grid()
     plt.legend()
-    plt.savefig(os.path.join(args.foldername[0], 'L2phi.png'))
-    plt.close()
 
-    plt.figure(figsize=(9.5, 7), dpi=250)
+    ax2 = plt.subplot(1, 2, 2)
     for f in args.foldername:
         plot_file(f, log_y=False)
-    plt.xlabel('time')
     plt.xlim([4000, np.max(sorted_times)])
     plt.ylim([7, 10])
-    plt.title('$L^2$ - norm of $\phi$ with Arakawa scheme')
+    plt.xlabel('time')
     plt.ylabel('$\|\|\phi\|\|_2$')
     plt.grid()
     plt.legend()
-    plt.savefig(os.path.join(args.foldername[0], 'L2phi_later.png'))
+    
+    plt.suptitle('$L^2$ - norm of $\phi$ with Arakawa scheme')
+    plt.savefig(os.path.join(args.foldername[0], 'L2phi.png'))
     plt.close()
 
 
