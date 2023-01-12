@@ -309,8 +309,10 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
 
+    # load constants from file
     constantFile = os.path.dirname(os.path.abspath(__file__)) + "/iota0.json"
 
+    # set up constants and distribution function grid object
     distribFunc, constants, _ = setupCylindricalGrid(constantFile=constantFile,
                                                      layout='v_parallel',
                                                      comm=comm,
@@ -346,17 +348,29 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
                                 [nprocs, nprocs[0], nprocs[1]], eta_grids,
                                 'v_parallel_2d')
 
+    # Set up phi grid object
     phi = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
                remapperPhi, 'mode_solve', comm, dtype=np.complex128)
 
+    # switch layout to poloidal
+    """
+    Phi Layout has to be in poloidal, i.e.:
+        (z, theta, r)
+    """
     phi.setLayout('poloidal')
+    """
+    Layout has to be in poloidal, i.e.:
+        (v, z, theta, r)
+    """
     distribFunc.setLayout('poloidal')
 
     layout = distribFunc.getLayout('poloidal')
     eta_grid = distribFunc.eta_grid
 
+    # Make poloidal advection arakawa object
     polAdv = PoloidalAdvectionArakawa(eta_grid, constants, explicit=True)
 
+    # load global and local grid
     r = eta_grid[0]
     q = eta_grid[1]
     z = eta_grid[2]
@@ -378,20 +392,35 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
     shape[idx_z] = my_z.size
     shape[idx_v] = my_v.size
 
+    # insert random values into distribution function
     distribFunc._f[:, :, :, :] = 100*np.random.rand(*shape)
     assert distribFunc._f.shape[idx_r] == my_r.shape[0]
     assert distribFunc._f.shape[idx_q] == my_q.shape[0]
     assert distribFunc._f.shape[idx_z] == my_z.shape[0]
     assert distribFunc._f.shape[idx_v] == my_v.shape[0]
 
+    # run one time step to generate discrete bracket
     polAdv.gridStep(distribFunc, phi, dt)
-
     J_phi = polAdv.J_phi
 
+    shape_phi = [1, 1, 1]
+    shape_phi[idx_r - 1] = my_r.size
+    shape_phi[idx_q - 1] = my_q.size
+    shape_phi[idx_z - 1] = my_z.size
+
+    # insert random values into phi (do it after running one step, otherwise CFL takes forever)
+    phi._f[:, :, :] = 100*np.random.rand(*shape_phi)
+    assert phi._f.shape[idx_r - 1] == my_r.shape[0]
+    assert phi._f.shape[idx_q - 1] == my_q.shape[0]
+    assert phi._f.shape[idx_z - 1] == my_z.shape[0]
+
+    assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
+
+    # test zeroness of product of bracket with f and phi on each slice of (z,v)
     for i, v in distribFunc.getCoords(0):
         for j, _ in distribFunc.getCoords(1):
             polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(i, j).ravel()
             J_phi_f = J_phi.dot(polAdv.f_stencil)
 
-            assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
             assert np.sum(J_phi_f) <= abs_tol, np.sum(J_phi_f)
+            assert np.sum(np.multiply(phi._f[j, : :].ravel(), J_phi_f[polAdv.ind_int_ep])) <= abs_tol
