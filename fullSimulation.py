@@ -44,6 +44,7 @@ def main():
                         help='Number of time steps between writing output')
     parser.add_argument('--nosave', action='store_true')
     parser.add_argument('--adv_diagn', action='store_true')
+    parser.add_argument('--old_adv_diagn', action='store_true')
 
     def my_print(rank, nosave, *args, **kwargs):
         if (rank == 0) and not nosave:
@@ -55,9 +56,10 @@ def main():
     constantFile = args.constantFile[0]
     nosave = args.nosave
     adv_diagn = args.adv_diagn
+    old_adv_diagn = args.old_adv_diagn
 
     # Have to save to also save advection diagnostics
-    if adv_diagn:
+    if adv_diagn or old_adv_diagn:
         assert not nosave
 
     loadable = False
@@ -117,7 +119,7 @@ def main():
     halfStep = constants.dt*0.5
     fullStep = constants.dt
     # --------------------------
-    if adv_diagn:
+    if adv_diagn or old_adv_diagn:
         quantities = constants.AdvectionSaveQuantities
     # --------------------------
 
@@ -138,7 +140,7 @@ def main():
 
     # Poloidal Advection step: Semi-Lagrangian method or Arakawa scheme
     if poloidal_method == 'sl':
-        if adv_diagn:
+        if adv_diagn or old_adv_diagn:
             advection_savefile = "{0}/sl_adv_consv.txt".format(foldername)
 
         polAdv = PoloidalAdvection(distribFunc.eta_grid,
@@ -146,7 +148,7 @@ def main():
         my_print(rank, nosave, "pol adv sl init done")
 
     elif poloidal_method == 'akw':
-        if adv_diagn:
+        if adv_diagn or old_adv_diagn:
             advection_savefile = "{0}/akw_adv_consv.txt".format(foldername)
 
         polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
@@ -156,12 +158,17 @@ def main():
         raise NotImplementedError(
             f"{poloidal_method} is an unknown option for the poloidal advection step!")
 
-    if adv_diagn and rank == 0:
+    if old_adv_diagn:
+        typs = [""]
+    else:
+        typs = ["", "_z0v0"]
+
+    if (adv_diagn or old_adv_diagn) and rank == 0:
         # Create savefile if it does not already exist from previous simulation
         if not os.path.exists(advection_savefile):
             with open(advection_savefile, 'w') as savefile:
                 for when in [" before", " after"]:
-                    for typ in ["", "_z0v0"]:
+                    for typ in typs:
                         for quantity in quantities:
                             savefile.write(quantity)
                             savefile.write(typ)
@@ -220,9 +227,9 @@ def main():
         comm, saveStep, fullStep, distribFunc, phi)
     my_print(rank, nosave, "diagnostics ready")
 
-    if adv_diagn:
+    if adv_diagn or old_adv_diagn:
         advection_diagnostics = AdvectionDiagnostics(
-            comm, fullStep, distribFunc, constants)
+            comm, fullStep, distribFunc, constants, old_adv_diagn)
         my_print(rank, nosave, "advection diagnostics ready")
 
     diagnostic_filename = "{0}/phiDat.txt".format(foldername)
@@ -344,23 +351,23 @@ def main():
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
 
-        if adv_diagn:
+        if adv_diagn or old_adv_diagn:
             advection_diagnostics.collect(distribFunc, phi)
             advection_diagnostics.reduce()
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
-                    for k in range(2 * len(quantities)):
+                    for k in range(len(typs) * len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
 
         polAdv.gridStep(distribFunc, phi, fullStep)
 
-        if adv_diagn:
+        if adv_diagn or old_adv_diagn:
             advection_diagnostics.collect(distribFunc, phi)
             advection_diagnostics.reduce()
 
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
-                    for k in range(2 * len(quantities)):
+                    for k in range(len(typs) * len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
                     savefile.write("\n")
 

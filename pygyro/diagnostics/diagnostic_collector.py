@@ -127,13 +127,20 @@ class AdvectionDiagnostics:
         3 : kinetic energy
     """
 
-    def __init__(self, comm, dt: float, distribFunc: Grid, constants):
+    def __init__(self, comm, dt: float, distribFunc: Grid, constants, old):
         self.dt = dt
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros(10, dtype=float)
-        self.diagnostics_val = np.array([[0.]] * 10)
+        self.old = old
+
+        if self.old:
+            length = 5
+        else:
+            length = 10
+
+        self.diagnostics = np.zeros(length, dtype=float)
+        self.diagnostics_val = np.array([[0.]] * length)
 
         self.MASSFclass = Mass_f(
             distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
@@ -155,11 +162,12 @@ class AdvectionDiagnostics:
         self.diagnostics[2] = self.L2PHIclass.getL2Phi(phi)
         self.diagnostics[3] = self.KEclass.getKE(f)
         self.diagnostics[4] = self.PEclass.getPE(f, phi)
-        self.diagnostics[5] = self.MASSFclass.getMASSF_slice(f)
-        self.diagnostics[6] = self.L2Fclass.getL2F_slice(f)
-        self.diagnostics[7] = self.L2PHIclass.getL2Phi_slice(phi)
-        self.diagnostics[8] = self.KEclass.getKE_slice(f)
-        self.diagnostics[9] = self.PEclass.getPE_slice(f, phi)
+        if not self.old:
+            self.diagnostics[5] = self.MASSFclass.getMASSF_slice(f)
+            self.diagnostics[6] = self.L2Fclass.getL2F_slice(f)
+            self.diagnostics[7] = self.L2PHIclass.getL2Phi_slice(phi)
+            self.diagnostics[8] = self.KEclass.getKE_slice(f)
+            self.diagnostics[9] = self.PEclass.getPE_slice(f, phi)
 
     def reduce(self):
         """
@@ -171,5 +179,6 @@ class AdvectionDiagnostics:
 
         self.diagnostics_val[1] = np.sqrt(self.diagnostics_val[1])
         self.diagnostics_val[2] = np.sqrt(self.diagnostics_val[2])
-        self.diagnostics_val[6] = np.sqrt(self.diagnostics_val[6])
-        self.diagnostics_val[7] = np.sqrt(self.diagnostics_val[7])
+        if not self.old:
+            self.diagnostics_val[6] = np.sqrt(self.diagnostics_val[6])
+            self.diagnostics_val[7] = np.sqrt(self.diagnostics_val[7])
