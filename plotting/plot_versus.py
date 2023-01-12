@@ -23,7 +23,7 @@ def get_labels(raw_label):
         raise ValueError(f'Got {raw_label} as raw_label which is not a valid raw label!')
 
 
-def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, show_plot=False):
+def plot_diagnostics(foldername, folders, methods, plot_labels, styles=None, save_plot=True, show_plot=False):
     """
     Plot the relative errors of quantities in the 'method'_consv.txt
     in foldername against time.
@@ -43,6 +43,11 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
         if the plots should be shown
     """
     assert len(methods) == len(folders)
+
+    if styles is None:
+        styles = ['solid'] * len(folders)
+    else:
+        assert len(styles) == len(folders)
 
     data = []
     dt = []
@@ -113,10 +118,13 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             p += 1
             for k in range(len(methods)):
                 plt.plot(times[k], np.abs(np.divide(data[k][:, i] - data[k][:, i + entries[k]], data[k][:, i])),
-                         label=plot_labels[k])
+                         label=plot_labels[k], linestyle=styles[k])
             plt.legend()
         plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
+        if labels[k][i] == 'Kinetic Energy':
+            plt.yscale('log')
+
     if dt[0] == 2:
         plt.suptitle(r'Relative Errors for Poloidal Advection Step ($\Delta t = 2$)')
     else:
@@ -143,7 +151,7 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             p += 1
             for k in range(len(methods)):
                 plt.plot(times[k], np.abs(np.divide(data[k][:, i] - data[k][:, i + entries[k]], data[k][:, i])),
-                         label=plot_labels[k])
+                         label=plot_labels[k], linestyle=styles[k])
             plt.legend()
         plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
@@ -174,7 +182,7 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             p += 1
             for k in range(len(methods)):
                 plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]]),
-                         label=plot_labels[k])
+                         label=plot_labels[k], linestyle=styles[k])
             plt.legend()
         plt.subplots_adjust(left=0.08, right=0.98)
         plt.title(labels[k][i])
@@ -204,7 +212,7 @@ def plot_diagnostics(foldername, folders, methods, plot_labels, save_plot=True, 
             p += 1
             for k in range(len(methods)):
                 plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]]),
-                         label=plot_labels[k])
+                         label=plot_labels[k], linestyle=styles[k])
             plt.legend()
         plt.subplots_adjust(left=0.08, right=0.98)
         plt.title(labels[k][i])
@@ -262,7 +270,10 @@ def main():
             plot_diagnostics(foldername,
                              [folder_cobra, folder_raven],
                              ['sl', 'akw'],
-                             plot_labels = ['Semi-Lagrangian', 'Arakawa'])
+                            #  ['akw', 'akw'],
+                             plot_labels = ['Semi-Lagrangian', 'Arakawa'],
+                            #  plot_labels = [r'$\Delta t = 1$', r'$\Delta t = 2$'],
+                             styles=['solid', 'dashdot'])
             break
 
 
