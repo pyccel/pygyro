@@ -19,7 +19,6 @@ def main():
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
 
     foldername = args.foldername
 

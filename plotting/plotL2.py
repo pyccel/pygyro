@@ -56,7 +56,7 @@ def main():
     plt.grid()
     plt.legend()
 
-    ax2 = plt.subplot(1, 2, 2)
+    _ = plt.subplot(1, 2, 2)
     for f in args.foldername:
         plot_file(f, log_y=False)
     plt.xlim([4000, np.max(sorted_times)])

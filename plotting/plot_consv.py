@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import json
 import argparse
 
+from plot_versus import get_labels
+
 
 def get_last_string(string : str):
     """
@@ -188,18 +190,26 @@ def plot_diagnostics_new(foldername, method, save_plot=True, show_plot=False):
         show_plot : bool
             if the plots should be shown
     """
+    
     data = []
+    labels = []
+    plot_labels = []
 
     with open(foldername + "initParams.json") as file:
         dt = json.load(file)["dt"]
 
-    with open(foldername + method + "_consv.txt") as file:
+    with open(foldername + method + "_adv_consv.txt") as file:
         for line in file:
             for entry in line.split():
                 data.append(entry)
 
+    # Get labels
     k = 0
+    j = 0
     while True:
+        if data[k] == 'z0v0':
+            k += 1
+            j += 1
         try:
             np.float64(data[k])
         except:
@@ -207,59 +217,44 @@ def plot_diagnostics_new(foldername, method, save_plot=True, show_plot=False):
         else:
             break
 
-    entries = int(k)
+    k -= j
+    assert k % 8 == 0
 
-    labels = []
-    for k in range(1, entries):
-        labels.append(data[k])
+    entries = int(k / 8)
 
-    print(f'labels are : ')
-    for label in labels:
-        print(f'\t{label}')
+    for k in range(entries):
+        assert data[2*k] == data[2*(k + 2*entries)], \
+            f'Labels not matching! {data[2*k]} != {data[2*(k + 2*entries)]}'
+        assert data[2*k + 1] == 'before', \
+            f'Was expecting label before but got {data[2*k + 1]}'
+        assert data[2*(k + 2*entries) + 1] == 'after', \
+            f'Was expecting label after but got {data[2*(k + 2*entries) + 1]}'
 
-    data = np.array(data).reshape(-1, entries)
+    for k in range(entries):
+        labels.append(data[2*k])
+        plot_labels.append(get_labels(data[2*k]))
+
+    data = np.array(data).reshape(-1, 4*entries)
 
     data = np.float64(data[2:])
 
-    times = data[:, 0]
 
-    data = data[:, 1:entries]
+    print('The plot labels are : ')
+    for label in plot_labels:
+        print(f'   {label}')
 
-    a = 4e-5
-    b = 0.00354
+    data = np.array(data).reshape(-1, 4*entries)
 
-    for k, label in enumerate(labels):
-        if label == 'l2_phi':
-            dataset = np.atleast_2d(np.loadtxt(os.path.join(foldername, 'phiDat.txt')))
+    data = np.float64(data[1:])
 
-            shape = dataset.shape
-
-            times2 = np.ndarray(shape[0])
-            norm = np.ndarray(shape[0])
-
-            times2[:] = dataset[:, 0]
-            norm[:] = dataset[:, 1]
-
-            plt.plot(times2, norm, 'co', label='saved')
-            plt.plot(times, data[:, k], label=label)
-            plt.plot(times, a * np.exp(b * times), label='analytical')
-
-            plt.legend()
-            plt.xlabel('time')
-            plt.yscale('log')
-            plt.title('L2 norm of phi for ' + method + ' advection, data saved during the simulation,\n and analytical linear growth rate')
-
-            if save_plot:
-                plt.savefig(foldername + 'plots/' + method + '_l2_phi.png')
-
-            plt.close()
+    times = np.arange(0, data.shape[0]) * dt
 
     tot_en = np.zeros(np.shape(times))
 
     # Plot energies
     for k, label in enumerate(labels):
         if label[:3] == 'en_':
-            plt.plot(times, data[:, k], label=label)
+            plt.plot(times, data[:, k], label=plot_labels[k])
             tot_en += data[:, k]
 
     plt.plot(times, tot_en, label='sum')
@@ -281,7 +276,7 @@ def plot_diagnostics_new(foldername, method, save_plot=True, show_plot=False):
     # Plot rest
     for k, label in enumerate(labels):
         if label[:3] != 'en_' and label != 'l2_phi':
-            plt.plot(times, data[:, k], label=label)
+            plt.plot(times, data[:, k], label=plot_labels[k])
 
     plt.legend()
     plt.xlabel('time')
@@ -330,15 +325,15 @@ def main():
     while True:
         foldername = 'simulation_' + str(k) + '/'
         if os.path.exists(foldername):
-            if os.path.exists(foldername + 'akw_consv.txt'):
+            if os.path.exists(foldername + 'akw_adv_consv.txt'):
                 method = 'akw'
-            elif os.path.exists(foldername + 'sl_consv.txt'):
+            elif os.path.exists(foldername + 'sl_adv_consv.txt'):
                 method = 'sl'
             else:
                 k += 1
                 continue
 
-            if os.path.exists(foldername + method + '_consv.txt'):
+            if os.path.exists(foldername + method + '_adv_consv.txt'):
                 if not os.path.exists(foldername + 'plots/'):
                     os.mkdir(foldername + 'plots/')
                 print(f'Now plotting conservations for {foldername}')
@@ -347,7 +342,8 @@ def main():
                 else:
                     plot_diagnostics_new(foldername, method)
 
-            k += 1
+            # k += 1
+            break
         else:
             break
 
