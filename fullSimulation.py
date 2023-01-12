@@ -161,11 +161,11 @@ def main():
         if not os.path.exists(advection_savefile):
             with open(advection_savefile, 'w') as savefile:
                 for when in [" before", " after"]:
-                    for typ in ["", " z0v0"]:
+                    for typ in ["", "_z0v0"]:
                         for quantity in quantities:
                             savefile.write(quantity)
-                            savefile.write(when)
                             savefile.write(typ)
+                            savefile.write(when)
                             savefile.write("\t\t")
                             if len(quantity + when + typ) < 16:
                                 savefile.write("\t")
