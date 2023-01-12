@@ -260,7 +260,7 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
     int_f_squared_init = compute_int_f_squared(f, d_theta, d_r,
                                                r_grid, method=int_method)
     total_energy_init = get_potential_energy(f, phi, d_theta, d_r,
-                                         r_grid, method=int_method)
+                                             r_grid, method=int_method)
 
     for _ in range(N):
         # scaling is only found in the identity
@@ -275,7 +275,7 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
         int_f_squared = compute_int_f_squared(f, d_theta, d_r,
                                               r_grid, method=int_method)
         total_energy = get_potential_energy(f, phi, d_theta, d_r,
-                                        r_grid, method=int_method)
+                                            r_grid, method=int_method)
 
         assert np.abs(int_f - int_f_init)/int_f_init < iter_tol
         assert np.abs(int_f_squared - int_f_squared_init) / \
@@ -284,7 +284,7 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
             total_energy_init < iter_tol
 
 
-def test_extrapolation_bracket(abs_tol = 1e-10):
+def test_extrapolation_bracket(abs_tol=1e-10):
     """
     Test the conservation of the discrete integral of f, f^2, and phi over
     the whole domain for an evolution in time.
@@ -317,8 +317,6 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
                                                      layout='v_parallel',
                                                      comm=comm,
                                                      allocateSaveMemory=True)
-
-    dt = constants.dt
 
     npts = constants.npts
 
@@ -419,13 +417,15 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
             values_f = np.zeros(polAdv.order)
             if polAdv._equilibrium_outside:
                 values_f = [f_eq(polAdv.r_outside[k], v, polAdv._constants.CN0,
-                                    polAdv._constants.kN0, polAdv._constants.deltaRN0,
-                                    polAdv._constants.rp, polAdv._constants.CTi, polAdv._constants.kTi,
-                                    polAdv._constants.deltaRTi) for k in range(polAdv.order)]
+                                 polAdv._constants.kN0, polAdv._constants.deltaRN0,
+                                 polAdv._constants.rp, polAdv._constants.CTi, polAdv._constants.kTi,
+                                 polAdv._constants.deltaRTi) for k in range(polAdv.order)]
 
             # fill the working stencils
-            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(i, j).ravel()
-            polAdv.phi_stencil[polAdv.ind_int_ep] = np.real(phi.get2DSlice(j).ravel())
+            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(
+                i, j).ravel()
+            polAdv.phi_stencil[polAdv.ind_int_ep] = np.real(
+                phi.get2DSlice(j).ravel())
 
             # set extrapolation values
             for k in range(polAdv.order):
@@ -434,12 +434,14 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
 
             # assemble the bracket
             J_phi = assemble_bracket_arakawa(polAdv.bc, polAdv.order, polAdv.phi_stencil,
-                                            polAdv._points_theta, polAdv._points_r)
+                                             polAdv._points_theta, polAdv._points_r)
 
             assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
 
-            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(i, j).ravel()
+            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(
+                i, j).ravel()
             J_phi_f = J_phi.dot(polAdv.f_stencil)
 
             assert np.sum(J_phi_f) <= abs_tol, np.sum(J_phi_f)
-            assert np.sum(np.multiply(np.real(phi.get2DSlice(j)).ravel(), J_phi_f[polAdv.ind_int_ep])) <= abs_tol
+            assert np.sum(np.multiply(np.real(phi.get2DSlice(
+                j)).ravel(), J_phi_f[polAdv.ind_int_ep])) <= abs_tol
