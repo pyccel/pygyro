@@ -161,12 +161,16 @@ def main():
         if not os.path.exists(advection_savefile):
             with open(advection_savefile, 'w') as savefile:
                 for when in [" before", " after"]:
-                    for quantity in quantities:
-                        savefile.write(quantity)
-                        savefile.write(when)
-                        savefile.write("\t\t\t")
-                        if len(quantity + when) < 12:
-                            savefile.write("\t")
+                    for typ in ["", " z0v0"]:
+                        for quantity in quantities:
+                            savefile.write(quantity)
+                            savefile.write(when)
+                            savefile.write(typ)
+                            savefile.write("\t\t")
+                            if len(quantity + when + typ) < 16:
+                                savefile.write("\t")
+                            if len(quantity + when + typ) < 12:
+                                savefile.write("\t")
 
                 savefile.write("\n")
 
@@ -345,11 +349,9 @@ def main():
             advection_diagnostics.reduce()
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
-                    for k in range(len(quantities)):
+                    for k in range(2 * len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
 
-        # distribFunc.setLayout('poloidal')
-        # phi.setLayout('poloidal')
         polAdv.gridStep(distribFunc, phi, fullStep)
 
         if adv_diagn:
@@ -358,7 +360,7 @@ def main():
 
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
-                    for k in range(len(quantities)):
+                    for k in range(2 * len(quantities)):
                         savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
                     savefile.write("\n")
 

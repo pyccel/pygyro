@@ -4,7 +4,7 @@ import numpy as np
 from ..model.grid import Grid
 from .norms import l2, l1, nParticles
 from .energy import KineticEnergy
-from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, KineticEnergy_fresch, PotentialEnergy_fresch, L2_f, Mass_f, L2_phi
+from plotting.energy import KineticEnergy_v2, PotentialEnergy_v2, L2_f, Mass_f, L2_phi
 
 
 class DiagnosticCollector:
@@ -117,7 +117,9 @@ class DiagnosticCollector:
 class AdvectionDiagnostics:
     """
     A class to collect the diagnostics for the advection step. Mass, l2-norm, and
-    energy are collected before and after the advection step to compare methods.
+    energies are collected before and after the advection step to compare methods.
+    Quantities are collected each integrated over the whole domain and on the
+    (z, v_parallel) = (0, 0) slice.
     The diagnostics attribute contains:
         0 : mass
         1 : l2-norm
@@ -130,8 +132,8 @@ class AdvectionDiagnostics:
         self.comm = comm
         self.rank = comm.Get_rank()
 
-        self.diagnostics = np.zeros(5, dtype=float)
-        self.diagnostics_val = np.array([[0.]] * 5)
+        self.diagnostics = np.zeros(10, dtype=float)
+        self.diagnostics_val = np.array([[0.]] * 10)
 
         self.MASSFclass = Mass_f(
             distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
@@ -139,10 +141,6 @@ class AdvectionDiagnostics:
             distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
         self.L2PHIclass = L2_phi(
             distribFunc.eta_grid, distribFunc.getLayout('poloidal'))
-        # self.KEclass = KineticEnergy_fresch(
-        #     distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
-        # self.PEclass = PotentialEnergy_fresch(
-        #     distribFunc.eta_grid, distribFunc.getLayout('v_parallel'), constants)
         self.KEclass = KineticEnergy_v2(
             distribFunc.eta_grid, distribFunc.getLayout('poloidal'), constants)
         self.PEclass = PotentialEnergy_v2(
@@ -155,10 +153,13 @@ class AdvectionDiagnostics:
         self.diagnostics[0] = self.MASSFclass.getMASSF(f)
         self.diagnostics[1] = self.L2Fclass.getL2F(f)
         self.diagnostics[2] = self.L2PHIclass.getL2Phi(phi)
-        # f.setLayout('v_parallel')
-        # phi.setLayout('v_parallel_2d')
         self.diagnostics[3] = self.KEclass.getKE(f)
         self.diagnostics[4] = self.PEclass.getPE(f, phi)
+        self.diagnostics[5] = self.MASSFclass.getMASSF_slice(f)
+        self.diagnostics[6] = self.L2Fclass.getL2F_slice(f)
+        self.diagnostics[7] = self.L2PHIclass.getL2Phi_slice(phi)
+        self.diagnostics[8] = self.KEclass.getKE_slice(f)
+        self.diagnostics[9] = self.PEclass.getPE_slice(f, phi)
 
     def reduce(self):
         """
@@ -170,3 +171,5 @@ class AdvectionDiagnostics:
 
         self.diagnostics_val[1] = np.sqrt(self.diagnostics_val[1])
         self.diagnostics_val[2] = np.sqrt(self.diagnostics_val[2])
+        self.diagnostics_val[6] = np.sqrt(self.diagnostics_val[6])
+        self.diagnostics_val[7] = np.sqrt(self.diagnostics_val[7])
