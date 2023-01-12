@@ -1,10 +1,10 @@
-import json
 import numpy as np
 import os
 from numpy.linalg import solve
 from math import pi
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
+from mpi4py import MPI
 
 from ..arakawa.discrete_brackets_polar import assemble_bracket_arakawa, assemble_row_columns_akw_bracket_4th_order_extrapolation, update_bracket_4th_order_dirichlet_extrapolation
 from ..splines.splines import BSplines, Spline1D, Spline2D
@@ -639,7 +639,8 @@ class PoloidalAdvectionArakawa:
     def __init__(self, eta_vals: list, constants,
                  bc="extrapolation", order: int = 4,
                  equilibrium_outside: bool = True, verbose: bool = False,
-                 explicit: bool = False):
+                 explicit: bool = True, adv_diagn: bool = False,
+                 savefile = None):
         self._points = eta_vals[1::-1]
         self._points_theta = self._points[0]
         self._points_r = self._points[1]
@@ -668,6 +669,17 @@ class PoloidalAdvectionArakawa:
         self.order = order
 
         self._verbose = verbose
+
+        # if adv_diagn:
+        #     self.adv_diagn = adv_diagn
+        #     self.comm = MPI.COMM_WORLD
+        #     self.rank = self.comm.Get_rank()
+
+        #     self.bracket_value_loc = np.zeros(1, dtype=float)
+        #     self.bracket_value = np.array([[0.]])
+        #     if self.rank == 0:
+        #         assert savefile is not None
+        #         self.savefile = savefile
 
         # left and right boundary indices, do we want to have them seperated?
         self.ind_bd = np.hstack([range(0, np.prod(self._nPoints), self._nPoints_r),
@@ -971,6 +983,17 @@ class PoloidalAdvectionArakawa:
         else:
             f[:] = spsolve(A, B.dot(self.f_stencil))[self.ind_int_ep]
 
+        # if self.adv_diagn:
+        #     self.bracket_value_loc[0] = np.sum(J_s)
+
+        #     self.comm.Reduce(self.bracket_value_loc[0],
+        #                      self.bracket_value[0],
+        #                      op=MPI.SUM, root=0)
+
+        #     if self.rank == 0:
+        #         with open(self.savefile, 'a') as savefile:
+        #             savefile.write(format(self.bracket_value[0][0], '.15E') + "\n")
+
     def exact_step(self, f, endPts, v):
         """
         TODO
@@ -1015,8 +1038,8 @@ class PoloidalAdvectionArakawa:
                                          self._constants.rp, self._constants.CTi, self._constants.kTi,
                                          self._constants.deltaRTi) for k in range(self.order)]
 
-                    self.step_extrapolation(f.get2DSlice(
-                        i, j), dt, phi.get2DSlice(j), values_f, values_phi)
+                    self.step_extrapolation(f.get2DSlice(i, j), dt, phi.get2DSlice(j),
+                                            values_f, values_phi)
 
         else:
             # Do step

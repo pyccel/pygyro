@@ -175,7 +175,7 @@ class AdvectionDiagnostics:
         """
         for k in range(len(self.diagnostics)):
             self.comm.Reduce(self.diagnostics[k],
-                            self.diagnostics_val[k], op=MPI.SUM, root=0)
+                             self.diagnostics_val[k], op=MPI.SUM, root=0)
 
         self.diagnostics_val[1] = np.sqrt(self.diagnostics_val[1])
         self.diagnostics_val[2] = np.sqrt(self.diagnostics_val[2])

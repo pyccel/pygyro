@@ -513,9 +513,9 @@ def main():
 
     while True:
         # folder_cobra = 'cobra/sim_' + str(cobra) + '/'
-        folder_cobra = 'simulation_2/'
+        folder_cobra = 'simulation_8/'
         # folder_cobra = 'raven/sim_' + str(cobra) + '/'
-        folder_raven = 'simulation_1/'
+        folder_raven = 'simulation_7/'
         # folder_raven = 'raven/sim_' + str(raven) + '/'
         foldername = parentpath + str(k) + '/'
         if os.path.exists(foldername):

@@ -1,3 +1,5 @@
+import os
+from mpi4py import MPI
 import pytest
 import numpy as np
 from scipy.sparse.linalg import spsolve
@@ -5,6 +7,13 @@ from scipy.sparse import diags
 
 from .utilities import compute_int_f, compute_int_f_squared, get_potential_energy
 from .discrete_brackets_polar import assemble_bracket_arakawa
+from ..initialisation.initialiser_funcs import f_eq
+from pygyro.initialisation.setups import setupCylindricalGrid
+from pygyro.advection.advection import PoloidalAdvectionArakawa
+from pygyro import splines as spl
+from pygyro.model.layout import LayoutSwapper
+from pygyro.model.process_grid import compute_2d_process_grid
+from pygyro.model.grid import Grid
 
 
 @pytest.mark.parametrize('bc', ['periodic', 'dirichlet', 'extrapolation'])
@@ -273,3 +282,116 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
             int_f_squared_init < iter_tol
         assert np.abs(total_energy - total_energy_init) / \
             total_energy_init < iter_tol
+
+
+def test_extrapolation_bracket(abs_tol = 1e-10):
+    """
+    Test the conservation of the discrete integral of f, f^2, and phi over
+    the whole domain for an evolution in time.
+
+    Parameters
+    ----------
+        int_method : str
+            'sum' or 'trapz'; method with which the integral should be computed
+
+        bc : str
+            Boundary conditions for discrete bracket
+
+        order : int
+            Order of the Arakawa scheme
+
+        tol : float
+            precision with which the initial sum quantities should be tested
+
+        iter_tol : float
+            relative precision with which the integral quantities in the time-loop should be tested
+    """
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+
+    constantFile = os.path.dirname(os.path.abspath(__file__)) + "/iota0.json"
+
+    distribFunc, constants, _ = setupCylindricalGrid(constantFile=constantFile,
+                                                     layout='v_parallel',
+                                                     comm=comm,
+                                                     allocateSaveMemory=True)
+
+    dt = constants.dt
+
+    npts = constants.npts
+
+    degree = constants.splineDegrees[:-1]
+    period = [False, True, True]
+    domain = [[constants.rMin, constants.rMax],
+              [0, 2*np.pi],
+              [constants.zMin, constants.zMax]]
+
+    nkts = [n + 1 + d * (int(p) - 1)
+            for (n, d, p) in zip(npts, degree, period)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, d, p)
+             for (b, d, p) in zip(breaks, degree, period)]
+    bsplines = [spl.BSplines(k, d, p)
+                for (k, d, p) in zip(knots, degree, period)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    layout_poisson = {'v_parallel_2d': [0, 2, 1],
+                      'mode_solve': [1, 2, 0]}
+    layout_vpar = {'v_parallel_1d': [0, 2, 1]}
+    layout_poloidal = {'poloidal': [2, 1, 0]}
+
+    nprocs = compute_2d_process_grid(npts, size)
+
+    remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
+                                [nprocs, nprocs[0], nprocs[1]], eta_grids,
+                                'v_parallel_2d')
+
+    phi = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
+               remapperPhi, 'mode_solve', comm, dtype=np.complex128)
+
+    phi.setLayout('poloidal')
+    distribFunc.setLayout('poloidal')
+
+    layout = distribFunc.getLayout('poloidal')
+    eta_grid = distribFunc.eta_grid
+
+    polAdv = PoloidalAdvectionArakawa(eta_grid, constants, explicit=True)
+
+    r = eta_grid[0]
+    q = eta_grid[1]
+    z = eta_grid[2]
+    v = eta_grid[3]
+
+    idx_r = layout.inv_dims_order[0]
+    idx_q = layout.inv_dims_order[1]
+    idx_z = layout.inv_dims_order[2]
+    idx_v = layout.inv_dims_order[3]
+
+    my_r = r[layout.starts[idx_r]:layout.ends[idx_r]]
+    my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
+    my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
+    my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
+
+    shape = [1, 1, 1, 1]
+    shape[idx_r] = my_r.size
+    shape[idx_q] = my_q.size
+    shape[idx_z] = my_z.size
+    shape[idx_v] = my_v.size
+
+    distribFunc._f[:, :, :, :] = 100*np.random.rand(*shape)
+    assert distribFunc._f.shape[idx_r] == my_r.shape[0]
+    assert distribFunc._f.shape[idx_q] == my_q.shape[0]
+    assert distribFunc._f.shape[idx_z] == my_z.shape[0]
+    assert distribFunc._f.shape[idx_v] == my_v.shape[0]
+
+    polAdv.gridStep(distribFunc, phi, dt)
+
+    J_phi = polAdv.J_phi
+
+    for i, v in distribFunc.getCoords(0):
+        for j, _ in distribFunc.getCoords(1):
+            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(i, j).ravel()
+            J_phi_f = J_phi.dot(polAdv.f_stencil)
+
+            assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
+            assert np.sum(J_phi_f) <= abs_tol, np.sum(J_phi_f)

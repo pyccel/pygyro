@@ -150,8 +150,13 @@ def main():
     elif poloidal_method == 'akw':
         if adv_diagn or old_adv_diagn:
             advection_savefile = "{0}/akw_adv_consv.txt".format(foldername)
+            # consv_savefile = "{0}/akw_bracket_values.txt".format(foldername)
+            # if not os.path.exists(consv_savefile):
+            #     with open(consv_savefile, 'w') as savefile:
+            #         pass
 
-        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants)
+        polAdv = PoloidalAdvectionArakawa(distribFunc.eta_grid, constants,
+                                          explicit=True)
         my_print(rank, nosave, "pol adv akw init done")
 
     else:
@@ -357,7 +362,8 @@ def main():
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
                     for k in range(len(typs) * len(quantities)):
-                        savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
+                        savefile.write(
+                            format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
 
         polAdv.gridStep(distribFunc, phi, fullStep)
 
@@ -368,7 +374,8 @@ def main():
             if (rank == 0):
                 with open(advection_savefile, 'a') as savefile:
                     for k in range(len(typs) * len(quantities)):
-                        savefile.write(format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
+                        savefile.write(
+                            format(advection_diagnostics.diagnostics_val[k][0], '.15E') + "\t")
                     savefile.write("\n")
 
         distribFunc.setLayout('v_parallel')
