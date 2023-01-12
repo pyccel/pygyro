@@ -399,10 +399,6 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
     assert distribFunc._f.shape[idx_z] == my_z.shape[0]
     assert distribFunc._f.shape[idx_v] == my_v.shape[0]
 
-    # run one time step to generate discrete bracket
-    polAdv.gridStep(distribFunc, phi, dt)
-    J_phi = polAdv.J_phi
-
     shape_phi = [1, 1, 1]
     shape_phi[idx_r - 1] = my_r.size
     shape_phi[idx_q - 1] = my_q.size
@@ -414,13 +410,36 @@ def test_extrapolation_bracket(abs_tol = 1e-10):
     assert phi._f.shape[idx_q - 1] == my_q.shape[0]
     assert phi._f.shape[idx_z - 1] == my_z.shape[0]
 
-    assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
-
     # test zeroness of product of bracket with f and phi on each slice of (z,v)
     for i, v in distribFunc.getCoords(0):
         for j, _ in distribFunc.getCoords(1):
+
+            # assume phi equals 0 outside
+            values_phi = np.zeros(polAdv.order)
+            values_f = np.zeros(polAdv.order)
+            if polAdv._equilibrium_outside:
+                values_f = [f_eq(polAdv.r_outside[k], v, polAdv._constants.CN0,
+                                    polAdv._constants.kN0, polAdv._constants.deltaRN0,
+                                    polAdv._constants.rp, polAdv._constants.CTi, polAdv._constants.kTi,
+                                    polAdv._constants.deltaRTi) for k in range(polAdv.order)]
+
+            # fill the working stencils
+            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(i, j).ravel()
+            polAdv.phi_stencil[polAdv.ind_int_ep] = np.real(phi.get2DSlice(j).ravel())
+
+            # set extrapolation values
+            for k in range(polAdv.order):
+                polAdv.f_stencil[polAdv.ind_bd_ep[k]] = values_f[k]
+                polAdv.phi_stencil[polAdv.ind_bd_ep[k]] = values_phi[k]
+
+            # assemble the bracket
+            J_phi = assemble_bracket_arakawa(polAdv.bc, polAdv.order, polAdv.phi_stencil,
+                                            polAdv._points_theta, polAdv._points_r)
+
+            assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
+
             polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(i, j).ravel()
             J_phi_f = J_phi.dot(polAdv.f_stencil)
 
             assert np.sum(J_phi_f) <= abs_tol, np.sum(J_phi_f)
-            assert np.sum(np.multiply(phi._f[j, : :].ravel(), J_phi_f[polAdv.ind_int_ep])) <= abs_tol
+            assert np.sum(np.multiply(np.real(phi.get2DSlice(j)).ravel(), J_phi_f[polAdv.ind_int_ep])) <= abs_tol
