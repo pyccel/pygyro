@@ -424,8 +424,8 @@ def test_extrapolation_bracket(abs_tol=1e-10):
             # fill the working stencils
             polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(
                 i, j).ravel()
-            polAdv.phi_stencil[polAdv.ind_int_ep] = np.real(
-                phi.get2DSlice(j).ravel())
+            polAdv.phi_stencil[polAdv.ind_int_ep] = \
+                np.real(phi.get2DSlice(j).ravel())
 
             # set extrapolation values
             for k in range(polAdv.order):
@@ -438,10 +438,11 @@ def test_extrapolation_bracket(abs_tol=1e-10):
 
             assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
 
-            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(
-                i, j).ravel()
+            polAdv.f_stencil[polAdv.ind_int_ep] = \
+                distribFunc.get2DSlice(i, j).ravel()
+
             J_phi_f = J_phi.dot(polAdv.f_stencil)
 
             assert np.sum(J_phi_f) <= abs_tol, np.sum(J_phi_f)
-            assert np.sum(np.multiply(np.real(phi.get2DSlice(
-                j)).ravel(), J_phi_f[polAdv.ind_int_ep])) <= abs_tol
+            assert np.sum(np.multiply(np.real(phi.get2DSlice(j)).ravel(),
+                                      J_phi_f[polAdv.ind_int_ep])) <= abs_tol
