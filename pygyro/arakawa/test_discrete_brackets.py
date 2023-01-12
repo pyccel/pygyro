@@ -6,7 +6,7 @@ from scipy.sparse.linalg import spsolve
 from scipy.sparse import diags
 
 from .utilities import compute_int_f, compute_int_f_squared, get_potential_energy
-from .discrete_brackets_polar import assemble_bracket_arakawa
+from .discrete_brackets_polar import assemble_bracket_arakawa, update_bracket_4th_order_dirichlet_extrapolation
 from ..initialisation.initialiser_funcs import f_eq
 from pygyro.initialisation.setups import setupCylindricalGrid
 from pygyro.advection.advection import PoloidalAdvectionArakawa
@@ -284,27 +284,10 @@ def test_conservation(bc, order, int_method, tol=1e-10, iter_tol=1e-10):
             total_energy_init < iter_tol
 
 
-def test_extrapolation_bracket(abs_tol=1e-10):
+@pytest.mark.parametrize('order', [2, 4])
+def test_dirichlet_bracket(order, abs_tol=1e-10):
     """
-    Test the conservation of the discrete integral of f, f^2, and phi over
-    the whole domain for an evolution in time.
-
-    Parameters
-    ----------
-        int_method : str
-            'sum' or 'trapz'; method with which the integral should be computed
-
-        bc : str
-            Boundary conditions for discrete bracket
-
-        order : int
-            Order of the Arakawa scheme
-
-        tol : float
-            precision with which the initial sum quantities should be tested
-
-        iter_tol : float
-            relative precision with which the integral quantities in the time-loop should be tested
+    TODO
     """
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
@@ -366,7 +349,7 @@ def test_extrapolation_bracket(abs_tol=1e-10):
     eta_grid = distribFunc.eta_grid
 
     # Make poloidal advection arakawa object
-    polAdv = PoloidalAdvectionArakawa(eta_grid, constants, explicit=True)
+    polAdv = PoloidalAdvectionArakawa(eta_grid, constants, bc='dirichlet', order=order, explicit=True)
 
     # load global and local grid
     r = eta_grid[0]
@@ -402,7 +385,7 @@ def test_extrapolation_bracket(abs_tol=1e-10):
     shape_phi[idx_q - 1] = my_q.size
     shape_phi[idx_z - 1] = my_z.size
 
-    # insert random values into phi (do it after running one step, otherwise CFL takes forever)
+    # insert random values into phi
     phi._f[:, :, :] = 100*np.random.rand(*shape_phi)
     assert phi._f.shape[idx_r - 1] == my_r.shape[0]
     assert phi._f.shape[idx_q - 1] == my_q.shape[0]
@@ -411,10 +394,155 @@ def test_extrapolation_bracket(abs_tol=1e-10):
     # test zeroness of product of bracket with f and phi on each slice of (z,v)
     for i, v in distribFunc.getCoords(0):
         for j, _ in distribFunc.getCoords(1):
+            f_vals = distribFunc.get2DSlice(i, j).ravel()
+            phi_vals = np.real(phi.get2DSlice(j).ravel())
+
+            # assume phi is zero on the boundary
+            phi_vals[polAdv.ind_bd] = np.zeros(len(polAdv.ind_bd))
+            # definitely need to enforce bc strongly
+            f_vals[polAdv.ind_bd] = -np.ones(len(polAdv.ind_bd))
+
+            J_phi = assemble_bracket_arakawa(polAdv.bc, polAdv.order,
+                                             phi_vals,
+                                             polAdv._points_theta, polAdv._points_r)
+
+            assert polAdv._dr * polAdv._dtheta * np.sum(J_phi) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(J_phi)
+
+            J_phi_f = J_phi.dot(f_vals)
+
+            # bracket {phi, f}
+            assert polAdv._dr * polAdv._dtheta * np.sum(J_phi_f) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(J_phi_f)
+
+            # f^2
+            assert polAdv._dr * polAdv._dtheta * np.sum(np.multiply(f_vals, J_phi_f)) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(np.multiply(f_vals, J_phi_f))
+
+            # en_pot
+            assert polAdv._dr * polAdv._dtheta * np.sum(np.multiply(phi_vals, J_phi_f)) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(np.multiply(phi_vals, J_phi_f))
+
+
+def test_extrapolation_bracket(abs_tol=1e-10):
+    """
+    TODO
+    """
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+
+    # load constants from file
+    constantFile = os.path.dirname(os.path.abspath(__file__)) + "/iota0.json"
+
+    # set up constants and distribution function grid object
+    distribFunc, constants, _ = setupCylindricalGrid(constantFile=constantFile,
+                                                     layout='v_parallel',
+                                                     comm=comm,
+                                                     allocateSaveMemory=True)
+
+    npts = constants.npts
+
+    degree = constants.splineDegrees[:-1]
+    period = [False, True, True]
+    domain = [[constants.rMin, constants.rMax],
+              [0, 2*np.pi],
+              [constants.zMin, constants.zMax]]
+
+    nkts = [n + 1 + d * (int(p) - 1)
+            for (n, d, p) in zip(npts, degree, period)]
+    breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
+    knots = [spl.make_knots(b, d, p)
+             for (b, d, p) in zip(breaks, degree, period)]
+    bsplines = [spl.BSplines(k, d, p)
+                for (k, d, p) in zip(knots, degree, period)]
+    eta_grids = [bspl.greville for bspl in bsplines]
+
+    layout_poisson = {'v_parallel_2d': [0, 2, 1],
+                      'mode_solve': [1, 2, 0]}
+    layout_vpar = {'v_parallel_1d': [0, 2, 1]}
+    layout_poloidal = {'poloidal': [2, 1, 0]}
+
+    nprocs = compute_2d_process_grid(npts, size)
+
+    remapperPhi = LayoutSwapper(comm, [layout_poisson, layout_vpar, layout_poloidal],
+                                [nprocs, nprocs[0], nprocs[1]], eta_grids,
+                                'v_parallel_2d')
+
+    # Set up phi grid object
+    phi = Grid(distribFunc.eta_grid[:3], distribFunc.getSpline(slice(0, 3)),
+               remapperPhi, 'mode_solve', comm, dtype=np.complex128)
+
+    # switch layout to poloidal
+    """
+    Phi Layout has to be in poloidal, i.e.:
+        (z, theta, r)
+    """
+    phi.setLayout('poloidal')
+    """
+    Layout has to be in poloidal, i.e.:
+        (v, z, theta, r)
+    """
+    distribFunc.setLayout('poloidal')
+
+    layout = distribFunc.getLayout('poloidal')
+    eta_grid = distribFunc.eta_grid
+
+    # Make poloidal advection arakawa object
+    polAdv = PoloidalAdvectionArakawa(eta_grid, constants, bc='extrapolation', order=4, explicit=True)
+
+    # load global and local grid
+    r = eta_grid[0]
+    q = eta_grid[1]
+    z = eta_grid[2]
+    v = eta_grid[3]
+
+    idx_r = layout.inv_dims_order[0]
+    idx_q = layout.inv_dims_order[1]
+    idx_z = layout.inv_dims_order[2]
+    idx_v = layout.inv_dims_order[3]
+
+    my_r = r[layout.starts[idx_r]:layout.ends[idx_r]]
+    my_q = q[layout.starts[idx_q]:layout.ends[idx_q]]
+    my_z = z[layout.starts[idx_z]:layout.ends[idx_z]]
+    my_v = v[layout.starts[idx_v]:layout.ends[idx_v]]
+
+    shape = [1, 1, 1, 1]
+    shape[idx_r] = my_r.size
+    shape[idx_q] = my_q.size
+    shape[idx_z] = my_z.size
+    shape[idx_v] = my_v.size
+
+    # insert random values into distribution function
+    distribFunc._f[:, :, :, :] = 100*np.random.rand(*shape)
+    assert distribFunc._f.shape[idx_r] == my_r.shape[0]
+    assert distribFunc._f.shape[idx_q] == my_q.shape[0]
+    assert distribFunc._f.shape[idx_z] == my_z.shape[0]
+    assert distribFunc._f.shape[idx_v] == my_v.shape[0]
+
+    shape_phi = [1, 1, 1]
+    shape_phi[idx_r - 1] = my_r.size
+    shape_phi[idx_q - 1] = my_q.size
+    shape_phi[idx_z - 1] = my_z.size
+
+    # insert random values into phi
+    phi._f[:, :, :] = 100*np.random.rand(*shape_phi)
+    assert phi._f.shape[idx_r - 1] == my_r.shape[0]
+    assert phi._f.shape[idx_q - 1] == my_q.shape[0]
+    assert phi._f.shape[idx_z - 1] == my_z.shape[0]
+
+    J_phi = assemble_bracket_arakawa(polAdv.bc, polAdv.order, polAdv.phi_stencil,
+                                     polAdv._points_theta, polAdv._points_r)
+
+    # test zeroness of product of bracket with f and phi on each slice of (z,v)
+    for i, v in distribFunc.getCoords(0):
+        for j, _ in distribFunc.getCoords(1):
+            f_vals = distribFunc.get2DSlice(i, j).ravel()
+            phi_vals = np.real(phi.get2DSlice(j).ravel())
 
             # assume phi equals 0 outside
             values_phi = np.zeros(polAdv.order)
             values_f = np.zeros(polAdv.order)
+
             if polAdv._equilibrium_outside:
                 values_f = [f_eq(polAdv.r_outside[k], v, polAdv._constants.CN0,
                                  polAdv._constants.kN0, polAdv._constants.deltaRN0,
@@ -422,10 +550,12 @@ def test_extrapolation_bracket(abs_tol=1e-10):
                                  polAdv._constants.deltaRTi) for k in range(polAdv.order)]
 
             # fill the working stencils
-            polAdv.f_stencil[polAdv.ind_int_ep] = distribFunc.get2DSlice(
-                i, j).ravel()
-            polAdv.phi_stencil[polAdv.ind_int_ep] = \
-                np.real(phi.get2DSlice(j).ravel())
+            polAdv.f_stencil[polAdv.ind_int_ep] = f_vals
+            
+            # set phi to zero on the boundary (makes it even worse)
+            # phi_vals[polAdv.ind_bd] = np.zeros(len(polAdv.ind_bd))
+
+            polAdv.phi_stencil[polAdv.ind_int_ep] = phi_vals
 
             # set extrapolation values
             for k in range(polAdv.order):
@@ -433,16 +563,25 @@ def test_extrapolation_bracket(abs_tol=1e-10):
                 polAdv.phi_stencil[polAdv.ind_bd_ep[k]] = values_phi[k]
 
             # assemble the bracket
-            J_phi = assemble_bracket_arakawa(polAdv.bc, polAdv.order, polAdv.phi_stencil,
-                                             polAdv._points_theta, polAdv._points_r)
+            update_bracket_4th_order_dirichlet_extrapolation(J_phi, polAdv.rowcolumns,
+                                                             polAdv.phi_stencil,
+                                                             polAdv._points_theta,
+                                                             polAdv._points_r,
+                                                             polAdv._data)
 
-            assert np.sum(J_phi) <= abs_tol, np.sum(J_phi)
-
-            polAdv.f_stencil[polAdv.ind_int_ep] = \
-                distribFunc.get2DSlice(i, j).ravel()
+            assert polAdv._dr * polAdv._dtheta * np.sum(J_phi) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(J_phi)
 
             J_phi_f = J_phi.dot(polAdv.f_stencil)
 
-            assert np.sum(J_phi_f) <= abs_tol, np.sum(J_phi_f)
-            assert np.sum(np.multiply(np.real(phi.get2DSlice(j)).ravel(),
-                                      J_phi_f[polAdv.ind_int_ep])) <= abs_tol
+            # bracket {phi, f}
+            assert polAdv._dr * polAdv._dtheta * np.sum(J_phi_f) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(J_phi_f)
+
+            # f^2
+            # assert polAdv._dr * polAdv._dtheta * np.sum(np.multiply(polAdv.f_stencil, J_phi_f)) <= abs_tol, \
+            #     polAdv._dr * polAdv._dtheta * np.sum(np.multiply(polAdv.f_stencil, J_phi_f))
+
+            # en_pot
+            assert polAdv._dr * polAdv._dtheta * np.sum(np.multiply(polAdv.phi_stencil, J_phi_f)) <= abs_tol, \
+                polAdv._dr * polAdv._dtheta * np.sum(np.multiply(polAdv.phi_stencil, J_phi_f))

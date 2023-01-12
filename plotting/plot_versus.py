@@ -391,11 +391,10 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
 
     plt.close()
 
-    exit()
-
     # ==================================================
     # ======== Plot relative errors (log scale) ========
     # ==================================================
+    # totally integrated
     plt.figure(figsize=(9.5, 7), dpi=250)
     p = 1
     for i in range(entries[0]):
@@ -405,12 +404,13 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
             plt.subplot(2, 2, p)
             p += 1
             for k in range(len(methods)):
-                plt.plot(times[k], np.abs(np.divide(data[k][:, i] - data[k][:, i + entries[k]], data[k][:, i])),
+                plt.plot(times[k], np.abs(np.divide(data[k][:, i] - data[k][:, i + 2*entries[k]], data[k][:, i])),
                          label=plot_labels[k], linestyle=styles[k])
             plt.legend()
         plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
         plt.yscale('log')
+
     if dt[0] == 2:
         plt.suptitle(
             r'Relative Errors for Poloidal Advection Step ($\Delta t = 2$)')
@@ -425,9 +425,7 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
 
     plt.close()
 
-    # ======================================
-    # ======== Plot absolute errors ========
-    # ======================================
+    # (z,v) = (0,0) slice
     plt.figure(figsize=(9.5, 7), dpi=250)
     p = 1
     for i in range(entries[0]):
@@ -437,11 +435,48 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
             plt.subplot(2, 2, p)
             p += 1
             for k in range(len(methods)):
-                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]]),
+                plt.plot(times[k], np.abs(np.divide(data[k][:, i + entries[k]] - data[k][:, i + 3*entries[k]], data[k][:, i + entries[k]])),
                          label=plot_labels[k], linestyle=styles[k])
             plt.legend()
-        plt.subplots_adjust(left=0.08, right=0.98)
+        plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
+        plt.yscale('log')
+
+    if dt[0] == 2:
+        plt.suptitle(
+            r'Relative Errors for Poloidal Advection Step on $(z,v) = (0,0)$-slice ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Relative Errors for Poloidal Advection Step on $(z,v) = (0,0)$-slice')
+
+    if save_plot:
+        plt.savefig(foldername + 'rel_err_z0v0_log.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # ======================================
+    # ======== Plot absolute errors ========
+    # ======================================
+    # totally integrated
+    plt.figure(figsize=(9.5, 7), dpi=250)
+    p = 1
+    for i in range(entries[0]):
+        if labels[0][i] == 'l2_phi':
+            continue
+        else:
+            plt.subplot(2, 2, p)
+            p += 1
+            for k in range(len(methods)):
+                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + 2*entries[k]]),
+                         label=plot_labels[k], linestyle=styles[k])
+            plt.legend()
+        plt.subplots_adjust(left=0.05, right=0.99)
+        plt.title(labels[k][i])
+        if labels[k][i] == 'Kinetic Energy':
+            plt.yscale('log')
+
     if dt[0] == 2:
         plt.suptitle(
             r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
@@ -456,9 +491,7 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
 
     plt.close()
 
-    # ==================================================
-    # ======== Plot absolute errors (log scale) ========
-    # ==================================================
+    # (z,v) = (0,0) slice
     plt.figure(figsize=(9.5, 7), dpi=250)
     p = 1
     for i in range(entries[0]):
@@ -468,12 +501,48 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
             plt.subplot(2, 2, p)
             p += 1
             for k in range(len(methods)):
-                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + entries[k]]),
+                plt.plot(times[k], np.abs(np.divide(data[k][:, i + entries[k]] - data[k][:, i + 3*entries[k]], data[k][:, i + entries[k]])),
                          label=plot_labels[k], linestyle=styles[k])
             plt.legend()
-        plt.subplots_adjust(left=0.08, right=0.98)
+        plt.subplots_adjust(left=0.05, right=0.99)
+        plt.title(labels[k][i])
+        if labels[k][i] == 'Kinetic Energy':
+            plt.yscale('log')
+
+    if dt[0] == 2:
+        plt.suptitle(
+            r'Absolute Errors for Poloidal Advection Step on $(z,v) = (0,0)$-slice ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Absolute Errors for Poloidal Advection Step on $(z,v) = (0,0)$-slice')
+
+    if save_plot:
+        plt.savefig(foldername + 'abs_err_z0v0.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # ==================================================
+    # ======== Plot absolute errors (log scale) ========
+    # ==================================================
+    # totally integrated
+    plt.figure(figsize=(9.5, 7), dpi=250)
+    p = 1
+    for i in range(entries[0]):
+        if labels[0][i] == 'l2_phi':
+            continue
+        else:
+            plt.subplot(2, 2, p)
+            p += 1
+            for k in range(len(methods)):
+                plt.plot(times[k], np.abs(data[k][:, i] - data[k][:, i + 2*entries[k]]),
+                         label=plot_labels[k], linestyle=styles[k])
+            plt.legend()
+        plt.subplots_adjust(left=0.05, right=0.99)
         plt.title(labels[k][i])
         plt.yscale('log')
+
     if dt[0] == 2:
         plt.suptitle(
             r'Absolute Errors for Poloidal Advection Step ($\Delta t = 2$)')
@@ -482,6 +551,37 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
 
     if save_plot:
         plt.savefig(foldername + 'abs_err_log.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # (z,v) = (0,0) slice
+    plt.figure(figsize=(9.5, 7), dpi=250)
+    p = 1
+    for i in range(entries[0]):
+        if labels[0][i] == 'l2_phi':
+            continue
+        else:
+            plt.subplot(2, 2, p)
+            p += 1
+            for k in range(len(methods)):
+                plt.plot(times[k], np.abs(np.divide(data[k][:, i + entries[k]] - data[k][:, i + 3*entries[k]], data[k][:, i + entries[k]])),
+                         label=plot_labels[k], linestyle=styles[k])
+            plt.legend()
+        plt.subplots_adjust(left=0.05, right=0.99)
+        plt.title(labels[k][i])
+        plt.yscale('log')
+
+    if dt[0] == 2:
+        plt.suptitle(
+            r'Absolute Errors for Poloidal Advection Step on $(z,v) = (0,0)$-slice ($\Delta t = 2$)')
+    else:
+        plt.suptitle(r'Absolute Errors for Poloidal Advection Step on $(z,v) = (0,0)$-slice')
+
+    if save_plot:
+        plt.savefig(foldername + 'abs_err_z0v0_log.png')
 
     if show_plot:
         plt.show()
@@ -515,7 +615,7 @@ def main():
         # folder_cobra = 'cobra/sim_' + str(cobra) + '/'
         folder_cobra = 'simulation_8/'
         # folder_cobra = 'raven/sim_' + str(cobra) + '/'
-        folder_raven = 'simulation_7/'
+        folder_raven = 'simulation_9/'
         # folder_raven = 'raven/sim_' + str(raven) + '/'
         foldername = parentpath + str(k) + '/'
         if os.path.exists(foldername):
