@@ -127,7 +127,7 @@ class AdvectionDiagnostics:
         3 : kinetic energy
     """
 
-    def __init__(self, comm, dt: float, distribFunc: Grid, constants, old):
+    def __init__(self, comm, dt: float, distribFunc: Grid, constants, old=True):
         self.dt = dt
         self.comm = comm
         self.rank = comm.Get_rank()
