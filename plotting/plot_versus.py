@@ -19,6 +19,8 @@ def get_labels(raw_label):
         return 'Kinetic Energy'
     elif raw_label == 'en_pot':
         return 'Potential Energy'
+    elif raw_label == 'en_tot':
+        return 'Total Energy'
     else:
         raise ValueError(
             f'Got {raw_label} as raw_label which is not a valid raw label!')
@@ -589,6 +591,119 @@ def plot_diagnostics_new(foldername, folders, methods, plot_labels, styles=None,
     plt.close()
 
 
+def plot_diagnostics_global(foldername, folders, methods, plot_labels, styles=None, save_plot=True, show_plot=False):
+    """
+    TODO
+    """
+    # saving time-step, unfortunately not in the constants file, so hard-code it -> good practice
+    s = 5
+
+    assert len(methods) == len(folders) == 2
+
+    if styles is None:
+        styles = ['solid'] * len(folders)
+    else:
+        assert len(styles) == len(folders)
+
+    data = []
+    dt = []
+    labels = []
+    times = []
+
+    for (folder, method) in zip(folders, methods):
+        data.append([])
+        with open(folder + "initParams.json") as file:
+            dt += [json.load(file)["dt"]]
+
+        with open(folder + method + "_all_consv.txt") as file:
+            for line in file:
+                for entry in line.split():
+                    data[-1].append(entry)
+
+    # Get labels
+    entries = [0] * len(methods)
+    for i in range(len(methods)):
+        k = 0
+        while True:
+            try:
+                np.float64(data[i][k])
+            except:
+                k += 1
+            else:
+                break
+        
+        entries[i] = int(k)
+
+        labels.append([])
+        for k in range(entries[i]):
+            labels[-1].append(get_labels(data[i][k]))
+
+        data[i] = np.array(data[i]).reshape(-1, entries[i])
+
+        data[i] = np.float64(data[i][2:])
+
+        times += [np.arange(1, data[i].shape[0]) * dt[i] * s]
+
+    for i in range(len(labels)):
+        assert labels[0][i] == labels[1][i]
+
+    print('The labels are : ')
+    for label in labels[0]:
+        print(f'   {label}')
+
+    # ======================================
+    # ===== Absolute Error (log scale) =====
+    # ======================================
+    plt.figure(figsize=(11, 6), dpi=250)
+    p = 1
+    for i in range(entries[0]):
+        plt.subplot(1, 3, p)
+        p += 1
+        for k in range(len(methods)):
+            plt.plot(times[k], np.abs(data[k][1:, i] - data[k][:-1, i]),
+                    label=plot_labels[k], linestyle=styles[k])
+        plt.legend()
+        plt.subplots_adjust(left=0.05, right=0.99)
+        plt.title(labels[0][i])
+        plt.yscale('log')
+
+    plt.suptitle(r'Absolute Errors for Full Step')
+
+    if save_plot:
+        plt.savefig(foldername + 'abs_err_log.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+    # ======================================
+    # ===== Relative Error (log scale) =====
+    # ======================================
+    plt.figure(figsize=(11, 6), dpi=250)
+    p = 1
+    for i in range(entries[0]):
+        plt.subplot(1, 3, p)
+        p += 1
+        for k in range(len(methods)):
+            plt.plot(times[k], np.divide(np.abs(data[k][1:, i] - data[k][:-1, i]), data[k][:-1, i]),
+                    label=plot_labels[k], linestyle=styles[k])
+        plt.legend()
+        plt.subplots_adjust(left=0.05, right=0.99)
+        plt.title(labels[0][i])
+        plt.yscale('log')
+
+    plt.suptitle(r'Relative Errors for Full Step')
+
+    if save_plot:
+        plt.savefig(foldername + 'rel_err_log.png')
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+
 def main():
     """
     TODO
@@ -599,11 +714,13 @@ def main():
     parser.add_argument('-raven', metavar='foldername',
                         nargs='*', type=int, default=[0])
     parser.add_argument('--old', action='store_true')
+    parser.add_argument('--glob', action='store_true')
 
     args = parser.parse_args()
     cobra = args.cobra[0]
     raven = args.raven[0]
     old = args.old
+    glob = args.glob
 
     k = 0
 
@@ -613,29 +730,36 @@ def main():
 
     while True:
         # folder_cobra = 'cobra/sim_' + str(cobra) + '/'
-        folder_cobra = 'simulation_4/'
+        folder_cobra = 'simulation_1/'
         # folder_cobra = 'raven/sim_' + str(cobra) + '/'
-        folder_raven = 'simulation_3/'
+        folder_raven = 'simulation_0/'
         # folder_raven = 'raven/sim_' + str(raven) + '/'
         foldername = parentpath + str(k) + '/'
         if os.path.exists(foldername):
             k += 1
         else:
             os.mkdir(foldername)
-            if old:
-                plot_diagnostics_old(foldername,
-                                     [folder_cobra, folder_raven],
-                                     ['sl', 'akw'],
-                                     #  ['akw', 'akw'],
-                                     plot_labels=['Semi-Lagrangian', 'Arakawa'],
-                                     #  plot_labels = [r'$\Delta t = 1$', r'$\Delta t = 2$'],
-                                     styles=['solid', 'dashdot'])
+            if not glob:
+                if old:
+                    plot_diagnostics_old(foldername,
+                                        [folder_cobra, folder_raven],
+                                        ['sl', 'akw'],
+                                        #  ['akw', 'akw'],
+                                        plot_labels=['Semi-Lagrangian', 'Arakawa'],
+                                        #  plot_labels = [r'$\Delta t = 1$', r'$\Delta t = 2$'],
+                                        styles=['solid', 'dashdot'])
+                else:
+                    plot_diagnostics_new(foldername,
+                                        [folder_cobra, folder_raven],
+                                        ['sl', 'akw'],
+                                        plot_labels=['Semi-Lagrangian', 'Arakawa'],
+                                        styles=['solid', 'dashdot'])
             else:
-                plot_diagnostics_new(foldername,
-                                     [folder_cobra, folder_raven],
-                                     ['sl', 'akw'],
-                                     plot_labels=['Semi-Lagrangian', 'Arakawa'],
-                                     styles=['solid', 'dashdot'])
+                plot_diagnostics_global(foldername,
+                                        [folder_cobra, folder_raven],
+                                        ['sl', 'akw'],
+                                        plot_labels=['Semi-Lagrangian', 'Arakawa'],
+                                        styles=['solid', 'dashdot'])
             break
 
 
