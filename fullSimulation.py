@@ -218,6 +218,10 @@ def main():
     average_output = 0
     startPrint = max(0, ti % saveStep)
     timeForLoop = True
+    fluxAdv_time = 0
+    vParAdv_time = 0
+    polAdv_time = 0
+    poisson_time = 0
     while (ti < tN and timeForLoop):
 
         full_loop_start = time.time()
@@ -228,49 +232,69 @@ def main():
         # Compute f^n+1/2 using Lie splitting
         distribFunc.setLayout('flux_surface')
         distribFunc.saveGridValues()
+        t0 = time.time()
         fluxAdv.gridStep(distribFunc)
+        fluxAdv_time += (time.time()-t0)
         distribFunc.setLayout('v_parallel')
         phi.setLayout('v_parallel_1d')
+        t0 = time.time()
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
+        vParAdv_time += (time.time()-t0)
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
+        t0 = time.time()
         polAdv.gridStep(distribFunc, phi, halfStep)
+        polAdv_time += (time.time()-t0)
 
         # Find phi from f^n+1/2 by solving QN eq again
         distribFunc.setLayout('v_parallel')
+        rho.setLayout('v_parallel_2d')
+        phi.setLayout('mode_solve')
+        t0 = time.time()
         density.getPerturbedRho(distribFunc, rho)
         QNSolver.getModes(rho)
         rho.setLayout('mode_solve')
-        phi.setLayout('mode_solve')
         QNSolver.solveEquation(phi, rho)
         phi.setLayout('v_parallel_2d')
-        rho.setLayout('v_parallel_2d')
         QNSolver.findPotential(phi)
+        poisson_time += (time.time()-t0)
 
         # Compute f^n+1 using strang splitting
         distribFunc.restoreGridValues()  # restored from flux_surface layout
+        t0 = time.time()
         fluxAdv.gridStep(distribFunc)
+        fluxAdv_time += (time.time()-t0)
         distribFunc.setLayout('v_parallel')
         phi.setLayout('v_parallel_1d')
+        t0 = time.time()
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
+        vParAdv_time += (time.time()-t0)
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
+        t0 = time.time()
         polAdv.gridStep(distribFunc, phi, fullStep)
+        polAdv_time += (time.time()-t0)
         distribFunc.setLayout('v_parallel')
+        t0 = time.time()
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)
+        vParAdv_time += (time.time()-t0)
         distribFunc.setLayout('flux_surface')
+        t0 = time.time()
         fluxAdv.gridStep(distribFunc)
+        fluxAdv_time += (time.time()-t0)
 
         # Find phi from f^n by solving QN eq
         distribFunc.setLayout('v_parallel')
+        phi.setLayout('mode_solve')
+        rho.setLayout('v_parallel_2d')
+        t0 = time.time()
         density.getPerturbedRho(distribFunc, rho)
         QNSolver.getModes(rho)
         rho.setLayout('mode_solve')
-        phi.setLayout('mode_solve')
         QNSolver.solveEquation(phi, rho)
         phi.setLayout('v_parallel_2d')
-        rho.setLayout('v_parallel_2d')
         QNSolver.findPotential(phi)
+        poisson_time += (time.time()-t0)
 
         diagnostic_start = time.time()
         # Calculate diagnostic quantities
@@ -336,6 +360,11 @@ def main():
           format(loop=full_loop_time, output=output_time, setup=setup_time,
                  diagnostic=diagnostic_time),
           file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(), rank), "w"))
+
+    print("Flux advection time : ", fluxAdv_time / (3*tN))
+    print("V parallel advection time : ", vParAdv_time / (3*tN))
+    print("Poloidal advection time : ", polAdv_time / (2*tN))
+    print("Poisson time : ", poisson_time / (2*tN))
 
 
 if __name__ == "__main__":
