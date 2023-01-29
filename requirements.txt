@@ -3,7 +3,7 @@ numpy>=1.15.1
 scipy>=1.1.0
 pytest>=2.8.7
 mpi4py>=3.0.0
-h5py>=2.8.0<3.8.0
+h5py>=2.8.0<=3.7.0
 pyccel>=1.2.3
 
 # h5py must be built from source using MPI compiler
