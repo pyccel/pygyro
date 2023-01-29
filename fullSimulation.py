@@ -325,8 +325,6 @@ def main():
         timeForLoop = comm.allreduce((time.time(
         ) - setup_time_start + 2*average_loop + 2*average_output) < stopTime, op=MPI.LAND)
 
-    full_loop_time += (time.time()-full_loop_start)
-
     output_start = time.time()
 
     if (ti % saveStep != 0):
