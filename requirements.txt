@@ -14,4 +14,3 @@ pyccel>=1.2.3
 # HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 #
 --no-binary h5py
---no-build-isolation
