@@ -16,6 +16,8 @@ runs:
       run: |
               export CC="mpicc" HDF5_MPI="ON"
               python -m pip install Cython
+              python -m pip install mpi4py
+              python -m pip install --no-binary=h5py --no-build-isolation h5py
               python -m pip install -r requirements.txt
               python -m pip install numba
               python -m pip install pythran
