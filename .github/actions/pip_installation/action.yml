@@ -16,6 +16,7 @@ runs:
       run: |
               export CC="mpicc" HDF5_MPI="ON"
               python -m pip install Cython
+              python -m pip install numpy
               python -m pip install --no-build-isolation -r requirements.txt
               python -m pip install numba
               python -m pip install pythran
