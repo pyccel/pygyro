@@ -15,7 +15,12 @@ def plot_file(foldername):
     times[:] = dataset[:, 0]
     norm[:] = dataset[:, 1]
 
-    plt.semilogy(times, norm, '.', label=foldername)
+    idx =np.argsort(times)
+
+    times = times[idx]
+    norm = norm[idx]
+
+    plt.semilogy(times, norm, '-', label=foldername)
 
 
 parser = argparse.ArgumentParser(

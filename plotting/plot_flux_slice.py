@@ -65,14 +65,15 @@ font = {'size': 16}
 pltFont('font', **font)
 
 fig, ax = plt.subplots(1)
-ax.set_title('T = {}'.format(t))
+#ax.set_title('T = {}'.format(t))
 clevels = np.linspace(data.min(), data.max(), 101)
-im = ax.contourf(theta, z, data, clevels, cmap='jet')
+im = ax.contourf(theta, z, data, clevels, cmap='turbo')
 for c in im.collections:
     c.set_edgecolor('face')
-plt.colorbar(im)
+plt.colorbar(im,format="%4.3f")
 
-ax.set_xlabel("x [m]")
-ax.set_ylabel("y [m]")
-# ~ plt.savefig('debug_results/WO-Flux{}'.format(filename[filename.rfind('/'):-3]))
+ax.set_xlabel(r"$\theta$")
+ax.set_ylabel(r"z")
+plt.tight_layout()
+plt.savefig(f'flux_iota0_{t}.png')
 plt.show()
