@@ -6,7 +6,7 @@ def get_perturbed_rho(rho: 'T', feq: 'float[:,:]', grid: 'float[:,:,:,:]',
                       quad_coeffs: 'float[:]'):
     """
     Calculate:
-    rho = \int f - f_eq dv
+    rho = \\int f - f_eq dv
 
     Parameters
     ----------
@@ -37,7 +37,7 @@ def get_perturbed_rho(rho: 'T', feq: 'float[:,:]', grid: 'float[:,:,:,:]',
 def get_rho(rho: 'T', grid: 'float[:,:,:,:]', quad_coeffs: 'float[:]'):
     """
     Calculate:
-    rho = \int f dv
+    rho = \\int f dv
 
     Parameters
     ----------

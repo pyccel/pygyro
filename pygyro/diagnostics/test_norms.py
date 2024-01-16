@@ -46,7 +46,7 @@ def test_l2Norm_is_volume(layout, R0, rMin, rMax):
     nkts = [n+1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, p) for (b, p) in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, 3, p) for (k, p) in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, 3, p, True) for (k, p) in zip(knots, periodic)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
     layout_poisson = {'v_parallel_2d': [0, 2, 1],

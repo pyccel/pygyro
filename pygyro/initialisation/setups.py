@@ -91,7 +91,7 @@ def setupCylindricalGrid(layout: str, constantFile: str = None, **kwargs):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
@@ -182,7 +182,7 @@ def setupFromFile(foldername, constantFile: str = None, **kwargs):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grids = [bspl.greville for bspl in bsplines]
 

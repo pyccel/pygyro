@@ -40,7 +40,7 @@ nkts = [n+1+d*(int(p)-1) for (n, d, p) in zip(npts, degree, period)]
 breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
 knots = [spl.make_knots(b, d, p)
          for (b, d, p) in zip(breaks, degree, period)]
-bsplines = [spl.BSplines(k, d, p)
+bsplines = [spl.BSplines(k, d, p, True)
             for (k, d, p) in zip(knots, degree, period)]
 eta_grids = [bspl.greville for bspl in bsplines]
 
@@ -160,14 +160,14 @@ for imax in np.arange(0, nb_mn_unstable+1):
 plt.xlabel('time')
 plt.ylabel(r'$abs(\Phi_{mn})(r)$')
 plt.legend(loc=4)
-#ax = plt.subplot(111)
+# ax = plt.subplot(111)
 #
-#clevels = np.linspace( data.min(), data.max(), 101)
-#im = ax.contourf( theta, z, data.T, clevels, cmap='jet' )
+# clevels = np.linspace( data.min(), data.max(), 101)
+# im = ax.contourf( theta, z, data.T, clevels, cmap='jet' )
 # for c in im.collections:
 #    c.set_edgecolor('face')
-#plt.colorbar( im )
-#plt.title(f"t = {t}")
+# plt.colorbar( im )
+# plt.title(f"t = {t}")
 # plt.xlabel('$\\theta$')
 # plt.ylabel('z')
 plt.savefig(os.path.join(foldername, 'unstable_modes.png'))

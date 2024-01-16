@@ -31,7 +31,7 @@ def test_fluxSurfaceAdvection():
     nkts = [n+1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
-    bsplines = [spl.BSplines(k, 3, True) for k in knots]
+    bsplines = [spl.BSplines(k, 3, True, True) for k in knots]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[1] = eta_grids[0]
@@ -85,7 +85,7 @@ def test_poloidalAdvection_invariantPhi():
     N = 200
     dt = 0.1
 
-    v = 0
+    v = 0.0
 
     f_vals = np.ndarray([N+1, npts[1], npts[0]])
 
@@ -96,7 +96,7 @@ def test_poloidalAdvection_invariantPhi():
     nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[0] = eta_grids[0]
@@ -117,8 +117,8 @@ def test_poloidalAdvection_invariantPhi():
 
     # ~ f_vals[0,:,:] = np.exp(-np.atleast_2d((eta_vals[1]-pi)**2).T - (eta_vals[0]-7)**2)/4 \
     # ~ + fEq(0.1,v,constants.CN0,constants.kN0,
-    #~ constants.deltaRN0,constants.rp,
-    #~ constants.CTi,constants.kTi,
+    # ~ constants.deltaRN0,constants.rp,
+    # ~ constants.CTi,constants.kTi,
     # ~ constants.deltaRTi)
     f_vals[0, :, :] = phiVals + f_eq(0.1, v, constants.CN0, constants.kN0,
                                      constants.deltaRN0, constants.rp,
@@ -136,7 +136,7 @@ def test_poloidalAdvection_invariantPhi():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    # ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -167,7 +167,7 @@ def test_poloidalAdvection_vortex():
     N = 200
     dt = 0.1
 
-    v = 0
+    v = 0.0
 
     f_vals = np.ndarray([N+1, npts[1], npts[0]])
 
@@ -178,7 +178,7 @@ def test_poloidalAdvection_vortex():
     nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[0] = eta_grids[0]
@@ -212,7 +212,7 @@ def test_poloidalAdvection_vortex():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    # ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -243,7 +243,7 @@ def test_poloidalAdvection_constantAdv():
     N = 200
     dt = 0.1
 
-    v = 0
+    v = 0.0
 
     f_vals = np.ndarray([N+1, npts[1], npts[0]])
 
@@ -254,7 +254,7 @@ def test_poloidalAdvection_constantAdv():
     nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[0] = eta_grids[0]
@@ -288,7 +288,7 @@ def test_poloidalAdvection_constantAdv():
 
     fig = plt.figure()
     ax = plt.subplot(111, projection='polar')
-    #ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
+    # ax = fig.add_axes([0.1, 0.25, 0.7, 0.7],)
     colorbarax2 = fig.add_axes([0.85, 0.1, 0.03, 0.8],)
 
     plotParams = {'vmin': f_min, 'vmax': f_max, 'cmap': "jet"}
@@ -393,7 +393,7 @@ def test_poloidalAdvection():
     N = 100
     dt = 0.01
 
-    v = 0
+    v = 0.0
 
     f_vals = np.ndarray([N+1, npts[1]+1, npts[0]])
     # ~ f_vals = np.ndarray([N+1,npts[1],npts[0]])
@@ -405,7 +405,7 @@ def test_poloidalAdvection():
     nkts = [n+1+deg*(int(p)-1) for (n, p) in zip(npts, periodic)]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, deg, p) for b, p in zip(breaks, periodic)]
-    bsplines = [spl.BSplines(k, deg, p) for k, p in zip(knots, periodic)]
+    bsplines = [spl.BSplines(k, deg, p, True) for k, p in zip(knots, periodic)]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[0] = eta_grids[0]
@@ -429,12 +429,14 @@ def test_poloidalAdvection():
 
     f_vals[0, :-1, :] = initConds(eta_vals[0], np.atleast_2d(eta_vals[1]).T)
     f_vals[0, -1, :] = f_vals[0, 0, :]
-    #f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
+    # f_vals[0,:,:] = initConds(eta_vals[0],np.atleast_2d(eta_vals[1]).T)
 
     endPts = (np.ndarray([npts[1], npts[0]]), np.ndarray([npts[1], npts[0]]))
     endPts[0][:] = polAdv._shapedQ + 2*a*dt/constants.B0
     endPts[1][:] = np.sqrt(polAdv._points[1]**2-c*np.sin(d*polAdv._shapedQ)/a/constants.B0
                            + c*np.sin(d*endPts[0])/a/constants.B0)
+
+    polAdv.allow_tests()
 
     for n in range(N):
         f_vals[n+1, :-1, :] = f_vals[n, :-1, :]
@@ -516,8 +518,6 @@ def test_fluxAdvection_dz():
 
     N = 100
 
-    v = 0
-
     eta_vals = [np.linspace(0, 1, 4), np.linspace(0, 2*pi, npts[0], endpoint=False),
                 np.linspace(0, 20, npts[1], endpoint=False), np.linspace(0, 1, 4)]
 
@@ -529,7 +529,7 @@ def test_fluxAdvection_dz():
     nkts = [n+1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
-    bsplines = [spl.BSplines(k, 3, True) for k in knots]
+    bsplines = [spl.BSplines(k, 3, True, True) for k in knots]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[1] = eta_grids[0]
@@ -541,8 +541,8 @@ def test_fluxAdvection_dz():
     layout = Layout('flux', [1], [0, 3, 1, 2], eta_vals, [0])
     fluxAdv = FluxSurfaceAdvection(eta_vals, bsplines, layout, dt, constants)
 
-    #dz = eta_vals[2][1]-eta_vals[2][0]
-    #dtheta = iota0()*dz/constants.R0
+    # dz = eta_vals[2][1]-eta_vals[2][0]
+    # dtheta = iota0()*dz/constants.R0
 
     f_vals[0, :, :] = initCondsF(np.atleast_2d(eta_vals[1]).T, eta_vals[2])
 
@@ -570,7 +570,7 @@ def test_fluxAdvection_dz():
 
     fig.colorbar(line1, cax=colorbarax2)
 
-    #~ plt.show()
+    # ~ plt.show()
 
     for n in range(1, N+1):
         del line1
@@ -601,7 +601,7 @@ def test_flux_aligned():
     nkts = [n+1 for n in npts]
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, 3, True) for b in breaks]
-    bsplines = [spl.BSplines(k, 3, True) for k in knots]
+    bsplines = [spl.BSplines(k, 3, True, True) for k in knots]
     eta_grids = [bspl.greville for bspl in bsplines]
 
     eta_vals[1] = eta_grids[0]
@@ -662,7 +662,7 @@ def test_flux_aligned():
     fig.colorbar(line1, cax=colorbarax1)
     fig.colorbar(line2, cax=colorbarax2)
 
-    #~ plt.show()
+    # ~ plt.show()
 
     for n in range(1, N+1):
         del line1
@@ -703,22 +703,23 @@ def test_Phi_deriv():
     constants = get_constants('testSetups/iota8.json')
 
     breaks_theta = np.linspace(0, 2*pi, npts[1]+1)
-    spline_theta = spl.BSplines(spl.make_knots(breaks_theta, 3, True), 3, True)
+    spline_theta = spl.BSplines(spl.make_knots(
+        breaks_theta, 3, True), 3, True, True)
     breaks_z = np.linspace(0, 20, npts[2]+1)
-    spline_z = spl.BSplines(spl.make_knots(breaks_z, 3, True), 3, True)
+    spline_z = spl.BSplines(spl.make_knots(breaks_z, 3, True), 3, True, True)
 
     eta_grid = [np.array([1]), spline_theta.greville, spline_z.greville]
 
-    #dz = eta_grid[2][1]-eta_grid[2][0]
-    #dtheta = iota8()*dz/constants.R0
+    # dz = eta_grid[2][1]-eta_grid[2][0]
+    # dtheta = iota8()*dz/constants.R0
 
     r = eta_grid[0]
 
     bz = 1 / np.sqrt(1+(r * iota8(r)/constants.R0)**2)
     btheta = r * iota8(r)/constants.R0 / np.sqrt(1 +
                                                  (r * iota8(r)/constants.R0)**2)
-    #bz = dz/np.sqrt(dz**2+dtheta**2)
-    #btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
+    # bz = dz/np.sqrt(dz**2+dtheta**2)
+    # btheta = dtheta/np.sqrt(dz**2+r*dtheta**2)
 
     phiVals = np.empty([npts[2], npts[1]])
     phiVals[:] = Phi(eta_grid[1][None, :], eta_grid[2][:, None])

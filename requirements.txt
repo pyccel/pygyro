@@ -1,8 +1,8 @@
-mpi4py>=3.0.0
 matplotlib>=2.2.2
 numpy>=1.15.1
 scipy>=1.1.0
 pytest>=2.8.7
+mpi4py>=3.0.0
 h5py>=2.8.0
 pyccel>=1.2.3
 
@@ -14,4 +14,3 @@ pyccel>=1.2.3
 # HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 #
 --no-binary h5py
-

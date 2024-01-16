@@ -31,7 +31,7 @@ def test_DensityFinder_poly_Rho(param_df_poly):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -82,7 +82,7 @@ def test_DensityFinder_poly_RhoPerturbed(param_df_poly):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -135,7 +135,7 @@ def test_DensityFinder_cos_Rho(npts_v, tol):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -184,7 +184,7 @@ def test_DensityFinder_cos_RhoPerturbed(npts_v, tol):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -235,7 +235,7 @@ def test_BasicPoissonEquation_Dirichlet_r_function(param_poisson_dirichlet):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -260,7 +260,7 @@ def test_BasicPoissonEquation_Dirichlet_r_function(param_poisson_dirichlet):
     ps.solveEquationForFunction(phi, lambda x: np.ones_like(x))
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -280,7 +280,7 @@ def test_BasicPoissonEquation_Dirichlet_r_discrete(param_poisson_dirichlet):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -308,7 +308,7 @@ def test_BasicPoissonEquation_Dirichlet_r_discrete(param_poisson_dirichlet):
 
     ps.solveEquation(phi, rho)
 
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -328,7 +328,7 @@ def test_BasicPoissonEquation_lNeumann_discrete(param_poisson_neumann):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -358,7 +358,7 @@ def test_BasicPoissonEquation_lNeumann_discrete(param_poisson_neumann):
 
     ps.solveEquation(phi, rho)
 
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -378,7 +378,7 @@ def test_BasicPoissonEquation_lNeumann_function(param_poisson_neumann):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -405,7 +405,7 @@ def test_BasicPoissonEquation_lNeumann_function(param_poisson_neumann):
     ps.solveEquationForFunction(phi, np.ones_like)
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -425,7 +425,7 @@ def test_BasicPoissonEquation_rNeumann_discrete(param_poisson_neumann):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -455,7 +455,7 @@ def test_BasicPoissonEquation_rNeumann_discrete(param_poisson_neumann):
 
     ps.solveEquation(phi, rho)
 
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -475,7 +475,7 @@ def test_BasicPoissonEquation_rNeumann_function(param_poisson_neumann):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -502,7 +502,7 @@ def test_BasicPoissonEquation_rNeumann_function(param_poisson_neumann):
     ps.solveEquationForFunction(phi, lambda x: 1)
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -522,7 +522,7 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -564,8 +564,8 @@ def test_PoissonEquation_Dirichlet(param_poisson_dirichlet):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -585,7 +585,7 @@ def test_grad_discrete(param_grad):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -615,8 +615,8 @@ def test_grad_discrete(param_grad):
 
     ps.solveEquation(phi, rho)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -636,7 +636,7 @@ def test_grad_function(param_grad):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -663,7 +663,7 @@ def test_grad_function(param_grad):
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0])))
 
     # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -683,7 +683,7 @@ def test_grad_r_discrete(param_grad_r):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -713,8 +713,8 @@ def test_grad_r_discrete(param_grad_r):
     q = eta_grid[1]
     ps.solveEquation(phi, rho)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -734,7 +734,7 @@ def test_grad_r_function(param_grad_r):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -759,8 +759,8 @@ def test_grad_r_function(param_grad_r):
 
     ps.solveEquationForFunction(phi, lambda r: a*np.cos(a*(r-domain[0][0]))*r)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.parallel
@@ -781,7 +781,7 @@ def test_grad_withFFT(deg, npt, eps):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -816,8 +816,8 @@ def test_grad_withFFT(deg, npt, eps):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -837,7 +837,7 @@ def test_Sin_r_Sin_theta(param_sin_sin):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -876,8 +876,8 @@ def test_Sin_r_Sin_theta(param_sin_sin):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -898,7 +898,7 @@ def test_ddTheta(param_fft):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -938,7 +938,7 @@ def test_ddTheta(param_fft):
 
     ps.findPotential(phi)
 
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -959,7 +959,7 @@ def test_phi(param_fft):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -999,8 +999,8 @@ def test_phi(param_fft):
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < eps).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=eps)
 
 
 @pytest.mark.serial
@@ -1022,7 +1022,7 @@ def test_quasiNeutrality():
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -1080,8 +1080,8 @@ def test_quasiNeutrality():
     phi.setLayout('v_parallel')
     ps.findPotential(phi)
 
-    #~ print(np.max(np.abs(phi._f-phi_exact._f)))
-    assert (np.abs(phi._f-phi_exact._f) < 0.1).all()
+    # ~ print(np.max(np.abs(phi._f-phi_exact._f)))
+    assert np.allclose(phi._f, phi_exact._f, atol=0.1)
 
 
 @pytest.mark.parallel
@@ -1218,7 +1218,7 @@ def test_BasicPoissonEquation_exact(deg):
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 
@@ -1284,7 +1284,7 @@ def test_WellPosedness():
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     # eta_grid = [bspl.greville for bspl in bsplines]
 

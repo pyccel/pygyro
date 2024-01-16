@@ -37,7 +37,7 @@ def test_QuasiNeutralityEquation_pointConverge():
     breaks = [np.linspace(*lims, num=num) for (lims, num) in zip(domain, nkts)]
     knots = [spl.make_knots(b, d, p)
              for (b, d, p) in zip(breaks, degree, period)]
-    bsplines = [spl.BSplines(k, d, p)
+    bsplines = [spl.BSplines(k, d, p, True)
                 for (k, d, p) in zip(knots, degree, period)]
     eta_grid = [bspl.greville for bspl in bsplines]
 

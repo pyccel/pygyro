@@ -7,7 +7,8 @@ from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
 
 from .splines import BSplines, Spline1D, Spline2D
-from .spline_eval_funcs import find_span, basis_funs
+from .spline_eval_funcs import nu_find_span, nu_basis_funs
+from .cubic_uniform_spline_eval_funcs import cu_find_span, cu_basis_funs
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
@@ -23,7 +24,7 @@ class SplineInterpolator1D():
         assert isinstance(basis, BSplines)
         self._basis = basis
         self._imat = self.collocation_matrix(
-            basis.knots, basis.degree, basis.greville, basis.periodic)
+            basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
         if basis.periodic:
             self._splu = splu(csc_matrix(self._imat))
             self._offset = self._basis.degree // 2
@@ -110,8 +111,8 @@ class SplineInterpolator1D():
         if self._basis.periodic:
             inv_deg = 1 / (p + 1)
             knots = self._basis.knots
-            basis_quads = np.array(
-                [(knots[i+p+1]-knots[i])*inv_deg for i in range(n)])
+            basis_quads = self._basis.integrals[:n].copy()
+            basis_quads[:p] += self._basis.integrals[n:]
             return self._splu.solve(basis_quads, trans='T')
         else:
             c, self._sinfo = self._solveFunc(
@@ -119,7 +120,7 @@ class SplineInterpolator1D():
             return c
 
     @staticmethod
-    def collocation_matrix(knots, degree, xgrid, periodic):
+    def collocation_matrix(nb, knots, degree, xgrid, periodic, cubic_uniform_splines):
         """
         Compute the collocation matrix $C_ij = B_j(x_i)$, which contains the
         values of each B-spline basis function $B_j$ at all locations $x_i$.
@@ -144,11 +145,6 @@ class SplineInterpolator1D():
             Collocation matrix: values of all basis functions on each point in xgrid.
 
         """
-        # Number of basis functions (in periodic case remove degree repeated elements)
-        nb = len(knots) - degree - 1
-        if periodic:
-            nb -= degree
-
         # Number of evaluation points
         nx = len(xgrid)
 
@@ -163,11 +159,21 @@ class SplineInterpolator1D():
             def js(span): return slice(span-degree, span+1)
 
         basis = np.empty(degree+1)
-        # Fill in non-zero matrix values
-        for i, x in enumerate(xgrid):
-            span = find_span(knots, degree, x)
-            basis_funs(knots, degree, x, span, basis)
-            mat[i, js(span)] = basis
+
+        if cubic_uniform_splines:
+            xmin, xmax, dx, f_ncells = knots
+            ncells = int(f_ncells)
+            # Fill in non-zero matrix values
+            for i, x in enumerate(xgrid):
+                span, offset = cu_find_span(xmin, xmax, dx, x, ncells)
+                cu_basis_funs(span, offset, basis)
+                mat[i, js(span)] = basis
+        else:
+            # Fill in non-zero matrix values
+            for i, x in enumerate(xgrid):
+                span = nu_find_span(knots, degree, x)
+                nu_basis_funs(knots, degree, x, span, basis)
+                mat[i, js(span)] = basis
 
         return mat
 
