@@ -378,7 +378,7 @@ def initConditions(r, theta):
         return 0.0
 
 
-initConds = np.vectorize(initConditions, otypes=[np.float])
+initConds = np.vectorize(initConditions, otypes=[float])
 
 
 @pytest.mark.serial
@@ -498,7 +498,7 @@ def initConditionsFlux(theta, z):
         return 0.0
 
 
-initCondsF = np.vectorize(initConditionsFlux, otypes=[np.float])
+initCondsF = np.vectorize(initConditionsFlux, otypes=[float])
 
 
 def iota0(r=6.0):
