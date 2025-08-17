@@ -1,6 +1,6 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
-
+from typing import TypeVar
 import numpy as np
 # from scipy.interpolate  import splev, bisplev
 from .spline_eval_funcs import nu_eval_spline_1d_scalar, nu_eval_spline_1d_vector
@@ -11,9 +11,11 @@ from .cubic_uniform_spline_eval_funcs import cu_eval_spline_2d_cross, cu_eval_sp
 
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
 
+float_or_arr = TypeVar('float_or_arr', float, 'float[:]')
+
 # ===============================================================================
 
-
+@allow_negative_index('T', 'breaks')
 def make_knots(breaks : 'float[:]', degree : int, periodic : bool):
     """
     Create spline knots from breakpoints, with appropriate boundary conditions.
@@ -40,8 +42,8 @@ def make_knots(breaks : 'float[:]', degree : int, periodic : bool):
 
     """
     # Type checking
-    #assert isinstance(degree, int)
-    #assert isinstance(periodic, bool)
+    assert isinstance(degree, int)
+    assert isinstance(periodic, bool)
 
     # Consistency checks
     assert len(breaks) > 1
@@ -96,6 +98,7 @@ class BSplines():
 
     """
 
+    @allow_negative_index('knots')
     def __init__(self, knots : 'float[:]', degree : int, periodic : bool, uniform : bool):
         xmin = knots[degree]
         xmax = knots[-degree-1]
@@ -174,7 +177,8 @@ class BSplines():
             return np.linspace(xmin, xmax, self._ncells+1)
         else:
             p = self._degree
-            return np.array(self._knots[p:-p])
+            n = len(self._knots)
+            return np.array(self._knots[p:n-p])
 
     @property
     def domain(self):
@@ -238,20 +242,22 @@ class BSplines():
     #    return spl
 
     # ...
-    def find_cell(self, x : float):
-        """ Index i of cell $C_{i} := [x_{i},x_{i+1})$ that contains point x.
-            Last cell includes right endpoint.
-        """
-        a, b = self.domain
-        assert a <= x <= b
-        #return int(np.searchsorted(self.breaks, x, side='right') - 1)
-        return 0
+    #def find_cell(self, x : float):
+    #    """ Index i of cell $C_{i} := [x_{i},x_{i+1})$ that contains point x.
+    #        Last cell includes right endpoint.
+    #    """
+    #    a, b = self.domain
+    #    assert a <= x <= b
+    #    #return int(np.searchsorted(self.breaks, x, side='right') - 1)
+    #    return 0
 
+    @allow_negative_index('integrals')
     def _build_integrals(self):
         n = self.nbasis
         d = self.degree
 
         self._integrals = np.empty(self.ncells + d)
+        integrals = self._integrals
         inv_deg = 1 / (d + 1)
 
         if self.cubic_uniform:
@@ -273,9 +279,9 @@ class BSplines():
                 nu_basis_funs(knots, 4, test_pt, span, values)
 
                 for i in range(3):
-                    step = dx*(1 - sum(values[:3-i]))
+                    step = dx*(1 - np.sum(values[:3-i]))
                     self._integrals[i] = step
-                    self._integrals[-i-1] = step
+                    integrals[-i-1] = step
         else:
             knots = np.empty(self.knots.shape[0]+2)
             knots[0] = self._knots[0]
@@ -337,33 +343,31 @@ class Spline1D():
         """
         return self._coeffs
 
-    #@template('T', ['float', 'float[:]'])
-    #def eval(self, x : 'T', der : int = 0):
-    def eval(self, x : 'float', der : int = 0):
+    def eval(self, x : 'float|float[:]', der : int = 0):
         """
         TODO
         """
-        if self._basis.cubic_uniform:
-            result = cu_eval_spline_1d_scalar(
-                x, self._basis.knots, self._basis.degree, self._coeffs, der)
-        else:
-            result = nu_eval_spline_1d_scalar(
-                x, self._basis.knots, self._basis.degree, self._coeffs, der)
-        #if (hasattr(x, '__len__')):
-        #    result = np.empty_like(x)
-        #    if self._basis.cubic_uniform:
-        #        cu_eval_spline_1d_vector(x, self._basis.knots,
-        #                                 self._basis.degree, self._coeffs, result, der)
-        #    else:
-        #        nu_eval_spline_1d_vector(x, self._basis.knots,
-        #                                 self._basis.degree, self._coeffs, result, der)
+        #if self._basis.cubic_uniform:
+        #    result = cu_eval_spline_1d_scalar(
+        #        x, self._basis.knots, self._basis.degree, self._coeffs, der)
         #else:
-        #    if self._basis.cubic_uniform:
-        #        result = cu_eval_spline_1d_scalar(
-        #            x, self._basis.knots, self._basis.degree, self._coeffs, der)
-        #    else:
-        #        result = nu_eval_spline_1d_scalar(
-        #            x, self._basis.knots, self._basis.degree, self._coeffs, der)
+        #    result = nu_eval_spline_1d_scalar(
+        #        x, self._basis.knots, self._basis.degree, self._coeffs, der)
+        if isinstance(x, float):
+            if self._basis.cubic_uniform:
+                result = cu_eval_spline_1d_scalar(
+                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
+            else:
+                result = nu_eval_spline_1d_scalar(
+                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
+        else:
+            result = np.empty_like(x)
+            if self._basis.cubic_uniform:
+                cu_eval_spline_1d_vector(x, self._basis.knots,
+                                         self._basis.degree, self._coeffs, result, der)
+            else:
+                nu_eval_spline_1d_vector(x, self._basis.knots,
+                                         self._basis.degree, self._coeffs, result, der)
         return result
 
         """
@@ -385,88 +389,83 @@ class Spline1D():
 # ===============================================================================
 
 
-#class Spline2D():
-#    """
-#    TODO
-#    """
-#
-#    def __init__(self, basis1, basis2):
-#        assert isinstance(basis1, BSplines)
-#        assert isinstance(basis2, BSplines)
-#        shape = (basis1.ncells + basis1.degree, basis2.ncells + basis2.degree)
-#        self._basis1 = basis1
-#        self._basis2 = basis2
-#        self._coeffs = np.zeros(shape)
-#
-#        if basis1.degree > 5:
-#            raise NotImplementedError(
-#                "scipy.interpolate.bisplev needs p1 <= 5")
-#
-#        if basis2.degree > 5:
-#            raise NotImplementedError(
-#                "scipy.interpolate.bisplev needs p2 <= 5")
-#
-#        assert basis1.cubic_uniform == basis2.cubic_uniform
-#
-#    @property
-#    def basis(self):
-#        """
-#        TODO
-#        """
-#        return self._basis1, self._basis2
-#
-#    @property
-#    def coeffs(self):
-#        """
-#        TODO
-#        """
-#        return self._coeffs
-#
-#    def eval(self, x1, x2, der1=0, der2=0):
-#        """
-#        TODO
-#        """
-#        if (hasattr(x1, '__len__')):
-#            result = np.empty((len(x1), len(x2)))
-#            if self._basis1.cubic_uniform:
-#                cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-#                                        self._basis2.knots, self._basis2.degree,
-#                                        self._coeffs, result, der1, der2)
-#            else:
-#                nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-#                                        self._basis2.knots, self._basis2.degree,
-#                                        self._coeffs, result, der1, der2)
-#        else:
-#            if self._basis1.cubic_uniform:
-#                result = cu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
-#                                                  self._basis2.knots, self._basis2.degree,
-#                                                  self._coeffs, der1, der2)
-#            else:
-#                result = nu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
-#                                                  self._basis2.knots, self._basis2.degree,
-#                                                  self._coeffs, der1, der2)
-#        return result
-#
-#        """
-#        t1  = self._basis1.knots
-#        t2  = self._basis2.knots
-#        c   = self._coeffs.flat
-#        k1  = self._basis1.degree
-#        k2  = self._basis2.degree
-#
-#        tck = (t1, t2, c, k1, k2)
-#        return bisplev( x1, x2, tck, der1, der2 )
-#        """
-#
-#    def eval_vector(self, x1, x2, y, der1=0, der2=0):
-#        """
-#        TODO
-#        """
-#        if self._basis1.cubic_uniform:
-#            cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-#                                    self._basis2.knots, self._basis2.degree,
-#                                    self._coeffs, y, der1, der2)
-#        else:
-#            nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-#                                    self._basis2.knots, self._basis2.degree,
-#                                    self._coeffs, y, der1, der2)
+class Spline2D():
+    """
+    TODO
+    """
+
+    def __init__(self, basis1 : BSplines, basis2 : BSplines):
+        #assert isinstance(basis1, BSplines)
+        #assert isinstance(basis2, BSplines)
+        self._basis1 = basis1
+        self._basis2 = basis2
+        self._coeffs = np.zeros((basis1.ncells + basis1.degree, basis2.ncells + basis2.degree))
+
+        assert basis1.degree <= 5, "scipy.interpolate.bisplev needs p1 <= 5"
+
+        assert basis2.degree <= 5, "scipy.interpolate.bisplev needs p2 <= 5"
+
+        assert basis1.cubic_uniform == basis2.cubic_uniform
+
+    @property
+    def basis(self):
+        """
+        TODO
+        """
+        return self._basis1, self._basis2
+
+    @property
+    def coeffs(self):
+        """
+        TODO
+        """
+        return self._coeffs
+
+    def eval(self, x1 : float_or_arr, x2 : float_or_arr, der1 : int = 0, der2 : int = 0):
+        """
+        TODO
+        """
+        if isinstance(x1, float):
+            if self._basis1.cubic_uniform:
+                result = cu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
+                                                  self._basis2.knots, self._basis2.degree,
+                                                  self._coeffs, der1, der2)
+            else:
+                result = nu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
+                                                  self._basis2.knots, self._basis2.degree,
+                                                  self._coeffs, der1, der2)
+        else:
+            result = np.empty((len(x1), len(x2)))
+            if self._basis1.cubic_uniform:
+                cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
+                                        self._basis2.knots, self._basis2.degree,
+                                        self._coeffs, result, der1, der2)
+            else:
+                nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
+                                        self._basis2.knots, self._basis2.degree,
+                                        self._coeffs, result, der1, der2)
+        return result
+
+        """
+        t1  = self._basis1.knots
+        t2  = self._basis2.knots
+        c   = self._coeffs.flat
+        k1  = self._basis1.degree
+        k2  = self._basis2.degree
+
+        tck = (t1, t2, c, k1, k2)
+        return bisplev( x1, x2, tck, der1, der2 )
+        """
+
+    def eval_vector(self, x1 : 'float[:]', x2 : 'float[:]', y : 'float[:,:]', der1 : int = 0, der2 : int = 0):
+        """
+        TODO
+        """
+        if self._basis1.cubic_uniform:
+            cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
+                                    self._basis2.knots, self._basis2.degree,
+                                    self._coeffs, y, der1, der2)
+        else:
+            nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
+                                    self._basis2.knots, self._basis2.degree,
+                                    self._coeffs, y, der1, der2)

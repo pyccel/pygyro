@@ -192,8 +192,8 @@ class SplineInterpolator2D():
 
         self._basis1 = basis1
         self._basis2 = basis2
-        self._spline1 = Spline1D(basis1, dtype)
-        self._spline2 = Spline1D(basis2, dtype)
+        self._spline1 = Spline1D(basis1)
+        self._spline2 = Spline1D(basis2)
         self._interp1 = SplineInterpolator1D(basis1, dtype)
         self._interp2 = SplineInterpolator1D(basis2, dtype)
 
