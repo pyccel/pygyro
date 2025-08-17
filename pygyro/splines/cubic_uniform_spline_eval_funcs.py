@@ -1,3 +1,4 @@
+from typing import Final
 from pyccel.decorators import pure, stack_array
 from numpy import empty
 
@@ -131,7 +132,7 @@ def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'floa
 
 @pure
 @stack_array('basis')
-def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', der: 'int') -> 'float':
+def cu_eval_spline_1d_scalar(x: 'float', knots: 'Final[float[:]]', degree: 'int', coeffs: 'Final[float[:]]', der: 'int') -> 'float':
     """
     TODO
     """
@@ -153,7 +154,7 @@ def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeff
 
 @pure
 @stack_array('basis')
-def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', y: 'float[:]', der: 'int' = 0):
+def cu_eval_spline_1d_vector(x: 'Final[float[:]]', knots: 'Final[float[:]]', degree: 'int', coeffs: 'Final[float[:]]', y: 'float[:]', der: 'int' = 0):
     """
     TODO
     """
@@ -182,8 +183,8 @@ def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
 
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
-def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                             coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
+def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'Final[float[:]]', deg1: 'int', kts2: 'Final[float[:]]', deg2: 'int',
+                             coeffs: 'Final[float[:,:]]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
     """
     TODO
     """
@@ -221,8 +222,8 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
 
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
-def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                            coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
+def cu_eval_spline_2d_cross(X: 'Final[float[:]]', Y: 'Final[float[:]]', kts1: 'Final[float[:]]', deg1: 'int', kts2: 'Final[float[:]]', deg2: 'int',
+                            coeffs: 'Final[float[:,:]]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
