@@ -1,3 +1,4 @@
+from typing import Final
 from pyccel.decorators import pure
 from ..splines.spline_eval_funcs import nu_eval_spline_1d_scalar, nu_eval_spline_1d_vector
 from ..splines.spline_eval_funcs import nu_eval_spline_2d_cross, nu_eval_spline_2d_scalar
@@ -16,8 +17,8 @@ def general_poloidal_advection_step_expl(f: 'float[:,:]',
                                          kts1Pol: 'float[:]', kts2Pol: 'float[:]', coeffsPol: 'float[:,:]', deg1Pol: 'int', deg2Pol: 'int',
                                          CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float',
                                          kTi: 'float', deltaRTi: 'float', B0: 'float', nulBound: 'bool',
-                                         eval_spline_2d_cross: '()(const float[:], const float[:], const float[:], int, const float[:], int, const float[:,:], float[:,:], int, int)',
-                                         eval_spline_2d_scalar: '(float)(float, float, const float[:], int, const float[:], int, const float[:,:], int, int)'):
+                                         eval_spline_2d_cross: '()(Final[float[:]], Final[float[:]], Final[float[:]], int, Final[float[:]], int, Final[float[:,:]], float[:,:], int, int)',
+                                         eval_spline_2d_scalar: '(float)(float, float, Final[float[:]], int, Final[float[:]], int, Final[float[:,:]], int, int)'):
     """
     Carry out an advection step for the poloidal advection
 
@@ -147,7 +148,7 @@ def general_v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                                            coeffs: 'float[:]',
                                            CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
                                            CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int',
-                                           eval_spline_1d_scalar: '(float)(float, const float[:], int, const float[:], int)'):
+                                           eval_spline_1d_scalar: '(float)(float, Final[float[:]], int, Final[float[:]], int)'):
     """
     TODO
     """
@@ -193,8 +194,8 @@ def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
                               vals: 'float[:,:,:]', qVals: 'float[:]',
                               thetaShifts: 'float[:]', kts: 'float[:]',
                               deg: 'int', coeffs: 'float[:]',
-                              eval_spline_1d_vector: '()(const float[:], const float[:], int, const float[:], float[:], int)',
-                              eval_spline_1d_scalar: '(float)(float, const float[:], int, const float[:], int)'):
+                              eval_spline_1d_vector: '()(Final[float[:]], Final[float[:]], int, Final[float[:]], float[:], int)',
+                              eval_spline_1d_scalar: '(float)(float, Final[float[:]], int, Final[float[:]], int)'):
     """
     TODO
     """
@@ -242,8 +243,8 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
                                          kts1Pol: 'float[:]', kts2Pol: 'float[:]', coeffsPol: 'float[:,:]', deg1Pol: 'int', deg2Pol: 'int',
                                          CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
                                          B0: 'float', tol: 'float', nulBound: 'bool',
-                                         eval_spline_2d_cross: '()(const float[:], const float[:], const float[:], int, const float[:], int, const float[:,:], float[:,:], int, int)',
-                                         eval_spline_2d_scalar: '(float)(float, float, const float[:], int, const float[:], int, const float[:,:], int, int)'):
+                                         eval_spline_2d_cross: '()(Final[float[:]], Final[float[:]], Final[float[:]], int, Final[float[:]], int, Final[float[:,:]], float[:,:], int, int)',
+                                         eval_spline_2d_scalar: '(float)(float, float, Final[float[:]], int, Final[float[:]], int, Final[float[:,:]], int, int)'):
     """
     Carry out an advection step for the poloidal advection
 
