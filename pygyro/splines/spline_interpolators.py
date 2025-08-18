@@ -27,20 +27,26 @@ class SplineInterpolator1D():
         self._imat = self.collocation_matrix(
             basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
         if basis.periodic:
-            dmat = dia_matrix(self._imat[:-basis.degree,:-basis.degree])
-            l = abs(dmat.offsets.min())
-            u = dmat.offsets.max()
-            ku = np.int32(max(l,u))
+            self._offset = self._basis.degree // 2
+            max_ku = basis.degree
             n = np.int32(basis.nbasis)
-            if 2*ku + 1 <= n:
+            top_size = n-max_ku
+            if (max_ku * (n + top_size) + (3 * max_ku + 1) * top_size >= n * n):
+                self._splu = None
+            else:
+                dmat = dia_matrix(self._imat[max_ku:n-max_ku,max_ku:n-max_ku])
+                l = abs(dmat.offsets.min()-self._offset)
+                u = dmat.offsets.max()-self._offset
+                ku = np.int32(max(l,u))
+
                 self._splu = SLL.PeriodicBandedMatrix(n, ku, ku)
                 for i in range(basis.nbasis):
-                    for j in range(basis.nbasis):
-                        if self._imat[i,j] != 0:
-                            self._splu.set_element(np.int32(i+1), np.int32(j+1), self._imat[i,j])
+                    for jmin in range(basis.nbasis):
+                        j = (jmin - self._offset) % basis.nbasis
+                        if self._imat[i,jmin] != 0:
+                            self._splu.set_element(np.int32(i+1), np.int32(j+1), self._imat[i,jmin])
                 self._splu.factorize()
-            else:
-                self._splu = None
+
         else:
             dmat = dia_matrix(self._imat)
             self._l = abs(dmat.offsets.min())
@@ -97,9 +103,10 @@ class SplineInterpolator1D():
         p = self._basis.degree
 
         if self._splu:
-            c[0:n] = ug
-            self._splu.solve_inplace(c[:n])
-            c[n:n+p] = c[0:p]
+            c[self._offset:n+self._offset] = ug
+            self._splu.solve_inplace(c[self._offset:n+self._offset])
+            c[:self._offset] = c[n:n+self._offset]
+            c[n+self._offset:] = c[self._offset:p]
         else:
             c[0:n] = np.linalg.solve(self._imat, ug)
             c[n:n+p] = c[0:p]
