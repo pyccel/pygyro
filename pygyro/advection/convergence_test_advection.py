@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 from numpy import pi
 
 from .advection import FluxSurfaceAdvection, PoloidalAdvection, VParallelAdvection, ParallelGradient, Layout
@@ -60,7 +60,7 @@ def test_vParallelAdvection():
             else:
                 fEnd[i] = gaussLike(x[i]-c*dt*N)
 
-        l2[j] = np.sqrt(trapz((f-fEnd).flatten()**2, x))
+        l2[j] = np.sqrt(trapezoid((f-fEnd).flatten()**2, x))
         linf[j] = np.linalg.norm((f-fEnd).flatten(), np.inf)
 
     print("l2:", l2)
@@ -210,7 +210,7 @@ def test_poloidalAdvection_constantAdv(initConditions, xc, yc):
             polAdv.exact_step(f_vals[:, :], endPts, v)
 
         linf[i] = np.linalg.norm((f_vals-final_f_vals).flatten(), np.inf)
-        l2[i] = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
+        l2[i] = np.sqrt(trapezoid(trapezoid((f_vals-final_f_vals)**2,
                         eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
 
         print("l2:", l2[i])
@@ -329,7 +329,7 @@ def test_poloidalAdvection_constantAdv_dt():
             polAdv.step(f_vals[:, :], dt, phi, v)
 
         linf[i] = np.linalg.norm((f_vals-final_f_vals).flatten(), np.inf)
-        l2[i] = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
+        l2[i] = np.sqrt(trapezoid(trapezoid((f_vals-final_f_vals)**2,
                         eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
 
         print(N, "l2:", l2[i])
@@ -448,7 +448,7 @@ def test_fluxAdvection():
 
         linf[i] = np.linalg.norm((f_vals-final_f_vals).flatten(), np.inf)
         l2[i] = np.sqrt(
-            trapz(trapz((f_vals-final_f_vals)**2, eta_vals[1], axis=0), eta_vals[2]))
+            trapezoid(trapezoid((f_vals-final_f_vals)**2, eta_vals[1], axis=0), eta_vals[2]))
 
         print(N, "l2:", l2[i])
         print(N, "linf:", linf[i])
@@ -561,7 +561,7 @@ def test_fluxAdvectionAligned():
 
         linf[i] = np.linalg.norm((f_vals-final_f_vals).flatten(), np.inf)
         l2[i] = np.sqrt(
-            trapz(trapz((f_vals-final_f_vals)**2, eta_vals[1], axis=0), eta_vals[2]))
+            trapezoid(trapezoid((f_vals-final_f_vals)**2, eta_vals[1], axis=0), eta_vals[2]))
 
         print(N, "l2:", l2[i])
         print(N, "linf:", linf[i])
@@ -661,7 +661,7 @@ def test_Phi_deriv_dtheta():
 
         err = approxGrad-exactGrad
 
-        l2[i] = np.sqrt(np.trapz(np.trapz(err**2, dx=dz), dx=dtheta))
+        l2[i] = np.sqrt(np.trapezoid(np.trapezoid(err**2, dx=dz), dx=dtheta))
         linf[i] = np.linalg.norm(err.flatten(), np.inf)
 
         npts[1] *= 2
@@ -744,7 +744,7 @@ def test_Phi_deriv_dz():
 
         err = approxGrad-exactGrad
 
-        l2[i] = np.sqrt(np.trapz(np.trapz(err**2, dx=dz), dx=dtheta))
+        l2[i] = np.sqrt(np.trapezoid(np.trapezoid(err**2, dx=dz), dx=dtheta))
         linf[i] = np.linalg.norm(err.flatten(), np.inf)
 
         npts[2] *= 2

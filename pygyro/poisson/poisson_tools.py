@@ -1,8 +1,9 @@
-from pyccel.decorators import template
+from typing import TypeVar
+
+T = TypeVar('T', 'complex128[:,:,:]', 'float[:,:,:]')
 
 
-@template('T', ('complex128[:,:,:]', 'float[:,:,:]'))
-def get_perturbed_rho(rho: 'T', feq: 'float[:,:]', grid: 'float[:,:,:,:]',
+def get_perturbed_rho(rho: T, feq: 'float[:,:]', grid: 'float[:,:,:,:]',
                       quad_coeffs: 'float[:]'):
     """
     Calculate:
@@ -33,8 +34,7 @@ def get_perturbed_rho(rho: 'T', feq: 'float[:,:]', grid: 'float[:,:,:,:]',
                         (grid[i, j, k, l] - feq[i, l])
 
 
-@template('T', ('complex128[:,:,:]', 'float[:,:,:]'))
-def get_rho(rho: 'T', grid: 'float[:,:,:,:]', quad_coeffs: 'float[:]'):
+def get_rho(rho: T, grid: 'float[:,:,:,:]', quad_coeffs: 'float[:]'):
     """
     Calculate:
     rho = \\int f dv

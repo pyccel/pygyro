@@ -2,7 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 from math import pi
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 
 from ..model.process_grid import compute_2d_process_grid
 from ..model.layout import LayoutSwapper, getLayoutHandler
@@ -1258,7 +1258,7 @@ def test_BasicPoissonEquation_exact(deg):
     x = eta_grid[0]
 
     err = (phi._f-phi_exact._f)[0, 0]
-    l2 = np.sqrt(trapz(np.real(err*err.conj()), x))
+    l2 = np.sqrt(trapezoid(np.real(err*err.conj()), x))
     lInf = np.max(np.abs(phi._f-phi_exact._f))
 
     assert l2 < 1e-10

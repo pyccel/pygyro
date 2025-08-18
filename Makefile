@@ -42,7 +42,7 @@ SO_EXT := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var
 
 ifeq ($(ACC), pycc)
 	TOOL := pyccel
-	TOOL_FLAGS := --compiler=$(COMP) --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
+	TOOL_FLAGS := --compiler-family=$(COMP) --flags ' $(FC_FLAGS)' --language=$(LANGUAGE)
 	NAME_PREFIX := 
 else
 	ifeq ($(ACC), numba)
