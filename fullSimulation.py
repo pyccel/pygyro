@@ -364,22 +364,23 @@ def main():
 
     MPI.COMM_WORLD.Barrier()
 
-    print("{loop:16.10e}   {output:16.10e}   {setup:16.10e}   {diagnostic:16.10e}".
-          format(loop=full_loop_time, output=output_time, setup=setup_time,
-                 diagnostic=diagnostic_time),
-          file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(), rank), "w"))
+    timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv))
+    with open(f"timing/{MPI.COMM_WORLD.Get_size()}_l2Test{rank}.txt", "w") as timing_file:
+        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther, full_loop_time, output_time, setup_time, diagnostic_time):
+            print(f"{t:16.10e}   ", end="", file=timing_file)
+        print(file=timing_file)
 
     if rank == 0:
         print("Timings")
         print("-------")
-        timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv))
         print("QN  | Flux | vPar | Pol | Other | Total")
         for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther):
             print(round(t / full_loop_time, 3), end=' | ')
+        print(1)
         print()
         for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther):
             print(t, end=' | ')
-        print(1)
+        print(full_loop_time)
 
 
 if __name__ == "__main__":
