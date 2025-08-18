@@ -6,6 +6,7 @@ from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs
 from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
 
+from . import sll_m_spline_matrix_periodic_banded as SLL
 from .splines import BSplines, Spline2D, Spline1D, Spline1DComplex
 from .spline_eval_funcs import nu_find_span, nu_basis_funs
 from .cubic_uniform_spline_eval_funcs import cu_find_span, cu_basis_funs
@@ -26,8 +27,20 @@ class SplineInterpolator1D():
         self._imat = self.collocation_matrix(
             basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
         if basis.periodic:
-            self._splu = splu(csc_matrix(self._imat))
-            self._offset = self._basis.degree // 2
+            dmat = dia_matrix(self._imat)
+            l = abs(dmat.offsets.min())
+            u = dmat.offsets.max()
+            ku = np.int32(max(l,u))
+            n = np.int32(basis.nbasis)
+            if 2*ku + 1 <= n:
+                self._splu = SLL.PeriodicBandedMatrix(n, ku, ku)
+                for i in range(basis.nbasis):
+                    for j in range(basis.nbasis):
+                        if self._imat[i,j] != 0:
+                            self._splu.set_element(np.int32(i+1), np.int32(j+1), self._imat[i,j])
+                self._splu.factorize()
+            else:
+                self._splu = None
         else:
             dmat = dia_matrix(self._imat)
             self._l = abs(dmat.offsets.min())
@@ -83,8 +96,13 @@ class SplineInterpolator1D():
         n = self._basis.nbasis
         p = self._basis.degree
 
-        c[0:n] = self._splu.solve(ug)
-        c[n:n+p] = c[0:p]
+        if self._splu:
+            c[0:n] = ug
+            self._splu.solve_inplace(c[:n])
+            c[n:n+p] = c[0:p]
+        else:
+            c[0:n] = np.linalg.solve(self._imat, ug)
+            c[n:n+p] = c[0:p]
 
     # ...
     def _solve_system_nonperiodic(self, ug, c):
@@ -113,7 +131,7 @@ class SplineInterpolator1D():
             knots = self._basis.knots
             basis_quads = self._basis.integrals[:n].copy()
             basis_quads[:p] += self._basis.integrals[n:]
-            return self._splu.solve(basis_quads, trans='T')
+            return np.linalg.solve(self._imat.T, basis_quads)
         else:
             c, self._sinfo = self._solveFunc(
                 self._bmat, self._l, self._u, self._basis.integrals, self._ipiv, trans=True)
