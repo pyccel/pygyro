@@ -27,7 +27,7 @@ class SplineInterpolator1D():
         self._imat = self.collocation_matrix(
             basis.nbasis, basis.knots, basis.degree, basis.greville, basis.periodic, basis.cubic_uniform)
         if basis.periodic:
-            dmat = dia_matrix(self._imat)
+            dmat = dia_matrix(self._imat[:-basis.degree,:-basis.degree])
             l = abs(dmat.offsets.min())
             u = dmat.offsets.max()
             ku = np.int32(max(l,u))
