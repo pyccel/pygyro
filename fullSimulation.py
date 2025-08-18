@@ -218,6 +218,12 @@ def main():
     average_output = 0
     startPrint = max(0, ti % saveStep)
     timeForLoop = True
+
+    timeQN = 0
+    timeFluxAdv = 0
+    timevParAdv = 0
+    timePolAdv = 0
+
     while (ti < tN and timeForLoop):
 
         full_loop_start = time.time()
@@ -228,49 +234,77 @@ def main():
         # Compute f^n+1/2 using Lie splitting
         distribFunc.setLayout('flux_surface')
         distribFunc.saveGridValues()
+        time_start = time.time()
         fluxAdv.gridStep(distribFunc)
+        timeFluxAdv += (time.time()-time_start)
         distribFunc.setLayout('v_parallel')
         phi.setLayout('v_parallel_1d')
+        time_start = time.time()
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
+        timevParAdv += (time.time()-time_start)
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
+        time_start = time.time()
         polAdv.gridStep(distribFunc, phi, halfStep)
+        timePolAdv += (time.time()-time_start)
 
         # Find phi from f^n+1/2 by solving QN eq again
         distribFunc.setLayout('v_parallel')
+        time_start = time.time()
         density.getPerturbedRho(distribFunc, rho)
+        timeQN += (time.time()-time_start)
         QNSolver.getModes(rho)
         rho.setLayout('mode_solve')
         phi.setLayout('mode_solve')
+        time_start = time.time()
         QNSolver.solveEquation(phi, rho)
+        timeQN += (time.time()-time_start)
         phi.setLayout('v_parallel_2d')
         rho.setLayout('v_parallel_2d')
+        time_start = time.time()
         QNSolver.findPotential(phi)
+        timeQN += (time.time()-time_start)
 
         # Compute f^n+1 using strang splitting
         distribFunc.restoreGridValues()  # restored from flux_surface layout
+        time_start = time.time()
         fluxAdv.gridStep(distribFunc)
+        timeFluxAdv += (time.time()-time_start)
         distribFunc.setLayout('v_parallel')
         phi.setLayout('v_parallel_1d')
+        time_start = time.time()
         vParAdv.gridStep(distribFunc, phi, parGrad, parGradVals, halfStep)
+        timevParAdv += (time.time()-time_start)
         distribFunc.setLayout('poloidal')
         phi.setLayout('poloidal')
+        time_start = time.time()
         polAdv.gridStep(distribFunc, phi, fullStep)
+        timePolAdv += (time.time()-time_start)
         distribFunc.setLayout('v_parallel')
+        time_start = time.time()
         vParAdv.gridStepKeepGradient(distribFunc, parGradVals, halfStep)
+        timevParAdv += (time.time()-time_start)
         distribFunc.setLayout('flux_surface')
+        time_start = time.time()
         fluxAdv.gridStep(distribFunc)
+        timeFluxAdv += (time.time()-time_start)
 
         # Find phi from f^n by solving QN eq
         distribFunc.setLayout('v_parallel')
+        time_start = time.time()
         density.getPerturbedRho(distribFunc, rho)
+        timeQN += (time.time()-time_start)
         QNSolver.getModes(rho)
         rho.setLayout('mode_solve')
         phi.setLayout('mode_solve')
+        time_start = time.time()
         QNSolver.solveEquation(phi, rho)
+        timeQN += (time.time()-time_start)
         phi.setLayout('v_parallel_2d')
         rho.setLayout('v_parallel_2d')
+        time_start = time.time()
         QNSolver.findPotential(phi)
+        timeQN += (time.time()-time_start)
 
         diagnostic_start = time.time()
         # Calculate diagnostic quantities
@@ -300,8 +334,6 @@ def main():
         average_loop = full_loop_time/nLoops
         timeForLoop = comm.allreduce((time.time(
         ) - setup_time_start + 2*average_loop + 2*average_output) < stopTime, op=MPI.LAND)
-
-    full_loop_time += (time.time()-full_loop_start)
 
     output_start = time.time()
 
@@ -336,6 +368,18 @@ def main():
           format(loop=full_loop_time, output=output_time, setup=setup_time,
                  diagnostic=diagnostic_time),
           file=open("timing/{}_l2Test{}.txt".format(MPI.COMM_WORLD.Get_size(), rank), "w"))
+
+    if rank == 0:
+        print("Timings")
+        print("-------")
+        timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv))
+        print("QN  | Flux | vPar | Pol | Other | Total")
+        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther):
+            print(round(t / full_loop_time, 3), end=' | ')
+        print()
+        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther):
+            print(t, end=' | ')
+        print(1)
 
 
 if __name__ == "__main__":
