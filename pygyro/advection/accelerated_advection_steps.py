@@ -9,7 +9,7 @@ from ..initialisation.initialiser_funcs import f_eq
 
 def general_poloidal_advection_step_expl(f: 'float[:,:]',
                                          dt: 'float', v: 'float',
-                                         rPts: 'float[:]', qPts: 'float[:]',
+                                         rPts: 'Final[float[:]]', qPts: 'Final[float[:]]',
                                          drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]',
                                          drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
                                          endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
