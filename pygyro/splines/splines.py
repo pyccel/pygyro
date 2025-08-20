@@ -226,15 +226,6 @@ class BSplines():
             spl.coeffs[n:n+p] = spl.coeffs[0:p]
         return spl
 
-    # ...
-    def find_cell(self, x):
-        """ Index i of cell $C_{i} := [x_{i},x_{i+1})$ that contains point x.
-            Last cell includes right endpoint.
-        """
-        a, b = self.domain
-        assert a <= x <= b
-        return int(np.searchsorted(self.breaks, x, side='right') - 1)
-
     def _build_integrals(self):
         n = self.nbasis
         d = self.degree
