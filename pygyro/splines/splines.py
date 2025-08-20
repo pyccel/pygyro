@@ -369,14 +369,8 @@ class Spline2D():
         self._basis2 = basis2
         self._coeffs = np.zeros(shape)
 
-        if basis1.degree > 5:
-            raise NotImplementedError(
-                "scipy.interpolate.bisplev needs p1 <= 5")
-
-        if basis2.degree > 5:
-            raise NotImplementedError(
-                "scipy.interpolate.bisplev needs p2 <= 5")
-
+        assert basis1.degree <= 5
+        assert basis2.degree <= 5
         assert basis1.cubic_uniform == basis2.cubic_uniform
 
     @property
