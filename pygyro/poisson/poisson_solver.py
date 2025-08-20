@@ -5,7 +5,7 @@ import numpy as np
 from numpy.polynomial.legendre import leggauss
 
 from ..model.grid import Grid
-from ..splines.splines import BSplines, Spline1D, make_knots
+from ..splines.splines import BSplines, Spline1D, Spline1DComplex, make_knots
 from ..splines.spline_interpolators import SplineInterpolator1D
 from ..initialisation import initialiser_funcs as init
 from .poisson_tools import get_perturbed_rho, get_rho
