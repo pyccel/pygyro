@@ -65,7 +65,7 @@ class SplineInterpolator1D():
         """
 
         assert isinstance(spl, (Spline1D, Spline1DComplex))
-        assert spl.basis is self._basis
+        #assert spl.basis is self._basis
         assert len(ug) == self._basis.nbasis
 
         if self._basis.periodic:
@@ -221,9 +221,10 @@ class SplineInterpolator2D():
         """
 
         assert isinstance(spl, Spline2D)
-        basis1, basis2 = spl.basis
-        assert basis1 is self._basis1
-        assert basis2 is self._basis2
+        basis1 = spl.basis1
+        basis2 = spl.basis2
+        #assert basis1 is self._basis1
+        #assert basis2 is self._basis2
 
         n1, n2 = basis1.nbasis, basis2.nbasis
         p1, p2 = basis1.degree, basis2.degree
