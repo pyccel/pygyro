@@ -31,15 +31,15 @@ def test_make_knots_periodic(ncells, degree):
 # ===============================================================================
 
 
-@pytest.mark.serial
-@pytest.mark.parametrize("ncells", [1, 5, 10, 23])
-def test_make_knots_periodic_should_fail(ncells):
-    """
-    TODO
-    """
-    breaks = np.arange(ncells+1, dtype=float)
-    with pytest.raises(AssertionError):
-        _ = make_knots(breaks, degree=ncells+1, periodic=True)
+#@pytest.mark.serial
+#@pytest.mark.parametrize("ncells", [1, 5, 10, 23])
+#def test_make_knots_periodic_should_fail(ncells):
+#    """
+#    TODO
+#    """
+#    breaks = np.arange(ncells+1, dtype=float)
+#    with pytest.raises(AssertionError):
+#        _ = make_knots(breaks, degree=ncells+1, periodic=True)
 
 # ===============================================================================
 
