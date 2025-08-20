@@ -6,7 +6,7 @@ from scipy.linalg.lapack import zgbtrf, zgbtrs, dgbtrf, dgbtrs
 from scipy.sparse import csr_matrix, csc_matrix, dia_matrix
 from scipy.sparse.linalg import splu
 
-from .splines import BSplines, Spline1D, Spline2D
+from .splines import BSplines, Spline2D, Spline1D, Spline1DComplex
 from .spline_eval_funcs import nu_find_span, nu_basis_funs
 from .cubic_uniform_spline_eval_funcs import cu_find_span, cu_basis_funs
 
@@ -64,7 +64,7 @@ class SplineInterpolator1D():
               The spline in which the coefficients will be saved
         """
 
-        assert isinstance(spl, Spline1D)
+        assert isinstance(spl, (Spline1D, Spline1DComplex))
         assert spl.basis is self._basis
         assert len(ug) == self._basis.nbasis
 
@@ -192,8 +192,15 @@ class SplineInterpolator2D():
 
         self._basis1 = basis1
         self._basis2 = basis2
-        self._spline1 = Spline1D(basis1, dtype)
-        self._spline2 = Spline1D(basis2, dtype)
+
+        if dtype is float:
+            self._spline1 = Spline1D(basis1)
+            self._spline2 = Spline1D(basis2)
+        else:
+            assert dtype is np.complex128
+            self._spline1 = Spline1DComplex(basis1)
+            self._spline2 = Spline1DComplex(basis2)
+
         self._interp1 = SplineInterpolator1D(basis1, dtype)
         self._interp2 = SplineInterpolator1D(basis2, dtype)
 

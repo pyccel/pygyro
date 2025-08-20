@@ -299,7 +299,7 @@ class DiffEqSolver:
 
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(self._rspline, dtype=complex)
-        self._spline = Spline1D(self._rspline, np.complex128)
+        self._spline = Spline1DComplex(self._rspline)
         self._real_spline = Spline1D(self._rspline)
 
         self._realMem = np.empty(nr)

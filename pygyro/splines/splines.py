@@ -9,7 +9,7 @@ from .spline_eval_funcs import nu_find_span, nu_basis_funs
 from .cubic_uniform_spline_eval_funcs import cu_eval_spline_1d_scalar, cu_eval_spline_1d_vector
 from .cubic_uniform_spline_eval_funcs import cu_eval_spline_2d_cross, cu_eval_spline_2d_scalar
 
-__all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline2D']
+__all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline1DComplex', 'Spline2D']
 
 # ===============================================================================
 
@@ -288,10 +288,71 @@ class Spline1D():
     TODO
     """
 
-    def __init__(self, basis, dtype=float):
+    def __init__(self, basis):
         assert isinstance(basis, BSplines)
         self._basis = basis
-        self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=dtype)
+        self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=float)
+
+    @property
+    def basis(self):
+        """
+        TODO
+        """
+        return self._basis
+
+    @property
+    def coeffs(self):
+        """
+        TODO
+        """
+        return self._coeffs
+
+    def eval(self, x, der=0):
+        """
+        TODO
+        """
+        if (hasattr(x, '__len__')):
+            result = np.empty_like(x)
+            if self._basis.cubic_uniform:
+                cu_eval_spline_1d_vector(x, self._basis.knots,
+                                         self._basis.degree, self._coeffs, result, der)
+            else:
+                nu_eval_spline_1d_vector(x, self._basis.knots,
+                                         self._basis.degree, self._coeffs, result, der)
+        else:
+            if self._basis.cubic_uniform:
+                result = cu_eval_spline_1d_scalar(
+                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
+            else:
+                result = nu_eval_spline_1d_scalar(
+                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
+        return result
+
+        """
+        tck = (self._basis.knots, self._coeffs, self._basis.degree)
+        return splev( x, tck, der )
+        """
+
+    def eval_vector(self, x, y, der=0):
+        """
+        TODO
+        """
+        if self._basis.cubic_uniform:
+            cu_eval_spline_1d_vector(x, self._basis.knots,
+                                     self._basis.degree, self._coeffs, y, der)
+        else:
+            nu_eval_spline_1d_vector(x, self._basis.knots,
+                                     self._basis.degree, self._coeffs, y, der)
+
+class Spline1DComplex():
+    """
+    TODO
+    """
+
+    def __init__(self, basis):
+        assert isinstance(basis, BSplines)
+        self._basis = basis
+        self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=np.complex128)
 
     @property
     def basis(self):
