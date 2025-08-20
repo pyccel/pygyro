@@ -9,7 +9,7 @@ ACC := pycc
 COMP := GNU
 
 # Target language
-LANGUAGE := fortran
+LANGUAGE := c
 
 #PYTHRAN_FLAGS := -DUSE_XSIMD -fopenmp -march=native
 PYTHRAN_FLAGS := 
