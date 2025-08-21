@@ -5,7 +5,7 @@ import numpy as np
 from numpy.polynomial.legendre import leggauss
 
 from ..model.grid import Grid
-from ..splines.splines import BSplines, Spline1D, make_knots
+from ..splines.splines import BSplines, Spline1D, Spline1DComplex, make_knots
 from ..splines.spline_interpolators import SplineInterpolator1D
 from ..initialisation import initialiser_funcs as init
 from .poisson_tools import get_perturbed_rho, get_rho
@@ -254,24 +254,32 @@ class DiffEqSolver:
                 # Find the integral of the multiplication of these splines
                 # and their coefficients and save the value in the
                 # appropriate place for the matrix
+                rEval = np.empty_like(evalPts)
+                rDeriv = np.empty_like(evalPts)
+                splEval = np.empty_like(evalPts)
+                splDeriv = np.empty_like(evalPts)
+                self._rspline[s_j].eval_vector(evalPts, rEval)
+                spline.eval_vector(evalPts, splEval)
+                self._rspline[s_j].eval_vector(evalPts, rDeriv, der=1)
+                spline.eval_vector(evalPts, splDeriv, der=1)
                 massCoeffs[j][i] = np.sum(np.tile(self._weights, end-start) * multFactor *
-                                          rhoFactor(evalPts) * self._rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts)
+                                          rhoFactor(evalPts) * rEval * splEval * evalPts)
                 k2PhiPsiCoeffs[j][i] = np.sum(np.tile(self._weights, end-start) * multFactor *
-                                              ddThetaFactor(evalPts) * self._rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts)
+                                              ddThetaFactor(evalPts) * rEval * splEval * evalPts)
                 PhiPsiCoeffs[j][i] = np.sum(np.tile(self._weights, end-start) * multFactor *
-                                            rFactor(evalPts) * self._rspline[s_j].eval(evalPts) * spline.eval(evalPts) * evalPts)
+                                            rFactor(evalPts) * rEval * splEval * evalPts)
                 dPhidPsi = np.sum(np.tile(self._weights, end-start) * multFactor *
-                                  -ddrFactor(evalPts) * self._rspline[s_j].eval(evalPts, 1) * spline.eval(evalPts, 1) * evalPts)
+                                  -ddrFactor(evalPts) * rDeriv * splDeriv * evalPts)
                 dPhidPsiCoeffs[j][i] = dPhidPsi + \
                     np.sum(np.tile(self._weights, end-start) * multFactor *
-                           -ddrFactor(evalPts) * self._rspline[s_j].eval(evalPts, 1) * spline.eval(evalPts))
+                           -ddrFactor(evalPts) * rDeriv * splEval)
                 dPhidPsiCoeffs[self._rspline.degree*2-j][i] = dPhidPsi + \
                     np.sum(np.tile(self._weights, end-start) * multFactor *
-                           -ddrFactor(evalPts) * self._rspline[s_j].eval(evalPts) * spline.eval(evalPts, 1))
+                           -ddrFactor(evalPts) * rEval * splDeriv)
                 dPhiPsiCoeffs[j][i] = np.sum(np.tile(self._weights, end-start) * multFactor *
-                                             drFactor(evalPts) * self._rspline[s_j].eval(evalPts, 1) * spline.eval(evalPts) * evalPts)
+                                             drFactor(evalPts) * rDeriv * splEval * evalPts)
                 dPhiPsiCoeffs[self._rspline.degree*2-j][i] = np.sum(np.tile(self._weights, end-start) * multFactor *
-                                                                    drFactor(evalPts) * self._rspline[s_j].eval(evalPts) * spline.eval(evalPts, 1) * evalPts)
+                                                                    drFactor(evalPts) * rEval * splDeriv * evalPts)
 
         # Create the diagonal matrices
         # Diagonal matrices contain many 0 valued points so sparse
@@ -299,7 +307,7 @@ class DiffEqSolver:
 
         # Create the tools required for the interpolation
         self._interpolator = SplineInterpolator1D(self._rspline, dtype=complex)
-        self._spline = Spline1D(self._rspline, np.complex128)
+        self._spline = Spline1DComplex(self._rspline)
         self._real_spline = Spline1D(self._rspline)
 
         self._realMem = np.empty(nr)

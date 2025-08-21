@@ -1,6 +1,8 @@
+from typing import Final, TypeVar
 from pyccel.decorators import pure, stack_array
 from numpy import empty
 
+CoeffType = TypeVar('CoeffType', float, complex)
 
 @pure
 def cu_find_span(xmin: 'float', xmax: 'float', dx: 'float', x: 'float', ncells: 'int'):
@@ -131,7 +133,7 @@ def cu_basis_funs_1st_der(span: 'int', offset: 'float', dx: 'float', ders: 'floa
 
 @pure
 @stack_array('basis')
-def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', der: 'int') -> 'float':
+def cu_eval_spline_1d_scalar(x: 'float', knots: 'Final[float[:]]', degree: 'int', coeffs: 'Final[CoeffType[:]]', der: 'int') -> 'CoeffType':
     """
     TODO
     """
@@ -145,7 +147,7 @@ def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeff
     elif (der == 1):
         cu_basis_funs_1st_der(span, offset, dx, basis)
 
-    y = 0.0
+    y = 0.0*coeffs[0]
     for j in range(4):
         y += coeffs[span-3+j]*basis[j]
     return y
@@ -153,7 +155,7 @@ def cu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeff
 
 @pure
 @stack_array('basis')
-def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', y: 'float[:]', der: 'int' = 0):
+def cu_eval_spline_1d_vector(x: 'Final[float[:]]', knots: 'Final[float[:]]', degree: 'int', coeffs: 'Final[CoeffType[:]]', y: 'CoeffType[:]', der: 'int' = 0):
     """
     TODO
     """
@@ -182,8 +184,8 @@ def cu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
 
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
-def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                             coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
+def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'Final[float[:]]', deg1: 'int', kts2: 'Final[float[:]]', deg2: 'int',
+                             coeffs: 'Final[CoeffType[:,:]]', der1: 'int' = 0, der2: 'int' = 0) -> 'CoeffType':
     """
     TODO
     """
@@ -207,10 +209,10 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
     elif (der2 == 1):
         cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((4, 4), dtype=type(coeffs[0,0]))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
-    z = 0.0
+    z = 0.0*coeffs[0,0]
     for i in range(4):
         theCoeffs[i, 0] = theCoeffs[i, 0]*basis2[0]
         for j in range(1, 4):
@@ -221,8 +223,8 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
 
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
-def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                            coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
+def cu_eval_spline_2d_cross(X: 'Final[float[:]]', Y: 'Final[float[:]]', kts1: 'Final[float[:]]', deg1: 'int', kts2: 'Final[float[:]]', deg2: 'int',
+                            coeffs: 'Final[CoeffType[:,:]]', z: 'CoeffType[:,:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
@@ -233,7 +235,7 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 
     basis1 = empty(4)
     basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((4, 4), dtype=type(coeffs[0,0]))
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):
@@ -314,7 +316,7 @@ def cu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                             coeffs: 'float[:,:]', z: 'float[:]', der1: 'int' = 0, der2: 'int' = 0):
+                             coeffs: 'CoeffType[:,:]', z: 'CoeffType[:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
@@ -325,7 +327,7 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
 
     basis1 = empty(4)
     basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((4, 4), dtype = type(z[0]))
 
     if (der1 == 0):
         if (der2 == 0):

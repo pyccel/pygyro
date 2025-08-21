@@ -1,6 +1,6 @@
 from mpi4py import MPI
 import pytest
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 import numpy as np
 
 from ..initialisation.setups import setupCylindricalGrid
@@ -257,7 +257,7 @@ def test_poloidalAdvection(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])+fEdge
 
-    l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
+    l2 = np.sqrt(trapezoid(trapezoid((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
@@ -320,7 +320,7 @@ def test_poloidalAdvectionImplicit(dt, v, xc, yc):
     finalPts[1][:] = np.sqrt(x * x + y * y)
     final_f_vals[:, :] = initConds(finalPts[1], finalPts[0])
 
-    l2 = np.sqrt(trapz(trapz((f_vals-final_f_vals)**2,
+    l2 = np.sqrt(trapezoid(trapezoid((f_vals-final_f_vals)**2,
                  eta_grids[1], axis=0)*eta_grids[0], eta_grids[0]))
     assert l2 < 0.2
 
@@ -624,7 +624,7 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
 
         err = approxGrad-exactGrad
 
-        l2[i] = np.sqrt(np.trapz(np.trapz(err**2, dx=dz), dx=dtheta))
+        l2[i] = np.sqrt(np.trapezoid(np.trapezoid(err**2, dx=dz), dx=dtheta))
         linf[i] = np.linalg.norm(err.flatten(), np.inf)
 
         npts[1] *= 2

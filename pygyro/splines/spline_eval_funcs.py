@@ -1,9 +1,11 @@
+from typing import Final, TypeVar
 from pyccel.decorators import pure, stack_array
 from numpy import empty
 
+CoeffType = TypeVar('CoeffType', float, complex)
 
 @pure
-def nu_find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
+def nu_find_span(knots: 'Final[float[:]]', degree: 'int', x: 'float') -> int:
     """
     Determine the knot span index at location x, given the
     B-Splines' knot sequence and polynomial degree. See
@@ -60,7 +62,7 @@ def nu_find_span(knots: 'float[:]', degree: 'int', x: 'float') -> int:
 
 @pure
 @stack_array('left', 'right')
-def nu_basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', values: 'float[:]'):
+def nu_basis_funs(knots: 'Final[float[:]]', degree: 'int', x: 'float', span: 'int', values: 'float[:]'):
     """
     Compute the non-vanishing B-splines at location x,
     given the knot sequence, polynomial degree and knot
@@ -112,7 +114,7 @@ def nu_basis_funs(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', val
 
 @pure
 @stack_array('values')
-def nu_basis_funs_1st_der(knots: 'float[:]', degree: 'int', x: 'float', span: 'int', ders: 'float[:]'):
+def nu_basis_funs_1st_der(knots: 'Final[float[:]]', degree: 'int', x: 'float', span: 'int', ders: 'float[:]'):
     """
     Compute the first derivative of the non-vanishing B-splines
     at location x, given the knot sequence, polynomial degree
@@ -166,7 +168,7 @@ def nu_basis_funs_1st_der(knots: 'float[:]', degree: 'int', x: 'float', span: 'i
 
 @pure
 @stack_array('basis')
-def nu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', der: 'int') -> 'float':
+def nu_eval_spline_1d_scalar(x: 'float', knots: 'Final[float[:]]', degree: 'int', coeffs: 'Final[CoeffType[:]]', der: 'int') -> 'CoeffType':
     """
     TODO
     """
@@ -178,7 +180,7 @@ def nu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeff
     elif (der == 1):
         nu_basis_funs_1st_der(knots, degree, x, span, basis)
 
-    y = 0.0
+    y = 0.0*coeffs[0]
     for j in range(degree+1):
         y += coeffs[span-degree+j]*basis[j]
     return y
@@ -186,7 +188,7 @@ def nu_eval_spline_1d_scalar(x: 'float', knots: 'float[:]', degree: 'int', coeff
 
 @pure
 @stack_array('basis')
-def nu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', coeffs: 'float[:]', y: 'float[:]', der: 'int' = 0):
+def nu_eval_spline_1d_vector(x: 'Final[float[:]]', knots: 'Final[float[:]]', degree: 'int', coeffs: 'Final[CoeffType[:]]', y: 'CoeffType[:]', der: 'int' = 0):
     """
     TODO
     """
@@ -213,8 +215,8 @@ def nu_eval_spline_1d_vector(x: 'float[:]', knots: 'float[:]', degree: 'int', co
 
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
-def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                             coeffs: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0) -> 'float':
+def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'Final[float[:]]', deg1: 'int', kts2: 'Final[float[:]]', deg2: 'int',
+                             coeffs: 'Final[CoeffType[:,:]]', der1: 'int' = 0, der2: 'int' = 0) -> 'CoeffType':
     """
     TODO
     """
@@ -233,10 +235,10 @@ def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
     elif (der2 == 1):
         nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-    theCoeffs = empty((deg1+1, deg2+1))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(coeffs[0,0]))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
-    z = 0.0
+    z = 0.0*coeffs[0,0]
     for i in range(deg1+1):
         theCoeffs[i, 0] = theCoeffs[i, 0]*basis2[0]
         for j in range(1, deg2+1):
@@ -247,14 +249,14 @@ def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'float[:]', deg1: 'in
 
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
-def nu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                            coeffs: 'float[:,:]', z: 'float[:,:]', der1: 'int' = 0, der2: 'int' = 0):
+def nu_eval_spline_2d_cross(X: 'Final[float[:]]', Y: 'Final[float[:]]', kts1: 'Final[float[:]]', deg1: 'int', kts2: 'Final[float[:]]', deg2: 'int',
+                            coeffs: 'Final[CoeffType[:,:]]', z: 'CoeffType[:,:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
     basis1 = empty(deg1+1)
     basis2 = empty(deg2+1)
-    theCoeffs = empty((deg1+1, deg2+1))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(z[0,0]))
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):
@@ -336,13 +338,13 @@ def nu_eval_spline_2d_cross(X: 'float[:]', Y: 'float[:]', kts1: 'float[:]', deg1
 @pure
 @stack_array('basis1', 'basis2', 'theCoeffs')
 def nu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg1: 'int', kts2: 'float[:]', deg2: 'int',
-                             coeffs: 'float[:,:]', z: 'float[:]', der1: 'int' = 0, der2: 'int' = 0):
+                             coeffs: 'CoeffType[:,:]', z: 'CoeffType[:]', der1: 'int' = 0, der2: 'int' = 0):
     """
     TODO
     """
     basis1 = empty(deg1+1)
     basis2 = empty(deg2+1)
-    theCoeffs = empty((deg1+1, deg2+1))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(z[0]))
 
     if (der1 == 0):
         if (der2 == 0):

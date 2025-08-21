@@ -1,23 +1,18 @@
+from typing import Final
 from pyccel.decorators import pure
-from ..splines.spline_eval_funcs import nu_eval_spline_1d_scalar, nu_eval_spline_1d_vector
-from ..splines.spline_eval_funcs import nu_eval_spline_2d_cross, nu_eval_spline_2d_scalar
-from ..splines.cubic_uniform_spline_eval_funcs import cu_eval_spline_1d_scalar, cu_eval_spline_1d_vector
-from ..splines.cubic_uniform_spline_eval_funcs import cu_eval_spline_2d_cross, cu_eval_spline_2d_scalar
+from ..splines.splines import Spline1D, Spline2D
 from ..initialisation.initialiser_funcs import f_eq
 
 
-def general_poloidal_advection_step_expl(f: 'float[:,:]',
+def poloidal_advection_step_expl(f: 'float[:,:]',
                                          dt: 'float', v: 'float',
-                                         rPts: 'float[:]', qPts: 'float[:]',
+                                         rPts: 'Final[float[:]]', qPts: 'Final[float[:]]',
                                          drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]',
                                          drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
                                          endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
-                                         kts1Phi: 'float[:]', kts2Phi: 'float[:]', coeffsPhi: 'float[:,:]', deg1Phi: 'int', deg2Phi: 'int',
-                                         kts1Pol: 'float[:]', kts2Pol: 'float[:]', coeffsPol: 'float[:,:]', deg1Pol: 'int', deg2Pol: 'int',
+                                         phi_spline : Spline2D, pol_spline : Spline2D,
                                          CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float',
-                                         kTi: 'float', deltaRTi: 'float', B0: 'float', nulBound: 'bool',
-                                         eval_spline_2d_cross: '()(const float[:], const float[:], const float[:], int, const float[:], int, const float[:,:], float[:,:], int, int)',
-                                         eval_spline_2d_scalar: '(float)(float, float, const float[:], int, const float[:], int, const float[:,:], int, int)'):
+                                         kTi: 'float', deltaRTi: 'float', B0: 'float', nulBound: 'bool'):
     """
     Carry out an advection step for the poloidal advection
 
@@ -42,10 +37,8 @@ def general_poloidal_advection_step_expl(f: 'float[:,:]',
 
     multFactor = dt / B0
     multFactor_half = 0.5 * multFactor
-    eval_spline_2d_cross(qPts, rPts, kts1Phi, deg1Phi,
-                         kts2Phi, deg2Phi, coeffsPhi, drPhi_0, 0, 1)
-    eval_spline_2d_cross(qPts, rPts, kts1Phi, deg1Phi,
-                         kts2Phi, deg2Phi, coeffsPhi, dthetaPhi_0, 1, 0)
+    phi_spline.eval_vector(qPts, rPts, drPhi_0, 0, 1)
+    phi_spline.eval_vector(qPts, rPts, dthetaPhi_0, 1, 0)
 
     nPts_r = rPts.shape[0]
     nPts_q = qPts.shape[0]
@@ -70,14 +63,12 @@ def general_poloidal_advection_step_expl(f: 'float[:,:]',
                 # Add the new value of phi to the derivatives
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                 #                               ^^^^^^^^^^^^^^^
-                drPhi_k[i, j] = eval_spline_2d_scalar(endPts_k1_q[i, j], endPts_k1_r[i, j],
-                                                      kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                      coeffsPhi, 0, 1)
+                drPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j],
+                                                      0, 1)
                 drPhi_k[i, j] /= endPts_k1_r[i, j]
 
-                dthetaPhi_k[i, j] = eval_spline_2d_scalar(endPts_k1_q[i, j], endPts_k1_r[i, j],
-                                                          kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                          coeffsPhi, 1, 0)
+                dthetaPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j],
+                                                          1, 0)
                 dthetaPhi_k[i, j] /= endPts_k1_r[i, j]
             else:
                 drPhi_k[i, j] = 0.0
@@ -101,9 +92,7 @@ def general_poloidal_advection_step_expl(f: 'float[:,:]',
                     f[i, j] = 0.0
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
-                                                    kts1Pol, deg1Pol, kts2Pol, deg2Pol,
-                                                    coeffsPol, 0, 0)
+                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
     else:
         for i in range(nPts_q):  # theta
             for j in range(nPts_r):  # r
@@ -115,39 +104,14 @@ def general_poloidal_advection_step_expl(f: 'float[:,:]',
                                    deltaRN0, rp, CTi, kTi, deltaRTi)
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
-                                                    kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
+                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
 
 
-def poloidal_advection_step_expl(f: 'float[:,:]',
-                                 dt: 'float', v: 'float',
-                                 rPts: 'float[:]', qPts: 'float[:]',
-                                 drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]',
-                                 drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
-                                 endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
-                                 kts1Phi: 'float[:]', kts2Phi: 'float[:]', coeffsPhi: 'float[:,:]', deg1Phi: 'int', deg2Phi: 'int',
-                                 kts1Pol: 'float[:]', kts2Pol: 'float[:]', coeffsPol: 'float[:,:]', deg1Pol: 'int', deg2Pol: 'int',
-                                 CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float',
-                                 kTi: 'float', deltaRTi: 'float', B0: 'float', cubic_uniform_splines: 'bool', nulBound: 'bool' = False):
-    if cubic_uniform_splines:
-        general_poloidal_advection_step_expl(f, dt, v, rPts, qPts, drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k, endPts_k1_q,
-                                             endPts_k1_r, endPts_k2_q, endPts_k2_r, kts1Phi, kts2Phi, coeffsPhi,
-                                             deg1Phi, deg2Phi, kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol, CN0, kN0, deltaRN0,
-                                             rp, CTi, kTi, deltaRTi, B0, nulBound, cu_eval_spline_2d_cross, cu_eval_spline_2d_scalar)
-    else:
-        general_poloidal_advection_step_expl(f, dt, v, rPts, qPts, drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k, endPts_k1_q,
-                                             endPts_k1_r, endPts_k2_q, endPts_k2_r, kts1Phi, kts2Phi, coeffsPhi,
-                                             deg1Phi, deg2Phi, kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol, CN0, kN0, deltaRN0,
-                                             rp, CTi, kTi, deltaRTi, B0, nulBound, nu_eval_spline_2d_cross, nu_eval_spline_2d_scalar)
-
-
-def general_v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
+def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                                            rPos: 'float', vMin: 'float', vMax: 'float',
-                                           kts: 'float[:]', deg: 'int',
-                                           coeffs: 'float[:]',
+                                           spl : Spline1D,
                                            CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
-                                           CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int',
-                                           eval_spline_1d_scalar: '(float)(float, const float[:], int, const float[:], int)'):
+                                           CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
     """
     TODO
     """
@@ -158,13 +122,13 @@ def general_v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                 f[i] = f_eq(rPos, v, CN0, kN0, deltaRN0, rp, CTi,
                             kTi, deltaRTi)
             else:
-                f[i] = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
+                f[i] = spl.eval(v)
     elif (bound == 1):
         for i, v in enumerate(vPts):
             if (v < vMin or v > vMax):
                 f[i] = 0.0
             else:
-                f[i] = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
+                f[i] = spl.eval(v)
     elif (bound == 2):
         vDiff = vMax - vMin
         for i, v in enumerate(vPts):
@@ -172,29 +136,12 @@ def general_v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
                 v += vDiff
             while (v > vMax):
                 v -= vDiff
-            f[i] = eval_spline_1d_scalar(v, kts, deg, coeffs, 0)
+            f[i] = spl.eval(v)
 
 
-def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
-                                   rPos: 'float', vMin: 'float', vMax: 'float',
-                                   kts: 'float[:]', deg: 'int',
-                                   coeffs: 'float[:]',
-                                   CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
-                                   CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int', cubic_uniform_splines: 'bool'):
-    if cubic_uniform_splines:
-        general_v_parallel_advection_eval_step(f, vPts, rPos, vMin, vMax, kts, deg, coeffs,
-                                               CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi, bound, cu_eval_spline_1d_scalar)
-    else:
-        general_v_parallel_advection_eval_step(f, vPts, rPos, vMin, vMax, kts, deg, coeffs,
-                                               CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi, bound, nu_eval_spline_1d_scalar)
-
-
-def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
+def get_lagrange_vals(i: 'int', shifts: 'int[:]',
                               vals: 'float[:,:,:]', qVals: 'float[:]',
-                              thetaShifts: 'float[:]', kts: 'float[:]',
-                              deg: 'int', coeffs: 'float[:]',
-                              eval_spline_1d_vector: '()(const float[:], const float[:], int, const float[:], float[:], int)',
-                              eval_spline_1d_scalar: '(float)(float, const float[:], int, const float[:], int)'):
+                              thetaShifts: 'float[:]', spl : Spline1D):
     """
     TODO
     """
@@ -205,21 +152,7 @@ def general_get_lagrange_vals(i: 'int', shifts: 'int[:]',
     for j, s in enumerate(shifts):
         idx = (i - s) % nz
         new_q[:] = (qVals + thetaShifts[j]) % (2*pi)
-        # eval_spline_1d_vector(new_q, kts, deg, coeffs, vals[idx, :, j], 0)
-        for k, q in enumerate(new_q):
-            vals[idx, k, j] = eval_spline_1d_scalar(q, kts, deg, coeffs, 0)
-
-
-def get_lagrange_vals(i: 'int', shifts: 'int[:]',
-                      vals: 'float[:,:,:]', qVals: 'float[:]',
-                      thetaShifts: 'float[:]', kts: 'float[:]',
-                      deg: 'int', coeffs: 'float[:]', cubic_uniform_splines: 'bool'):
-    if cubic_uniform_splines:
-        general_get_lagrange_vals(
-            i, shifts, vals, qVals, thetaShifts, kts, deg, coeffs, cu_eval_spline_1d_vector, cu_eval_spline_1d_scalar)
-    else:
-        general_get_lagrange_vals(
-            i, shifts, vals, qVals, thetaShifts, kts, deg, coeffs, nu_eval_spline_1d_vector, nu_eval_spline_1d_scalar)
+        spl.eval_vector(new_q, vals[idx, :, j])
 
 
 @pure
@@ -235,15 +168,12 @@ def flux_advection(nq: 'int', nr: 'int',
                 f[j, i] += coeffs[k]*vals[i, j, k]
 
 
-def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
+def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
                                          drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
                                          endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
-                                         kts1Phi: 'float[:]', kts2Phi: 'float[:]', coeffsPhi: 'float[:,:]', deg1Phi: 'int', deg2Phi: 'int',
-                                         kts1Pol: 'float[:]', kts2Pol: 'float[:]', coeffsPol: 'float[:,:]', deg1Pol: 'int', deg2Pol: 'int',
+                                         phi_spline : Spline2D, pol_spline : Spline2D,
                                          CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
-                                         B0: 'float', tol: 'float', nulBound: 'bool',
-                                         eval_spline_2d_cross: '()(const float[:], const float[:], const float[:], int, const float[:], int, const float[:,:], float[:,:], int, int)',
-                                         eval_spline_2d_scalar: '(float)(float, float, const float[:], int, const float[:], int, const float[:,:], int, int)'):
+                                         B0: 'float', tol: 'float', nulBound: 'bool'):
     """
     Carry out an advection step for the poloidal advection
 
@@ -267,10 +197,8 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
 
     multFactor = dt/B0
 
-    eval_spline_2d_cross(qPts, rPts, kts1Phi, deg1Phi,
-                         kts2Phi, deg2Phi, coeffsPhi, drPhi_0, 0, 1)
-    eval_spline_2d_cross(qPts, rPts, kts1Phi, deg1Phi,
-                         kts2Phi, deg2Phi, coeffsPhi, dthetaPhi_0, 1, 0)
+    phi_spline.eval_vector(qPts, rPts, drPhi_0, 0, 1)
+    phi_spline.eval_vector(qPts, rPts, dthetaPhi_0, 1, 0)
 
     nPts_r = rPts.shape[0]
     nPts_q = qPts.shape[0]
@@ -302,13 +230,9 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
                     # Add the new value of phi to the derivatives
                     # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                     #                               ^^^^^^^^^^^^^^^
-                    drPhi_k[i, j] = eval_spline_2d_scalar(endPts_k1_q[i, j], endPts_k1_r[i, j],
-                                                          kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                          coeffsPhi, 0, 1)
+                    drPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j], 0, 1)
                     drPhi_k[i, j] /= endPts_k1_r[i, j]
-                    dthetaPhi_k[i, j] = eval_spline_2d_scalar(endPts_k1_q[i, j], endPts_k1_r[i, j],
-                                                              kts1Phi, deg1Phi, kts2Phi, deg2Phi,
-                                                              coeffsPhi, 1, 0)
+                    dthetaPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j], 1, 0)
                     dthetaPhi_k[i, j] /= endPts_k1_r[i, j]
                 else:
                     drPhi_k[i, j] = 0.0
@@ -351,9 +275,7 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
                     f[i, j] = 0.0
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
-                                                    kts1Pol, deg1Pol, kts2Pol, deg2Pol,
-                                                    coeffsPol, 0, 0)
+                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
     else:
         for i in range(nPts_q):
             for j in range(nPts_r):
@@ -365,24 +287,4 @@ def general_poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float
                                    deltaRN0, rp, CTi, kTi, deltaRTi)
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = eval_spline_2d_scalar(endPts_k2_q[i, j], endPts_k2_r[i, j],
-                                                    kts1Pol, deg1Pol, kts2Pol, deg2Pol, coeffsPol, 0, 0)
-
-
-def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
-                                 drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
-                                 endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
-                                 kts1Phi: 'float[:]', kts2Phi: 'float[:]', coeffsPhi: 'float[:,:]', deg1Phi: 'int', deg2Phi: 'int',
-                                 kts1Pol: 'float[:]', kts2Pol: 'float[:]', coeffsPol: 'float[:,:]', deg1Pol: 'int', deg2Pol: 'int',
-                                 CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
-                                 B0: 'float', tol: 'float', cubic_uniform_splines: 'bool', nulBound: 'bool' = False):
-    if cubic_uniform_splines:
-        general_poloidal_advection_step_impl(f, dt, v, rPts, qPts, drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k, endPts_k1_q,
-                                             endPts_k1_r, endPts_k2_q, endPts_k2_r, kts1Phi, kts2Phi, coeffsPhi,
-                                             deg1Phi, deg2Phi, kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol, CN0, kN0, deltaRN0,
-                                             rp, CTi, kTi, deltaRTi, B0, tol, nulBound, cu_eval_spline_2d_cross, cu_eval_spline_2d_scalar)
-    else:
-        general_poloidal_advection_step_impl(f, dt, v, rPts, qPts, drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k, endPts_k1_q,
-                                             endPts_k1_r, endPts_k2_q, endPts_k2_r, kts1Phi, kts2Phi, coeffsPhi,
-                                             deg1Phi, deg2Phi, kts1Pol, kts2Pol, coeffsPol, deg1Pol, deg2Pol, CN0, kN0, deltaRN0,
-                                             rp, CTi, kTi, deltaRTi, B0, tol, nulBound, nu_eval_spline_2d_cross, nu_eval_spline_2d_scalar)
+                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])

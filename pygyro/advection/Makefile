@@ -18,7 +18,7 @@ all: accelerated_advection_steps$(SO_EXT)
 	@rm -f .ACC.*
 	@touch $@
 
-DEPS := ../initialisation/$(NAME_PREFIX)initialiser_funcs.py ../splines/$(NAME_PREFIX)spline_eval_funcs.py ../splines/$(NAME_PREFIX)cubic_uniform_spline_eval_funcs.py
+DEPS := ../initialisation/$(NAME_PREFIX)initialiser_funcs.py ../splines/$(NAME_PREFIX)splines.py
 
 ifneq ($(ACC), numba)
 ifneq ($(ACC), pythran)

@@ -40,8 +40,12 @@ def test_SplineInterpolator1D_exact(ncells, degree):
     interp.compute_interpolant(ug, spline)
 
     xt = np.linspace(*domain, num=100)
-    err = spline.eval(xt) - poly.eval(xt)
-    derr = spline.eval(xt, der=1) - poly.eval(xt, diff=1)
+    vals = np.empty_like(xt)
+    ders = np.empty_like(xt)
+    spline.eval_vector(xt, vals)
+    err = vals - poly.eval(xt)
+    spline.eval_vector(xt, ders, der=1)
+    derr = ders - poly.eval(xt, diff=1)
 
     max_norm_err = np.max(abs(err))
     max_norm_derr = np.max(abs(derr))
@@ -74,8 +78,13 @@ def test_SplineInterpolator1D_exact_uniform(ncells, degree):
     interp.compute_interpolant(ug, spline)
 
     xt = np.linspace(*domain, num=100)
-    err = spline.eval(xt) - poly.eval(xt)
-    derr = spline.eval(xt, der=1) - poly.eval(xt, diff=1)
+    vals = np.empty_like(xt)
+    spline.eval_vector(xt, vals)
+    err = vals - poly.eval(xt)
+
+    ders = np.empty_like(xt)
+    spline.eval_vector(xt, ders, der=1)
+    derr = ders - poly.eval(xt, diff=1)
 
     max_norm_err = np.max(abs(err))
     max_norm_derr = np.max(abs(derr))
@@ -118,7 +127,9 @@ def test_SplineInterpolator1D_cosine(ncells, degree, periodic):
     interp.compute_interpolant(ug, spline)
 
     xt = np.linspace(*f.domain, num=100)
-    err = spline.eval(xt) - f.eval(xt)
+    vals = np.empty_like(xt)
+    spline.eval_vector(xt, vals)
+    err = vals - f.eval(xt)
 
     max_norm_err = np.max(abs(err))
     err_bound = spline_1d_error_bound(f, np.diff(breaks).max(), degree)
@@ -160,7 +171,9 @@ def test_SplineInterpolator1D_uniform_cosine(ncells, periodic):
     interp.compute_interpolant(ug, spline)
 
     xt = np.linspace(*f.domain, num=100)
-    err = spline.eval(xt) - f.eval(xt)
+    vals = np.empty_like(xt)
+    spline.eval_vector(xt, vals)
+    err = vals - f.eval(xt)
 
     max_norm_err = np.max(abs(err))
     err_bound = spline_1d_error_bound(f, np.diff(breaks).max(), degree)
@@ -213,7 +226,9 @@ def test_SplineInterpolator2D_exact(nc1, nc2, deg1, deg2):
 
     x1t = np.linspace(*domain1, num=100)
     x2t = np.linspace(*domain2, num=100)
-    err = spline.eval(x1t, x2t) - f(*np.meshgrid(x1t, x2t, indexing='ij'))
+    vals = np.empty((100,100))
+    spline.eval_vector(x1t, x2t, vals)
+    err = vals - f(*np.meshgrid(x1t, x2t, indexing='ij'))
 
     max_norm_err = np.max(abs(err))
     assert max_norm_err < 2.0e-14
@@ -259,7 +274,9 @@ def test_SplineInterpolator2D_cosine(ncells, degree, periodic1, periodic2):
 
     x1t = np.linspace(*domain1, num=20)
     x2t = np.linspace(*domain2, num=20)
-    err = spline.eval(x1t, x2t) - f.eval(np.meshgrid(x1t, x2t, indexing='ij'))
+    vals = np.empty((20,20))
+    spline.eval_vector(x1t, x2t, vals)
+    err = vals - f.eval(np.meshgrid(x1t, x2t, indexing='ij'))
 
     max_norm_err = np.max(abs(err))
     err_bound = spline_2d_error_bound(f, np.diff(

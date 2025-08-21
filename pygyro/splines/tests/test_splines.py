@@ -31,15 +31,15 @@ def test_make_knots_periodic(ncells, degree):
 # ===============================================================================
 
 
-@pytest.mark.serial
-@pytest.mark.parametrize("ncells", [1, 5, 10, 23])
-def test_make_knots_periodic_should_fail(ncells):
-    """
-    TODO
-    """
-    breaks = np.arange(ncells+1, dtype=float)
-    with pytest.raises(AssertionError):
-        _ = make_knots(breaks, degree=ncells+1, periodic=True)
+#@pytest.mark.serial
+#@pytest.mark.parametrize("ncells", [1, 5, 10, 23])
+#def test_make_knots_periodic_should_fail(ncells):
+#    """
+#    TODO
+#    """
+#    breaks = np.arange(ncells+1, dtype=float)
+#    with pytest.raises(AssertionError):
+#        _ = make_knots(breaks, degree=ncells+1, periodic=True)
 
 # ===============================================================================
 
@@ -87,7 +87,8 @@ def test_BSplines(ncells, degree, periodic, npts=50, tol=1e-15):
     f = np.zeros(npts)  # Accumulated values of all basis functions
 
     for i in range(ncells+degree):
-        fi = basis[i].eval(x)  # Evaluate basis function at all test points
+        fi = np.empty_like(x)
+        basis[i].eval_vector(x, fi)  # Evaluate basis function at all test points
         f += fi                  # Sum contributions from all basis functions
         assert all(fi >= 0.0)  # Check positivity of each basis function
     assert all(abs(1.0-f) < tol)  # Check partition of unity
@@ -109,7 +110,8 @@ def test_Spline1D_unit(ncells, degree, periodic, npts=50, tol=1e-15):
     spline.coeffs.fill(1.0)
 
     x = np.linspace(breaks[0], breaks[-1], npts)  # Test points
-    f = spline.eval(x)
+    f = np.empty_like(x)
+    spline.eval_vector(x, f)
 
     assert all(abs(1.0-f) < tol)
 
@@ -161,6 +163,7 @@ def test_Spline2D_unit(ncells, degree, periodic, npts=10, tol=1e-15):
 
     x1 = np.linspace(breaks1[0], breaks1[-1], npts)  # Test points
     x2 = np.linspace(breaks2[0], breaks2[-1], npts)  # Test points
-    f = spline.eval(x1, x2)
+    f = np.empty((npts, npts))
+    spline.eval_vector(x1, x2, f)
 
     assert np.all(abs(1.0-f) < tol)

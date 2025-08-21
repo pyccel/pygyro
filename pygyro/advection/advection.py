@@ -283,10 +283,7 @@ class FluxSurfaceAdvection:
             get_lagrange_vals(i, self._shifts[rIdx, cIdx],
                               self._LagrangeVals, self._points[0],
                               self._thetaShifts[rIdx, cIdx],
-                              self._thetaSpline.basis.knots,
-                              self._thetaSpline.basis.degree,
-                              self._thetaSpline.coeffs,
-                              self._thetaSpline.basis.cubic_uniform)
+                              self._thetaSpline)
 
         flux_advection(*self._nPoints, f,
                        self._lagrangeCoeffs[rIdx, cIdx],
@@ -366,12 +363,11 @@ class VParallelAdvection:
         self._interpolator.compute_interpolant(f, self._spline)
 
         v_parallel_advection_eval_step(f, self._points-c*dt, r, self._points[0],
-                                       self._points[-1], self._spline.basis.knots,
-                                       self._spline.basis.degree, self._spline.coeffs,
+                                       self._points[-1], self._spline,
                                        self._constants.CN0, self._constants.kN0,
                                        self._constants.deltaRN0, self._constants.rp,
                                        self._constants.CTi, self._constants.kTi,
-                                       self._constants.deltaRTi, self._edgeType, self._spline.basis.cubic_uniform)
+                                       self._constants.deltaRTi, self._edgeType)
 
     def gridStep(self, grid: Grid, phi: Grid, parGrad: ParallelGradient, parGradVals: np.array, dt: float):
         for i, r in grid.getCoords(0):
@@ -474,41 +470,30 @@ class PoloidalAdvection:
         assert f.shape == self._nPoints
         self._interpolator.compute_interpolant(f, self._spline)
 
-        phiBases = phi.basis
-        polBases = self._spline.basis
-
         if (self._explicit):
             poloidal_advection_step_expl(f, float(dt), v, self._points[1],
                                          self._points[0], self._drPhi_0,
                                          self._dqPhi_0, self._drPhi_k,
                                          self._dqPhi_k, self._endPts_k1_q,
                                          self._endPts_k1_r, self._endPts_k2_q,
-                                         self._endPts_k2_r, phiBases[0].knots,
-                                         phiBases[1].knots, phi.coeffs,
-                                         phiBases[0].degree, phiBases[1].degree,
-                                         polBases[0].knots, polBases[1].knots,
-                                         self._spline.coeffs, polBases[0].degree,
-                                         polBases[1].degree, self._constants.CN0,
+                                         self._endPts_k2_r, phi,
+                                         self._spline, self._constants.CN0,
                                          self._constants.kN0, self._constants.deltaRN0,
                                          self._constants.rp, self._constants.CTi,
                                          self._constants.kTi, self._constants.deltaRTi,
-                                         self._constants.B0, phiBases[0].cubic_uniform, self._nulEdge)
+                                         self._constants.B0, self._nulEdge)
         else:
             poloidal_advection_step_impl(f, float(dt), v, self._points[1],
                                          self._points[0], self._drPhi_0,
                                          self._dqPhi_0, self._drPhi_k,
                                          self._dqPhi_k, self._endPts_k1_q,
                                          self._endPts_k1_r, self._endPts_k2_q,
-                                         self._endPts_k2_r, phiBases[0].knots,
-                                         phiBases[1].knots, phi.coeffs,
-                                         phiBases[0].degree, phiBases[1].degree,
-                                         polBases[0].knots, polBases[1].knots,
-                                         self._spline.coeffs, polBases[0].degree,
-                                         polBases[1].degree, self._constants.CN0,
+                                         self._endPts_k2_r, phi,
+                                         self._spline, self._constants.CN0,
                                          self._constants.kN0, self._constants.deltaRN0,
                                          self._constants.rp, self._constants.CTi,
                                          self._constants.kTi, self._constants.deltaRTi,
-                                         self._constants.B0, self._TOL, phiBases[0].cubic_uniform, self._nulEdge)
+                                         self._constants.B0, self._TOL, self._nulEdge)
 
     def exact_step(self, f, endPts, v):
         assert f.shape == self._nPoints
