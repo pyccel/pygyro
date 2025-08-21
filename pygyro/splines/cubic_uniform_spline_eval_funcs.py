@@ -327,7 +327,7 @@ def cu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
 
     basis1 = empty(4)
     basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((4, 4), dtype = type(z[0]))
 
     if (der1 == 0):
         if (der2 == 0):
