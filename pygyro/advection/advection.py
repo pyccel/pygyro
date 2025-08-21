@@ -488,7 +488,7 @@ class PoloidalAdvection:
                                          self._dqPhi_0, self._drPhi_k,
                                          self._dqPhi_k, self._endPts_k1_q,
                                          self._endPts_k1_r, self._endPts_k2_q,
-                                         self._endPts_k2_r, phi.coeffs,
+                                         self._endPts_k2_r, phi,
                                          self._spline, self._constants.CN0,
                                          self._constants.kN0, self._constants.deltaRN0,
                                          self._constants.rp, self._constants.CTi,

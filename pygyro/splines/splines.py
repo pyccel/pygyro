@@ -11,8 +11,6 @@ from .spline_eval_funcs import nu_find_span, nu_basis_funs
 from .cubic_uniform_spline_eval_funcs import cu_eval_spline_1d_scalar, cu_eval_spline_1d_vector
 from .cubic_uniform_spline_eval_funcs import cu_eval_spline_2d_cross, cu_eval_spline_2d_scalar
 
-ScalOrArr = TypeVar('ScalOrArr', float, 'float[:]')
-
 __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline1DComplex', 'Spline2D']
 
 # ===============================================================================
@@ -334,25 +332,16 @@ class Spline1D():
         """
         return self._coeffs
 
-    def eval(self, x : 'float|float[:]', der : int = 0):
+    def eval(self, x : float, der : int = 0):
         """
         TODO
         """
-        if isinstance(x, float):
-            if self._basis.cubic_uniform:
-                result = cu_eval_spline_1d_scalar(
-                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
-            else:
-                result = nu_eval_spline_1d_scalar(
-                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
+        if self._basis.cubic_uniform:
+            result = cu_eval_spline_1d_scalar(
+                x, self._basis.knots, self._basis.degree, self._coeffs, der)
         else:
-            result = np.empty_like(x)
-            if self._basis.cubic_uniform:
-                cu_eval_spline_1d_vector(x, self._basis.knots,
-                                         self._basis.degree, self._coeffs, result, der)
-            else:
-                nu_eval_spline_1d_vector(x, self._basis.knots,
-                                         self._basis.degree, self._coeffs, result, der)
+            result = nu_eval_spline_1d_scalar(
+                x, self._basis.knots, self._basis.degree, self._coeffs, der)
         return result
 
         """
@@ -395,25 +384,16 @@ class Spline1DComplex():
         """
         return self._coeffs
 
-    def eval(self, x : 'float|float[:]', der : int = 0):
+    def eval(self, x : float, der : int = 0):
         """
         TODO
         """
-        if isinstance(x, float):
-            if self._basis.cubic_uniform:
-                result = cu_eval_spline_1d_scalar(
-                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
-            else:
-                result = nu_eval_spline_1d_scalar(
-                    x, self._basis.knots, self._basis.degree, self._coeffs, der)
+        if self._basis.cubic_uniform:
+            result = cu_eval_spline_1d_scalar(
+                x, self._basis.knots, self._basis.degree, self._coeffs, der)
         else:
-            result = np.empty_like(x, dtype=np.complex128)
-            if self._basis.cubic_uniform:
-                cu_eval_spline_1d_vector(x, self._basis.knots,
-                                         self._basis.degree, self._coeffs, result, der)
-            else:
-                nu_eval_spline_1d_vector(x, self._basis.knots,
-                                         self._basis.degree, self._coeffs, result, der)
+            result = nu_eval_spline_1d_scalar(
+                x, self._basis.knots, self._basis.degree, self._coeffs, der)
         return result
 
         """
@@ -473,29 +453,18 @@ class Spline2D():
         """
         return self._coeffs
 
-    def eval(self, x1 : ScalOrArr, x2 : ScalOrArr, der1 : int=0, der2 : int=0):
+    def eval(self, x1 : float, x2 : float, der1 : int=0, der2 : int=0):
         """
         TODO
         """
-        if isinstance(x1, float):
-            if self._basis1.cubic_uniform:
-                result = cu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
-                                                  self._basis2.knots, self._basis2.degree,
-                                                  self._coeffs, der1, der2)
-            else:
-                result = nu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
-                                                  self._basis2.knots, self._basis2.degree,
-                                                  self._coeffs, der1, der2)
+        if self._basis1.cubic_uniform:
+            result = cu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
+                                              self._basis2.knots, self._basis2.degree,
+                                              self._coeffs, der1, der2)
         else:
-            result = np.empty((len(x1), len(x2)))
-            if self._basis1.cubic_uniform:
-                cu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-                                        self._basis2.knots, self._basis2.degree,
-                                        self._coeffs, result, der1, der2)
-            else:
-                nu_eval_spline_2d_cross(x1, x2, self._basis1.knots, self._basis1.degree,
-                                        self._basis2.knots, self._basis2.degree,
-                                        self._coeffs, result, der1, der2)
+            result = nu_eval_spline_2d_scalar(x1, x2, self._basis1.knots, self._basis1.degree,
+                                              self._basis2.knots, self._basis2.degree,
+                                              self._coeffs, der1, der2)
         return result
 
         """
