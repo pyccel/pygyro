@@ -235,7 +235,7 @@ def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'Final[float[:]]', de
     elif (der2 == 1):
         nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-    theCoeffs = empty((deg1+1, deg2+1))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(coeffs[0,0]))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
     z = 0.0*coeffs[0,0]
@@ -256,7 +256,7 @@ def nu_eval_spline_2d_cross(X: 'Final[float[:]]', Y: 'Final[float[:]]', kts1: 'F
     """
     basis1 = empty(deg1+1)
     basis2 = empty(deg2+1)
-    theCoeffs = empty((deg1+1, deg2+1))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(z[0,0]))
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):
@@ -344,7 +344,7 @@ def nu_eval_spline_2d_vector(x: 'float[:]', y: 'float[:]', kts1: 'float[:]', deg
     """
     basis1 = empty(deg1+1)
     basis2 = empty(deg2+1)
-    theCoeffs = empty((deg1+1, deg2+1))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(z[0]))
 
     if (der1 == 0):
         if (der2 == 0):

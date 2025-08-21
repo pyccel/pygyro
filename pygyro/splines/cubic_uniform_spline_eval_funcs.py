@@ -209,7 +209,7 @@ def cu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'Final[float[:]]', de
     elif (der2 == 1):
         cu_basis_funs_1st_der(span2, offset2, dy, basis2)
 
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((4, 4), dtype=type(coeffs[0,0]))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
     z = 0.0*coeffs[0,0]
@@ -235,7 +235,7 @@ def cu_eval_spline_2d_cross(X: 'Final[float[:]]', Y: 'Final[float[:]]', kts1: 'F
 
     basis1 = empty(4)
     basis2 = empty(4)
-    theCoeffs = empty((4, 4))
+    theCoeffs = empty((4, 4), dtype=type(coeffs[0,0]))
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):
