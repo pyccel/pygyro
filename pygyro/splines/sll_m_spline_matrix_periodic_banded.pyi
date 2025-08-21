@@ -1,6 +1,7 @@
 #$ header metavar includes="/home/emily/Code/selalib/build/modules"
 #$ header metavar libraries="sll_splines,pppack,sll_errors,sll_assert"
 #$ header metavar libdirs="/home/emily/Code/selalib/build/src/splines/splines_basic/,/home/emily/Code/selalib/build/external/pppack/,/home/emily/Code/selalib/build/src/low_level_utilities/errors/,/home/emily/Code/selalib/build/src/low_level_utilities/assert/"
+#$ header metavar no_target=True
 import numpy as np
 
 @low_level('sll_t_spline_matrix_periodic_banded')

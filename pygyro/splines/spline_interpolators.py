@@ -10,6 +10,7 @@ from . import sll_m_spline_matrix_periodic_banded as SLL
 from .splines import BSplines, Spline2D, Spline1D, Spline1DComplex
 from .spline_eval_funcs import nu_find_span, nu_basis_funs
 from .cubic_uniform_spline_eval_funcs import cu_find_span, cu_basis_funs
+from .accelerated_spline_interpolators import solve_system_periodic, solve_system_nonperiodic
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
@@ -88,41 +89,45 @@ class SplineInterpolator1D():
         assert len(ug) == self._basis.nbasis
 
         if self._basis.periodic:
-            self._solve_system_periodic(ug, spl.coeffs)
+            if self._splu:
+                solve_system_periodic(ug, spl, self._offset, self._splu)
+            else:
+                c[0:n] = np.linalg.solve(self._imat, ug)
+                c[n:n+p] = c[0:p]
         else:
-            self._solve_system_nonperiodic(ug, spl.coeffs)
+            solve_system_nonperiodic(ug, spl.coeffs.reshape(1, self._basis.nbasis), self._bmat, self._l, self._u, self._ipiv)
 
-    # ...
-    def _solve_system_periodic(self, ug, c):
-        """
-        Compute the coefficients c of the spline which interpolates the points ug
-        for a periodic spline
-        """
+    ## ...
+    #def _solve_system_periodic(self, ug, c):
+    #    """
+    #    Compute the coefficients c of the spline which interpolates the points ug
+    #    for a periodic spline
+    #    """
 
-        n = self._basis.nbasis
-        p = self._basis.degree
+    #    n = self._basis.nbasis
+    #    p = self._basis.degree
 
-        if self._splu:
-            c[self._offset:n+self._offset] = ug
-            self._splu.solve_inplace(c[self._offset:n+self._offset])
-            c[:self._offset] = c[n:n+self._offset]
-            c[n+self._offset:] = c[self._offset:p]
-        else:
-            c[0:n] = np.linalg.solve(self._imat, ug)
-            c[n:n+p] = c[0:p]
+    #    if self._splu:
+    #        c[self._offset:n+self._offset] = ug
+    #        self._splu.solve_inplace(c[self._offset:n+self._offset])
+    #        c[:self._offset] = c[n:n+self._offset]
+    #        c[n+self._offset:] = c[self._offset:p]
+    #    else:
+    #        c[0:n] = np.linalg.solve(self._imat, ug)
+    #        c[n:n+p] = c[0:p]
 
-    # ...
-    def _solve_system_nonperiodic(self, ug, c):
-        """
-        Compute the coefficients c of the spline which interpolates the points ug
-        for a non-periodic spline
-        """
+    ## ...
+    #def _solve_system_nonperiodic(self, ug, c):
+    #    """
+    #    Compute the coefficients c of the spline which interpolates the points ug
+    #    for a non-periodic spline
+    #    """
 
-        assert ug.shape[0] == self._bmat.shape[1]
+    #    assert ug.shape[0] == self._bmat.shape[1]
 
-        assert c.shape == ug.shape
-        c[:], self._sinfo = self._solveFunc(
-            self._bmat, self._l, self._u, ug, self._ipiv)
+    #    assert c.shape == ug.shape
+    #    c[:], self._sinfo = self._solveFunc(
+    #        self._bmat, self._l, self._u, ug, self._ipiv)
 
     # ...
     def get_quadrature_coefficients(self):

@@ -23,7 +23,7 @@ def solve_system_periodic(ug : 'float[:]', spl : Spline1D, offset : int, splu : 
     c[n+offset:] = c[offset:p]
 
 # ...
-def solve_system_nonperiodic(ug : 'T[:]', c : 'T[:,:](order=F)', bmat : 'T[:,:](order=F)', l : int, u : int, ipiv : 'int32[:]'):
+def solve_system_nonperiodic(ug : 'T[:]', c : 'T[:,:](order=F)', bmat : 'T[:,:](order=F)', l : np.int32, u : np.int32, ipiv : 'int32[:]'):
     """
     Compute the coefficients c of the spline which interpolates the points ug
     for a non-periodic spline
@@ -37,8 +37,8 @@ def solve_system_nonperiodic(ug : 'T[:]', c : 'T[:,:](order=F)', bmat : 'T[:,:](
 
     c[0,:] = ug
     if isinstance(c[0,0], np.float64):
-        dgbtrs('N', np.int32(bmat.shape[0]), np.int32(l), np.int32(u), np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(len(c)), sinfo)
+        dgbtrs('N', np.int32(bmat.shape[0]), l, u, np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(c.shape[1]), sinfo)
     else:
-        zgbtrs('N', np.int32(bmat.shape[0]), np.int32(l), np.int32(u), np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(len(c)), sinfo)
+        zgbtrs('N', np.int32(bmat.shape[0]), l, u, np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(c.shape[1]), sinfo)
 
     return sinfo
