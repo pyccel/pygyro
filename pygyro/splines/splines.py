@@ -126,7 +126,7 @@ class BSplines():
                 self._interp_pts = np.empty(self._nbasis)
                 self._interp_pts[0] = xmin
                 self._interp_pts[1] = xmin+dx/3
-                self._interp_pts[2:-2] = np.linspace(xmin+dx, xmax-dx, self._nbasis-4)
+                self._interp_pts[2:-2] = [xmin + dx*i for i in range(1, self._nbasis-3)]
                 self._interp_pts[-2] = xmax-dx/3
                 self._interp_pts[-1] = xmax
                 #self._interp_pts = np.array([xmin,
@@ -179,12 +179,12 @@ class BSplines():
             p = self._degree
             return np.array(self._knots[p:n-p])
 
-    @property
-    def domain(self):
-        """ Domain boundaries [a,b].
-        """
-        breaks = self.breaks
-        return breaks[0], breaks[-1]
+    #@property
+    #def domain(self):
+    #    """ Domain boundaries [a,b].
+    #    """
+    #    breaks = self.breaks
+    #    return breaks[0], breaks[-1]
 
     @property
     def cubic_uniform(self):
@@ -204,7 +204,8 @@ class BSplines():
             x = np.array([np.sum(T[i:i+p])/p for i in range(s, s+n)])
 
             if self._periodic:
-                a, b = self.domain
+                a = self.breaks[0]
+                b = self.breaks[-1]
                 #x = np.around(x, decimals=15)
                 x[:] = (x-a) % (b-a) + a
 
@@ -349,7 +350,7 @@ class Spline1D():
         return splev( x, tck, der )
         """
 
-    def eval_vector(self, x : 'float[:]', y : 'float[:]', der : int=0):
+    def eval_vector(self, x : 'Final[float[:]]', y : 'float[:]', der : int=0):
         """
         TODO
         """
@@ -401,7 +402,7 @@ class Spline1DComplex():
         return splev( x, tck, der )
         """
 
-    def eval_vector(self, x : 'float[:]', y : 'complex[:]', der : int=0):
+    def eval_vector(self, x : 'Final[float[:]]', y : 'complex[:]', der : int=0):
         """
         TODO
         """
@@ -478,7 +479,7 @@ class Spline2D():
         return bisplev( x1, x2, tck, der1, der2 )
         """
 
-    def eval_vector(self, x1 : 'float[:]', x2 : 'float[:]', y : 'float[:,:]', der1 : int=0, der2 : int=0):
+    def eval_vector(self, x1 : 'Final[float[:]]', x2 : 'Final[float[:]]', y : 'float[:,:]', der1 : int=0, der2 : int=0):
         """
         TODO
         """
