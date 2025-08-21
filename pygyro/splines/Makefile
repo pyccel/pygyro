@@ -8,7 +8,7 @@
 # Main targets
 #----------------------------------------------------------
 
-all: spline_eval_funcs$(SO_EXT) cubic_uniform_spline_eval_funcs$(SO_EXT) splines$(SO_EXT)
+all: spline_eval_funcs$(SO_EXT) cubic_uniform_spline_eval_funcs$(SO_EXT) splines$(SO_EXT) accelerated_spline_interpolators$(SO_EXT)
 
 .ACC.$(ACC):
 	@rm -f .ACC.*
@@ -29,6 +29,13 @@ else
 endif
 
 splines$(SO_EXT): $(NAME_PREFIX)splines.py .ACC.$(ACC) spline_eval_funcs$(SO_EXT) cubic_uniform_spline_eval_funcs$(SO_EXT)
+ifneq ($(ACC), pythran)
+	$(TOOL) $< $(TOOL_FLAGS)
+else
+	$(TOOL) $< $(TOOL_FLAGS) -o $@
+endif
+
+accelerated_spline_interpolators$(SO_EXT): $(NAME_PREFIX)accelerated_spline_interpolators.py .ACC.$(ACC) splines$(SO_EXT)
 ifneq ($(ACC), pythran)
 	$(TOOL) $< $(TOOL_FLAGS)
 else
