@@ -8,7 +8,7 @@
 # Main targets
 #----------------------------------------------------------
 
-all: spline_eval_funcs$(SO_EXT) cubic_uniform_spline_eval_funcs$(SO_EXT) splines$(SO_EXT) accelerated_spline_interpolators$(SO_EXT)
+all: spline_eval_funcs$(SO_EXT) cubic_uniform_spline_eval_funcs$(SO_EXT) splines$(SO_EXT) accelerated_spline_interpolators$(SO_EXT) sll_m_spline_matrix_periodic_banded$(SO_EXT)
 
 .ACC.$(ACC):
 	@rm -f .ACC.*
@@ -35,7 +35,10 @@ else
 	$(TOOL) $< $(TOOL_FLAGS) -o $@
 endif
 
-accelerated_spline_interpolators$(SO_EXT): $(NAME_PREFIX)accelerated_spline_interpolators.py .ACC.$(ACC) splines$(SO_EXT)
+sll_m_spline_matrix_periodic_banded$(SO_EXT): sll_m_spline_matrix_periodic_banded.pyi
+	pyccel-wrap $< $(TOOL_FLAGS)
+
+accelerated_spline_interpolators$(SO_EXT): $(NAME_PREFIX)accelerated_spline_interpolators.py .ACC.$(ACC) splines$(SO_EXT) sll_m_spline_matrix_periodic_banded$(SO_EXT)
 ifneq ($(ACC), pythran)
 	$(TOOL) $< $(TOOL_FLAGS)
 else
