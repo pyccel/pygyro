@@ -264,6 +264,12 @@ class SplineInterpolator2D():
         #assert basis1 is self._basis1
         #assert basis2 is self._basis2
 
+        if not basis1.periodic and basis2.periodic and self._interp2._splu:
+            solve_2d_system(ug, spl, self._bwork, self._interp1._bmat, self._interp1._l,
+                            self._interp1._u, self._interp1._ipiv, self._interp2._offset,
+                            self._interp2._splu)
+            return
+
         n1, n2 = basis1.nbasis, basis2.nbasis
         p1, p2 = basis1.degree, basis2.degree
         assert ug.shape == (n1, n2)
