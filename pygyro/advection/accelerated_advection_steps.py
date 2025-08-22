@@ -1,6 +1,8 @@
+import numpy as np
 from typing import Final
 from pyccel.decorators import pure
 from ..splines.splines import Spline1D, Spline2D
+from ..splines.accelerated_spline_interpolators import solve_system_nonperiodic
 from ..initialisation.initialiser_funcs import f_eq
 
 
@@ -137,6 +139,22 @@ def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
             while (v > vMax):
                 v -= vDiff
             f[i] = spl.eval(v)
+
+def v_parallel_advection_eval_step_loop(f: 'float[:,:,:]', vPts: 'float[:]',
+                                           rPos: 'float', vMin: 'float', vMax: 'float',
+                                        spl : Spline1D, bmat : 'float[:,:](order=F)', l : np.int32, u : np.int32, ipiv : 'int32[:]',
+                                        parGradVals : 'float[:,:,:]', dt : float, i : int,
+                                           CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
+                                           CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
+    n1, n2, _ = f.shape
+    for j in range(n1):  # z
+        for k in range(n2):  # q
+            solve_system_nonperiodic(f[j,k,:], spl.coeffs, bmat, l, u, ipiv)
+
+            vPts -= parGradVals[i, j, k]*dt
+
+            v_parallel_advection_eval_step(f[j,k,:], vPts, rPos, vMin, vMax, spl,
+                                           CN0, kN0, deltaRN0, rp, CTi, kTi, deltaRTi, bound)
 
 
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',

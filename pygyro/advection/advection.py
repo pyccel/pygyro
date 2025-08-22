@@ -376,17 +376,33 @@ class VParallelAdvection:
         for i, r in grid.getCoords(0):
             parGrad.parallel_gradient(
                 np.real(phi.get2DSlice(i)), i, parGradVals[i])
-            for j, _ in grid.getCoords(1):  # z
-                for k, _ in grid.getCoords(2):  # q
-                    self.step(grid.get1DSlice(
-                        i, j, k), dt, parGradVals[i, j, k], r)
+            v_parallel_advection_eval_step_loop(grid.get3DSlice(i), self._points, r, self._points[0],
+                                                self._points[-1], self._spline, self._interpolator._bmat,
+                                                self._interpolator._l, self._interpolator._u,
+                                                self._interpolator._ipiv, parGradVals, dt, i,
+                                                self._constants.CN0, self._constants.kN0,
+                                                self._constants.deltaRN0, self._constants.rp,
+                                                self._constants.CTi, self._constants.kTi,
+                                                self._constants.deltaRTi, self._edgeType)
+            #for j, _ in grid.getCoords(1):  # z
+            #    for k, _ in grid.getCoords(2):  # q
+            #        self.step(grid.get1DSlice(
+            #            i, j, k), dt, parGradVals[i, j, k], r)
 
     def gridStepKeepGradient(self, grid: Grid, parGradVals, dt: float):
         for i, r in grid.getCoords(0):
-            for j, _ in grid.getCoords(1):  # z
-                for k, _ in grid.getCoords(2):  # q
-                    self.step(grid.get1DSlice(
-                        i, j, k), dt, parGradVals[i, j, k], r)
+            v_parallel_advection_eval_step_loop(grid.get3DSlice(i), self._points, r, self._points[0],
+                                                self._points[-1], self._spline, self._interpolator._bmat,
+                                                self._interpolator._l, self._interpolator._u,
+                                                self._interpolator._ipiv, parGradVals, dt, i,
+                                                self._constants.CN0, self._constants.kN0,
+                                                self._constants.deltaRN0, self._constants.rp,
+                                                self._constants.CTi, self._constants.kTi,
+                                                self._constants.deltaRTi, self._edgeType)
+            #for j, _ in grid.getCoords(1):  # z
+            #    for k, _ in grid.getCoords(2):  # q
+            #        self.step(grid.get1DSlice(
+            #            i, j, k), dt, parGradVals[i, j, k], r)
 
 
 class PoloidalAdvection:
