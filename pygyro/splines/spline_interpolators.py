@@ -59,13 +59,13 @@ class SplineInterpolator1D():
             if (dtype == complex):
                 self._bmat, self._ipiv, self._finfo = zgbtrf(
                     bmat, self._l, self._u)
-                # Move to Fortran indexing
-                self._ipiv += 1
                 self._solveFunc = zgbtrs
             else:
                 self._bmat, self._ipiv, self._finfo = dgbtrf(
                     bmat, self._l, self._u)
                 self._solveFunc = dgbtrs
+            # Move to Fortran indexing
+            self._ipiv += 1
             self._sinfo = None
 
     # ...
