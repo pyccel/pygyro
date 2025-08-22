@@ -95,6 +95,9 @@ class SplineInterpolator1D():
                 solve_system_periodic(ug, spl, self._offset, self._splu)
                 #self._solve_system_periodic(ug, spl.coeffs)
             else:
+                n = spl.basis.nbasis
+                p = spl.basis.degree
+                c = spl.coeffs
                 c[0:n] = np.linalg.solve(self._imat, ug)
                 c[n:n+p] = c[0:p]
         else:
@@ -152,7 +155,7 @@ class SplineInterpolator1D():
             return np.linalg.solve(self._imat.T, basis_quads)
         else:
             c, self._sinfo = self._solveFunc(
-                self._bmat, self._l, self._u, self._basis.integrals, self._ipiv, trans=True)
+                self._bmat, self._l, self._u, self._basis.integrals, self._ipiv-1, trans=True)
             return c
 
     @staticmethod
