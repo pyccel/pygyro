@@ -8,6 +8,7 @@ from ..splines.accelerated_spline_interpolators import solve_system_periodic, so
 from ..model.layout import Layout
 from ..model.grid import Grid
 from .accelerated_advection_steps import get_lagrange_vals, flux_advection, \
+    v_parallel_advection_eval_step_loop, \
     v_parallel_advection_eval_step, \
     poloidal_advection_step_expl, \
     poloidal_advection_step_impl
