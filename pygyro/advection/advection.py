@@ -4,6 +4,7 @@ from math import pi
 
 from ..splines.splines import BSplines, Spline1D, Spline2D
 from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpolator2D
+from ..splines.accelerated_spline_interpolators import solve_system_periodic, solve_system_nonperiodic
 from ..model.layout import Layout
 from ..model.grid import Grid
 from .accelerated_advection_steps import get_lagrange_vals, flux_advection, \
@@ -278,7 +279,8 @@ class FluxSurfaceAdvection:
 
         # find the values of the function at each required point
         for i in range(self._nPoints[1]):
-            self._interpolator.compute_interpolant(f[:, i], self._thetaSpline)
+            solve_system_periodic(f[:, i], self._thetaSpline.coeffs, self._thetaSpline.basis, self._interpolator._offset, self._interpolator._splu)
+            #self._interpolator.compute_interpolant(f[:, i], self._thetaSpline)
 
             get_lagrange_vals(i, self._shifts[rIdx, cIdx],
                               self._LagrangeVals, self._points[0],
@@ -360,7 +362,8 @@ class VParallelAdvection:
 
         """
         assert f.shape == self._nPoints
-        self._interpolator.compute_interpolant(f, self._spline)
+        #self._interpolator.compute_interpolant(f, self._spline)
+        solve_system_nonperiodic(f, spl.coeffs, self._interpolator._bmat, self._interpolator._l, self._interpolator._u, self._interpolator._ipiv)
 
         v_parallel_advection_eval_step(f, self._points-c*dt, r, self._points[0],
                                        self._points[-1], self._spline,
