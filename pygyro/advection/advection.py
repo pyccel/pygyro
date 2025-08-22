@@ -363,7 +363,7 @@ class VParallelAdvection:
         """
         assert f.shape == self._nPoints
         #self._interpolator.compute_interpolant(f, self._spline)
-        solve_system_nonperiodic(f, spl.coeffs, self._interpolator._bmat, self._interpolator._l, self._interpolator._u, self._interpolator._ipiv)
+        solve_system_nonperiodic(f, self._spline.coeffs, self._interpolator._bmat, self._interpolator._l, self._interpolator._u, self._interpolator._ipiv)
 
         v_parallel_advection_eval_step(f, self._points-c*dt, r, self._points[0],
                                        self._points[-1], self._spline,
