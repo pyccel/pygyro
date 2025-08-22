@@ -53,12 +53,14 @@ class SplineInterpolator1D():
             self._l = abs(dmat.offsets.min())
             self._u = dmat.offsets.max()
             cmat = csr_matrix(dmat)
-            bmat = np.zeros((1 + self._u + 2 * self._l, cmat.shape[1]))
+            bmat = np.zeros((1 + self._u + 2 * self._l, cmat.shape[1]), order='F')
             for i, j in zip(*cmat.nonzero()):
                 bmat[self._u + self._l+i-j, j] = cmat[i, j]
             if (dtype == complex):
                 self._bmat, self._ipiv, self._finfo = zgbtrf(
                     bmat, self._l, self._u)
+                # Move to Fortran indexing
+                self._ipiv += 1
                 self._solveFunc = zgbtrs
             else:
                 self._bmat, self._ipiv, self._finfo = dgbtrf(
@@ -91,11 +93,15 @@ class SplineInterpolator1D():
         if self._basis.periodic:
             if self._splu:
                 solve_system_periodic(ug, spl, self._offset, self._splu)
+                #self._solve_system_periodic(ug, spl.coeffs)
             else:
                 c[0:n] = np.linalg.solve(self._imat, ug)
                 c[n:n+p] = c[0:p]
         else:
-            solve_system_nonperiodic(ug, spl.coeffs.reshape(1, self._basis.nbasis), self._bmat, self._l, self._u, self._ipiv)
+            c = spl.coeffs.reshape(self._basis.nbasis, 1, order='F')
+            sinfo = solve_system_nonperiodic(ug, c, self._bmat, self._l, self._u, self._ipiv)
+            assert sinfo == 0
+            #self._solve_system_nonperiodic(ug, spl.coeffs)
 
     ## ...
     #def _solve_system_periodic(self, ug, c):

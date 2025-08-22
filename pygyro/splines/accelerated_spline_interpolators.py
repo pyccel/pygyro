@@ -30,15 +30,15 @@ def solve_system_nonperiodic(ug : 'T[:]', c : 'T[:,:](order=F)', bmat : 'T[:,:](
     """
 
     assert ug.shape[0] == bmat.shape[1]
-    assert c.shape[0] == 1
-    assert c.shape[1] == ug.shape[0]
+    assert c.shape[1] == 1
+    assert c.shape[0] == ug.shape[0]
 
     sinfo : np.int32
 
-    c[0,:] = ug
+    c[:,0] = ug
     if isinstance(c[0,0], np.float64):
-        dgbtrs('N', np.int32(bmat.shape[0]), l, u, np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(c.shape[1]), sinfo)
+        dgbtrs('N', np.int32(bmat.shape[1]), l, u, np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(c.shape[0]), sinfo)
     else:
-        zgbtrs('N', np.int32(bmat.shape[0]), l, u, np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(c.shape[1]), sinfo)
+        zgbtrs('N', np.int32(bmat.shape[1]), l, u, np.int32(1), bmat, np.int32(bmat.shape[0]), ipiv, c, np.int32(c.shape[0]), sinfo)
 
     return sinfo
