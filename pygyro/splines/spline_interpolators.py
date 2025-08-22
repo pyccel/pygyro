@@ -101,8 +101,7 @@ class SplineInterpolator1D():
                 c[0:n] = np.linalg.solve(self._imat, ug)
                 c[n:n+p] = c[0:p]
         else:
-            c = spl.coeffs.reshape(self._basis.nbasis, 1, order='F')
-            sinfo = solve_system_nonperiodic(ug, c, self._bmat, self._l, self._u, self._ipiv)
+            sinfo = solve_system_nonperiodic(ug, spl.coeffs, self._bmat, self._l, self._u, self._ipiv)
             assert sinfo == 0
             #self._solve_system_nonperiodic(ug, spl.coeffs)
 
