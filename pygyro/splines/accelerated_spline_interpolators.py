@@ -6,16 +6,14 @@ from .sll_m_spline_matrix_periodic_banded import PeriodicBandedMatrix
 
 T = TypeVar('T', float, complex)
 
-def solve_system_periodic(ug : 'float[:]', spl : Spline1D, offset : int, splu : PeriodicBandedMatrix):
+def solve_system_periodic(ug : 'float[:]', c : 'float[:]', basis : BSplines, offset : int, splu : PeriodicBandedMatrix):
     """
     Compute the coefficients c of the spline which interpolates the points ug
     for a periodic spline
     """
 
-    n = spl.basis.nbasis
-    p = spl.basis.degree
-
-    c = spl.coeffs
+    n = basis.nbasis
+    p = basis.degree
 
     c[offset:n+offset] = ug
     splu.solve_inplace(c[offset:n+offset])
