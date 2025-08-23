@@ -280,7 +280,7 @@ class FluxSurfaceAdvection:
 
         # find the values of the function at each required point
         for i in range(self._nPoints[1]):
-            solve_system_periodic(f[:, i], self._thetaSpline.coeffs, self._thetaSpline.basis, self._interpolator._offset, self._interpolator._splu)
+            solve_system_periodic(f[:, i], self._thetaSpline, self._interpolator._offset, self._interpolator._splu)
             #self._interpolator.compute_interpolant(f[:, i], self._thetaSpline)
 
             get_lagrange_vals(i, self._shifts[rIdx, cIdx],

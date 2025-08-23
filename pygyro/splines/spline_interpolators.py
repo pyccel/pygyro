@@ -92,7 +92,7 @@ class SplineInterpolator1D():
 
         if self._basis.periodic:
             if self._splu:
-                solve_system_periodic(ug, spl.coeffs, spl.basis, self._offset, self._splu)
+                solve_system_periodic(ug, spl, self._offset, self._splu)
                 #self._solve_system_periodic(ug, spl.coeffs)
             else:
                 n = spl.basis.nbasis
