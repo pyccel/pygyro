@@ -45,21 +45,19 @@ def solve_2d_system(ug : 'float[:,:]', spl : Spline2D, wt : 'float[:,:]',
                     theta_offset : int, theta_splu : PeriodicBandedMatrix):
     basis1 = spl.basis1
     basis2 = spl.basis2
-    #assert basis1 is self._basis1
-    #assert basis2 is self._basis2
-
     n1, n2 = basis1.nbasis, basis2.nbasis
     p1, p2 = basis1.degree, basis2.degree
+    assert ug.shape[0] == n1
+    assert ug.shape[1] == n2
+
+    spline1 = Spline1D(basis1)
 
     w = spl.coeffs
-    spline1 = Spline1D(basis1)
 
     # Cycle over x1 position and interpolate f along x2 direction.
     # Work on spl.coeffs
     for i1 in range(n1):
-        solve_system_periodic(ug[i1, :], w[i1, :], basis2, theta_offset, theta_splu)
-        #self._interp2.compute_interpolant(ug[i1, :], self._spline2)
-        #w[i1, :] = self._spline2.coeffs
+        solve_system_nonperiodic(ug[i1, :], w[i1, :], r_bmat, r_l, r_u, r_ipiv)
 
     # Transpose coefficients to self._bwork
     wt[:, :] = w.transpose()
@@ -67,17 +65,12 @@ def solve_2d_system(ug : 'float[:,:]', spl : Spline2D, wt : 'float[:,:]',
     # Cycle over x2 position and interpolate w along x1 direction.
     # Work on self._bwork
     for i2 in range(n2):
-        solve_system_nonperiodic(wt[i2, :n1], spline1.coeffs, r_bmat, r_l, r_u, r_ipiv)
+        solve_system_periodic(wt[i2, :n1], spline1.coeffs, basis1, theta_offset, theta_splu)
         #self._interp1.compute_interpolant(wt[i2, :n1], self._spline1)
         wt[i2, :] = spline1.coeffs
-
-    # x2-periodic only: "wrap around" coefficients onto extended array
-    if basis2.periodic:
-        wt[n2:n2 + p2, :] = wt[:p2, :]
 
     # Transpose coefficients to spl.coeffs
     w[:, :] = wt.transpose()
 
     # x1-periodic only: "wrap around" coefficients onto extended array
-    if basis1.periodic:
-        w[n1:n1 + p1, :] = w[:p1, :]
+    w[n1:n1 + p1, :] = w[:p1, :]
