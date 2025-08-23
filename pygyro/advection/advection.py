@@ -444,7 +444,6 @@ class PoloidalAdvection:
     def __init__(self, eta_vals: list, splines: list, constants, nulEdge=False,
                  explicitTrap: bool = True, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
-        self._vPts = eta_vals[3]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size, self._points[1].size)
         self._interpolator = SplineInterpolator2D(splines[0], splines[1])
@@ -534,8 +533,9 @@ class PoloidalAdvection:
         phiLayout = phi.getLayout(grid.currentLayout)
         assert gridLayout.dims_order[1:] == phiLayout.dims_order
         assert gridLayout.dims_order == (3, 2, 1, 0)
+        vPts = grid.getCoordVals(0)
         poloidal_advection_loop(grid.getAllData(), np.real(phi.getAllData()), float(dt), self._explicit,
-                                self._points[1], self._points[0], self._vPts,
+                                self._points[1], self._points[0], vPts,
                                 self._interpolator._bwork, self._interpolator._interp2._bmat,
                                 self._interpolator._interp2._l, self._interpolator._interp2._u,
                                 self._interpolator._interp2._ipiv, self._interpolator._interp1._offset,
