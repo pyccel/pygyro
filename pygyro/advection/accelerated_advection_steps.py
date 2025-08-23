@@ -2,7 +2,8 @@ import numpy as np
 from typing import Final
 from pyccel.decorators import pure
 from ..splines.splines import Spline1D, Spline2D
-from ..splines.accelerated_spline_interpolators import solve_system_nonperiodic
+from ..splines.accelerated_spline_interpolators import solve_system_nonperiodic, solve_system_periodic, solve_2d_system
+from ..splines.sll_m_spline_matrix_periodic_banded import PeriodicBandedMatrix
 from ..initialisation.initialiser_funcs import f_eq
 
 
@@ -185,6 +186,26 @@ def flux_advection(nq: 'int', nr: 'int',
             for k in range(1, len(coeffs)):
                 f[j, i] += coeffs[k]*vals[i, j, k]
 
+def flux_advection_loop(f : 'float[:,:,:,:]', thetaSpline : Spline1D, theta_offset : int, theta_splu : PeriodicBandedMatrix,
+                        shifts : 'int[:,:,:]', lagrange_vals: 'float[:,:,:]', qVals: 'float[:]',
+                        thetaShifts: 'float[:,:,:]', lagrange_coeffs : 'float[:,:,:]'):
+    nr, nv, nq, nz = f.shape
+
+    for rIdx in range(nr):  # r
+        for cIdx in range(nv):  # v
+            # find the values of the function at each required point
+            for k in range(nz):
+                solve_system_periodic(f[rIdx, cIdx, :, k], thetaSpline, theta_offset, theta_splu)
+
+                get_lagrange_vals(k, shifts[rIdx, cIdx],
+                                  lagrange_vals, qVals,
+                                  thetaShifts[rIdx, cIdx],
+                                  thetaSpline)
+
+            flux_advection(nq, nz, f[rIdx, cIdx],
+                           lagrange_coeffs[rIdx, cIdx],
+                           lagrange_vals)
+
 
 def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
                                          drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
@@ -306,3 +327,36 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
                     f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
+
+def poloidal_advection_loop(f: 'float[:,:,:,:]', phi: 'float[:,:,:]', dt: 'float',
+                            is_explicit : 'bool', rPts: 'float[:]', qPts: 'float[:]',
+                            vPts: 'float[:]', interp_wt : 'float[:,:]',
+                            r_bmat : 'float[:,:](order=F)', r_l : np.int32, r_u : np.int32,
+                            r_ipiv : 'int32[:]', theta_offset : int, theta_splu : PeriodicBandedMatrix,
+                            drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
+                            endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
+                            phi_spline : Spline2D, pol_spline : Spline2D,
+                            CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
+                            B0: 'float', tol: 'float', nulBound: 'bool'):
+    nv, nz, _, _ = f.shape
+    for j in range(nz):
+        solve_2d_system(phi[j], phi_spline, interp_wt, r_bmat, r_l, r_u,
+                        r_ipiv, theta_offset, theta_splu)
+
+        # Do step
+        for i, v in enumerate(vPts):
+            solve_2d_system(f[i,j], pol_spline, interp_wt, r_bmat, r_l, r_u,
+                        r_ipiv, theta_offset, theta_splu)
+
+            if is_explicit:
+                poloidal_advection_step_expl(f[i,j], float(dt), v, rPts, qPts,
+                                             drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
+                                             endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
+                                             phi_spline, pol_spline, CN0, kN0, deltaRN0, rp, CTi,
+                                             kTi, deltaRTi, B0, nulBound)
+            else:
+                poloidal_advection_step_impl(f[i,j], float(dt), v, rPts, qPts,
+                                             drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k,
+                                             endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r,
+                                             phi_spline, pol_spline, CN0, kN0, deltaRN0, rp, CTi,
+                                             kTi, deltaRTi, B0, tol, nulBound)

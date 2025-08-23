@@ -7,11 +7,12 @@ from ..splines.spline_interpolators import SplineInterpolator1D, SplineInterpola
 from ..splines.accelerated_spline_interpolators import solve_system_periodic, solve_system_nonperiodic
 from ..model.layout import Layout
 from ..model.grid import Grid
-from .accelerated_advection_steps import get_lagrange_vals, flux_advection, \
+from .accelerated_advection_steps import get_lagrange_vals, flux_advection, flux_advection_loop, \
     v_parallel_advection_eval_step_loop, \
     v_parallel_advection_eval_step, \
     poloidal_advection_step_expl, \
-    poloidal_advection_step_impl
+    poloidal_advection_step_impl, \
+    poloidal_advection_loop
 
 
 def fieldline(theta, z_diff, iota, r, R0):
@@ -294,9 +295,13 @@ class FluxSurfaceAdvection:
 
     def gridStep(self, grid: Grid):
         assert grid.getLayout(grid.currentLayout).dims_order == (0, 3, 1, 2)
-        for i, _ in grid.getCoords(0):  # r
-            for j, _ in grid.getCoords(1):  # v
-                self.step(grid.get2DSlice(i, j), j)
+        flux_advection_loop(grid.getAllData(), self._thetaSpline,
+                            self._interpolator._offset, self._interpolator._splu,
+                            self._shifts, self._LagrangeVals, self._points[0],
+                            self._thetaShifts, self._lagrangeCoeffs)
+        #for i, _ in grid.getCoords(0):  # r
+        #    for j, _ in grid.getCoords(1):  # v
+        #        self.step(grid.get2DSlice(i, j), j)
 
 
 class VParallelAdvection:
@@ -439,6 +444,7 @@ class PoloidalAdvection:
     def __init__(self, eta_vals: list, splines: list, constants, nulEdge=False,
                  explicitTrap: bool = True, tol: float = 1e-10):
         self._points = eta_vals[1::-1]
+        self._vPts = eta_vals[3]
         self._shapedQ = np.atleast_2d(self._points[0]).T
         self._nPoints = (self._points[0].size, self._points[1].size)
         self._interpolator = SplineInterpolator2D(splines[0], splines[1])
@@ -528,14 +534,29 @@ class PoloidalAdvection:
         phiLayout = phi.getLayout(grid.currentLayout)
         assert gridLayout.dims_order[1:] == phiLayout.dims_order
         assert gridLayout.dims_order == (3, 2, 1, 0)
-        # Evaluate splines
-        for j, _ in grid.getCoords(1):  # z
-            self._interpolator.compute_interpolant(
-                np.real(phi.get2DSlice(j)), self._phiSplines[j])
-        # Do step
-        for i, v in grid.getCoords(0):
-            for j, _ in grid.getCoords(1):  # z
-                self.step(grid.get2DSlice(i, j), dt, self._phiSplines[j], v)
+        poloidal_advection_loop(grid.getAllData(), np.real(phi.getAllData()), float(dt), self._explicit,
+                                self._points[1], self._points[0], self._vPts,
+                                self._interpolator._bwork, self._interpolator._interp2._bmat,
+                                self._interpolator._interp2._l, self._interpolator._interp2._u,
+                                self._interpolator._interp2._ipiv, self._interpolator._interp1._offset,
+                                self._interpolator._interp1._splu,
+                                self._drPhi_0, self._dqPhi_0, self._drPhi_k,
+                                self._dqPhi_k, self._endPts_k1_q,
+                                self._endPts_k1_r, self._endPts_k2_q,
+                                self._endPts_k2_r, self._phiSplines[0],
+                                self._spline, self._constants.CN0,
+                                self._constants.kN0, self._constants.deltaRN0,
+                                self._constants.rp, self._constants.CTi,
+                                self._constants.kTi, self._constants.deltaRTi,
+                                self._constants.B0, self._TOL, self._nulEdge)
+        ## Evaluate splines
+        #for j, _ in grid.getCoords(1):  # z
+        #    self._interpolator.compute_interpolant(
+        #        np.real(phi.get2DSlice(j)), self._phiSplines[j])
+        ## Do step
+        #for i, v in grid.getCoords(0):
+        #    for j, _ in grid.getCoords(1):  # z
+        #        self.step(grid.get2DSlice(i, j), dt, self._phiSplines[j], v)
 
     def gridStep_SplinesUnchanged(self, grid: Grid, dt: float):
         gridLayout = grid.getLayout(grid.currentLayout)
