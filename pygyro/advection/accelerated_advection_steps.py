@@ -49,6 +49,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
     idx = nPts_r-1
     rMax = rPts[idx]
 
+    #$ omp parallel for collapse(2)
     for i in range(nPts_q):
         for j in range(nPts_r):
             # Step one of Heun method
@@ -87,6 +88,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
 
     # Find value at the determined point
     if (nulBound):
+        #$ omp parallel for collapse(2)
         for i in range(nPts_q):  # theta
             for j in range(nPts_r):  # r
                 if (endPts_k2_r[i, j] < rPts[0]):
@@ -97,6 +99,7 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
                     f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
     else:
+        #$ omp parallel for collapse(2)
         for i in range(nPts_q):  # theta
             for j in range(nPts_r):  # r
                 if (endPts_k2_r[i, j] < rPts[0]):
@@ -148,6 +151,7 @@ def v_parallel_advection_eval_step_loop(f: 'float[:,:,:]', vPts: 'float[:]',
                                            CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
                                            CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
     n1, n2, _ = f.shape
+    #$ omp parallel for collapse(2) firstprivate(spl)
     for j in range(n1):  # z
         for k in range(n2):  # q
             solve_system_nonperiodic(f[j,k,:], spl.coeffs, bmat, l, u, ipiv)
@@ -191,6 +195,7 @@ def flux_advection_loop(f : 'float[:,:,:,:]', thetaSpline : Spline1D, theta_offs
                         thetaShifts: 'float[:,:,:]', lagrange_coeffs : 'float[:,:,:]'):
     nr, nv, nq, nz = f.shape
 
+    #$ omp parallel for collapse(2)
     for rIdx in range(nr):  # r
         for cIdx in range(nv):  # v
             # find the values of the function at each required point
@@ -245,6 +250,7 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
     idx = nPts_r-1
     rMax = rPts[idx]
 
+    #$ omp parallel for collapse(2)
     for i in range(nPts_q):
         for j in range(nPts_r):
             # Step one of Heun method
