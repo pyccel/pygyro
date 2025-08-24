@@ -151,7 +151,7 @@ def v_parallel_advection_eval_step_loop(f: 'float[:,:,:]', vPts: 'float[:]',
                                            CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
                                            CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
     n1, n2, _ = f.shape
-    #$ omp parallel for collapse(2) firstprivate(spl) private(coeffs)
+    #$ omp parallel for collapse(2) firstprivate(spl, vPts) private(coeffs)
     for j in range(n1):  # z
         for k in range(n2):  # q
             coeffs = spl.coeffs
@@ -196,7 +196,7 @@ def flux_advection_loop(f : 'float[:,:,:,:]', thetaSpline : Spline1D, theta_offs
                         thetaShifts: 'float[:,:,:]', lagrange_coeffs : 'float[:,:,:]'):
     nr, nv, nq, nz = f.shape
 
-    #$ omp parallel for collapse(2)
+    #$ omp parallel for collapse(2) firstprivate(thetaSpline)
     for rIdx in range(nr):  # r
         for cIdx in range(nv):  # v
             # find the values of the function at each required point
@@ -266,6 +266,7 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
     norm = tol+1
     while (norm > tol):
         norm = 0.0
+        #$ omp parallel for collapse(2)
         for i in range(nPts_q):
             for j in range(nPts_r):
                 # Handle theta boundary conditions
@@ -313,6 +314,7 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
 
     # Find value at the determined point
     if (nulBound):
+        #$ omp parallel for collapse(2)
         for i in range(nPts_q):
             for j in range(nPts_r):
                 if (endPts_k2_r[i, j] < rPts[0]):
@@ -323,6 +325,7 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
                     f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
     else:
+        #$ omp parallel for collapse(2)
         for i in range(nPts_q):
             for j in range(nPts_r):
                 if (endPts_k2_r[i, j] < rPts[0]):
@@ -346,6 +349,7 @@ def poloidal_advection_loop(f: 'float[:,:,:,:]', phi: 'float[:,:,:]', dt: 'float
                             CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
                             B0: 'float', tol: 'float', nulBound: 'bool'):
     nv, nz, _, _ = f.shape
+    ##$ omp parallel for firstprivate(phi_spline, pol_spline) private(interp_wt, drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k, endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r)
     for j in range(nz):
         solve_2d_system(phi[j], phi_spline, interp_wt, r_bmat, r_l, r_u,
                         r_ipiv, theta_offset, theta_splu)
