@@ -151,10 +151,11 @@ def v_parallel_advection_eval_step_loop(f: 'float[:,:,:]', vPts: 'float[:]',
                                            CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
                                            CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
     n1, n2, _ = f.shape
-    #$ omp parallel for collapse(2) firstprivate(spl)
+    #$ omp parallel for collapse(2) firstprivate(spl) private(coeffs)
     for j in range(n1):  # z
         for k in range(n2):  # q
-            solve_system_nonperiodic(f[j,k,:], spl.coeffs, bmat, l, u, ipiv)
+            coeffs = spl.coeffs
+            solve_system_nonperiodic(f[j,k,:], coeffs, bmat, l, u, ipiv)
 
             vPts -= parGradVals[i, j, k]*dt
 
