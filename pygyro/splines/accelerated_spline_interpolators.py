@@ -60,21 +60,34 @@ def solve_2d_system(ug : 'float[:,:]', spl : Spline2D, wt : 'float[:,:]',
 
     # Cycle over x1 position and interpolate f along x2 direction.
     # Work on spl.coeffs
+    #$ omp parallel for
     for i1 in range(n1):
         solve_system_nonperiodic(ug[i1, :], w[i1, :], r_bmat, r_l, r_u, r_ipiv)
 
+    s1, s2 = w.shape
+
     # Transpose coefficients to self._bwork
-    wt[:, :] = w.transpose()
+    #$ omp parallel for collapse(2)
+    for i1 in range(s1):
+        for i2 in range(s2):
+            wt[i2, i1] = w[i1, i2]
 
     # Cycle over x2 position and interpolate w along x1 direction.
     # Work on self._bwork
+    #$ omp parallel for
     for i2 in range(n2):
         solve_system_periodic(wt[i2, :n1], spline1, theta_offset, theta_splu)
         #self._interp1.compute_interpolant(wt[i2, :n1], self._spline1)
         wt[i2, :] = spline1.coeffs
 
     # Transpose coefficients to spl.coeffs
-    w[:, :] = wt.transpose()
+    #$ omp parallel for collapse(2)
+    for i1 in range(s1):
+        for i2 in range(s2):
+            w[i1, i2] = wt[i2, i1]
 
     # x1-periodic only: "wrap around" coefficients onto extended array
-    w[n1:n1 + p1, :] = w[:p1, :]
+    #$ omp parallel for collapse(2)
+    for i1 in range(p1):
+        for i2 in range(s2):
+            w[n1 + i1, i2] = w[i1, i2]
