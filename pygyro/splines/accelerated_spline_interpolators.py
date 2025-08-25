@@ -74,11 +74,12 @@ def solve_2d_system(ug : 'float[:,:]', spl : Spline2D, wt : 'float[:,:]',
 
     # Cycle over x2 position and interpolate w along x1 direction.
     # Work on self._bwork
-    #$ omp parallel for
+    #$ omp parallel for firstprivate(spline1) private(c)
     for i2 in range(n2):
         solve_system_periodic(wt[i2, :n1], spline1, theta_offset, theta_splu)
         #self._interp1.compute_interpolant(wt[i2, :n1], self._spline1)
-        wt[i2, :] = spline1.coeffs
+        c = spline1.coeffs
+        wt[i2, :] = c
 
     # Transpose coefficients to spl.coeffs
     #$ omp parallel for collapse(2)
