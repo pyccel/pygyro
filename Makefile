@@ -21,7 +21,7 @@ PYTHRAN_FLAGS :=
 ifeq ($(COMP), GNU)
 	CC       := gcc
 	FC       := gfortran
-	FC_FLAGS := -Wall -O3 -fPIC -fstack-arrays
+	FC_FLAGS := -Wall -O3 -fPIC -fstack-arrays -Wno-unused-dummy-argument
         FF_COMP  := gnu95
 else \
 ifeq ($(COMP), intel)
