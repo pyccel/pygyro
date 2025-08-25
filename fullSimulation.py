@@ -359,13 +359,13 @@ def main():
         print(s.getvalue(), file=open("profile/l2Test{}.txt".format(rank), "w"))
 
     if (rank == 0):
-        if (not os.path.isdir("timing")):
-            os.mkdir("timing")
+        if (not os.path.isdir(f"{foldername}/timing")):
+            os.mkdir(f"{foldername}/timing")
 
     MPI.COMM_WORLD.Barrier()
 
     timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv))
-    with open(f"timing/{MPI.COMM_WORLD.Get_size()}_l2Test{rank}.txt", "w") as timing_file:
+    with open(f"{foldername}/timing/{MPI.COMM_WORLD.Get_size()}_l2Test{rank}.txt", "w") as timing_file:
         for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther, full_loop_time, output_time, setup_time, diagnostic_time):
             print(f"{t:16.10e}   ", end="", file=timing_file)
         print(file=timing_file)
