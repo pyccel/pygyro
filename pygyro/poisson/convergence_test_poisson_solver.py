@@ -2,7 +2,7 @@ from mpi4py import MPI
 import numpy as np
 import pytest
 from math import pi
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid
 from numpy.polynomial.legendre import leggauss
 
 import matplotlib.pyplot as plt
@@ -753,7 +753,7 @@ def test_ddTheta(deg):
         # ~ phi._f=phi._f*2
 
         err = (phi._f-phi_exact._f)[0, 0]
-        l2[c] = np.sqrt(trapz(np.real(err)**2, q))
+        l2[c] = np.sqrt(trapezoid(np.real(err)**2, q))
         lInf[c] = np.max(np.abs(np.real(phi._f-phi_exact._f)))
 
         npts[1] *= 2
@@ -912,7 +912,7 @@ def test_QuasiNeutralityEquation_pointConverge():
                 # ~ l2Q[i]=np.sum((approxSpline.eval(evalPts)-np.cos(rArg)**4)**2 \
                 # ~ * multFactor*weights)
 
-            l2[c] = np.sqrt(trapz(l2Q, eta_grid[1]))
+            l2[c] = np.sqrt(trapezoid(l2Q, eta_grid[1]))
             lInf[c] = lI
 
             npts[0] *= 2
@@ -1096,7 +1096,7 @@ def test_QuasiNeutralityEquation_degreeConverge():
             l2Q[i] = np.sum((approxSpline.eval(evalPts)-np.cos(rArg)**4)**2
                             * multFactor*weights)
 
-        l2[c] = np.sqrt(trapz(l2Q, eta_grid[1]))
+        l2[c] = np.sqrt(trapezoid(l2Q, eta_grid[1]))
         lInf[c] = lI
 
         degree[0] *= 2
