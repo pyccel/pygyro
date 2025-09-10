@@ -1,6 +1,6 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
-from pyccel.decorators import allow_negative_index
+from pyccel.decorators import allow_negative_index, inline, pure
 from typing import Final
 
 import numpy as np
@@ -139,30 +139,35 @@ class BSplines():
         else:
             self._interp_pts = np.empty(0)
 
+    @inline
     @property
     def degree(self):
         """ Degree of B-splines.
         """
         return self._degree
 
+    @inline
     @property
     def ncells(self):
         """ Number of cells in domain.
         """
         return self._ncells
 
+    @inline
     @property
     def nbasis(self):
         """ Number of basis functions, taking into account periodicity.
         """
         return self._nbasis
 
+    @inline
     @property
     def periodic(self):
         """ True if domain is periodic, False otherwise.
         """
         return self._periodic
 
+    @inline
     @property
     def knots(self):
         """ Knot sequence.
@@ -188,6 +193,7 @@ class BSplines():
     #    breaks = self.breaks
     #    return breaks[0], breaks[-1]
 
+    @inline
     @property
     def cubic_uniform(self):
         return self._cubic_uniform_splines
@@ -214,6 +220,7 @@ class BSplines():
             # return np.around(x, decimals=15)
             return x
 
+    @inline
     @property
     def integrals(self):
         return self._integrals
@@ -321,6 +328,7 @@ class Spline1D():
         self._basis = basis
         self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=float)
 
+    @inline
     @property
     def basis(self):
         """
@@ -328,6 +336,7 @@ class Spline1D():
         """
         return self._basis
 
+    @inline
     @property
     def coeffs(self):
         """
@@ -335,7 +344,8 @@ class Spline1D():
         """
         return self._coeffs
 
-    def eval(self, x: float, der: int = 0):
+    @pure
+    def eval(self : 'Final[Spline1D]', x : float, der : int = 0):
         """
         TODO
         """
@@ -375,6 +385,7 @@ class Spline1DComplex():
         self._coeffs = np.zeros(
             basis.ncells + basis.degree, dtype=np.complex128)
 
+    @inline
     @property
     def basis(self):
         """
@@ -382,6 +393,7 @@ class Spline1DComplex():
         """
         return self._basis
 
+    @inline
     @property
     def coeffs(self):
         """
@@ -389,7 +401,8 @@ class Spline1DComplex():
         """
         return self._coeffs
 
-    def eval(self, x: float, der: int = 0):
+    @pure
+    def eval(self : 'Final[Spline1DComplex]', x : float, der : int = 0):
         """
         TODO
         """
@@ -437,6 +450,7 @@ class Spline2D():
         assert basis2.degree <= 5
         assert basis1.cubic_uniform == basis2.cubic_uniform
 
+    @inline
     @property
     def basis1(self):
         """
@@ -444,6 +458,7 @@ class Spline2D():
         """
         return self._basis1
 
+    @inline
     @property
     def basis2(self):
         """
@@ -451,6 +466,7 @@ class Spline2D():
         """
         return self._basis2
 
+    @inline
     @property
     def coeffs(self):
         """
@@ -458,7 +474,8 @@ class Spline2D():
         """
         return self._coeffs
 
-    def eval(self, x1: float, x2: float, der1: int = 0, der2: int = 0):
+    @pure
+    def eval(self : 'Final[Spline2D]', x1 : float, x2 : float, der1 : int=0, der2 : int=0):
         """
         TODO
         """
