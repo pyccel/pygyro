@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Final
 import numpy as np
 from pyccel.stdlib.internal.lapack import dgbtrs, zgbtrs
 from .splines import Spline1D, Spline2D, BSplines
@@ -6,7 +6,7 @@ from .sll_m_spline_matrix_periodic_banded import PeriodicBandedMatrix
 
 T = TypeVar('T', float, complex)
 
-def solve_system_periodic(ug : 'float[:]', spl : Spline1D, offset : int, splu : PeriodicBandedMatrix):
+def solve_system_periodic(ug : 'Final[float[:]]', spl : Spline1D, offset : int, splu : Final[PeriodicBandedMatrix]):
     """
     Compute the coefficients c of the spline which interpolates the points ug
     for a periodic spline
@@ -25,7 +25,7 @@ def solve_system_periodic(ug : 'float[:]', spl : Spline1D, offset : int, splu : 
     c[n+offset:] = c[offset:p]
 
 # ...
-def solve_system_nonperiodic(ug : 'T[:]', c : 'T[:]', bmat : 'T[:,:](order=F)', l : np.int32, u : np.int32, ipiv : 'int32[:]'):
+def solve_system_nonperiodic(ug : 'Final[T[:]]', c : 'T[:]', bmat : 'Final[T[:,:](order=F)]', l : np.int32, u : np.int32, ipiv : 'Final[int32[:]]'):
     """
     Compute the coefficients c of the spline which interpolates the points ug
     for a non-periodic spline
@@ -88,7 +88,6 @@ def solve_2d_system(ug : 'float[:,:]', spl : Spline2D, wt : 'float[:,:]',
             w[i1, i2] = wt[i2, i1]
 
     # x1-periodic only: "wrap around" coefficients onto extended array
-    #$ omp parallel for collapse(2)
     for i1 in range(p1):
         for i2 in range(s2):
             w[n1 + i1, i2] = w[i1, i2]
