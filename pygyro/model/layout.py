@@ -2,8 +2,31 @@ from mpi4py import MPI
 import numpy as np
 import warnings
 import operator
+#from .accelerated_layout import flat_transpose
+from hptt import tensorTransposeAndUpdate
+import torch
 
 from abc import ABC
+
+def my_transpose(dest, source, axes):
+    new_shape = [source.shape[0]]
+    idx = 0
+    new_axes = [axes[0]]
+    for i,a in enumerate(axes[1:],1):
+        if a == axes[i-1]+1:
+            new_shape[-1] *= source.shape[i]
+        else:
+            new_shape.append(source.shape[i])
+            new_axes.append(a)
+    if len(new_shape) == 1:
+        dest[:] = source
+    else:
+        new_axes = np.argsort(np.argsort(new_axes))
+        dim1, dim2 = next((i,a) for i,a in enumerate(new_axes) if i!=a)
+        #tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
+        #flat_transpose(dest.ravel(), source.ravel(), source.shape, dest.shape, tuple(axes))
+        #dest[:] = np.transpose(source, axes)
+        dest[:] = torch.transpose(torch.from_numpy(source), int(dim1), int(dim2)).contiguous()
 
 
 class Layout:
@@ -644,7 +667,8 @@ class LayoutHandler(LayoutManager):
 
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
-            destView[:] = np.transpose(sourceView, transposition)
+            my_transpose(destView, sourceView, transposition)
+            #destView[:] = np.transpose(sourceView, transposition)
 
             return
 
@@ -674,7 +698,8 @@ class LayoutHandler(LayoutManager):
                 0].reshape(layout_dest  .shape)
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
-            dest[:] = np.transpose(sourceView, transposition)
+            my_transpose(dest, sourceView, transposition)
+            #dest[:] = np.transpose(sourceView, transposition)
             return
 
         # carry out transpose
@@ -756,7 +781,8 @@ class LayoutHandler(LayoutManager):
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            arrView[:] = source[tuple(source_range)].transpose(order)
+            my_transpose(arrView, source[tuple(source_range)], order)
+            #arrView[:] = source[tuple(source_range)].transpose(order)
 
             start += size
 
@@ -810,7 +836,8 @@ class LayoutHandler(LayoutManager):
         if (layout_dest.shape[axis[2]] % mpi_size == 0 and layout_source.shape[axis[1]] % mpi_size == 0):
             # If all blocks are the same shape with no padding then the
             # transposition can be carried out directly
-            destView[:] = np.transpose(bufView, transposition)
+            #destView[:] = np.transpose(bufView, transposition)
+            my_transpose(destView, bufView, transposition)
 
         else:
             for r in range(mpi_size):
@@ -831,8 +858,9 @@ class LayoutHandler(LayoutManager):
 
                 # Transpose the data. As the axes to be concatenated are the first dimension
                 # the concatenation is done automatically
-                destView[tuple(destRanges)] = np.transpose(
-                    bufView[tuple(bufRanges)], transposition)
+                #destView[tuple(destRanges)] = np.transpose(
+                #    bufView[tuple(bufRanges)], transposition)
+                my_transpose(destView[tuple(destRanges)], bufView[tuple(bufRanges)], transposition)
 
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -1300,7 +1328,8 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(sourceView, transposition)
+            #destView[:] = np.transpose(sourceView, transposition)
+            my_transpose(destView, sourceView, transposition)
 
         elif (dest_ndims > source_ndims):
             # If the source has fewer dimensions then the layout was not
@@ -1329,8 +1358,9 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(
-                sourceView[tuple(sourceSlice)], transposition)
+            #destView[:] = np.transpose(
+            #    sourceView[tuple(sourceSlice)], transposition)
+            my_transpose(destView, sourceView, transposition)
 
         else:
             # Find the axis which will be distributed
@@ -1379,7 +1409,8 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b, [blockSize])[0].reshape(blockShape)
 
                 # Copy the block into the correct part of the memory
-                destView[tuple(slices)] = np.transpose(block, transposition)
+                #destView[tuple(slices)] = np.transpose(block, transposition)
+                my_transpose(destView[tuple(slices)], block, transposition)
 
             # The data now resides on the wrong memory chunk and must be copied
             dest[:] = source[:]
@@ -1407,7 +1438,8 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(sourceView, transposition)
+            #destView[:] = np.transpose(sourceView, transposition)
+            my_transpose(destView, sourceView, transposition)
 
         elif (dest_ndims > source_ndims):
             # If the source has fewer dimensions then the layout was not
@@ -1436,8 +1468,9 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(
-                sourceView[tuple(sourceSlice)], transposition)
+            #destView[:] = np.transpose(
+            #    sourceView[tuple(sourceSlice)], transposition)
+            my_transpose(destView, sourceView[tuple(sourceSlice)], transposition)
         else:
             # Find the axis which will be distributed
             idx_d, idx_s = self.getAxes(layout_dest, layout_source)
@@ -1485,7 +1518,8 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b, [blockSize])[0].reshape(blockShape)
 
                 # Copy the block into the correct part of the memory
-                destView[tuple(slices)] = np.transpose(block, transposition)
+                #destView[tuple(slices)] = np.transpose(block, transposition)
+                my_transpose(destView[tuple(slices)], block, transposition)
 
     def _transposeRedirect(self, source, dest, source_name, dest_name):
         """
