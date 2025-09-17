@@ -1,3 +1,6 @@
+"""
+Plot the 4D distribution function (loaded from file or with default initialisation) using MPI.
+"""
 import argparse
 import os
 from mpi4py import MPI
