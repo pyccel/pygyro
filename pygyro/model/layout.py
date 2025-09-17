@@ -10,10 +10,11 @@ import torch
 from abc import ABC
 
 def my_transpose(dest, source, axes):
-    if axes == tuple(range(len(axes))):
+    if axes == list(range(len(axes))):
         dest[:] = source
     else:
         #print(axes, source.shape, dest.shape, source.size, dest.size)
+        #assert tuple(source.shape[a] for a in axes) == dest.shape
         #print(source.flags)
         #print(dest.flags)
         #assert source.flags['C_CONTIGUOUS'] or source.flags['F_CONTIGUOUS']
@@ -897,7 +898,7 @@ class LayoutHandler(LayoutManager):
                 # the concatenation is done automatically
                 #destView[tuple(destRanges)] = np.transpose(
                 #    bufView[tuple(bufRanges)], transposition)
-                dest_block = np.empty(blockShape, dtype=destView.dtype)
+                dest_block = np.empty(destView[tuple(destRanges)].shape, dtype=destView.dtype)
                 my_transpose(dest_block, np.ascontiguousarray(bufView[tuple(bufRanges)]), transposition)
                 destView[tuple(destRanges)] = dest_block
 
@@ -1402,7 +1403,7 @@ class LayoutSwapper(LayoutManager):
             # Copy the relevant information
             #destView[:] = np.transpose(
             #    sourceView[tuple(sourceSlice)], transposition)
-            my_transpose(destView, sourceView, transposition)
+            my_transpose(destView, np.ascontiguousarray(sourceView[tuple(sourceSlice)]), transposition)
 
         else:
             # Find the axis which will be distributed
@@ -1452,7 +1453,7 @@ class LayoutSwapper(LayoutManager):
 
                 # Copy the block into the correct part of the memory
                 #destView[tuple(slices)] = np.transpose(block, transposition)
-                dest_block = np.empty(blockShape, dtype=destView.dtype)
+                dest_block = np.empty(destView[tuple(slices)].shape, dtype=destView.dtype)
                 my_transpose(dest_block, block, transposition)
                 destView[tuple(slices)] = dest_block
 
@@ -1563,7 +1564,7 @@ class LayoutSwapper(LayoutManager):
 
                 # Copy the block into the correct part of the memory
                 #destView[tuple(slices)] = np.transpose(block, transposition)
-                dest_block = np.empty(blockShape, dtype=destView.dtype)
+                dest_block = np.empty(destView[tuple(slices)].shape, dtype=destView.dtype)
                 my_transpose(dest_block, block, transposition)
                 destView[tuple(slices)] = dest_block
 
