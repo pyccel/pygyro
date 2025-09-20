@@ -4,6 +4,7 @@ from numpy import empty
 
 CoeffType = TypeVar('CoeffType', float, complex)
 
+
 @pure
 def nu_find_span(knots: 'Final[float[:]]', degree: 'int', x: 'float') -> int:
     """
@@ -235,10 +236,10 @@ def nu_eval_spline_2d_scalar(x: 'float', y: 'float', kts1: 'Final[float[:]]', de
     elif (der2 == 1):
         nu_basis_funs_1st_der(kts2, deg2, y, span2, basis2)
 
-    theCoeffs = empty((deg1+1, deg2+1), dtype=type(coeffs[0,0]))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(coeffs[0, 0]))
     theCoeffs[:, :] = coeffs[span1-deg1:span1+1, span2-deg2:span2+1]
 
-    z = 0.0*coeffs[0,0]
+    z = 0.0*coeffs[0, 0]
     for i in range(deg1+1):
         theCoeffs[i, 0] = theCoeffs[i, 0]*basis2[0]
         for j in range(1, deg2+1):
@@ -256,7 +257,7 @@ def nu_eval_spline_2d_cross(X: 'Final[float[:]]', Y: 'Final[float[:]]', kts1: 'F
     """
     basis1 = empty(deg1+1)
     basis2 = empty(deg2+1)
-    theCoeffs = empty((deg1+1, deg2+1), dtype=type(z[0,0]))
+    theCoeffs = empty((deg1+1, deg2+1), dtype=type(z[0, 0]))
 
     if (der1 == 0 and der2 == 0):
         for i, x in enumerate(X):

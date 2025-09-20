@@ -15,8 +15,9 @@ __all__ = ['make_knots', 'BSplines', 'Spline1D', 'Spline1DComplex', 'Spline2D']
 
 # ===============================================================================
 
+
 @allow_negative_index('breaks', 'T')
-def make_knots(breaks : 'Final[float[:]]', degree : Final[int], periodic : Final[bool]):
+def make_knots(breaks: 'Final[float[:]]', degree: Final[int], periodic: Final[bool]):
     """
     Create spline knots from breakpoints, with appropriate boundary conditions.
     Let p be spline degree. If domain is periodic, knot sequence is extended
@@ -47,7 +48,7 @@ def make_knots(breaks : 'Final[float[:]]', degree : Final[int], periodic : Final
 
     # Consistency checks
     assert len(breaks) > 1
-    #assert all(np.diff(breaks) > 0)
+    # assert all(np.diff(breaks) > 0)
     assert degree > 0
     if periodic:
         assert len(breaks) > degree
@@ -96,7 +97,7 @@ class BSplines():
     """
 
     @allow_negative_index('knots')
-    def __init__(self, knots : 'float[:]', degree : int, periodic : bool, uniform : bool):
+    def __init__(self, knots: 'float[:]', degree: int, periodic: bool, uniform: bool):
         xmin = knots[degree]
         xmax = knots[-degree-1]
         dx = knots[degree+1]-knots[degree]
@@ -126,10 +127,11 @@ class BSplines():
                 self._interp_pts = np.empty(self._nbasis)
                 self._interp_pts[0] = xmin
                 self._interp_pts[1] = xmin+dx/3
-                self._interp_pts[2:-2] = [xmin + dx*i for i in range(1, self._nbasis-3)]
+                self._interp_pts[2:-2] = [xmin + dx *
+                                          i for i in range(1, self._nbasis-3)]
                 self._interp_pts[-2] = xmax-dx/3
                 self._interp_pts[-1] = xmax
-                #self._interp_pts = np.array([xmin,
+                # self._interp_pts = np.array([xmin,
                 #                            xmin+dx/3,
                 #                            *np.linspace(xmin+dx, xmax-dx, self._nbasis-4),
                 #                            xmax-dx/3,
@@ -179,8 +181,8 @@ class BSplines():
             p = self._degree
             return np.array(self._knots[p:n-p])
 
-    #@property
-    #def domain(self):
+    # @property
+    # def domain(self):
     #    """ Domain boundaries [a,b].
     #    """
     #    breaks = self.breaks
@@ -206,10 +208,10 @@ class BSplines():
             if self._periodic:
                 a = self.breaks[0]
                 b = self.breaks[-1]
-                #x = np.around(x, decimals=15)
+                # x = np.around(x, decimals=15)
                 x[:] = (x-a) % (b-a) + a
 
-            #return np.around(x, decimals=15)
+            # return np.around(x, decimals=15)
             return x
 
     @property
@@ -217,7 +219,7 @@ class BSplines():
         return self._integrals
 
     # ...
-    def __getitem__(self, i : int):
+    def __getitem__(self, i: int):
         """
         Get the i-th basis function as a 1D spline.
 
@@ -271,7 +273,7 @@ class BSplines():
             knots[0] = self.knots[0]
             knots[1:-1] = self.knots
             knots[-1] = self.knots[-1]
-            #knots = np.array([self.knots[0], *self.knots, self.knots[-1]])
+            # knots = np.array([self.knots[0], *self.knots, self.knots[-1]])
             values = np.empty(d+2)
 
             for i in range(n):
@@ -314,7 +316,7 @@ class Spline1D():
     TODO
     """
 
-    def __init__(self, basis : BSplines):
+    def __init__(self, basis: BSplines):
         assert isinstance(basis, BSplines)
         self._basis = basis
         self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=float)
@@ -333,7 +335,7 @@ class Spline1D():
         """
         return self._coeffs
 
-    def eval(self, x : float, der : int = 0):
+    def eval(self, x: float, der: int = 0):
         """
         TODO
         """
@@ -350,7 +352,7 @@ class Spline1D():
         return splev( x, tck, der )
         """
 
-    def eval_vector(self, x : 'Final[float[:]]', y : 'float[:]', der : int=0):
+    def eval_vector(self, x: 'Final[float[:]]', y: 'float[:]', der: int = 0):
         """
         TODO
         """
@@ -361,15 +363,17 @@ class Spline1D():
             nu_eval_spline_1d_vector(x, self._basis.knots,
                                      self._basis.degree, self._coeffs, y, der)
 
+
 class Spline1DComplex():
     """
     TODO
     """
 
-    def __init__(self, basis : BSplines):
+    def __init__(self, basis: BSplines):
         assert isinstance(basis, BSplines)
         self._basis = basis
-        self._coeffs = np.zeros(basis.ncells + basis.degree, dtype=np.complex128)
+        self._coeffs = np.zeros(
+            basis.ncells + basis.degree, dtype=np.complex128)
 
     @property
     def basis(self):
@@ -385,7 +389,7 @@ class Spline1DComplex():
         """
         return self._coeffs
 
-    def eval(self, x : float, der : int = 0):
+    def eval(self, x: float, der: int = 0):
         """
         TODO
         """
@@ -402,7 +406,7 @@ class Spline1DComplex():
         return splev( x, tck, der )
         """
 
-    def eval_vector(self, x : 'Final[float[:]]', y : 'complex[:]', der : int=0):
+    def eval_vector(self, x: 'Final[float[:]]', y: 'complex[:]', der: int = 0):
         """
         TODO
         """
@@ -421,7 +425,7 @@ class Spline2D():
     TODO
     """
 
-    def __init__(self, basis1 : BSplines, basis2 : BSplines):
+    def __init__(self, basis1: BSplines, basis2: BSplines):
         assert isinstance(basis1, BSplines)
         assert isinstance(basis2, BSplines)
         shape = (basis1.ncells + basis1.degree, basis2.ncells + basis2.degree)
@@ -454,7 +458,7 @@ class Spline2D():
         """
         return self._coeffs
 
-    def eval(self, x1 : float, x2 : float, der1 : int=0, der2 : int=0):
+    def eval(self, x1: float, x2: float, der1: int = 0, der2: int = 0):
         """
         TODO
         """
@@ -479,7 +483,7 @@ class Spline2D():
         return bisplev( x1, x2, tck, der1, der2 )
         """
 
-    def eval_vector(self, x1 : 'Final[float[:]]', x2 : 'Final[float[:]]', y : 'float[:,:]', der1 : int=0, der2 : int=0):
+    def eval_vector(self, x1: 'Final[float[:]]', x2: 'Final[float[:]]', y: 'float[:,:]', der1: int = 0, der2: int = 0):
         """
         TODO
         """

@@ -5,14 +5,14 @@ from ..initialisation.initialiser_funcs import f_eq
 
 
 def poloidal_advection_step_expl(f: 'float[:,:]',
-                                         dt: 'float', v: 'float',
-                                         rPts: 'Final[float[:]]', qPts: 'Final[float[:]]',
-                                         drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]',
-                                         drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
-                                         endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
-                                         phi_spline : Spline2D, pol_spline : Spline2D,
-                                         CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float',
-                                         kTi: 'float', deltaRTi: 'float', B0: 'float', nulBound: 'bool'):
+                                 dt: 'float', v: 'float',
+                                 rPts: 'Final[float[:]]', qPts: 'Final[float[:]]',
+                                 drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]',
+                                 drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
+                                 endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
+                                 phi_spline: Spline2D, pol_spline: Spline2D,
+                                 CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float',
+                                 kTi: 'float', deltaRTi: 'float', B0: 'float', nulBound: 'bool'):
     """
     Carry out an advection step for the poloidal advection
 
@@ -64,11 +64,11 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                 # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                 #                               ^^^^^^^^^^^^^^^
                 drPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j],
-                                                      0, 1)
+                                                0, 1)
                 drPhi_k[i, j] /= endPts_k1_r[i, j]
 
                 dthetaPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j],
-                                                          1, 0)
+                                                    1, 0)
                 dthetaPhi_k[i, j] /= endPts_k1_r[i, j]
             else:
                 drPhi_k[i, j] = 0.0
@@ -92,7 +92,8 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                     f[i, j] = 0.0
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
+                    f[i, j] = pol_spline.eval(
+                        endPts_k2_q[i, j], endPts_k2_r[i, j])
     else:
         for i in range(nPts_q):  # theta
             for j in range(nPts_r):  # r
@@ -104,14 +105,15 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
                                    deltaRN0, rp, CTi, kTi, deltaRTi)
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
+                    f[i, j] = pol_spline.eval(
+                        endPts_k2_q[i, j], endPts_k2_r[i, j])
 
 
 def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
-                                           rPos: 'float', vMin: 'float', vMax: 'float',
-                                           spl : Spline1D,
-                                           CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
-                                           CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
+                                   rPos: 'float', vMin: 'float', vMax: 'float',
+                                   spl: Spline1D,
+                                   CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float',
+                                   CTi: 'float', kTi: 'float', deltaRTi: 'float', bound: 'int'):
     """
     TODO
     """
@@ -140,8 +142,8 @@ def v_parallel_advection_eval_step(f: 'float[:]', vPts: 'float[:]',
 
 
 def get_lagrange_vals(i: 'int', shifts: 'int[:]',
-                              vals: 'float[:,:,:]', qVals: 'float[:]',
-                              thetaShifts: 'float[:]', spl : Spline1D):
+                      vals: 'float[:,:,:]', qVals: 'float[:]',
+                      thetaShifts: 'float[:]', spl: Spline1D):
     """
     TODO
     """
@@ -169,11 +171,11 @@ def flux_advection(nq: 'int', nr: 'int',
 
 
 def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts: 'float[:]', qPts: 'float[:]',
-                                         drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
-                                         endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
-                                         phi_spline : Spline2D, pol_spline : Spline2D,
-                                         CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
-                                         B0: 'float', tol: 'float', nulBound: 'bool'):
+                                 drPhi_0: 'float[:,:]', dthetaPhi_0: 'float[:,:]', drPhi_k: 'float[:,:]', dthetaPhi_k: 'float[:,:]',
+                                 endPts_k1_q: 'float[:,:]', endPts_k1_r: 'float[:,:]', endPts_k2_q: 'float[:,:]', endPts_k2_r: 'float[:,:]',
+                                 phi_spline: Spline2D, pol_spline: Spline2D,
+                                 CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
+                                 B0: 'float', tol: 'float', nulBound: 'bool'):
     """
     Carry out an advection step for the poloidal advection
 
@@ -230,9 +232,11 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                     # Add the new value of phi to the derivatives
                     # x^{n+1} = x^n + 0.5( f(x^n) + f(x^n + f(x^n)) )
                     #                               ^^^^^^^^^^^^^^^
-                    drPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j], 0, 1)
+                    drPhi_k[i, j] = phi_spline.eval(
+                        endPts_k1_q[i, j], endPts_k1_r[i, j], 0, 1)
                     drPhi_k[i, j] /= endPts_k1_r[i, j]
-                    dthetaPhi_k[i, j] = phi_spline.eval(endPts_k1_q[i, j], endPts_k1_r[i, j], 1, 0)
+                    dthetaPhi_k[i, j] = phi_spline.eval(
+                        endPts_k1_q[i, j], endPts_k1_r[i, j], 1, 0)
                     dthetaPhi_k[i, j] /= endPts_k1_r[i, j]
                 else:
                     drPhi_k[i, j] = 0.0
@@ -275,7 +279,8 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                     f[i, j] = 0.0
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
+                    f[i, j] = pol_spline.eval(
+                        endPts_k2_q[i, j], endPts_k2_r[i, j])
     else:
         for i in range(nPts_q):
             for j in range(nPts_r):
@@ -287,4 +292,5 @@ def poloidal_advection_step_impl(f: 'float[:,:]', dt: 'float', v: 'float', rPts:
                                    deltaRN0, rp, CTi, kTi, deltaRTi)
                 else:
                     endPts_k2_q[i, j] = endPts_k2_q[i, j] % (2*pi)
-                    f[i, j] = pol_spline.eval(endPts_k2_q[i, j], endPts_k2_r[i, j])
+                    f[i, j] = pol_spline.eval(
+                        endPts_k2_q[i, j], endPts_k2_r[i, j])
