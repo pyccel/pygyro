@@ -364,17 +364,20 @@ def main():
 
     MPI.COMM_WORLD.Barrier()
 
-    timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv))
+    mpi_time = distribFunc._layout_manager._mpi_time
+    transp_time = distribFunc._layout_manager._transpose_time - mpi_time
+
+    timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv, transp_time))
     with open(f"{foldername}/timing/{MPI.COMM_WORLD.Get_size()}_l2Test{rank}.txt", "w") as timing_file:
-        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther, full_loop_time, output_time, setup_time, diagnostic_time):
+        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, transp_time, mpi_time, timeOther, full_loop_time, output_time, setup_time, diagnostic_time):
             print(f"{t:16.10e}   ", end="", file=timing_file)
         print(file=timing_file)
 
     if rank == 0:
         print("Timings")
         print("-------")
-        print("QN  | Flux | vPar | Pol | Other | Total")
-        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, timeOther):
+        print("QN  | Flux | vPar | Pol | MPI | transpOther | Total")
+        for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, mpi_time, transp_time, timeOther):
             print(round(t / full_loop_time, 3), end=' | ')
         print(1)
         print()
