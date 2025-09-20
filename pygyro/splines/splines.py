@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright 2018 Yaman Güçlü
 from pyccel.decorators import allow_negative_index
-from typing import TypeVar, Final
+from typing import Final
 
 import numpy as np
 # from scipy.interpolate  import splev, bisplev
