@@ -818,7 +818,9 @@ class LayoutHandler(LayoutManager):
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            my_transpose(arrView, np.ascontiguousarray(source[tuple(source_range)]), order)
+            dest_block = np.empty(arrView.shape, dtype=arrView.dtype)
+            my_transpose(dest_block, np.ascontiguousarray(source[tuple(source_range)]), order)
+            arrView[:] = dest_block
             #arrView[:] = source[tuple(source_range)].transpose(order)
 
             start += size
