@@ -12,5 +12,5 @@ runs:
       run: |
         cd selalib
         cmake -B build .
-        cmake --build build -j sll_splines
+        cmake --build build -j 4 sll_splines
 
