@@ -345,7 +345,7 @@ class Spline1D():
         return self._coeffs
 
     @pure
-    def eval(self : 'Final[Spline1D]', x : float, der : int = 0):
+    def eval(self: 'Final[Spline1D]', x: float, der: int = 0):
         """
         TODO
         """
@@ -402,7 +402,7 @@ class Spline1DComplex():
         return self._coeffs
 
     @pure
-    def eval(self : 'Final[Spline1DComplex]', x : float, der : int = 0):
+    def eval(self: 'Final[Spline1DComplex]', x: float, der: int = 0):
         """
         TODO
         """
@@ -475,7 +475,7 @@ class Spline2D():
         return self._coeffs
 
     @pure
-    def eval(self : 'Final[Spline2D]', x1 : float, x2 : float, der1 : int=0, der2 : int=0):
+    def eval(self: 'Final[Spline2D]', x1: float, x2: float, der1: int = 0, der2: int = 0):
         """
         TODO
         """
