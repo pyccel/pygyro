@@ -25,7 +25,7 @@ def get_perturbed_rho(rho: T, feq: 'float[:,:]', grid: 'float[:,:,:,:]',
 
     nc, = quad_coeffs.shape
 
-    # $omp parallel for collapse(3)
+    #$omp parallel for collapse(3)
     for i in range(n):
         for j in range(m):
             for k in range(p):
@@ -54,7 +54,7 @@ def get_rho(rho: T, grid: 'float[:,:,:,:]', quad_coeffs: 'float[:]'):
 
     nc, = quad_coeffs.shape
 
-    # $omp parallel for collapse(3)
+    #$omp parallel for collapse(3)
     for i in range(n):
         for j in range(m):
             for k in range(p):
