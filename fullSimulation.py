@@ -367,7 +367,7 @@ def main():
     mpi_time = distribFunc._layout_manager._mpi_time
     transp_time = distribFunc._layout_manager._transpose_time - mpi_time
 
-    timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv, transp_time))
+    timeOther = full_loop_time - sum((timeQN, timeFluxAdv, timevParAdv, timePolAdv, transp_time, mpi_time))
     with open(f"{foldername}/timing/{MPI.COMM_WORLD.Get_size()}_l2Test{rank}.txt", "w") as timing_file:
         for t in (timeQN, timeFluxAdv, timevParAdv, timePolAdv, transp_time, mpi_time, timeOther, full_loop_time, output_time, setup_time, diagnostic_time):
             print(f"{t:16.10e}   ", end="", file=timing_file)
