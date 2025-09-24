@@ -1,7 +1,7 @@
 from typing import TypeVar, Final
 import numpy as np
 from pyccel.stdlib.internal.lapack import dgbtrs, zgbtrs
-from .splines import Spline1D, Spline2D, BSplines
+from .splines import Spline1D, BSplines
 from .sll_m_spline_matrix_periodic_banded import PeriodicBandedMatrix
 
 T = TypeVar('T', float, complex)
