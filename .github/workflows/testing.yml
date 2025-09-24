@@ -2,9 +2,29 @@ name: Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
+    paths:
+      - 'pygyro/**'
+      - 'plotting/**'
+      - 'setup.py'
+      - 'pytest.ini'
+      - 'mpi_tester.py'
+
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - 'pygyro/**'
+      - 'plotting/**'
+      - 'setup.py'
+      - 'pytest.ini'
+      - 'mpi_tester.py'
+
+  workflow_dispatch:
 
 jobs:
 

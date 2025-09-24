@@ -624,7 +624,7 @@ def test_Phi_deriv_dz(phiOrder, zOrder):
 
         err = approxGrad-exactGrad
 
-        l2[i] = np.sqrt(np.trapezoid(np.trapezoid(err**2, dx=dz), dx=dtheta))
+        l2[i] = np.sqrt(trapezoid(trapezoid(err**2, dx=dz), dx=dtheta))
         linf[i] = np.linalg.norm(err.flatten(), np.inf)
 
         npts[1] *= 2
