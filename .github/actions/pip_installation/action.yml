@@ -14,8 +14,18 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-              export CC="mpicc" HDF5_MPI="ON"
-              python -m pip install -r requirements.txt
-              python -m pip install numba
-              python -m pip install pythran
-
+        export CC="mpicc" HDF5_MPI="ON"
+        python -m pip install -r requirements.txt
+        python -m pip install numba
+        python -m pip install pythran
+    - uses: actions/checkout@v5
+      with:
+        repository: EmilyBourne/hptt
+        path: hptt
+    - name: Install hptt
+      shell: bash
+      run: |
+        cd hptt
+        make -j
+        cd pythonAPI
+        python -m pip install .

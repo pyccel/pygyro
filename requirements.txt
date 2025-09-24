@@ -5,7 +5,7 @@ pytest>=2.8.7
 mpi4py>=3.0.0
 h5py>=2.8.0
 git+https://github.com/pyccel/pyccel.git@supercomputing
-git+https://github.com/EmilyBourne/hptt.git@master
+#git+https://github.com/EmilyBourne/hptt.git@master
 #pyccel>=2.0.0
 
 # h5py must be built from source using MPI compiler
