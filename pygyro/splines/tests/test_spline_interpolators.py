@@ -283,3 +283,54 @@ def test_SplineInterpolator2D_cosine(ncells, degree, periodic1, periodic2):
         breaks1).max(), np.diff(breaks2).max(), deg1, deg2)
 
     assert max_norm_err < err_bound
+
+# ===============================================================================
+
+
+@pytest.mark.parametrize("ncells", [10, 20, 40, 80, 160])
+@pytest.mark.parametrize("degree", range(1, 5))
+def test_SplineInterpolator2D_radial(ncells, degree):
+    """
+    TODO
+    """
+    periodic1 = True
+    periodic2 = False
+
+    nc1 = nc2 = ncells
+    deg1 = deg2 = degree
+
+    f = AnalyticalProfile1D_Cos()
+    poly = AnalyticalProfile1D_Poly(degree)
+    domain1 = f.domain
+    domain2 = poly.domain
+
+    # Along x1
+    breaks1 = random_grid(domain1, nc1, 0.0)
+    knots1 = make_knots(breaks1, deg1, periodic1)
+    basis1 = BSplines(knots1, deg1, periodic1, False)
+
+    # Along x2
+    breaks2 = random_grid(domain2, nc2, 0.0)
+    knots2 = make_knots(breaks2, deg2, periodic2)
+    basis2 = BSplines(knots2, deg2, periodic2, False)
+
+    # 2D spline and interpolator on tensor-product space
+    spline = Spline2D(basis1, basis2)
+    interp = SplineInterpolator2D(basis1, basis2)
+
+    x1g = basis1.greville
+    x2g = basis2.greville
+    ug = f.eval(x1g)[:, None] * poly.eval(x2g)[None,:]
+
+    interp.compute_interpolant(ug, spline)
+
+    x1t = np.linspace(*domain1, num=20)
+    x2t = np.linspace(*domain2, num=20)
+    vals = np.empty((20, 20))
+    spline.eval_vector(x1t, x2t, vals)
+    err = vals - f.eval(x1t)[:, None] * poly.eval(x2t)[None,:]
+
+    max_norm_err = np.max(abs(err))
+    err_bound = spline_1d_error_bound(f, max(np.diff(breaks1).max(), np.diff(breaks2).max()), degree)
+
+    assert max_norm_err < err_bound
