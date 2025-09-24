@@ -3,9 +3,7 @@ import numpy as np
 import warnings
 import operator
 import time
-#from .accelerated_layout import flat_transpose
 import hptt
-import torch
 
 from abc import ABC
 
