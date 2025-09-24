@@ -1,0 +1,16 @@
+name: 'SeLaLib installation'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v5
+      with:
+        repository: selalib/selalib
+        path: selalib
+    - name: Compile SeLaLib
+      shell: bash
+      run: |
+        cd selalib
+        cmake -B build .
+        cmake --build build -j sll_splines
+
