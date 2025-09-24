@@ -2,8 +2,17 @@ from mpi4py import MPI
 import numpy as np
 import warnings
 import operator
+import time
+import hptt
 
 from abc import ABC
+
+
+def my_transpose(dest, source, axes):
+    if axes == list(range(len(axes))):
+        dest[:] = source
+    else:
+        hptt.tensorTransposeAndUpdate(axes, 1.0, source, 0.0, dest)
 
 
 class Layout:
@@ -427,6 +436,8 @@ class LayoutHandler(LayoutManager):
             self._shapes.append((name, new_layout.shape))
         self._layouts = dict(layoutObjects)
         self.nLayouts = len(self._layouts)
+        self._mpi_time = 0
+        self._transpose_time = 0
 
         # Initialise the buffer size before the loop
         self._buffer_size = layoutObjects[0][1].size
@@ -513,6 +524,7 @@ class LayoutHandler(LayoutManager):
         source and dest are assumed to not overlap in memory
 
         """
+        start_time = time.time()
         # If this thread is only here for plotting purposes then ignore the command
         if (self._buffer_size == 0):
             return
@@ -549,6 +561,7 @@ class LayoutHandler(LayoutManager):
             else:
                 self._transposeRedirect_source_intact(
                     source, dest, buf, source_name, dest_name)
+        self._transpose_time += (time.time() - start_time)
 
     def _transposeRedirect(self, source, dest, source_name, dest_name):
         """
@@ -644,7 +657,8 @@ class LayoutHandler(LayoutManager):
 
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
-            destView[:] = np.transpose(sourceView, transposition)
+            my_transpose(destView, sourceView, transposition)
+            # destView[:] = np.transpose(sourceView, transposition)
 
             return
 
@@ -662,8 +676,12 @@ class LayoutHandler(LayoutManager):
         TODO
         """
         # get views of the important parts of the data
+        assert source.flags['C_CONTIGUOUS'] or source.flags['F_CONTIGUOUS']
+        assert np.split(source, [layout_source.size])[0].flags['C_CONTIGUOUS'] or np.split(
+            source, [layout_source.size])[0].flags['F_CONTIGUOUS']
         sourceView = np.split(source, [layout_source.size])[
             0].reshape(layout_source.shape)
+        assert sourceView.flags['C_CONTIGUOUS'] or sourceView.flags['F_CONTIGUOUS']
 
         # get axis information
         axis = self._get_swap_axes(layout_source, layout_dest)
@@ -674,7 +692,8 @@ class LayoutHandler(LayoutManager):
                 0].reshape(layout_dest  .shape)
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
-            dest[:] = np.transpose(sourceView, transposition)
+            my_transpose(dest, sourceView, transposition)
+            # dest[:] = np.transpose(sourceView, transposition)
             return
 
         # carry out transpose
@@ -756,12 +775,15 @@ class LayoutHandler(LayoutManager):
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            arrView[:] = source[tuple(source_range)].transpose(order)
+            dest_block = np.empty(arrView.shape, dtype=arrView.dtype)
+            my_transpose(dest_block, np.ascontiguousarray(
+                source[tuple(source_range)]), order)
+            arrView[:] = dest_block
+            # arrView[:] = source[tuple(source_range)].transpose(order)
 
             start += size
 
-    @staticmethod
-    def _rearrange_from_buffer(data, buf, layout_source: Layout,
+    def _rearrange_from_buffer(self, data, buf, layout_source: Layout,
                                layout_dest: Layout, axis: list, comm: MPI.Comm):
         """
         Swap the axes of the blocks
@@ -785,7 +807,9 @@ class LayoutHandler(LayoutManager):
         rcvBuf = np.split(buf, [size], axis=0)[0]
         assert rcvBuf.base is buf
 
+        start_time = time.time()
         comm.Alltoall(sendBuf, rcvBuf)
+        self._mpi_time += time.time() - start_time
 
         source_order = list(layout_source.dims_order)
 
@@ -810,7 +834,8 @@ class LayoutHandler(LayoutManager):
         if (layout_dest.shape[axis[2]] % mpi_size == 0 and layout_source.shape[axis[1]] % mpi_size == 0):
             # If all blocks are the same shape with no padding then the
             # transposition can be carried out directly
-            destView[:] = np.transpose(bufView, transposition)
+            # destView[:] = np.transpose(bufView, transposition)
+            my_transpose(destView, bufView, transposition)
 
         else:
             for r in range(mpi_size):
@@ -831,8 +856,13 @@ class LayoutHandler(LayoutManager):
 
                 # Transpose the data. As the axes to be concatenated are the first dimension
                 # the concatenation is done automatically
-                destView[tuple(destRanges)] = np.transpose(
-                    bufView[tuple(bufRanges)], transposition)
+                # destView[tuple(destRanges)] = np.transpose(
+                #    bufView[tuple(bufRanges)], transposition)
+                dest_block = np.empty(
+                    destView[tuple(destRanges)].shape, dtype=destView.dtype)
+                my_transpose(dest_block, np.ascontiguousarray(
+                    bufView[tuple(bufRanges)]), transposition)
+                destView[tuple(destRanges)] = dest_block
 
     def compatible(self, l1: Layout, l2: Layout):
         """
@@ -932,6 +962,7 @@ class LayoutSwapper(LayoutManager):
             enumerate(self._nDims), key=operator.itemgetter(1))
 
         self._totProcs = np.prod(nprocs[self._largestLayoutManager])
+        self._transpose_time = 0
 
         # Get a list of the distribution pattern for each layout type
         self._nprocs = []
@@ -1240,6 +1271,7 @@ class LayoutSwapper(LayoutManager):
         source and dest are assumed to not overlap in memory
 
         """
+        start_time = time.time()
         # If this thread is only here for plotting purposes then ignore the command
         if (self._buffer_size == 0):
             return
@@ -1276,6 +1308,7 @@ class LayoutSwapper(LayoutManager):
                 self._transposeRedirect_source_intact(
                     source, dest, buf, source_name, dest_name)
         self._current_manager = self._managers[self._handlers[dest_name]]
+        self._transpose_time += (time.time() - start_time)
 
     def _transpose(self, source, dest, layout_source: Layout, layout_dest: Layout):
         """
@@ -1300,7 +1333,8 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(sourceView, transposition)
+            # destView[:] = np.transpose(sourceView, transposition)
+            my_transpose(destView, sourceView, transposition)
 
         elif (dest_ndims > source_ndims):
             # If the source has fewer dimensions then the layout was not
@@ -1329,8 +1363,10 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(
-                sourceView[tuple(sourceSlice)], transposition)
+            # destView[:] = np.transpose(
+            #    sourceView[tuple(sourceSlice)], transposition)
+            my_transpose(destView, np.ascontiguousarray(
+                sourceView[tuple(sourceSlice)]), transposition)
 
         else:
             # Find the axis which will be distributed
@@ -1379,7 +1415,11 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b, [blockSize])[0].reshape(blockShape)
 
                 # Copy the block into the correct part of the memory
-                destView[tuple(slices)] = np.transpose(block, transposition)
+                # destView[tuple(slices)] = np.transpose(block, transposition)
+                dest_block = np.empty(
+                    destView[tuple(slices)].shape, dtype=destView.dtype)
+                my_transpose(dest_block, block, transposition)
+                destView[tuple(slices)] = dest_block
 
             # The data now resides on the wrong memory chunk and must be copied
             dest[:] = source[:]
@@ -1407,7 +1447,8 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(sourceView, transposition)
+            # destView[:] = np.transpose(sourceView, transposition)
+            my_transpose(destView, sourceView, transposition)
 
         elif (dest_ndims > source_ndims):
             # If the source has fewer dimensions then the layout was not
@@ -1436,8 +1477,10 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            destView[:] = np.transpose(
-                sourceView[tuple(sourceSlice)], transposition)
+            # destView[:] = np.transpose(
+            #    sourceView[tuple(sourceSlice)], transposition)
+            my_transpose(destView, np.ascontiguousarray(
+                sourceView[tuple(sourceSlice)]), transposition)
         else:
             # Find the axis which will be distributed
             idx_d, idx_s = self.getAxes(layout_dest, layout_source)
@@ -1485,7 +1528,11 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b, [blockSize])[0].reshape(blockShape)
 
                 # Copy the block into the correct part of the memory
-                destView[tuple(slices)] = np.transpose(block, transposition)
+                # destView[tuple(slices)] = np.transpose(block, transposition)
+                dest_block = np.empty(
+                    destView[tuple(slices)].shape, dtype=destView.dtype)
+                my_transpose(dest_block, block, transposition)
+                destView[tuple(slices)] = dest_block
 
     def _transposeRedirect(self, source, dest, source_name, dest_name):
         """
