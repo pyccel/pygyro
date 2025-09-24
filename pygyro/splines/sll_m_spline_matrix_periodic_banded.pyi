@@ -1,4 +1,4 @@
-#$ header metavar includes="../../../selalib/build/modules"
+#$ header metavar includes="../../selalib/build/modules"
 #$ header metavar libraries="sll_splines,pppack,sll_errors,sll_assert"
 #$ header metavar libdirs="../../selalib/build/src/splines/splines_basic/,../../selalib/build/external/pppack/,../../selalib/build/src/low_level_utilities/errors/,../../selalib/build/src/low_level_utilities/assert/"
 #$ header metavar no_target=True
