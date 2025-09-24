@@ -126,11 +126,11 @@ def test_OddLayoutPaths():
     assert layout1.name == '0123'
     layout2 = remapper.getLayout('1230')
 
-    fStart = np.empty(remapper.bufferSize, int)
+    fStart = np.empty(remapper.bufferSize, complex)
     fStart[:] = -1
-    fEnd = np.empty(remapper.bufferSize, int)
+    fEnd = np.empty(remapper.bufferSize, complex)
     fEnd[:] = -1
-    fBuf = np.empty(remapper.bufferSize, int)
+    fBuf = np.empty(remapper.bufferSize, complex)
     fBuf[:] = -1
     f1_s = np.split(fStart, [layout1.size])[0].reshape(layout1.shape)
     f2_s = np.split(fStart, [layout2.size])[0].reshape(layout2.shape)
