@@ -3,40 +3,41 @@ import numpy as np
 import warnings
 import operator
 import time
-#from .accelerated_layout import flat_transpose
+# from .accelerated_layout import flat_transpose
 from hptt import tensorTransposeAndUpdate
 import torch
 
 from abc import ABC
 
+
 def my_transpose(dest, source, axes):
     if axes == list(range(len(axes))):
         dest[:] = source
     else:
-        #print(axes, source.shape, dest.shape, source.size, dest.size)
-        #assert tuple(source.shape[a] for a in axes) == dest.shape
-        #print(source.flags)
-        #print(dest.flags)
-        #assert source.flags['C_CONTIGUOUS'] or source.flags['F_CONTIGUOUS']
-        #assert dest.flags['C_CONTIGUOUS'] or dest.flags['F_CONTIGUOUS']
+        # print(axes, source.shape, dest.shape, source.size, dest.size)
+        # assert tuple(source.shape[a] for a in axes) == dest.shape
+        # print(source.flags)
+        # print(dest.flags)
+        # assert source.flags['C_CONTIGUOUS'] or source.flags['F_CONTIGUOUS']
+        # assert dest.flags['C_CONTIGUOUS'] or dest.flags['F_CONTIGUOUS']
         tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
-    #s = time.time()
-    #dest[:] = source.transpose(axes)
-    #print("NumpyTranspose : ", time.time() - s)
+    # s = time.time()
+    # dest[:] = source.transpose(axes)
+    # print("NumpyTranspose : ", time.time() - s)
 
-    #s = time.time()
-    #new_shape = [source.shape[0]]
-    #idx = 0
-    #new_axes = [axes[0]]
-    #for i,a in enumerate(axes[1:],1):
+    # s = time.time()
+    # new_shape = [source.shape[0]]
+    # idx = 0
+    # new_axes = [axes[0]]
+    # for i,a in enumerate(axes[1:],1):
     #    if a == axes[i-1]+1:
     #        new_shape[-1] *= source.shape[i]
     #    else:
     #        new_shape.append(source.shape[i])
     #        new_axes.append(a)
-    #if len(new_shape) == 1:
+    # if len(new_shape) == 1:
     #    dest[:] = source
-    #else:
+    # else:
     #    new_axes = np.argsort(np.argsort(new_axes))
     #    dim1, dim2 = next((i,a) for i,a in enumerate(new_axes) if i!=a)
     #    print(new_shape, axes, new_axes)
@@ -46,17 +47,17 @@ def my_transpose(dest, source, axes):
     #    print(source.shape)
     #    print(dest.shape)
     #    dest[:] = torch.transpose(torch.from_numpy(source), int(dim1), int(dim2)).contiguous()
-    #print("Torch : ", time.time() - s)
-    #s = time.time()
-    #dest[:] = np.ascontiguousarray(source.transpose(axes))
-    #print("NumpyTransposeContig : ", time.time() - s)
-    ##print(source.shape, source.strides)
-    ##print(dest.shape, dest.strides)
-    ##print(source.flags)
-    ##print(dest.flags)
-    #s = time.time()
-    #tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
-    #print("HPTT Transpose : ", time.time() - s)
+    # print("Torch : ", time.time() - s)
+    # s = time.time()
+    # dest[:] = np.ascontiguousarray(source.transpose(axes))
+    # print("NumpyTransposeContig : ", time.time() - s)
+    # print(source.shape, source.strides)
+    # print(dest.shape, dest.strides)
+    # print(source.flags)
+    # print(dest.flags)
+    # s = time.time()
+    # tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
+    # print("HPTT Transpose : ", time.time() - s)
 
 
 class Layout:
@@ -702,7 +703,7 @@ class LayoutHandler(LayoutManager):
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
             my_transpose(destView, sourceView, transposition)
-            #destView[:] = np.transpose(sourceView, transposition)
+            # destView[:] = np.transpose(sourceView, transposition)
 
             return
 
@@ -721,7 +722,8 @@ class LayoutHandler(LayoutManager):
         """
         # get views of the important parts of the data
         assert source.flags['C_CONTIGUOUS'] or source.flags['F_CONTIGUOUS']
-        assert np.split(source, [layout_source.size])[0].flags['C_CONTIGUOUS'] or np.split(source, [layout_source.size])[0].flags['F_CONTIGUOUS']
+        assert np.split(source, [layout_source.size])[0].flags['C_CONTIGUOUS'] or np.split(
+            source, [layout_source.size])[0].flags['F_CONTIGUOUS']
         sourceView = np.split(source, [layout_source.size])[
             0].reshape(layout_source.shape)
         assert sourceView.flags['C_CONTIGUOUS'] or sourceView.flags['F_CONTIGUOUS']
@@ -736,7 +738,7 @@ class LayoutHandler(LayoutManager):
             transposition = [layout_source.dims_order.index(
                 i) for i in layout_dest.dims_order]
             my_transpose(dest, sourceView, transposition)
-            #dest[:] = np.transpose(sourceView, transposition)
+            # dest[:] = np.transpose(sourceView, transposition)
             return
 
         # carry out transpose
@@ -818,8 +820,9 @@ class LayoutHandler(LayoutManager):
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            my_transpose(arrView, np.ascontiguousarray(source[tuple(source_range)]), order)
-            #arrView[:] = source[tuple(source_range)].transpose(order)
+            my_transpose(arrView, np.ascontiguousarray(
+                source[tuple(source_range)]), order)
+            # arrView[:] = source[tuple(source_range)].transpose(order)
 
             start += size
 
@@ -874,7 +877,7 @@ class LayoutHandler(LayoutManager):
         if (layout_dest.shape[axis[2]] % mpi_size == 0 and layout_source.shape[axis[1]] % mpi_size == 0):
             # If all blocks are the same shape with no padding then the
             # transposition can be carried out directly
-            #destView[:] = np.transpose(bufView, transposition)
+            # destView[:] = np.transpose(bufView, transposition)
             my_transpose(destView, bufView, transposition)
 
         else:
@@ -896,10 +899,12 @@ class LayoutHandler(LayoutManager):
 
                 # Transpose the data. As the axes to be concatenated are the first dimension
                 # the concatenation is done automatically
-                #destView[tuple(destRanges)] = np.transpose(
+                # destView[tuple(destRanges)] = np.transpose(
                 #    bufView[tuple(bufRanges)], transposition)
-                dest_block = np.empty(destView[tuple(destRanges)].shape, dtype=destView.dtype)
-                my_transpose(dest_block, np.ascontiguousarray(bufView[tuple(bufRanges)]), transposition)
+                dest_block = np.empty(
+                    destView[tuple(destRanges)].shape, dtype=destView.dtype)
+                my_transpose(dest_block, np.ascontiguousarray(
+                    bufView[tuple(bufRanges)]), transposition)
                 destView[tuple(destRanges)] = dest_block
 
     def compatible(self, l1: Layout, l2: Layout):
@@ -1371,7 +1376,7 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            #destView[:] = np.transpose(sourceView, transposition)
+            # destView[:] = np.transpose(sourceView, transposition)
             my_transpose(destView, sourceView, transposition)
 
         elif (dest_ndims > source_ndims):
@@ -1401,9 +1406,10 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            #destView[:] = np.transpose(
+            # destView[:] = np.transpose(
             #    sourceView[tuple(sourceSlice)], transposition)
-            my_transpose(destView, np.ascontiguousarray(sourceView[tuple(sourceSlice)]), transposition)
+            my_transpose(destView, np.ascontiguousarray(
+                sourceView[tuple(sourceSlice)]), transposition)
 
         else:
             # Find the axis which will be distributed
@@ -1452,8 +1458,9 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b, [blockSize])[0].reshape(blockShape)
 
                 # Copy the block into the correct part of the memory
-                #destView[tuple(slices)] = np.transpose(block, transposition)
-                dest_block = np.empty(destView[tuple(slices)].shape, dtype=destView.dtype)
+                # destView[tuple(slices)] = np.transpose(block, transposition)
+                dest_block = np.empty(
+                    destView[tuple(slices)].shape, dtype=destView.dtype)
                 my_transpose(dest_block, block, transposition)
                 destView[tuple(slices)] = dest_block
 
@@ -1483,7 +1490,7 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            #destView[:] = np.transpose(sourceView, transposition)
+            # destView[:] = np.transpose(sourceView, transposition)
             my_transpose(destView, sourceView, transposition)
 
         elif (dest_ndims > source_ndims):
@@ -1513,9 +1520,10 @@ class LayoutSwapper(LayoutManager):
                 i) for i in layout_dest.dims_order]
 
             # Copy the relevant information
-            #destView[:] = np.transpose(
+            # destView[:] = np.transpose(
             #    sourceView[tuple(sourceSlice)], transposition)
-            my_transpose(destView, np.ascontiguousarray(sourceView[tuple(sourceSlice)]), transposition)
+            my_transpose(destView, np.ascontiguousarray(
+                sourceView[tuple(sourceSlice)]), transposition)
         else:
             # Find the axis which will be distributed
             idx_d, idx_s = self.getAxes(layout_dest, layout_source)
@@ -1563,8 +1571,9 @@ class LayoutSwapper(LayoutManager):
                 block = np.split(b, [blockSize])[0].reshape(blockShape)
 
                 # Copy the block into the correct part of the memory
-                #destView[tuple(slices)] = np.transpose(block, transposition)
-                dest_block = np.empty(destView[tuple(slices)].shape, dtype=destView.dtype)
+                # destView[tuple(slices)] = np.transpose(block, transposition)
+                dest_block = np.empty(
+                    destView[tuple(slices)].shape, dtype=destView.dtype)
                 my_transpose(dest_block, block, transposition)
                 destView[tuple(slices)] = dest_block
 

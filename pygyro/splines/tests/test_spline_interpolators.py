@@ -226,7 +226,7 @@ def test_SplineInterpolator2D_exact(nc1, nc2, deg1, deg2):
 
     x1t = np.linspace(*domain1, num=100)
     x2t = np.linspace(*domain2, num=100)
-    vals = np.empty((100,100))
+    vals = np.empty((100, 100))
     spline.eval_vector(x1t, x2t, vals)
     err = vals - f(*np.meshgrid(x1t, x2t, indexing='ij'))
 
@@ -274,7 +274,7 @@ def test_SplineInterpolator2D_cosine(ncells, degree, periodic1, periodic2):
 
     x1t = np.linspace(*domain1, num=20)
     x2t = np.linspace(*domain2, num=20)
-    vals = np.empty((20,20))
+    vals = np.empty((20, 20))
     spline.eval_vector(x1t, x2t, vals)
     err = vals - f.eval(np.meshgrid(x1t, x2t, indexing='ij'))
 

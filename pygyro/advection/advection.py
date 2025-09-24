@@ -281,8 +281,9 @@ class FluxSurfaceAdvection:
 
         # find the values of the function at each required point
         for i in range(self._nPoints[1]):
-            solve_system_periodic(f[:, i], self._thetaSpline, self._interpolator._offset, self._interpolator._splu)
-            #self._interpolator.compute_interpolant(f[:, i], self._thetaSpline)
+            solve_system_periodic(
+                f[:, i], self._thetaSpline, self._interpolator._offset, self._interpolator._splu)
+            # self._interpolator.compute_interpolant(f[:, i], self._thetaSpline)
 
             get_lagrange_vals(i, self._shifts[rIdx, cIdx],
                               self._LagrangeVals, self._points[0],
@@ -299,7 +300,7 @@ class FluxSurfaceAdvection:
                             self._interpolator._offset, self._interpolator._splu,
                             self._shifts, self._LagrangeVals, self._points[0],
                             self._thetaShifts, self._lagrangeCoeffs)
-        #for i, _ in grid.getCoords(0):  # r
+        # for i, _ in grid.getCoords(0):  # r
         #    for j, _ in grid.getCoords(1):  # v
         #        self.step(grid.get2DSlice(i, j), j)
 
@@ -368,8 +369,9 @@ class VParallelAdvection:
 
         """
         assert f.shape == self._nPoints
-        #self._interpolator.compute_interpolant(f, self._spline)
-        solve_system_nonperiodic(f, self._spline.coeffs, self._interpolator._bmat, self._interpolator._l, self._interpolator._u, self._interpolator._ipiv)
+        # self._interpolator.compute_interpolant(f, self._spline)
+        solve_system_nonperiodic(f, self._spline.coeffs, self._interpolator._bmat,
+                                 self._interpolator._l, self._interpolator._u, self._interpolator._ipiv)
 
         v_parallel_advection_eval_step(f, self._points-c*dt, r, self._points[0],
                                        self._points[-1], self._spline,
@@ -390,7 +392,7 @@ class VParallelAdvection:
                                                 self._constants.deltaRN0, self._constants.rp,
                                                 self._constants.CTi, self._constants.kTi,
                                                 self._constants.deltaRTi, self._edgeType)
-            #for j, _ in grid.getCoords(1):  # z
+            # for j, _ in grid.getCoords(1):  # z
             #    for k, _ in grid.getCoords(2):  # q
             #        self.step(grid.get1DSlice(
             #            i, j, k), dt, parGradVals[i, j, k], r)
@@ -405,7 +407,7 @@ class VParallelAdvection:
                                                 self._constants.deltaRN0, self._constants.rp,
                                                 self._constants.CTi, self._constants.kTi,
                                                 self._constants.deltaRTi, self._edgeType)
-            #for j, _ in grid.getCoords(1):  # z
+            # for j, _ in grid.getCoords(1):  # z
             #    for k, _ in grid.getCoords(2):  # q
             #        self.step(grid.get1DSlice(
             #            i, j, k), dt, parGradVals[i, j, k], r)
@@ -549,12 +551,12 @@ class PoloidalAdvection:
                                 self._constants.rp, self._constants.CTi,
                                 self._constants.kTi, self._constants.deltaRTi,
                                 self._constants.B0, self._TOL, self._nulEdge)
-        ## Evaluate splines
-        #for j, _ in grid.getCoords(1):  # z
+        # Evaluate splines
+        # for j, _ in grid.getCoords(1):  # z
         #    self._interpolator.compute_interpolant(
         #        np.real(phi.get2DSlice(j)), self._phiSplines[j])
-        ## Do step
-        #for i, v in grid.getCoords(0):
+        # Do step
+        # for i, v in grid.getCoords(0):
         #    for j, _ in grid.getCoords(1):  # z
         #        self.step(grid.get2DSlice(i, j), dt, self._phiSplines[j], v)
 

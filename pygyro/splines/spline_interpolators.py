@@ -35,17 +35,18 @@ class SplineInterpolator1D():
             if (max_ku * (n + top_size) + (3 * max_ku + 1) * top_size >= n * n):
                 self._splu = None
             else:
-                dmat = dia_matrix(self._imat[max_ku:n-max_ku,max_ku:n-max_ku])
+                dmat = dia_matrix(self._imat[max_ku:n-max_ku, max_ku:n-max_ku])
                 l = abs(dmat.offsets.min()-self._offset)
                 u = dmat.offsets.max()-self._offset
-                ku = np.int32(max(l,u))
+                ku = np.int32(max(l, u))
 
                 self._splu = SLL.PeriodicBandedMatrix(n, ku, ku)
                 for i in range(basis.nbasis):
                     for jmin in range(basis.nbasis):
                         j = (jmin - self._offset) % basis.nbasis
-                        if self._imat[i,jmin] != 0:
-                            self._splu.set_element(np.int32(i+1), np.int32(j+1), self._imat[i,jmin])
+                        if self._imat[i, jmin] != 0:
+                            self._splu.set_element(
+                                np.int32(i+1), np.int32(j+1), self._imat[i, jmin])
                 self._splu.factorize()
 
         else:
@@ -53,7 +54,8 @@ class SplineInterpolator1D():
             self._l = abs(dmat.offsets.min())
             self._u = dmat.offsets.max()
             cmat = csr_matrix(dmat)
-            bmat = np.zeros((1 + self._u + 2 * self._l, cmat.shape[1]), order='F')
+            bmat = np.zeros((1 + self._u + 2 * self._l,
+                            cmat.shape[1]), order='F')
             for i, j in zip(*cmat.nonzero()):
                 bmat[self._u + self._l+i-j, j] = cmat[i, j]
             if (dtype == complex):
@@ -87,13 +89,13 @@ class SplineInterpolator1D():
         """
 
         assert isinstance(spl, (Spline1D, Spline1DComplex))
-        #assert spl.basis is self._basis
+        # assert spl.basis is self._basis
         assert len(ug) == self._basis.nbasis
 
         if self._basis.periodic:
             if self._splu:
                 solve_system_periodic(ug, spl, self._offset, self._splu)
-                #self._solve_system_periodic(ug, spl.coeffs)
+                # self._solve_system_periodic(ug, spl.coeffs)
             else:
                 n = spl.basis.nbasis
                 p = spl.basis.degree
@@ -101,12 +103,13 @@ class SplineInterpolator1D():
                 c[0:n] = np.linalg.solve(self._imat, ug)
                 c[n:n+p] = c[0:p]
         else:
-            sinfo = solve_system_nonperiodic(ug, spl.coeffs, self._bmat, self._l, self._u, self._ipiv)
+            sinfo = solve_system_nonperiodic(
+                ug, spl.coeffs, self._bmat, self._l, self._u, self._ipiv)
             assert sinfo == 0
-            #self._solve_system_nonperiodic(ug, spl.coeffs)
+            # self._solve_system_nonperiodic(ug, spl.coeffs)
 
-    ## ...
-    #def _solve_system_periodic(self, ug, c):
+    # ...
+    # def _solve_system_periodic(self, ug, c):
     #    """
     #    Compute the coefficients c of the spline which interpolates the points ug
     #    for a periodic spline
@@ -124,8 +127,8 @@ class SplineInterpolator1D():
     #        c[0:n] = np.linalg.solve(self._imat, ug)
     #        c[n:n+p] = c[0:p]
 
-    ## ...
-    #def _solve_system_nonperiodic(self, ug, c):
+    # ...
+    # def _solve_system_nonperiodic(self, ug, c):
     #    """
     #    Compute the coefficients c of the spline which interpolates the points ug
     #    for a non-periodic spline
@@ -261,8 +264,8 @@ class SplineInterpolator2D():
         assert isinstance(spl, Spline2D)
         basis1 = spl.basis1
         basis2 = spl.basis2
-        #assert basis1 is self._basis1
-        #assert basis2 is self._basis2
+        # assert basis1 is self._basis1
+        # assert basis2 is self._basis2
 
         if basis1.periodic and not basis2.periodic and self._interp1._splu:
             solve_2d_system(ug, spl, self._bwork, self._interp2._bmat, self._interp2._l,

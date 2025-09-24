@@ -31,9 +31,9 @@ def test_make_knots_periodic(ncells, degree):
 # ===============================================================================
 
 
-#@pytest.mark.serial
-#@pytest.mark.parametrize("ncells", [1, 5, 10, 23])
-#def test_make_knots_periodic_should_fail(ncells):
+# @pytest.mark.serial
+# @pytest.mark.parametrize("ncells", [1, 5, 10, 23])
+# def test_make_knots_periodic_should_fail(ncells):
 #    """
 #    TODO
 #    """
@@ -88,7 +88,8 @@ def test_BSplines(ncells, degree, periodic, npts=50, tol=1e-15):
 
     for i in range(ncells+degree):
         fi = np.empty_like(x)
-        basis[i].eval_vector(x, fi)  # Evaluate basis function at all test points
+        # Evaluate basis function at all test points
+        basis[i].eval_vector(x, fi)
         f += fi                  # Sum contributions from all basis functions
         assert all(fi >= 0.0)  # Check positivity of each basis function
     assert all(abs(1.0-f) < tol)  # Check partition of unity
