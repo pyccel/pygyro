@@ -198,15 +198,15 @@ jobs:
             python -m pip install autopep8
       - name: Check for pep changes
         run: |
-            if [[ $(autopep8 -r --diff pygyro/) ]]
+            if [[ $(autopep8 --ignore=E265 -r --diff pygyro/) ]]
             then
-              echo "Please run 'autopep8 -ir pygyro/' to clean up formatting"
-              autopep8 -r --diff pygyro/
+              echo "Please run 'autopep8 --ignore=E265 -ir pygyro/' to clean up formatting"
+              autopep8 --ignore=E265 -r --diff pygyro/
               exit 1
             fi
-            if [[ $(autopep8 -r --diff plotting/) ]]
+            if [[ $(autopep8 --ignore=E265 -r --diff plotting/) ]]
             then
-              echo "Please run 'autopep8 -ir plotting/' to clean up formatting"
-              autopep8 -r --diff plotting/
+              echo "Please run 'autopep8 --ignore=E265 -ir plotting/' to clean up formatting"
+              autopep8 --ignore=E265 -r --diff plotting/
               exit 1
             fi
