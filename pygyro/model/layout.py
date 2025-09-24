@@ -3,9 +3,7 @@ import numpy as np
 import warnings
 import operator
 import time
-# from .accelerated_layout import flat_transpose
-from hptt import tensorTransposeAndUpdate
-import torch
+import hptt
 
 from abc import ABC
 
@@ -14,50 +12,7 @@ def my_transpose(dest, source, axes):
     if axes == list(range(len(axes))):
         dest[:] = source
     else:
-        # print(axes, source.shape, dest.shape, source.size, dest.size)
-        # assert tuple(source.shape[a] for a in axes) == dest.shape
-        # print(source.flags)
-        # print(dest.flags)
-        # assert source.flags['C_CONTIGUOUS'] or source.flags['F_CONTIGUOUS']
-        # assert dest.flags['C_CONTIGUOUS'] or dest.flags['F_CONTIGUOUS']
-        tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
-    # s = time.time()
-    # dest[:] = source.transpose(axes)
-    # print("NumpyTranspose : ", time.time() - s)
-
-    # s = time.time()
-    # new_shape = [source.shape[0]]
-    # idx = 0
-    # new_axes = [axes[0]]
-    # for i,a in enumerate(axes[1:],1):
-    #    if a == axes[i-1]+1:
-    #        new_shape[-1] *= source.shape[i]
-    #    else:
-    #        new_shape.append(source.shape[i])
-    #        new_axes.append(a)
-    # if len(new_shape) == 1:
-    #    dest[:] = source
-    # else:
-    #    new_axes = np.argsort(np.argsort(new_axes))
-    #    dim1, dim2 = next((i,a) for i,a in enumerate(new_axes) if i!=a)
-    #    print(new_shape, axes, new_axes)
-    #    #tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
-    #    #flat_transpose(dest.ravel(), source.ravel(), source.shape, dest.shape, tuple(axes))
-    #    #dest[:] = np.transpose(source, axes)
-    #    print(source.shape)
-    #    print(dest.shape)
-    #    dest[:] = torch.transpose(torch.from_numpy(source), int(dim1), int(dim2)).contiguous()
-    # print("Torch : ", time.time() - s)
-    # s = time.time()
-    # dest[:] = np.ascontiguousarray(source.transpose(axes))
-    # print("NumpyTransposeContig : ", time.time() - s)
-    # print(source.shape, source.strides)
-    # print(dest.shape, dest.strides)
-    # print(source.flags)
-    # print(dest.flags)
-    # s = time.time()
-    # tensorTransposeAndUpdate(tuple(axes), 1.0, source, 1.0, dest)
-    # print("HPTT Transpose : ", time.time() - s)
+        hptt.tensorTransposeAndUpdate(axes, 1.0, source, 0.0, dest)
 
 
 class Layout:
@@ -820,8 +775,10 @@ class LayoutHandler(LayoutManager):
             # the size of the block
             # The data should however be written directly in the buffer
             # as the shapes agree
-            my_transpose(arrView, np.ascontiguousarray(
+            dest_block = np.empty(arrView.shape, dtype=arrView.dtype)
+            my_transpose(dest_block, np.ascontiguousarray(
                 source[tuple(source_range)]), order)
+            arrView[:] = dest_block
             # arrView[:] = source[tuple(source_range)].transpose(order)
 
             start += size
