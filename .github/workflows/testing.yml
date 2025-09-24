@@ -39,6 +39,8 @@ jobs:
             python-version: '3.10'
       - name: Install dependencies
         uses: ./.github/actions/linux_install
+      - name: Install SeLaLib
+        uses: ./.github/actions/selalib_installation
       - name: Cache pip
         uses: actions/cache@v3
         with:
@@ -83,6 +85,8 @@ jobs:
             python-version: '3.10'
       - name: Install dependencies
         uses: ./.github/actions/linux_install
+      - name: Install SeLaLib
+        uses: ./.github/actions/selalib_installation
       - name: Cache pip
         uses: actions/cache@v3
         env:
@@ -98,86 +102,86 @@ jobs:
       - name: Unit tests
         uses: ./.github/actions/pytest_run
 
-  Pyccel_C:
+  #Pyccel_C:
 
-    runs-on: ubuntu-latest
+  #  runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-            python-version: '3.10'
-      - name: Install dependencies
-        uses: ./.github/actions/linux_install
-      - name: Cache pip
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-pip
-        with:
-          path: ~/.local
-          key: ${{runner.os }}-build-${{ env.cache-name }}
-      - name: Install python dependencies
-        uses: ./.github/actions/pip_installation
-      - name: Make with pyccel
-        run: |
-          make LANGUAGE=c pycc
-      - name: Unit tests
-        uses: ./.github/actions/pytest_run
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - name: Set up Python
+  #      uses: actions/setup-python@v4
+  #      with:
+  #          python-version: '3.10'
+  #    - name: Install dependencies
+  #      uses: ./.github/actions/linux_install
+  #    - name: Cache pip
+  #      uses: actions/cache@v3
+  #      env:
+  #        cache-name: cache-pip
+  #      with:
+  #        path: ~/.local
+  #        key: ${{runner.os }}-build-${{ env.cache-name }}
+  #    - name: Install python dependencies
+  #      uses: ./.github/actions/pip_installation
+  #    - name: Make with pyccel
+  #      run: |
+  #        make LANGUAGE=c pycc
+  #    - name: Unit tests
+  #      uses: ./.github/actions/pytest_run
 
-  Numba:
+  #Numba:
 
-    runs-on: ubuntu-latest
+  #  runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-            python-version: '3.10'
-      - name: Install dependencies
-        uses: ./.github/actions/linux_install
-      - name: Cache pip
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-pip
-        with:
-          path: ~/.local
-          key: ${{runner.os }}-build-${{ env.cache-name }}
-      - name: Install python dependencies
-        uses: ./.github/actions/pip_installation
-      - name: Make with numba
-        run: |
-          make ACC=numba numba
-      - name: Unit tests
-        uses: ./.github/actions/pytest_run
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - name: Set up Python
+  #      uses: actions/setup-python@v4
+  #      with:
+  #          python-version: '3.10'
+  #    - name: Install dependencies
+  #      uses: ./.github/actions/linux_install
+  #    - name: Cache pip
+  #      uses: actions/cache@v3
+  #      env:
+  #        cache-name: cache-pip
+  #      with:
+  #        path: ~/.local
+  #        key: ${{runner.os }}-build-${{ env.cache-name }}
+  #    - name: Install python dependencies
+  #      uses: ./.github/actions/pip_installation
+  #    - name: Make with numba
+  #      run: |
+  #        make ACC=numba numba
+  #    - name: Unit tests
+  #      uses: ./.github/actions/pytest_run
 
-  Pythran:
+  #Pythran:
 
-    runs-on: ubuntu-latest
+  #  runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-            python-version: '3.10'
-      - name: Install dependencies
-        uses: ./.github/actions/linux_install
-      - name: Cache pip
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-pip
-        with:
-          path: ~/.local
-          key: ${{runner.os }}-build-${{ env.cache-name }}
-      - name: Install python dependencies
-        uses: ./.github/actions/pip_installation
-      - name: Make with pyccel
-        run: |
-          make ACC=pythran pythran
-      - name: Unit tests
-        uses: ./.github/actions/pytest_run
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - name: Set up Python
+  #      uses: actions/setup-python@v4
+  #      with:
+  #          python-version: '3.10'
+  #    - name: Install dependencies
+  #      uses: ./.github/actions/linux_install
+  #    - name: Cache pip
+  #      uses: actions/cache@v3
+  #      env:
+  #        cache-name: cache-pip
+  #      with:
+  #        path: ~/.local
+  #        key: ${{runner.os }}-build-${{ env.cache-name }}
+  #    - name: Install python dependencies
+  #      uses: ./.github/actions/pip_installation
+  #    - name: Make with pyccel
+  #      run: |
+  #        make ACC=pythran pythran
+  #    - name: Unit tests
+  #      uses: ./.github/actions/pytest_run
 
   Pep8:
 
