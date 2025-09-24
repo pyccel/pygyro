@@ -99,7 +99,8 @@ class Grid(object):
         """
         assert len(slices) == self._nDims-3
         slices = slices + (slice(self._nGlobalCoords[self._layout.dims_order[-3]]),
-                           slice(self._nGlobalCoords[self._layout.dims_order[-2]]),
+                           slice(
+                               self._nGlobalCoords[self._layout.dims_order[-2]]),
                            slice(self._nGlobalCoords[self._layout.dims_order[-1]]))
         return self._f[tuple(slices)]
 
