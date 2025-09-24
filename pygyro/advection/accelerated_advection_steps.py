@@ -350,7 +350,7 @@ def poloidal_advection_loop(f: 'float[:,:,:,:]', phi: 'float[:,:,:]', dt: 'float
                             phi_spline: Spline2D, pol_spline: Spline2D,
                             CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
                             B0: 'float', tol: 'float', nulBound: 'bool'):
-    nv, nz, _, _ = f.shape
+    _, nz, _, _ = f.shape
     for j in range(nz):
         solve_2d_system(phi[j], phi_spline, interp_wt, r_bmat, r_l, r_u,
                         r_ipiv, theta_offset, theta_splu)

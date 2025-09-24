@@ -56,7 +56,7 @@ def solve_2d_system(ug: 'float[:,:]', spl: Spline2D, wt: 'float[:,:]',
     basis1 = spl.basis1
     basis2 = spl.basis2
     n1, n2 = basis1.nbasis, basis2.nbasis
-    p1, p2 = basis1.degree, basis2.degree
+    p1, _ = basis1.degree, basis2.degree
     assert ug.shape[0] == n1
     assert ug.shape[1] == n2
 
