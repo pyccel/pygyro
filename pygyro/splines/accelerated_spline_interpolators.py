@@ -81,8 +81,7 @@ def solve_2d_system(ug: 'float[:,:]', spl: Spline2D, wt: 'float[:,:]',
 
     # Cycle over x2 position and interpolate w along x1 direction.
     # Work on self._bwork
-    ##$ omp parallel for default(none) shared(wt, n1, n2, theta_offset, theta_splu, basis1) private(spline1)
-    # theta_splu contains schur which can be modified by thread
+    #$ omp parallel for default(none) shared(wt, n1, n2, theta_offset) firstprivate(spline1, theta_splu)
     for i2 in range(n2):
         solve_system_periodic(wt[i2, :n1], spline1, theta_offset, theta_splu)
         wt[i2, :] = spline1.coeffs
