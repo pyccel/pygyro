@@ -10,7 +10,7 @@ from . import sll_m_spline_matrix_periodic_banded as SLL
 from .splines import BSplines, Spline2D, Spline1D, Spline1DComplex
 from .spline_eval_funcs import nu_find_span, nu_basis_funs
 from .cubic_uniform_spline_eval_funcs import cu_find_span, cu_basis_funs
-from .accelerated_spline_interpolators import solve_system_periodic, solve_system_nonperiodic
+from .accelerated_spline_interpolators import solve_system_periodic, solve_system_nonperiodic, solve_2d_system
 
 __all__ = ["SplineInterpolator1D", "SplineInterpolator2D"]
 
@@ -233,6 +233,12 @@ class SplineInterpolator2D():
         basis2 = spl.basis2
         # assert basis1 is self._basis1
         # assert basis2 is self._basis2
+
+        if basis1.periodic and not basis2.periodic and self._interp1._splu:
+            solve_2d_system(ug, spl, self._bwork, self._interp2._bmat, self._interp2._l,
+                            self._interp2._u, self._interp2._ipiv, self._interp1._offset,
+                            self._interp1._splu)
+            return
 
         n1, n2 = basis1.nbasis, basis2.nbasis
         p1, p2 = basis1.degree, basis2.degree
