@@ -320,7 +320,7 @@ def test_SplineInterpolator2D_radial(ncells, degree):
 
     x1g = basis1.greville
     x2g = basis2.greville
-    ug = f.eval(x1g)[:, None] * poly.eval(x2g)[None,:]
+    ug = f.eval(x1g)[:, None] * poly.eval(x2g)[None, :]
 
     interp.compute_interpolant(ug, spline)
 
@@ -328,9 +328,10 @@ def test_SplineInterpolator2D_radial(ncells, degree):
     x2t = np.linspace(*domain2, num=20)
     vals = np.empty((20, 20))
     spline.eval_vector(x1t, x2t, vals)
-    err = vals - f.eval(x1t)[:, None] * poly.eval(x2t)[None,:]
+    err = vals - f.eval(x1t)[:, None] * poly.eval(x2t)[None, :]
 
     max_norm_err = np.max(abs(err))
-    err_bound = spline_1d_error_bound(f, max(np.diff(breaks1).max(), np.diff(breaks2).max()), degree)
+    err_bound = spline_1d_error_bound(
+        f, max(np.diff(breaks1).max(), np.diff(breaks2).max()), degree)
 
     assert max_norm_err < err_bound
