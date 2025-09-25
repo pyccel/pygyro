@@ -364,7 +364,6 @@ def poloidal_advection_loop(f: 'float[:,:,:,:]', phi: 'float[:,:,:]', dt: 'float
                             CN0: 'float', kN0: 'float', deltaRN0: 'float', rp: 'float', CTi: 'float', kTi: 'float', deltaRTi: 'float',
                             B0: 'float', tol: 'float', nulBound: 'bool'):
     _, nz, _, _ = f.shape
-    #$omp parallel for firstprivate(phi_spline, pol_spline) private(interp_wt, drPhi_0, dthetaPhi_0, drPhi_k, dthetaPhi_k, endPts_k1_q, endPts_k1_r, endPts_k2_q, endPts_k2_r)
     for j in range(nz):
         solve_2d_system(phi[j], phi_spline, interp_wt, r_bmat, r_l, r_u,
                         r_ipiv, theta_offset, theta_splu)
