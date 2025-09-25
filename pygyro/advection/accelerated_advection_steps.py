@@ -45,11 +45,11 @@ def poloidal_advection_step_expl(f: 'float[:,:]',
     nPts_q = qPts.shape[0]
 
     #$omp parallel for collapse(2)
-    for i in range(nPts_r):
-        for j, q in enumerate(qPts):
-            r = rPts[i]
-            drPhi_0[i, j] = phi_spline.eval(q, r, 0, 1)
-            dthetaPhi_0[i, j] = phi_spline.eval(q, r, 1, 0)
+    for j in range(nPts_q):
+        for i, r in enumerate(rPts):
+            q = qPts[j]
+            drPhi_0[j, i] = phi_spline.eval(q, r, 0, 1)
+            dthetaPhi_0[j, i] = phi_spline.eval(q, r, 1, 0)
 
     idx = nPts_r-1
     rMax = rPts[idx]
