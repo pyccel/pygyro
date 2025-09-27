@@ -53,7 +53,7 @@ def solve_system_nonperiodic(ug: 'Final[T[:]]', c: 'T[:]', bmat: 'Final[T[:,:](o
 
 def solve_2d_system(ug: 'float[:,:]', spl: Spline2D, wt: 'float[:,:]',
                     r_bmat: 'float[:,:](order=F)', r_l: np.int32, r_u: np.int32, r_ipiv: 'int32[:]',
-                    theta_offset: int, theta_splu: PeriodicBandedMatrix):
+                    theta_offset: int, theta_splu: Final[PeriodicBandedMatrix]):
     basis1 = spl.basis1
     basis2 = spl.basis2
     n1, n2 = basis1.nbasis, basis2.nbasis
@@ -75,24 +75,26 @@ def solve_2d_system(ug: 'float[:,:]', spl: Spline2D, wt: 'float[:,:]',
     assert sinfo == 0
 
     # Transpose coefficients to self._bwork
+    #$omp parallel for collapse(2)
     for i1 in range(n1):
         for i2 in range(n2):
             wt[i2, i1] = ug[i1, i2]
 
     # Cycle over x2 position and interpolate w along x1 direction.
     # Work on self._bwork
+    #$ omp parallel for default(none) shared(wt, n1, n2, theta_offset) firstprivate(spline1, theta_splu) schedule(static)
     for i2 in range(n2):
         solve_system_periodic(wt[i2, :n1], spline1, theta_offset, theta_splu)
-        # self._interp1.compute_interpolant(wt[i2, :n1], self._spline1)
-        c = spline1.coeffs
-        wt[i2, :] = c
+        wt[i2, :] = spline1.coeffs
 
     # Transpose coefficients to spl.coeffs
+    #$omp parallel for collapse(2)
     for i1 in range(s1):
         for i2 in range(s2):
             w[i1, i2] = wt[i2, i1]
 
     # x1-periodic only: "wrap around" coefficients onto extended array
+    #$omp parallel for collapse(2)
     for i1 in range(p1):
         for i2 in range(s2):
             w[n1 + i1, i2] = w[i1, i2]
